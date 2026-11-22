@@ -1,7 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorAlchemyCutoverPlan.h"
+#include "../ARMEMENT/GridEditorAlchemyActionIdentity.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -14,118 +15,72 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X63AlchemyJointProjection
 
 bool FGridEditorARMCLEAN064X63AlchemyJointProjection::RunTest(const FString&)
 {
-    namespace Plan = GridEditorAlchemyCutoverPlan;
-    namespace Audit = GridEditorAlchemyMigrationAudit;
-    namespace Identity = GridEditorAlchemyActionIdentity;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, Audit::RootPath()));
-    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
-    if (!TestNotNull(TEXT("Real X.61B registry"), Root.Get()) ||
-        !TestNotNull(TEXT("Real action catalogue"), Root->ActionCatalogue.Get()) ||
-        !TestNotNull(TEXT("Real presentation catalogue"), Root->ActionPresentationCatalogue.Get()))
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Single canonical runtime ItemSystem"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real ItemSystem root"), Root) ||
+        !TestNotNull(TEXT("Real detailed action catalogue"), Root->ActionCatalogue.Get()) ||
+        !TestNotNull(TEXT("Real action presentation catalogue"), Root->ActionPresentationCatalogue.Get()))
         return false;
-    const auto OriginalItems = Root->ItemDefinitions;
-    const auto OriginalActions = Root->ActionCatalogue->DetailedActions;
-    const auto OriginalPresentations = Root->ActionPresentationCatalogue->DetailedPresentations;
-    const FString OriginalRootManifest = FGridEditorLootDefinitionProjection::RootManifest(*Root.Get());
-    FString Error;
-    const bool bBuilt = Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error);
-    if (!TestTrue(*FString::Printf(TEXT("All ten items coexist: %s"), *Error), bBuilt)) return false;
-    TestEqual(TEXT("48 definitions"), Preview->ItemDefinitions.Num(), 48);
-    TestEqual(TEXT("14 detailed actions"), Preview->ActionCatalogue->DetailedActions.Num(), 14);
-    TestEqual(TEXT("19 compact actions retained"), Preview->ActionCatalogue->Actions.Num(), 19);
-    TestNull(TEXT("No legacy elixir ActionId in candidate catalogue"), Preview->ActionCatalogue->FindDetailed(Identity::SharedLegacyAction()));
-    TestTrue(TEXT("Both armament catalogues retained"), Preview->WeaponCatalogue == Root->WeaponCatalogue &&
-        Preview->WeaponVisualCatalogue == Root->WeaponVisualCatalogue);
-    TestTrue(TEXT("Action catalogues are isolated copies"), Preview->ActionCatalogue != Root->ActionCatalogue &&
-        Preview->ActionPresentationCatalogue != Root->ActionPresentationCatalogue);
-
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> Errors;
-    if (!TestTrue(TEXT("Complete joint root resolves"), Registry->RegisterItemSystem(Preview.Get(), Errors)))
-    {
-        for (const FString& Detail : Errors) AddError(Detail);
-        return false;
-    }
-
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+    const bool bActionDirty = Root->ActionCatalogue->GetOutermost()->IsDirty();
+    TestEqual(TEXT("All 48 final canonical item identities"), Root->ItemDefinitions.Num(), 48);
+    TestEqual(TEXT("Fourteen source-specific detailed actions"), Root->ActionCatalogue->DetailedActions.Num(), 14);
+    TestEqual(TEXT("Original 19 compact ARM attacks still installed"), Root->ActionCatalogue->Actions.Num(), 19);
+    TestNull(TEXT("Original shared elixir ID is not an alias in native catalogue"),
+        Root->ActionCatalogue->FindDetailed(GridEditorAlchemyActionIdentity::SharedLegacyAction()));
+    const FName ItemIds[] = {
+        TEXT("Item_Antidote"), TEXT("Item_Bomb_Fire"), TEXT("Item_Bomb_Toxic"),
+        TEXT("Item_DefensiveElixir_Fire"), TEXT("Item_DefensiveElixir_Ice"),
+        TEXT("Item_DefensiveElixir_Lightning"), TEXT("Item_DefensiveElixir_Poison"),
+        TEXT("Item_Flask_Acid"), TEXT("Item_Flask_CorrosiveCloud"), TEXT("Item_Panacea"),
+        TEXT("Item_Flask_Oil")
+    };
     TSet<FName> Used;
-    for (int32 I = 0; I < Audit::TotalCount; ++I)
+    int32 Checked = 0;
+    for (FName Id : ItemIds)
     {
-        const FName ItemId = Audit::Id(I);
-        const FString SourcePath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-        const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *SourcePath);
-        if (!TestNotNull(TEXT("Real item source"), Old)) return false;
-        FGridCombatActionDefinition Historical, Actual;
         FGridResolvedItem Item;
-        if (!TestTrue(TEXT("Original action builds"), Old->BuildQuickItemCombatActionDefinition(Historical)) ||
-            !TestTrue(TEXT("Known item resolves without a legacy pointer"), Registry->ResolveItem(ItemId, 0, Item)) ||
-            !TestEqual(TEXT("One bound action"), Item.AvailableActions.Num(), 1))
-            return false;
-        const FName Renamed = Identity::ActionForItem(ItemId);
-        const FName ExpectedId = Renamed.IsNone() ? Historical.ActionId : Renamed;
-        TestEqual(TEXT("Exact new binding identity"), Item.AvailableActions[0].ActionId, ExpectedId);
-        TestFalse(TEXT("Every alchemy action has a unique ID"), Used.Contains(ExpectedId));
-        Used.Add(ExpectedId);
-
-        if (!TestTrue(TEXT("Bound detailed QuickItem action resolves"), Registry->ResolveDetailedNonArmAction(ItemId, 0, ExpectedId, Actual)))
-            return false;
-        // No loss of mechanical, text or authored FX fields. The new stable
-        // identifier is the sole action-level difference for the four elixirs.
-        Historical.ActionId = ExpectedId;
-        TestTrue(TEXT("Every reflected action field retained"), Audit::DifferentActionFields(Historical, Actual).IsEmpty());
-        TestEqual(TEXT("Original source consumption"), Actual.ResourceCosts.SourceItemQuantityCost, 1);
-        TestEqual(TEXT("Original cooldown"), Actual.CooldownRounds, Historical.CooldownRounds);
-        TestTrue(TEXT("Gameplay modifier source tags unchanged"), Actual.SourceTags == Historical.SourceTags);
-        TArray<FName> ExpectedTags = Old->ItemTags;
-        if (Plan::IsPotion(I)) ExpectedTags.Add(GridCanonicalInventoryCategoryTags::Potion());
-        TestTrue(TEXT("Item tags preserve old gameplay tags and only exact category metadata"),
-            GridCanonicalPuzzleCategoryTags::MatchesBeforeOrAfter(Item.Tags, ExpectedTags,
-                Plan::IsPotion(I) ? FName(TEXT("Potion")) : FName(TEXT("Misc"))));
-        TestEqual(TEXT("Native weight stays zero"), Item.WeightKg, 0.f);
-        TestEqual(TEXT("Native stack capacity stays one"), Item.MaxStack, 1);
-        TestEqual(TEXT("No hand permission introduced"), Item.NonArmEquipmentSlots.Num(), 0);
-        TestEqual(TEXT("No mesh invented"), Item.WorldMesh.ToSoftObjectPath(), Old->WorldMesh.ToSoftObjectPath());
-        TestEqual(TEXT("No icon invented"), Item.ItemIcon.ToSoftObjectPath(), Old->Icon.ToSoftObjectPath());
+        if (!TestTrue(TEXT("Native N0 alchemy ItemId resolves"),
+            Fixture.Resolve(Id, 0, Item))) continue;
+        if (!TestEqual(TEXT("Exactly one explicit alchemy action"), Item.AvailableActions.Num(), 1))
+            continue;
+        const FName ExpectedRenamed = GridEditorAlchemyActionIdentity::ActionForItem(Id);
+        const FName ActionId = Item.AvailableActions[0].ActionId;
+        if (!ExpectedRenamed.IsNone())
+            TestEqual(TEXT("Four former shared elixir IDs have their exact stable replacement"),
+                ActionId, ExpectedRenamed);
+        TestFalse(TEXT("No two alchemy actions share a colliding identity"), Used.Contains(ActionId));
+        Used.Add(ActionId);
+        FGridCombatActionDefinition Action;
+        if (!TestTrue(TEXT("Authored detailed QuickItem action resolves"),
+            Fixture.Registry->ResolveDetailedNonArmAction(Id, 0, ActionId, Action)))
+            continue;
+        ++Checked;
+        TestEqual(TEXT("Native source policy retains QuickItem"),
+            Action.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+        TestEqual(TEXT("Exactly one physical source consumed"),
+            Action.ResourceCosts.SourceItemQuantityCost, 1);
+        TestEqual(TEXT("Alchemy N0 has no per-weapon level"), Item.ItemLevel, 0);
+        TestEqual(TEXT("Alchemy does not occupy an equipment hand"), Item.NonArmEquipmentSlots.Num(), 0);
+        TestTrue(TEXT("No copied armor profile on alchemy item"), !Item.bIsArmament);
         FGridCombatActionDefinition Invalid;
-        TestFalse(TEXT("Old shared action is not a runtime alias"), Registry->ResolveDetailedNonArmAction(ItemId, 0, Identity::SharedLegacyAction(), Invalid));
+        TestFalse(TEXT("N21 alchemy is not a real physical instance"),
+            Fixture.Registry->ResolveDetailedNonArmAction(Id, 21, ActionId, Invalid));
         for (int32 J = 0; J < 4; ++J)
-            if (ItemId != Identity::Item(J))
-                TestFalse(TEXT("One item cannot borrow an unrelated elixir action"),
-                    Registry->ResolveDetailedNonArmAction(ItemId, 0, Identity::ActionForItem(Identity::Item(J)), Invalid));
-        TestFalse(TEXT("Invalid level refused"), Registry->ResolveDetailedNonArmAction(ItemId, 21, ExpectedId, Invalid));
-        TestFalse(TEXT("Source package untouched"), Old->GetOutermost()->IsDirty());
+        {
+            const FName OtherId = GridEditorAlchemyActionIdentity::Item(J);
+            if (OtherId == Id) continue;
+            TestFalse(TEXT("A potion cannot borrow another elixir's specific action"),
+                Fixture.Registry->ResolveDetailedNonArmAction(
+                    Id, 0, GridEditorAlchemyActionIdentity::ActionForItem(OtherId), Invalid));
+        }
     }
-    TestEqual(TEXT("All eleven exact owners including unchanged Oil"), Used.Num(), 11);
-
-    // Independently reconstructed projection must be identical, and even
-    // one changed item field or action cost must defeat the native gate.
-    TStrongObjectPtr<UGridItemSystemAsset> Second(NewObject<UGridItemSystemAsset>());
-    if (!TestTrue(TEXT("Second complete projection"), Plan::BuildForCurrentState(*Root.Get(), *Second.Get(), Error)) ||
-        !TestTrue(TEXT("Exact native-equivalent projection comparison"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false)))
-        return false;
-    auto* ChangedItem = Cast<UGridConsumableDefinitionAsset>(Second->ItemDefinitions.Last().Get());
-    if (!TestNotNull(TEXT("Final projected consumable"), ChangedItem)) return false;
-    ChangedItem->WeightKg += 0.5f;
-    TestFalse(TEXT("One changed authored field refuses conversion"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
-    ChangedItem->WeightKg -= 0.5f;
-    Second->ActionCatalogue->DetailedActions.Last().Definition.ActionPointCost += 1;
-    TestFalse(TEXT("One changed action cost refuses conversion"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
-    Second->ActionCatalogue->DetailedActions.Last().Definition.ActionPointCost -= 1;
-    TestTrue(TEXT("Restored projection is identical"), Plan::MatchesProjected(*Second.Get(), *Preview.Get(), Error, false));
-
-    // Re-run the same planner without changing the persisted root or any
-    // already allocated destination. A partially populated root is refused.
-    TestFalse(TEXT("Populated candidate cannot be appended again"), Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error));
-    TestTrue(TEXT("Original root ordered definitions unchanged"), Root->ItemDefinitions == OriginalItems);
-    TestTrue(TEXT("Original root manifest identical"), FGridEditorLootDefinitionProjection::RootManifest(*Root.Get()) == OriginalRootManifest);
-    TestEqual(TEXT("Original detailed action count unchanged"), Root->ActionCatalogue->DetailedActions.Num(), OriginalActions.Num());
-    TestEqual(TEXT("Original detailed presentation count unchanged"), Root->ActionPresentationCatalogue->DetailedPresentations.Num(), OriginalPresentations.Num());
-    for (int32 I = 0; I < OriginalActions.Num(); ++I)
-        TestTrue(TEXT("Existing detailed action fields unchanged"),
-            Audit::DifferentActionFields(OriginalActions[I].Definition, Root->ActionCatalogue->DetailedActions[I].Definition).IsEmpty());
-    TestFalse(TEXT("No native package dirty"), Root->GetOutermost()->IsDirty() ||
-        Root->ActionCatalogue->GetOutermost()->IsDirty() || Root->ActionPresentationCatalogue->GetOutermost()->IsDirty());
-    AddInfo(TEXT("[ARM-CLEAN06.4X63] 48 definitions and 14 details coexist in memory; no native migration."));
+    TestEqual(TEXT("All eleven explicit physical alchemy owners"), Checked, 11);
+    TestEqual(TEXT("No duplicate alchemy ActionId"), Used.Num(), 11);
+    TestEqual(TEXT("Production ItemSystem unchanged"), Root->GetOutermost()->IsDirty(), bRootDirty);
+    TestEqual(TEXT("Detailed catalogue unchanged"), Root->ActionCatalogue->GetOutermost()->IsDirty(), bActionDirty);
     return !HasAnyErrors();
 }
 
@@ -268,51 +223,59 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X63CanonicalAlchemyHotbar
 
 bool FGridEditorARMCLEAN064X63CanonicalAlchemyHotbar::RunTest(const FString&)
 {
-    namespace Plan = GridEditorAlchemyCutoverPlan;
-    namespace Audit = GridEditorAlchemyMigrationAudit;
-    namespace Identity = GridEditorAlchemyActionIdentity;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, Audit::RootPath()));
-    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
-    if (!TestNotNull(TEXT("Real registry"), Root.Get())) return false;
-    FString Error;
-    const bool bBuilt = Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error);
-    if (!TestTrue(*FString::Printf(TEXT("Complete joint projection: %s"), *Error), bBuilt)) return false;
-    FX63World Fixture(Preview.Get());
-    if (!TestTrue(TEXT("World-backed inventory with joint registry"),
-            Fixture.Registry && Fixture.Registry->HasCanonicalItem(Audit::Id(0)) &&
-            Fixture.Inventory && Fixture.Inventory->IsValidCharacterIndex(0)))
-        return false;
-
-    auto& Character = Fixture.Inventory->PartyInventoryState.ActiveCharacters[0];
-    Character.InventorySlots.Reset();
-    Character.InventorySlots.SetNum(Audit::TotalCount);
-    if (!TestTrue(TEXT("Enough hotbar slots"), Fixture.Inventory->EnsureCharacterCombatHotbarCapacity(
-            0, Audit::TotalCount+1))) return false;
-    for (int32 I = 0; I < Audit::TotalCount; ++I)
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Authoritative production ItemSystem"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real ItemSystem root"), Root)) return false;
+    FX63World World(Root);
+    if (!TestTrue(TEXT("World with production registry and physical inventory"),
+        World.Registry && World.Inventory &&
+        World.Inventory->IsValidCharacterIndex(0))) return false;
+    const FName Ids[] = {
+        TEXT("Item_Antidote"), TEXT("Item_Bomb_Fire"), TEXT("Item_Bomb_Toxic"),
+        TEXT("Item_DefensiveElixir_Fire"), TEXT("Item_DefensiveElixir_Ice"),
+        TEXT("Item_DefensiveElixir_Lightning"), TEXT("Item_DefensiveElixir_Poison"),
+        TEXT("Item_Flask_Acid"), TEXT("Item_Flask_CorrosiveCloud"),
+        TEXT("Item_Panacea"), TEXT("Item_Flask_Oil")
+    };
+    FGridCharacterInventoryState& Hero =
+        World.Inventory->PartyInventoryState.ActiveCharacters[0];
+    Hero.InventorySlots.Reset();
+    Hero.InventorySlots.SetNum(UE_ARRAY_COUNT(Ids));
+    if (!TestTrue(TEXT("Physical hotbar has twelve positions"),
+        World.Inventory->EnsureCharacterCombatHotbarCapacity(
+            0, UE_ARRAY_COUNT(Ids) + 1))) return false;
+    for (int32 I = 0; I < UE_ARRAY_COUNT(Ids); ++I)
     {
-        auto& Slot = Character.InventorySlots[I];
+        FGridResolvedItem Canonical;
+        if (!TestTrue(TEXT("Real N0 alchemy item resolves"),
+            World.Registry->ResolveItem(Ids[I], 0, Canonical))) continue;
+        if (!TestEqual(TEXT("One explicit action available"),
+            Canonical.AvailableActions.Num(), 1)) continue;
+        FGridInventorySlot& Slot = Hero.InventorySlots[I];
         Slot.bOccupied = true;
         Slot.Item.RuntimeObjectId = FGuid::NewGuid();
-        Slot.Item.ItemDefinitionId = Audit::Id(I);
+        Slot.Item.ItemDefinitionId = Ids[I];
         Slot.Item.ItemLevel = 0;
         Slot.Item.Quantity = 1;
         Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
-        Slot.Item.OwnerGuid = Character.CharacterId;
+        Slot.Item.OwnerGuid = Hero.CharacterId;
         Slot.Item.OwnerCharacterIndex = 0;
-    }
-    for (int32 I = 0; I < Audit::TotalCount; ++I)
-    {
-        const FGridItemInstance Item = Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[I].Item;
-        const FName Renamed = Identity::ActionForItem(Item.ItemDefinitionId);
-        const FName Expected = Renamed.IsNone() ? Plan::HistoricalAction(I) : Renamed;
-        if (!TestTrue(TEXT("Actual inventory creates canonical QuickItem shortcut"),
-                Fixture.Inventory->SetCharacterCombatHotbarBindingFromItem(0, I+1, Item, EGridEquipmentSlot::None))) return false;
-        FGridCombatHotbarBinding Binding;
-        if (!TestTrue(TEXT("Shortcut retrievable"), Fixture.Inventory->GetCharacterCombatHotbarBinding(0, I+1, Binding))) return false;
-        TestEqual(TEXT("Correct source-specific action"), Binding.ActionId, Expected);
-        TestEqual(TEXT("Correct item ID"), Binding.SourceDefinitionId, Item.ItemDefinitionId);
-        TestEqual(TEXT("QuickItem policy"), Binding.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
-        TestTrue(TEXT("Item retained at assignment time"), Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[I].Item.RuntimeObjectId == Item.RuntimeObjectId);
+        const FGuid OriginalGuid = Slot.Item.RuntimeObjectId;
+        if (!TestTrue(TEXT("Real inventory creates canonical QuickItem binding"),
+            World.Inventory->SetCharacterCombatHotbarBindingFromItem(
+                0, I + 1, Slot.Item, EGridEquipmentSlot::None))) continue;
+        FGridCombatHotbarBinding Bound;
+        if (!TestTrue(TEXT("Actual QuickItem binding retrievable"),
+            World.Inventory->GetCharacterCombatHotbarBinding(0, I + 1, Bound))) continue;
+        TestEqual(TEXT("Bound canonical action matches item owner"),
+            Bound.ActionId, Canonical.AvailableActions[0].ActionId);
+        TestEqual(TEXT("Item identity retained"), Bound.SourceDefinitionId, Ids[I]);
+        TestEqual(TEXT("Source policy is a QuickItem"),
+            Bound.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+        TestEqual(TEXT("Binding does not consume the assigned physical instance"),
+            Hero.InventorySlots[I].Item.RuntimeObjectId, OriginalGuid);
     }
     return !HasAnyErrors();
 }

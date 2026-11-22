@@ -1,86 +1,84 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorAlchemyCutoverPlan.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
+// Final-state alchemy evidence. No old source DataAssets are required.
+// The real 48-item root plus the action catalogue is the only authority.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X62AlchemyEvidence,
     "Grimrock.RPG.ARM.CLEAN06_4X62.NativeAlchemyEvidenceReadOnly",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FGridEditorARMCLEAN064X62AlchemyEvidence::RunTest(const FString&)
 {
-    namespace Audit = GridEditorAlchemyMigrationAudit;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, Audit::RootPath()));
-    if (!TestNotNull(TEXT("Real X.61B canonical root"), Root.Get()) ||
-        !TestNotNull(TEXT("Action catalogue"), Root->ActionCatalogue.Get()) ||
-        !TestNotNull(TEXT("Presentation catalogue"), Root->ActionPresentationCatalogue.Get())) return false;
-    TStrongObjectPtr<UGridItemSystemAsset> Historical(NewObject<UGridItemSystemAsset>());
-    TStrongObjectPtr<UGridItemSystemAsset> Verified(NewObject<UGridItemSystemAsset>());
-    UGridItemSystemAsset* EvidenceRoot = Root.Get();
-    if (Root->ItemDefinitions.Num() == 48)
-    {
-        FString VerifyError;
-        if (!TestTrue(TEXT("Persisted extension equals fresh projection"),
-            GridEditorAlchemyCutoverPlan::BuildForCurrentState(*Root.Get(), *Verified.Get(), VerifyError)) ||
-            !GridEditorAlchemyCutoverPlan::HistoricalView(*Root.Get(), *Historical.Get(), VerifyError))
-        { AddError(VerifyError); return false; }
-        EvidenceRoot = Historical.Get();
-    }
-    const auto Original = Root->ItemDefinitions;
-    const auto ExistingActions = Root->ActionCatalogue->DetailedActions.Num();
-    const auto ExistingPresentations = Root->ActionPresentationCatalogue->DetailedPresentations.Num();
-    FString Error;
-    TArray<Audit::FRow> Rows;
-    const bool bBuilt = Audit::Build(*EvidenceRoot, Rows, Error, EvidenceRoot != Root.Get());
-    if (!TestTrue(*FString::Printf(TEXT("Read-only native evidence: %s"), *Error), bBuilt) ||
-        !TestEqual(TEXT("Ten legacy sources and canonical Oil control"), Rows.Num(), Audit::TotalCount))
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Canonical ItemSystem available"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Native production root"), Root) ||
+        !TestNotNull(TEXT("Native detailed action catalogue"), Root->ActionCatalogue.Get()) ||
+        !TestNotNull(TEXT("Native presentation catalogue"), Root->ActionPresentationCatalogue.Get()))
         return false;
-
-    for (int32 I = 0; I < Rows.Num(); ++I)
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+    const bool bActionsDirty = Root->ActionCatalogue->GetOutermost()->IsDirty();
+    const bool bPresentationDirty = Root->ActionPresentationCatalogue->GetOutermost()->IsDirty();
+    const FName Ids[] = {
+        TEXT("Item_Antidote"), TEXT("Item_Bomb_Fire"), TEXT("Item_Bomb_Toxic"),
+        TEXT("Item_DefensiveElixir_Fire"), TEXT("Item_DefensiveElixir_Ice"),
+        TEXT("Item_DefensiveElixir_Lightning"), TEXT("Item_DefensiveElixir_Poison"),
+        TEXT("Item_Flask_Acid"), TEXT("Item_Flask_CorrosiveCloud"), TEXT("Item_Panacea"),
+        TEXT("Item_Flask_Oil")
+    };
+    TSet<FName> SeenActionIds;
+    int32 Resolved = 0;
+    for (FName ItemId : Ids)
     {
-        const auto& Row = Rows[I];
-        if (!TestNotNull(TEXT("Exact source loaded"), Row.Source)) return false;
-        TestEqual(TEXT("Stable source identity"), Row.Source->ItemDefinitionId, Audit::Id(I));
-        TestEqual(TEXT("Only oil is in original root"), Row.bRegistered, I == Audit::LegacyCount);
-        TestTrue(TEXT("Action export is complete"), !Audit::ActionExport(Row.Action).IsEmpty());
-        for (int32 J = 0; J < Rows.Num(); ++J)
-        {
-            const bool bSameId = I != J && Row.Action.ActionId == Rows[J].Action.ActionId;
-            TestEqual(TEXT("Every same-id pair recorded"), Row.SameIdPeers.Contains(J), bSameId);
-        }
-        FGridCombatActionDefinition Rebuilt;
-        TestTrue(TEXT("Source still builds identical QuickItem"), Row.Source->BuildQuickItemCombatActionDefinition(Rebuilt) &&
-            Audit::DifferentActionFields(Row.Action, Rebuilt).IsEmpty());
-        if (!Row.bRegistered)
-        {
-            TestTrue(TEXT("Successful isolated projection or explicit reason"), Row.bIsolatedParity || !Row.ProjectionReason.IsEmpty());
-        }
-        FGridCombatActionDefinition Changed = Row.Action;
-        Changed.ActionPointCost += 1;
-        TestTrue(TEXT("A changed action cost cannot pass reflected parity"),
-            Audit::DifferentActionFields(Row.Action, Changed).Contains(TEXT("ActionPointCost")));
-        TestFalse(TEXT("Source package not dirtied"), Row.Source->GetOutermost()->IsDirty());
-        AddInfo(FString::Printf(TEXT("[ARM-CLEAN06.4X62] %s Action=%s isolated=%d peers=%d reason=%s"),
-            *Audit::Id(I).ToString(), *Row.Action.ActionId.ToString(),
-            Row.bIsolatedParity, Row.SameIdPeers.Num(), *Row.ProjectionReason));
+        FGridResolvedItem Item;
+        if (!TestTrue(TEXT("Exactly one real N0 owner identity"),
+            Fixture.Resolve(ItemId, 0, Item))) continue;
+        TestTrue(TEXT("Alchemy item is not an armament"),
+            !Item.bIsArmament && Item.ItemId == ItemId);
+        if (!TestEqual(TEXT("One native explicit QuickItem action binding"),
+            Item.AvailableActions.Num(), 1)) continue;
+        const FName ActionId = Item.AvailableActions[0].ActionId;
+        TestFalse(TEXT("One source-specific action ID per alchemy item"),
+            SeenActionIds.Contains(ActionId));
+        SeenActionIds.Add(ActionId);
+        FGridCombatActionDefinition Detailed;
+        if (!TestTrue(TEXT("Native QuickItem mechanics resolve from bound ActionId"),
+            Fixture.Registry->ResolveDetailedNonArmAction(ItemId, 0, ActionId, Detailed)))
+            continue;
+        ++Resolved;
+        TestEqual(TEXT("Exact persisted N0 source action identity"),
+            Detailed.ActionId, ActionId);
+        TestEqual(TEXT("QuickItem execution policy retained"),
+            Detailed.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+        TestEqual(TEXT("One physical alchemy source consumed"),
+            Detailed.ResourceCosts.SourceItemQuantityCost, 1);
+        TestEqual(TEXT("No invented N1 progression"), Item.ItemLevel, 0);
+        FGridCombatActionDefinition Wrong;
+        TestFalse(TEXT("Item cannot borrow an unrelated action"),
+            Fixture.Registry->ResolveDetailedNonArmAction(
+                ItemId, 0, TEXT("Not_An_Alchemy_Action"), Wrong));
     }
-    // Independently exercise the shared-id hazard even if the native
-    // sources have since been edited to different action identifiers.
-    TStrongObjectPtr<UGridActionCatalogueAsset> Collision(NewObject<UGridActionCatalogueAsset>());
-    FGridCanonicalRuntimeAction First;
-    First.Definition = Rows[0].Action;
-    FGridCanonicalRuntimeAction Second = First;
-    Second.Definition.ActionPointCost += 1;
-    Collision->DetailedActions.Add(First);
-    Collision->DetailedActions.Add(Second);
+    TestEqual(TEXT("All eleven source-specific action bindings"), Resolved, 11);
+    TestEqual(TEXT("No shared collision remains for eleven alchemy items"), SeenActionIds.Num(), 11);
+    TestEqual(TEXT("Exactly fourteen native detailed actions"), Root->ActionCatalogue->DetailedActions.Num(), 14);
+
+    UGridActionCatalogueAsset* Duplicate = DuplicateObject<UGridActionCatalogueAsset>(
+        Root->ActionCatalogue.Get(), GetTransientPackage());
+    if (!TestNotNull(TEXT("Private action catalogue clone"), Duplicate)) return false;
+    FGridCanonicalRuntimeAction Conflict = Duplicate->DetailedActions[0];
+    Conflict.Definition.ActionPointCost += 1;
+    Duplicate->DetailedActions.Add(Conflict);
     TArray<FString> Errors;
-    TestFalse(TEXT("Global catalogue rejects same action ID with different mechanics"), Collision->Validate(Errors));
-    TestTrue(TEXT("Duplicate refusal has a diagnostic"), !Errors.IsEmpty());
-    TestTrue(TEXT("Ordered root definitions unchanged"), Root->ItemDefinitions == Original);
-    TestEqual(TEXT("Existing action catalogue unchanged"), Root->ActionCatalogue->DetailedActions.Num(), ExistingActions);
-    TestEqual(TEXT("Existing presentation catalogue unchanged"), Root->ActionPresentationCatalogue->DetailedPresentations.Num(), ExistingPresentations);
-    TestFalse(TEXT("Root and catalogues remain clean"), Root->GetOutermost()->IsDirty() ||
-        Root->ActionCatalogue->GetOutermost()->IsDirty() ||
-        Root->ActionPresentationCatalogue->GetOutermost()->IsDirty());
+    TestFalse(TEXT("Same ActionId with changed mechanics is rejected"),
+        Duplicate->Validate(Errors));
+    TestTrue(TEXT("Action collision generates a validation reason"),
+        !Errors.IsEmpty());
+    TestEqual(TEXT("Production root never dirtied"), Root->GetOutermost()->IsDirty(), bRootDirty);
+    TestEqual(TEXT("Production action catalogue never dirtied"),
+        Root->ActionCatalogue->GetOutermost()->IsDirty(), bActionsDirty);
+    TestEqual(TEXT("Production presentation catalogue never dirtied"),
+        Root->ActionPresentationCatalogue->GetOutermost()->IsDirty(), bPresentationDirty);
     return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS

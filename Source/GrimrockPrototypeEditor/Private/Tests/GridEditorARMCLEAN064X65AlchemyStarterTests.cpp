@@ -1,105 +1,113 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorAlchemyCutoverPlan.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "RPG/RPGAlchemistAuthoring.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGStartingEquipmentService.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X65AlchemyStarterAuthoring,
     "Grimrock.RPG.ARM.CLEAN06_4X65.CanonicalAlchemyStartersAndAuthoringGuard",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
 {
-    namespace Plan = GridEditorAlchemyCutoverPlan;
-    namespace Audit = GridEditorAlchemyMigrationAudit;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr, Audit::RootPath()));
-    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
-    if (!TestNotNull(TEXT("Native baseline"), Root.Get())) return false;
-    FString Error;
-    if (!TestTrue(TEXT("Joint alchemy preview"), Plan::BuildForCurrentState(*Root.Get(), *Preview.Get(), Error)))
-    {
-        AddError(Error);
-        return false;
-    }
-    TStrongObjectPtr<UGridItemSystemAsset> Historical(NewObject<UGridItemSystemAsset>());
-    UGridItemSystemAsset* BeforeRoot = Root.Get();
-    if (Root->ItemDefinitions.Num() == 48)
-    {
-        if (!Plan::HistoricalView(*Root.Get(), *Historical.Get(), Error)) { AddError(Error); return false; }
-        BeforeRoot = Historical.Get();
-    }
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Before(NewObject<UGridItemSubsystem>(GI.Get()));
-    TStrongObjectPtr<UGridItemSubsystem> After(NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> Errors;
-    if (!TestTrue(TEXT("Real pre-cutover registry"), Before->RegisterItemSystem(BeforeRoot, Errors)) ||
-        !TestTrue(TEXT("Isolated post-cutover registry"), After->RegisterItemSystem(Preview.Get(), Errors)))
-        return false;
-
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real installed canonical ItemSystem"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real 48-item canonical root"), Root)) return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
     TArray<FName> Pending;
-    TestTrue(TEXT("Historical authoring guard accepts source state"), FRPGAlchemistAuthoring::PlanUnregisteredItems(*Before.Get(), Pending, Error));
-    TestEqual(TEXT("Exactly ten unregistered items before native cutover"), Pending.Num(), 10);
-    TestFalse(TEXT("Already canonical Oil must never be reauthored as legacy"), Pending.Contains(TEXT("Item_Flask_Oil")));
-    TestTrue(TEXT("Guard accepts complete target state"), FRPGAlchemistAuthoring::PlanUnregisteredItems(*After.Get(), Pending, Error));
-    TestTrue(TEXT("No legacy item authoring after cutover"), Pending.IsEmpty());
+    FString Error;
+    TestTrue(TEXT("Authoring guard accepts complete single registry"),
+        FRPGAlchemistAuthoring::PlanUnregisteredItems(*Fixture.Registry.Get(), Pending, Error));
+    TestTrue(TEXT("Nothing historical may be reauthored after cutover"), Pending.IsEmpty());
 
-    TStrongObjectPtr<UGridItemSystemAsset> Partial(NewObject<UGridItemSystemAsset>());
-    Audit::CopyRoot(*Preview.Get(), *Partial.Get());
-    Partial->ItemDefinitions.Pop(); // Valid resolver, but nine of ten new alchemy items.
+    UGridItemSystemAsset* Partial =
+        DuplicateObject<UGridItemSystemAsset>(Root, GetTransientPackage());
+    if (!TestNotNull(TEXT("Private incomplete-registry fixture"), Partial)) return false;
+    Partial->ItemDefinitions.Pop();
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
     TStrongObjectPtr<UGridItemSubsystem> PartialRegistry(NewObject<UGridItemSubsystem>(GI.Get()));
-    if (!TestTrue(TEXT("Partial root can register mechanically"), PartialRegistry->RegisterItemSystem(Partial.Get(), Errors))) return false;
-    TestFalse(TEXT("Legacy authoring refuses mixed state"), FRPGAlchemistAuthoring::PlanUnregisteredItems(*PartialRegistry.Get(), Pending, Error));
-    TestTrue(TEXT("No partial authoring plan returned"), Pending.IsEmpty());
+    TArray<FString> Errors;
+    if (TestTrue(TEXT("Partial root can be inspected without modifying production"),
+        PartialRegistry->RegisterItemSystem(Partial, Errors)))
+    {
+        TestFalse(TEXT("Nine-of-ten alchemy item state fails closed"),
+            FRPGAlchemistAuthoring::PlanUnregisteredItems(
+                *PartialRegistry.Get(), Pending, Error));
+        TestTrue(TEXT("No partial historical writer plan emitted"), Pending.IsEmpty());
+    }
 
-    auto* NativeClass = LoadObject<URPGClassAsset>(nullptr, FRPGAlchemistAuthoring::AlchemistAssetPath());
-    if (!TestNotNull(TEXT("Real alchemist class"), NativeClass) ||
-        !TestTrue(TEXT("Production presets use an unconfigured class"), NativeClass->StartingEquipmentKits.IsEmpty()))
+    URPGClassAsset* NativeClass = LoadObject<URPGClassAsset>(
+        nullptr, FRPGAlchemistAuthoring::AlchemistAssetPath());
+    if (!TestNotNull(TEXT("Real Alchemist class"), NativeClass) ||
+        !TestTrue(TEXT("Class does not store duplicate starting kit instances"),
+            NativeClass->StartingEquipmentKits.IsEmpty()))
         return false;
-    TStrongObjectPtr<URPGClassAsset> Class(DuplicateObject<URPGClassAsset>(NativeClass, GetTransientPackage()));
-    if (!TestTrue(TEXT("Approved transient kits materialize from joint registry"),
-        FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Class.Get(), Error, After.Get())))
+    const bool bClassDirty = NativeClass->GetOutermost()->IsDirty();
+    URPGClassAsset* Class = DuplicateObject<URPGClassAsset>(
+        NativeClass, GetTransientPackage());
+    if (!TestNotNull(TEXT("Transient class copy"), Class) ||
+        !TestTrue(TEXT("All alchemy starter kits from canonical registry"),
+            FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *Class, Error, Fixture.Registry.Get())))
     {
         AddError(Error);
         return false;
     }
-    TestEqual(TEXT("Three approved orientations"), Class->StartingEquipmentKits.Num(), 3);
+    TestEqual(TEXT("Three approved alchemist orientations"), Class->StartingEquipmentKits.Num(), 3);
     const FName KitIds[] = {TEXT("Kit_Alchemist_Grenadier"), TEXT("Kit_Alchemist_Transmuter")};
     const FName ItemIds[] = {TEXT("Item_Bomb_Fire"), TEXT("Item_Flask_Oil")};
     for (int32 I = 0; I < 2; ++I)
     {
-        const auto* Kit = Class->FindStartingEquipmentKit(KitIds[I]);
-        if (!TestNotNull(TEXT("Approved kit"), Kit)) return false;
-        const auto* Entry = Kit->Items.FindByPredicate([&](const FRPGStartingEquipmentEntry& Row)
-            { return Row.CanonicalItemId == ItemIds[I]; });
-        if (!TestNotNull(TEXT("Explicit canonical alchemy entry"), Entry)) return false;
-        TestNull(TEXT("No historical item pointer"), Entry->ItemDefinition.Get());
-        TestEqual(TEXT("Exact physical N0"), Entry->ItemLevel, 0);
+        const FRPGStartingEquipmentKit* Kit = Class->FindStartingEquipmentKit(KitIds[I]);
+        if (!TestNotNull(TEXT("Canonical approved kit"), Kit)) continue;
+        const FRPGStartingEquipmentEntry* Entry = Kit->Items.FindByPredicate(
+            [&](const FRPGStartingEquipmentEntry& Row)
+            {
+                return Row.CanonicalItemId == ItemIds[I];
+            });
+        if (!TestNotNull(TEXT("Explicit canonical consumable identity"), Entry)) continue;
+        TestNull(TEXT("No historical pointer in approved starter"), Entry->ItemDefinition.Get());
+        TestEqual(TEXT("Physical N0 starter"), Entry->ItemLevel, 0);
         TestEqual(TEXT("One starter consumable"), Entry->Quantity, 1);
-        TestTrue(TEXT("Consumable targets bag"), Entry->TargetSlot == EGridEquipmentSlot::None);
-
+        TestEqual(TEXT("Bag target only"), Entry->TargetSlot, EGridEquipmentSlot::None);
         FGridCharacterInventoryState Character;
         Character.CharacterId = FGuid::NewGuid();
         Character.InventorySlots.SetNum(12);
         FGridCharacterEquipmentState Equipment;
         TArray<UGridItemDefinitionAsset*> Definitions;
-        if (!TestTrue(TEXT("Production kit builder accepts pointerless consumable"),
-                FRPGStartingEquipmentService::TryBuildKit(Class.Get(), KitIds[I], Character, Equipment, Definitions, Error, After.Get())))
+        if (!TestTrue(TEXT("Native kit builder uses item identity"),
+            FRPGStartingEquipmentService::TryBuildKit(
+                Class, KitIds[I], Character, Equipment,
+                Definitions, Error, Fixture.Registry.Get())))
         {
             AddError(Error);
-            return false;
+            continue;
         }
-        const auto* Slot = Character.InventorySlots.FindByPredicate([&](const FGridInventorySlot& Row)
-            { return !Row.IsEmpty() && Row.Item.ItemDefinitionId == ItemIds[I]; });
-        if (!TestNotNull(TEXT("Actual new item in bag"), Slot)) return false;
-        TestEqual(TEXT("Quantity retained"), Slot->Item.Quantity, 1);
-        TestEqual(TEXT("N0 retained"), Slot->Item.ItemLevel, 0);
-        TestEqual(TEXT("Owned by correct character"), Slot->Item.OwnerGuid, Character.CharacterId);
-        TestFalse(TEXT("No historical definition registered for the canonical starter"), Definitions.ContainsByPredicate(
-            [&](const UGridItemDefinitionAsset* D) { return D && D->ItemDefinitionId == ItemIds[I]; }));
+        const FGridInventorySlot* Slot = Character.InventorySlots.FindByPredicate(
+            [&](const FGridInventorySlot& Row)
+            {
+                return !Row.IsEmpty() && Row.Item.ItemDefinitionId == ItemIds[I];
+            });
+        if (TestNotNull(TEXT("Real canonical N0 in starter bag"), Slot))
+        {
+            TestEqual(TEXT("Quantity persisted in physical item"), Slot->Item.Quantity, 1);
+            TestEqual(TEXT("N0 level retained"), Slot->Item.ItemLevel, 0);
+            TestEqual(TEXT("Correct character owns starter"), Slot->Item.OwnerGuid, Character.CharacterId);
+        }
+        TestFalse(TEXT("No historical definition for this canonical consumable"),
+            Definitions.ContainsByPredicate([&](const UGridItemDefinitionAsset* Definition)
+            {
+                return Definition && Definition->ItemDefinitionId == ItemIds[I];
+            }));
     }
-    TestTrue(TEXT("Real class remains unchanged"), NativeClass->StartingEquipmentKits.IsEmpty() && !NativeClass->GetOutermost()->IsDirty());
-    TestFalse(TEXT("Native canonical root not modified"), Root->GetOutermost()->IsDirty());
+    TestEqual(TEXT("No production class asset mutation"),
+        NativeClass->GetOutermost()->IsDirty(), bClassDirty);
+    TestEqual(TEXT("No production registry mutation"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
     return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS

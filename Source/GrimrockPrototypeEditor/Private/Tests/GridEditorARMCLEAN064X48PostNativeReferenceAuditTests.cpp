@@ -2,14 +2,12 @@
 
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
-#include "../ARMEMENT/GridEditorLootDefinitionProjection.h"
 #include "AssetRegistry/ARFilter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridCanonicalItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -214,20 +212,30 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
         TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/"
              "DA_MON_RatGiant.DA_MON_RatGiant")
     };
-    using FProjection = FGridEditorLootDefinitionProjection;
-    TStrongObjectPtr<UGridMonsterDefinitionAsset> Goblin(LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[0]));
-    TStrongObjectPtr<UGridMonsterDefinitionAsset> Rat(LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[1]));
+    TStrongObjectPtr<UGridMonsterDefinitionAsset> Goblin(
+        LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[0]));
+    TStrongObjectPtr<UGridMonsterDefinitionAsset> Rat(
+        LoadObject<UGridMonsterDefinitionAsset>(nullptr, MonsterPaths[1]));
     if (!TestNotNull(TEXT("Real goblin"), Goblin.Get()) ||
-        !TestNotNull(TEXT("Real rat"), Rat.Get())) return false;
-    const bool bMigrated = Root->ItemDefinitions.Num() >= FProjection::FinalCount;
-    TArray<FGridMonsterLootEntry> GoblinPlan, RatPlan;
-    FString Error;
-    if (!TestTrue(TEXT("Exact X.60B/X.61 native monster state"),
-            FProjection::BuildLootTables(*Goblin.Get(), *Rat.Get(),
-                bMigrated, GoblinPlan, RatPlan, Error)))
-    {
-        AddError(Error);
+        !TestNotNull(TEXT("Real rat"), Rat.Get()))
         return false;
+    if (!TestEqual(TEXT("Goblin native loot rows"), Goblin->LootTable.Num(), 3) ||
+        !TestEqual(TEXT("Rat native loot rows"), Rat->LootTable.Num(), 2))
+        return false;
+    const FName Expected[] = {
+        TEXT("GoblinKnife"), TEXT("Stone"), TEXT("EmptyVial"),
+        TEXT("Item_RatMeat"), TEXT("Item_RatTooth")
+    };
+    for (int32 Index = 0; Index < UE_ARRAY_COUNT(Expected); ++Index)
+    {
+        const FGridMonsterLootEntry& Row = Index < 3
+            ? Goblin->LootTable[Index] : Rat->LootTable[Index-3];
+        TestEqual(TEXT("All five monster loots own canonical ItemIds"),
+            Row.GetResolvedItemDefinitionId(), Expected[Index]);
+        TestEqual(TEXT("Non-armament loot physical level N0"),
+            Row.ItemLevel, 0);
+        TestTrue(TEXT("Canonical direct loot is structurally valid"),
+            Row.IsValidDefinition());
     }
     const int32 MonsterOld = 0;
     TestNull(TEXT("No historical loot pointer schema"), FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
