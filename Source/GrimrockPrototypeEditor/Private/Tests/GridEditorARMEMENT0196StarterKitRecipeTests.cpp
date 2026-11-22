@@ -5,7 +5,8 @@
 #include "Misc/Paths.h"
 #include "Serialization/Csv/CsvParser.h"
 #include "RPG/RPGClassAsset.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace ARMEMENT0196
@@ -124,10 +125,11 @@ namespace ARMEMENT0196
         return LoadObject<URPGClassAsset>(nullptr, *Path);
     }
 
-    UGridWeaponCatalogueAsset* LoadWeapons()
+    const UGridCanonicalWeaponCatalogueAsset* LoadWeapons()
     {
-        return LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
+        UGridItemSystemAsset* Root =
+            GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+        return Root ? Root->WeaponCatalogue.Get() : nullptr;
     }
 }
 
@@ -197,60 +199,66 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
 {
     TArray<ARMEMENT0196::FRecipe> Recipes;
     FString Error;
-    if (!TestTrue(TEXT("Manifest exists"), ARMEMENT0196::ReadRecipes(Recipes, Error)))
-    {
-        AddInfo(Error);
+    if (!TestTrue(TEXT("Approved starter recipe manifest exists"),
+        ARMEMENT0196::ReadRecipes(Recipes, Error)))
         return false;
-    }
-    UGridWeaponCatalogueAsset* Catalogue = ARMEMENT0196::LoadWeapons();
-    if (!TestNotNull(TEXT("Imported weapon catalogue"), Catalogue)) return false;
-    if (!TestTrue(TEXT("1640 original level profiles valid"), Catalogue->IsValidCatalogue()) ||
-        !TestTrue(TEXT("XLSX affinity metadata imported"), Catalogue->IsValidClassAffinityData()))
-    {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production ItemSystem is configured"), Fixture.bReady))
         return false;
-    }
+    const UGridCanonicalWeaponCatalogueAsset* Catalogue = ARMEMENT0196::LoadWeapons();
+    if (!TestNotNull(TEXT("Single canonical authoring weapon catalogue"), Catalogue))
+        return false;
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("All 82 numeric/class affinity profiles valid"),
+        Catalogue->Validate(Errors))) return false;
+    TestEqual(TEXT("82 physical archetypes retained"), Catalogue->Archetypes.Num(), 82);
+    TestEqual(TEXT("Six authored class preferences"), Catalogue->ClassPreferences.Num(), 6);
+
     TSet<FName> UniqueWeapons;
     for (const auto& Recipe : Recipes)
     {
         const FName Class(*Recipe.ClassId);
-        const FGridWeaponLevelProfile* Primary = Catalogue->FindProfile(Recipe.Weapon1, 1);
-        if (!TestNotNull(TEXT("Proposed primary exists in authoritative N1 catalogue"), Primary)) return false;
-        const EGridWeaponKitAffinity ApprovedAffinity =
-            Catalogue->GetKitRecommendationAffinity(Recipe.Weapon1, Class);
-        TestTrue(TEXT("Primary weapon must have unqualified XLSX Primary or Secondary affinity"),
-            ApprovedAffinity == EGridWeaponKitAffinity::Primary ||
-            ApprovedAffinity == EGridWeaponKitAffinity::Secondary);
-        TestTrue(TEXT("Proposed primary weapon must be hand-held"),
-            Primary->HandUsage == TEXT("1 main") || Primary->HandUsage == TEXT("2 mains"));
+        const FGridCanonicalWeaponArchetype* Primary =
+            Catalogue->Find(Recipe.Weapon1);
+        if (!TestNotNull(TEXT("Primary numeric ARM exists at N1"), Primary))
+            continue;
+        FGridCanonicalResolvedWeapon N1;
+        TestTrue(TEXT("Primary authoring resolves N1 and a MainHand policy"),
+            Primary->TryResolve(1, N1) &&
+            N1.CanEquipInHand(EGridEquipmentSlot::MainHand));
+        TestTrue(TEXT("Exact approved primary/secondary class affinity"),
+            Primary->PrimaryClassId == Class || Primary->SecondaryClassIds.Contains(Class));
         UniqueWeapons.Add(Recipe.Weapon1);
         if (!Recipe.Weapon2.IsNone())
         {
-            const FGridWeaponLevelProfile* Second = Catalogue->FindProfile(Recipe.Weapon2, Recipe.Weapon2Level);
-            if (!TestNotNull(TEXT("Second weapon exists in authoritative N1 catalogue"), Second)) return false;
-            TestTrue(TEXT("Secondary selected with valid catalogue hand usage"),
-                Second->HandUsage == TEXT("1 main") ||
-                Second->HandUsage == TEXT("2 mains") ||
-                Second->HandUsage == TEXT("Secondaire"));
-            const EGridWeaponKitAffinity SecondAffinity =
-                Catalogue->GetKitRecommendationAffinity(Recipe.Weapon2, Class);
-            TestTrue(TEXT("Secondary weapon should have unqualified workbook class affinity"),
-                SecondAffinity == EGridWeaponKitAffinity::Primary ||
-                SecondAffinity == EGridWeaponKitAffinity::Secondary);
+            const FGridCanonicalWeaponArchetype* Second =
+                Catalogue->Find(Recipe.Weapon2);
+            if (!TestNotNull(TEXT("Second numeric ARM exists at N1"), Second))
+                continue;
+            FGridCanonicalResolvedWeapon N2;
+            TestTrue(TEXT("Secondary physical level resolves from native catalogue"),
+                Second->TryResolve(Recipe.Weapon2Level, N2));
+            TestTrue(TEXT("Second has actual primary/secondary class advice"),
+                Second->PrimaryClassId == Class || Second->SecondaryClassIds.Contains(Class));
             if (Recipe.Weapon2Slot == TEXT("OffHand"))
             {
-                TestTrue(TEXT("Two-handed primary cannot have equipped offhand"),
-                    Primary->HandUsage != TEXT("2 mains"));
-                TestTrue(TEXT("Offhand weapon cannot itself be two handed"),
-                    Second->HandUsage != TEXT("2 mains"));
+                TestFalse(TEXT("Two-hand primary cannot hold an equipped OffHand item"),
+                    N1.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
+                TestTrue(TEXT("OffHand item is physically authorized"),
+                    N2.CanEquipInHand(EGridEquipmentSlot::OffHand));
+                TestFalse(TEXT("OffHand item may not itself occupy both hands"),
+                    N2.HandPolicy == EGridCanonicalHandPolicy::TwoHanded);
             }
             UniqueWeapons.Add(Recipe.Weapon2);
         }
     }
-    TestEqual(TEXT("Unique N1 archetypes required for proposed kits"), UniqueWeapons.Num(), 22);
-    TestTrue(TEXT("No kit recipe alters availability or grants talents"),
-        Catalogue->GetClassAffinity(TEXT("ARM001"), TEXT("Warrior")) ==
-            EGridWeaponClassAffinity::Unspecified);
-    return true;
+    TestEqual(TEXT("22 unique approved N1 archetypes"), UniqueWeapons.Num(), 22);
+    const FGridCanonicalWeaponArchetype* Dagger = Catalogue->Find(TEXT("ARM001"));
+    if (TestNotNull(TEXT("One known Rogue dagger class advice"), Dagger))
+        TestTrue(TEXT("Warrior does not acquire the Rogue dagger talent by fallback"),
+            Dagger->PrimaryClassId != FName(TEXT("Warrior")) &&
+            !Dagger->SecondaryClassIds.Contains(TEXT("Warrior")));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0196Compatibility,

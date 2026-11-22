@@ -1,28 +1,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "AssetRegistry/AssetData.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/IAssetRegistry.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Modules/ModuleManager.h"
 #include "Serialization/Csv/CsvParser.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/UObjectGlobals.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace ARMEMENT01111
 {
-    constexpr const TCHAR* RpgPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-    constexpr const TCHAR* VisualPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
-    constexpr const TCHAR* WeaponFolder = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons");
-
-    // Only canonical identities and approved recipe placements. Never duplicate workbook stats.
     struct FSpec
     {
         const TCHAR* ArchetypeId;
@@ -75,213 +61,133 @@ namespace ARMEMENT01111
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01111ApprovedSources,
     "Grimrock.RPG.ARMEMENT01.11.1.ApprovedN1Sources",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FARMEMENT01111ApprovedSources::RunTest(const FString&)
 {
     FString Csv;
-    const FString Manifest = FPaths::Combine(
+    const FString Path = FPaths::Combine(
         FPaths::ProjectDir(), TEXT("docs/Design/ARMEMENT01_9_6_STARTER_KIT_RECIPES.csv"));
-    if (!TestTrue(TEXT("Canonical approved kit manifest is readable"),
-        FFileHelper::LoadFileToString(Csv, *Manifest)))
-    {
-        return false;
-    }
-
+    if (!TestTrue(TEXT("18 approved starter-kit recipes exist"),
+        FFileHelper::LoadFileToString(Csv, *Path))) return false;
     FCsvParser Parser(Csv);
     const auto& Rows = Parser.GetRows();
-    if (!TestTrue(TEXT("Manifest schema is unchanged"),
+    if (!TestTrue(TEXT("Approved recipe schema is intact"),
         Rows.Num() >= 19 && Rows[0].Num() == 15 &&
-        FCString::Strcmp(Rows[0][3], TEXT("Weapon1ArchetypeId")) == 0 &&
-        FCString::Strcmp(Rows[0][6], TEXT("Weapon2ArchetypeId")) == 0 &&
         FCString::Strcmp(Rows[0][13], TEXT("ApprovalState")) == 0))
-    {
         return false;
-    }
-
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, ARMEMENT01111::RpgPath);
-    if (!TestNotNull(TEXT("Canonical N1 catalogue"), Rpg) ||
-        !TestTrue(TEXT("Catalogue profiles are valid"), Rpg->IsValidCatalogue()) ||
-        !TestTrue(TEXT("Class affinities are valid"), Rpg->IsValidClassAffinityData()))
-    {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Single installed native ItemSystem configured"), Fixture.bReady))
         return false;
-    }
-
-    const bool bCatalogueInitiallyDirty = Rpg->GetOutermost()->IsDirty();
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real weapon catalogue"), Root) ||
+        !TestNotNull(TEXT("Numeric class affinities"), Root->WeaponCatalogue.Get()))
+        return false;
+    const bool bDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();
     TSet<FName> Seen;
     for (const ARMEMENT01111::FSpec& Spec : ARMEMENT01111::Specs)
     {
-        const FName Archetype(Spec.ArchetypeId);
-        TestFalse(TEXT("No repeated archetype in this batch"), Seen.Contains(Archetype));
-        Seen.Add(Archetype);
-
-        TestTrue(*FString::Printf(TEXT("%s is an approved N1 kit placement"), Spec.ArchetypeId),
+        const FName ArmId(Spec.ArchetypeId);
+        TestFalse(TEXT("No repeated melee archetype"), Seen.Contains(ArmId));
+        Seen.Add(ArmId);
+        TestTrue(TEXT("Real N1 melee belongs to its approved starter recipe"),
             ARMEMENT01111::IsApprovedPlacement(Spec, Rows));
-
-        const FGridWeaponLevelProfile* Profile = Rpg->FindProfile(Archetype, 1);
-        if (!TestNotNull(*FString::Printf(TEXT("%s has a real level-one profile"), Spec.ArchetypeId), Profile))
-        {
-            continue;
-        }
-
-        TestTrue(TEXT("N1 profile contains valid offensive dice"),
-            Profile->IsValidProfile() && Profile->DamageDice.bEnabled);
-        TestEqual(TEXT("Approved melee weapons use one hand"), Profile->HandUsage, FString(TEXT("1 main")));
-        FGridAttackDefinition Attack;
-        TestTrue(TEXT("Attack definition comes from N1 profile"), Profile->TryBuildAttackDefinition(Attack));
-
-        const EGridWeaponKitAffinity Affinity =
-            Rpg->GetKitRecommendationAffinity(Archetype, FName(Spec.ClassId));
-        TestTrue(TEXT("Class has unqualified primary/secondary affinity"),
-            Affinity == EGridWeaponKitAffinity::Primary ||
-            Affinity == EGridWeaponKitAffinity::Secondary);
+        const FGridCanonicalWeaponArchetype* Authoring =
+            Root->WeaponCatalogue->Find(ArmId);
+        if (TestNotNull(TEXT("Canonical numeric class affinity"), Authoring))
+            TestTrue(TEXT("Class explicitly primary or secondary"),
+                Authoring->PrimaryClassId == FName(Spec.ClassId) ||
+                Authoring->SecondaryClassIds.Contains(FName(Spec.ClassId)));
+        FGridResolvedItem N1;
+        const FName ItemId(
+            ArmId == FName(TEXT("ARM002")) ? TEXT("Weapon_AssassinDagger_01") :
+            ArmId == FName(TEXT("ARM003")) ? TEXT("Weapon_Stiletto_01") :
+            ArmId == FName(TEXT("ARM013")) ? TEXT("Weapon_MainGauche_01") :
+            TEXT("Weapon_Mace_01"));
+        if (!TestTrue(TEXT("Approved melee N1 resolves from native ItemId"),
+            Fixture.Resolve(ItemId, 1, N1))) continue;
+        TestTrue(TEXT("Four approved attacks retain dice and physical hand"),
+            N1.bIsArmament && N1.ArchetypeId == ArmId &&
+            N1.Weapon.DamageDice.bEnabled &&
+            N1.Weapon.CanEquipInHand(
+                FCString::Strcmp(Spec.RequiredSlot, TEXT("OffHand")) == 0
+                    ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand));
+        TestTrue(TEXT("N1 handed melee attack still authored"),
+            N1.AvailableActions.Num() == 1 &&
+            N1.Weapon.HasAttackSourceInHand(
+                FCString::Strcmp(Spec.RequiredSlot, TEXT("OffHand")) == 0
+                    ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand));
     }
-    TestEqual(TEXT("Exactly four distinct melee archetypes"), Seen.Num(), 4);
-    TestEqual(TEXT("RPG catalogue package remains untouched"),
-        Rpg->GetOutermost()->IsDirty(), bCatalogueInitiallyDirty);
-    return true;
+    TestEqual(TEXT("Exactly four approved melee identity branches"), Seen.Num(), 4);
+    TestEqual(TEXT("Native numeric source never dirtied"),
+        Root->WeaponCatalogue->GetOutermost()->IsDirty(), bDirty);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01111Readiness,
     "Grimrock.RPG.ARMEMENT01.11.1.MeleeAssetReadiness",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FARMEMENT01111Readiness::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, ARMEMENT01111::RpgPath);
-    UGridWeaponVisualCatalogueAsset* Visuals =
-        LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT01111::VisualPath);
-    if (!TestNotNull(TEXT("Canonical RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Canonical visual catalogue"), Visuals) ||
-        !TestTrue(TEXT("RPG catalogue structurally valid"), Rpg->IsValidCatalogue()) ||
-        !TestTrue(TEXT("Visual catalogue structurally valid"), Visuals->IsValidCatalogue()))
-    {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Authoritative native ItemSystem available"), Fixture.bReady))
         return false;
-    }
-
-    const bool bRpgInitiallyDirty = Rpg->GetOutermost()->IsDirty();
-    const bool bVisualInitiallyDirty = Visuals->GetOutermost()->IsDirty();
-
-    IAssetRegistry& Registry =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-    Registry.ScanPathsSynchronous({ FString(ARMEMENT01111::WeaponFolder) }, true);
-    TArray<FAssetData> Assets;
-    Registry.GetAssetsByPath(FName(ARMEMENT01111::WeaponFolder), Assets, true);
-
-    TArray<FString> Lines;
-    Lines.Add(TEXT("ArchetypeId,VisualMapped,IconLoaded,WorldMeshLoaded,ItemCount,ItemAsset,ItemDefinitionId,ItemValid,MainHandAttack,OffHandAttack,Status"));
-
-    for (const ARMEMENT01111::FSpec& Spec : ARMEMENT01111::Specs)
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Native root"), Root) ||
+        !TestNotNull(TEXT("Native visual catalogue"), Root->WeaponVisualCatalogue.Get()))
+        return false;
+    const bool bDirty = Root->WeaponVisualCatalogue->GetOutermost()->IsDirty();
+    TArray<FString> Report = {
+        TEXT("ArchetypeId,VisualMapped,IconLoaded,WorldMeshLoaded,ItemCount,ItemId,Valid,MainAttack,OffAttack,Status")
+    };
+    int32 Ready = 0;
+    const struct {const TCHAR* Arm;const TCHAR* Item;const TCHAR* Action;} Items[] =
     {
-        const FName Archetype(Spec.ArchetypeId);
-        const FGridWeaponLevelProfile* Profile = Rpg->FindProfile(Archetype, 1);
-        if (!TestNotNull(TEXT("N1 profile is available to readiness audit"), Profile))
-        {
-            continue;
-        }
-
-        const FName VisualId = Visuals->FindVisualId(Archetype);
-        const FGridWeaponVisualProfile* Visual = Visuals->FindProfileForArchetype(Archetype);
-        const bool bVisualMapped = !VisualId.IsNone() && Visual && Visual->IsValidProfile();
-        const bool bIconLoaded = bVisualMapped && Visual->BaseIcon.LoadSynchronous() != nullptr;
-        const bool bMeshLoaded = bVisualMapped && Visual->WorldMesh.LoadSynchronous() != nullptr;
-        const bool bVisualReady = bVisualMapped && bIconLoaded && bMeshLoaded;
-
-        int32 ItemCount = 0;
-        UGridItemDefinitionAsset* Item = nullptr;
-        for (const FAssetData& Data : Assets)
-        {
-            UGridItemDefinitionAsset* Candidate = Cast<UGridItemDefinitionAsset>(Data.GetAsset());
-            if (Candidate && Candidate->WeaponArchetypeId == Archetype)
-            {
-                ++ItemCount;
-                Item = Candidate;
-            }
-        }
-
-        TestTrue(TEXT("No duplicate definitions for a canonical archetype"), ItemCount <= 1);
-        bool bItemValid = false;
-        bool bMainAttack = false;
-        bool bOffAttack = false;
-        FString ItemAsset;
-        FString ItemId;
-        if (ItemCount == 1 && Item)
-        {
-            ItemAsset = Item->GetName();
-            ItemId = Item->ItemDefinitionId.ToString();
-            bItemValid = Item->IsValidDefinition() && !Item->bStackable &&
-                Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue &&
-                Item->DefaultWeaponItemLevel == 1 &&
-                Item->WeaponCatalogue.LoadSynchronous() == Rpg &&
-                Item->WeaponVisualCatalogue.LoadSynchronous() == Visuals &&
-                Item->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded &&
-                Item->CanEquipToSlot(Spec.RequiredSlot == FString(TEXT("OffHand"))
-                    ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand) &&
-                FMath::IsNearlyEqual(Item->Weight, Profile->WeightKg);
-            bMainAttack = Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand);
-            bOffAttack = Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand);
-            TestTrue(TEXT("Present definition follows canonical N1 data and intended slot"), bItemValid);
-            if (FCString::Strcmp(Spec.RequiredSlot, TEXT("MainHand")) == 0)
-            {
-                TestTrue(TEXT("Present main-hand melee weapon provides an attack"), bMainAttack);
-            }
-        }
-
-        FString Status;
-        if (ItemCount > 1)
-        {
-            Status = TEXT("DuplicateDefinitions");
-        }
-        else if (ItemCount == 1 && !bItemValid)
-        {
-            Status = TEXT("InvalidDefinition");
-        }
-        else if (!bVisualReady && ItemCount == 0)
-        {
-            Status = TEXT("MissingItemAndVisual");
-        }
-        else if (ItemCount == 0)
-        {
-            Status = TEXT("MissingItem");
-        }
-        else if (!bVisualReady)
-        {
-            Status = TEXT("MissingVisual");
-        }
-        else if (Archetype == TEXT("ARM013") && !bOffAttack)
-        {
-            Status = TEXT("NeedsOffHandActionReview");
-        }
-        else if (Archetype == TEXT("ARM002") || Archetype == TEXT("ARM003") ||
-                 Archetype == TEXT("ARM013"))
-        {
-            Status = TEXT("NeedsSpecialBehaviorReview");
-        }
-        else
-        {
-            Status = TEXT("CandidateForPlaytest");
-        }
-
-        Lines.Add(FString::Printf(TEXT("%s,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s"),
-            Spec.ArchetypeId, *ARMEMENT01111::AsCsvBool(bVisualMapped),
-            *ARMEMENT01111::AsCsvBool(bIconLoaded), *ARMEMENT01111::AsCsvBool(bMeshLoaded),
-            ItemCount, *ItemAsset, *ItemId,
-            *ARMEMENT01111::AsCsvBool(bItemValid),
-            *ARMEMENT01111::AsCsvBool(bMainAttack),
-            *ARMEMENT01111::AsCsvBool(bOffAttack), *Status));
-        AddInfo(FString::Printf(TEXT("[ARMEMENT01.11.1] %s: %s"), Spec.ArchetypeId, *Status));
+        {TEXT("ARM002"),TEXT("Weapon_AssassinDagger_01"),TEXT("Attack_AssassinDagger_01")},
+        {TEXT("ARM003"),TEXT("Weapon_Stiletto_01"),TEXT("Attack_Stiletto_01")},
+        {TEXT("ARM013"),TEXT("Weapon_MainGauche_01"),TEXT("Attack_MainGauche_01")},
+        {TEXT("ARM020"),TEXT("Weapon_Mace_01"),TEXT("Attack_Mace_01")}
+    };
+    for (const auto& Spec : Items)
+    {
+        FGridResolvedItem N1;
+        if (!TestTrue(TEXT("Canonical real N1 melee item"),
+            Fixture.Resolve(FName(Spec.Item), 1, N1))) continue;
+        const FGridCanonicalWeaponVisual* Visual =
+            Root->WeaponVisualCatalogue->FindForArchetype(FName(Spec.Arm));
+        const bool bMapped = Visual && Visual->VisualId == N1.VisualId;
+        const bool bIcon = N1.ItemIcon.LoadSynchronous() != nullptr;
+        const bool bMesh = N1.WorldMesh.LoadSynchronous() != nullptr;
+        const bool bValid = N1.bIsArmament && N1.ArchetypeId == FName(Spec.Arm) &&
+            N1.ItemLevel == 1 && N1.MaxStack == 1;
+        const bool bMain = N1.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand);
+        const bool bOff = N1.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand);
+        const bool bGood = bMapped && bIcon && bMesh && bValid &&
+            N1.AvailableActions.Num() == 1 &&
+            N1.AvailableActions[0].ActionId == FName(Spec.Action) &&
+            (bMain || bOff);
+        TestTrue(TEXT("Real melee item is complete and can be playtested"), bGood);
+        if (bGood) ++Ready;
+        Report.Add(FString::Printf(TEXT("%s,%s,%s,%s,1,%s,%s,%s,%s,%s"),
+            Spec.Arm,
+            *ARMEMENT01111::AsCsvBool(bMapped),
+            *ARMEMENT01111::AsCsvBool(bIcon),
+            *ARMEMENT01111::AsCsvBool(bMesh),
+            Spec.Item,
+            *ARMEMENT01111::AsCsvBool(bValid),
+            *ARMEMENT01111::AsCsvBool(bMain),
+            *ARMEMENT01111::AsCsvBool(bOff),
+            bGood ? TEXT("CanonicalReady") : TEXT("BLOCKED")));
     }
-
-    const FString ReportDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT01"));
-    IFileManager::Get().MakeDirectory(*ReportDir, true);
-    const FString ReportPath = FPaths::Combine(ReportDir, TEXT("ARMEMENT01_11_1_MeleeReadiness.csv"));
-    TestTrue(TEXT("Write factual local readiness report under Saved"),
-        FFileHelper::SaveStringArrayToFile(Lines, *ReportPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
-
-    TestEqual(TEXT("RPG catalogue remains unchanged"), Rpg->GetOutermost()->IsDirty(), bRpgInitiallyDirty);
-    TestEqual(TEXT("Visual catalogue remains unchanged"), Visuals->GetOutermost()->IsDirty(), bVisualInitiallyDirty);
-    return true;
+    TestEqual(TEXT("All four N1 melee weapons ready"), Ready, 4);
+    const FString Folder = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT01"));
+    IFileManager::Get().MakeDirectory(*Folder, true);
+    const FString Output = FPaths::Combine(Folder, TEXT("ARMEMENT01_11_1_MeleeReadiness.csv"));
+    TestTrue(TEXT("Canonical native audit under Saved"),
+        FFileHelper::SaveStringArrayToFile(
+            Report, *Output, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
+    TestEqual(TEXT("Real visual catalogue unchanged"),
+        Root->WeaponVisualCatalogue->GetOutermost()->IsDirty(), bDirty);
+    return !HasAnyErrors();
 }
-
 #endif // WITH_DEV_AUTOMATION_TESTS

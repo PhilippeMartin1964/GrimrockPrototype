@@ -1,314 +1,230 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/Combat/GridCombatResolver.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/UnrealType.h"
 
 namespace ARMEMENT015
 {
-	const TCHAR* const CataloguePath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-
-	UGridWeaponCatalogueAsset* LoadProductionCatalogue()
-	{
-		return LoadObject<UGridWeaponCatalogueAsset>(nullptr, CataloguePath);
-	}
-
-	FGridCombatActionDefinition MakeLegacyAttack()
-	{
-		FGridCombatActionDefinition Action;
-		Action.ActionId = TEXT("ARM015_Attack");
-		Action.DisplayName = FText::FromString(TEXT("Weapon attack"));
-		Action.ActionType = EGridCombatActionType::MeleeAttack;
-		Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-		Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-		Action.ActionPointCost = 2;
-		Action.RangeCells = 1;
-		Action.PresentationProfileId = Action.ActionId;
-		Action.OffensiveProfile.AttackId = Action.ActionId;
-		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Slashing;
-		Action.OffensiveProfile.AttackDefinition.MinDamage = 1;
-		Action.OffensiveProfile.AttackDefinition.MaxDamage = 3;
-		Action.OffensiveProfile.RangeCells = 1;
-		return Action;
-	}
-
-	UGridItemDefinitionAsset* MakeDefinition(UGridWeaponCatalogueAsset* Catalogue, FName Archetype, bool bAttack)
-	{
-		UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-		Item->ItemDefinitionId = TEXT("ARM015_TestWeapon");
-		Item->DisplayName = FText::FromString(TEXT("ARM015 test weapon"));
-		Item->ItemType = bAttack ? EGridItemType::Weapon : EGridItemType::Shield;
-		Item->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-		Item->bUseWeaponCatalogue = true;
-		Item->WeaponArchetypeId = Archetype;
-		Item->DefaultWeaponItemLevel = 6;
-		Item->WeaponCatalogue = Catalogue;
-		if (bAttack)
-		{
-			Item->CombatActions.Add(MakeLegacyAttack());
-		}
-		return Item;
-	}
-
-	FGridItemInstance MakeInstance(const UGridItemDefinitionAsset* Definition, int32 Level = 0)
-	{
-		FGridItemInstance Instance;
-		Instance.RuntimeObjectId = FGuid::NewGuid();
-		Instance.ItemDefinitionId = Definition->ItemDefinitionId;
-		Instance.Quantity = 1;
-		Instance.ItemLevel = Level;
-		return Instance;
-	}
+    FGridItemInstance Make(FName Id, int32 Level)
+    {
+        FGridItemInstance Item;
+        Item.RuntimeObjectId = FGuid::NewGuid();
+        Item.ItemDefinitionId = Id;
+        Item.ItemLevel = Level;
+        Item.Quantity = 1;
+        return Item;
+    }
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015CatalogueBindingTest,
-	"Grimrock.RPG.ARMEMENT01.5.CatalogueBinding",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.CatalogueBinding",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015CatalogueBindingTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Production weapon catalogue loads"), Catalogue))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Production catalogue is complete"), Catalogue->IsValidCatalogue());
-
-	UGridItemDefinitionAsset* Definition = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM001"), true);
-	TestTrue(TEXT("Linked item authoring is valid"), Definition->IsValidDefinition());
-	TestTrue(TEXT("Authored attack remains from CombatActions"), Definition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-	TestEqual(TEXT("Default instance level is six"), Definition->DefaultWeaponItemLevel, 6);
-	const FGridWeaponLevelProfile* Level = nullptr;
-	TestTrue(TEXT("Catalogue level six is available"), Definition->TryGetWeaponCatalogueProfile(6, Level));
-	return Level != nullptr;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real canonical registry configured"), Fixture.bReady)) return false;
+    FGridResolvedItem Item;
+    if (!TestTrue(TEXT("Fixed level six Dagger profile resolves"),
+        Fixture.Resolve(TEXT("Weapon_Dagger_01"), 6, Item))) return false;
+    TestTrue(TEXT("N6 has authored weapon identity, dice and physical hand"),
+        Item.IsValid() && Item.bIsArmament &&
+        Item.ArchetypeId == FName(TEXT("ARM001")) &&
+        Item.Weapon.DamageDice.bEnabled &&
+        Item.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
+    FGridResolvedBoundAction Attack;
+    TestTrue(TEXT("Real N6 MainHand action remains bound to Dagger"),
+        Fixture.Registry->ResolveBoundAttackForHand(
+            Item.ItemId, 6, TEXT("Attack_Dagger_01"), EGridEquipmentSlot::MainHand, Attack) &&
+        Attack.IsValid());
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015InstanceLevelTest,
-	"Grimrock.RPG.ARMEMENT01.5.FixedLevelAndInstanceMetadata",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.FixedLevelAndInstanceMetadata",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015InstanceLevelTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Catalogue available"), Catalogue)) { return false; }
-	UGridItemDefinitionAsset* Definition = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM001"), true);
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-	if (!TestTrue(TEXT("Definition registers"), Inventory->RegisterItemDefinition(Definition))) { return false; }
-
-	FGridItemInstance NewItem = ARMEMENT015::MakeInstance(Definition);
-	const FGuid Identity = NewItem.RuntimeObjectId;
-	TestTrue(TEXT("Apply profile to newly created item"), Inventory->ApplyItemDefinitionToInstance(NewItem));
-	TestEqual(TEXT("Minted level uses configured default"), NewItem.ItemLevel, 6);
-	const FGridWeaponLevelProfile* Profile = Catalogue->FindProfile(TEXT("ARM001"), 6);
-	if (!TestNotNull(TEXT("Level 6 source profile"), Profile)) { return false; }
-	TestTrue(TEXT("Fixed-level profile retains valid authoritative unit mass"),
-		FMath::IsFinite(Profile->WeightKg) && Profile->WeightKg >= 0.0f);
-	TestNull(TEXT("Physical item schema has no weight cache"),
-		FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
-	TestEqual(TEXT("Identity remains unchanged"), NewItem.RuntimeObjectId, Identity);
-
-	FGridItemInstance SavedCopy = NewItem;
-	Definition->DefaultWeaponItemLevel = 2;
-	TestTrue(TEXT("Rehydrating old instance succeeds"), Inventory->ApplyItemDefinitionToInstance(SavedCopy));
-	TestEqual(TEXT("Saved instance retains immutable level six"), SavedCopy.ItemLevel, 6);
-	TestEqual(TEXT("Saved instance retains runtime identity"), SavedCopy.RuntimeObjectId, Identity);
-	TestEqual(TEXT("Copied equipment instance retains fixed level"), FGridItemInstance(SavedCopy).ItemLevel, 6);
-
-	// The existing SaveGame stores FGridPartyInventoryState, including every
-	// FGridItemInstance in inventory, equipment and cursor. ItemLevel must be
-	// a serialized UPROPERTY, not a transient presentation projection.
-	const FProperty* LevelProperty = FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
-	TestNotNull(TEXT("Fixed ItemLevel is a reflected SaveGame structure field"), LevelProperty);
-	TestTrue(TEXT("Fixed ItemLevel is not transient"),
-		LevelProperty && !LevelProperty->HasAnyPropertyFlags(CPF_Transient));
-	FGridPartyInventoryState SaveState;
-	SaveState.ActiveEquipment.SetNum(1);
-	SaveState.ActiveEquipment[0].MainHand = SavedCopy;
-	SaveState.ActiveEquipment[0].MainHand.EquipmentSlot = EGridEquipmentSlot::MainHand;
-	SaveState.CursorItem = SavedCopy;
-	SaveState.bHasCursorItem = true;
-	FGridPartyInventoryState RestoredCopy = SaveState;
-	TestEqual(TEXT("Saved equipment level survives snapshot"), RestoredCopy.ActiveEquipment[0].MainHand.ItemLevel, 6);
-	TestEqual(TEXT("Saved cursor level survives snapshot"), RestoredCopy.CursorItem.ItemLevel, 6);
-	return true;
+    FGridCanonicalWeightTestWorld Fixture({});
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Real world-bound inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    FGridItemInstance Item = ARMEMENT015::Make(TEXT("Weapon_Dagger_01"), 6);
+    const FGuid Guid = Item.RuntimeObjectId;
+    if (!TestTrue(TEXT("Apply canonical N6 physical instance"),
+        Inventory->ApplyItemDefinitionToInstance(Item))) return false;
+    TestEqual(TEXT("N6 does not revert to old default N1"), Item.ItemLevel, 6);
+    TestEqual(TEXT("Physical GUID untouched"), Item.RuntimeObjectId, Guid);
+    TestNull(TEXT("No static weight cache on mutable instance"),
+        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
+    const FProperty* LevelProperty =
+        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
+    TestTrue(TEXT("Physical level is nontransient SaveGame metadata"),
+        LevelProperty && !LevelProperty->HasAnyPropertyFlags(CPF_Transient));
+    FGridItemInstance SavedCopy = Item;
+    TestTrue(TEXT("Rehydrate from the same immutable canonical N6"),
+        Inventory->ApplyItemDefinitionToInstance(SavedCopy));
+    TestEqual(TEXT("Rehydrated N6 unchanged"), SavedCopy.ItemLevel, 6);
+    TestEqual(TEXT("Rehydrated GUID unchanged"), SavedCopy.RuntimeObjectId, Guid);
+    FGridPartyInventoryState Snapshot;
+    Snapshot.ActiveEquipment.SetNum(1);
+    Snapshot.ActiveEquipment[0].MainHand = SavedCopy;
+    Snapshot.CursorItem = SavedCopy;
+    Snapshot.bHasCursorItem = true;
+    const FGridPartyInventoryState Copy = Snapshot;
+    TestEqual(TEXT("Equipment retains N6"), Copy.ActiveEquipment[0].MainHand.ItemLevel, 6);
+    TestEqual(TEXT("Cursor retains N6"), Copy.CursorItem.ItemLevel, 6);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015CombatTest,
-	"Grimrock.RPG.ARMEMENT01.5.EquippedCombatProfile",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.EquippedCombatProfile",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015CombatTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Catalogue available"), Catalogue)) { return false; }
-	UGridItemDefinitionAsset* Definition = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM001"), true);
-	FGridItemInstance Instance = ARMEMENT015::MakeInstance(Definition, 7);
-	FGridOffensiveEquipmentProfile Offensive;
-	TestTrue(TEXT("Resolve equipped level 7 offensive profile"),
-		Definition->ResolveEquippedOffensiveProfile(Instance, Definition->CombatActions[0], Offensive));
-	const FGridWeaponLevelProfile* Source = Catalogue->FindProfile(TEXT("ARM001"), 7);
-	if (!TestNotNull(TEXT("Level 7 available"), Source)) { return false; }
-	TestEqual(TEXT("Combat action identity unchanged"), Offensive.AttackId, FName(TEXT("ARM015_Attack")));
-	TestEqual(TEXT("Equipped dice enabled"), Offensive.AttackDefinition.DamageDice.bEnabled, true);
-	TestEqual(TEXT("Equipped N"), Offensive.AttackDefinition.DamageDice.DiceCount, Source->DamageDice.DiceCount);
-	TestEqual(TEXT("Equipped M"), Offensive.AttackDefinition.DamageDice.DiceSides, Source->DamageDice.DiceSides);
-	TestEqual(TEXT("Equipped K"), Offensive.AttackDefinition.DamageDice.FlatBonus, Source->DamageDice.FlatBonus);
-	TestEqual(TEXT("Min is derived"), Offensive.AttackDefinition.MinDamage, Source->DamageDice.GetMinimumDamage());
-	TestEqual(TEXT("Max is derived"), Offensive.AttackDefinition.MaxDamage, Source->DamageDice.GetMaximumDamage());
-	TestEqual(TEXT("Range derives from fixed-level profile"), Offensive.RangeCells, Source->RangeCells);
-	TestEqual(TEXT("Scaling derives from fixed-level profile"), Offensive.DamageScalingAttribute, Source->ScalingAttribute);
-	TestTrue(TEXT("Resulting definition is valid for the original combat resolver"), Offensive.AttackDefinition.IsValid());
-	
-	FGridItemInstance AnotherInstance = ARMEMENT015::MakeInstance(Definition, 11);
-	FGridOffensiveEquipmentProfile AnotherAttack;
-	TestTrue(TEXT("Another fixed-level weapon resolves"), Definition->ResolveEquippedOffensiveProfile(
-		AnotherInstance, Definition->CombatActions[0], AnotherAttack));
-	const FGridWeaponLevelProfile* OtherSource = Catalogue->FindProfile(TEXT("ARM001"), 11);
-	if (!TestNotNull(TEXT("Level 11 available"), OtherSource)) { return false; }
-	TestEqual(TEXT("Different instance uses its own K"), AnotherAttack.AttackDefinition.DamageDice.FlatBonus, OtherSource->DamageDice.FlatBonus);
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real canonical numeric profiles"), Fixture.bReady)) return false;
+    FGridResolvedItem N7, N11;
+    if (!TestTrue(TEXT("One ItemId independently resolves at N7 and N11"),
+        Fixture.Resolve(TEXT("Weapon_Dagger_01"), 7, N7) &&
+        Fixture.Resolve(TEXT("Weapon_Dagger_01"), 11, N11))) return false;
+    TestTrue(TEXT("Both levels keep real attack dice"),
+        N7.Weapon.DamageDice.bEnabled && N11.Weapon.DamageDice.bEnabled);
+    TestTrue(TEXT("Both levels retain valid numeric range and scaling"),
+        N7.Weapon.RangeCells > 0 && N11.Weapon.RangeCells > 0 &&
+        N7.Weapon.ScalingAttribute == N11.Weapon.ScalingAttribute);
+    FGridResolvedBoundAction A7, A11;
+    TestTrue(TEXT("N7 MainHand attack is explicitly bound"),
+        Fixture.Registry->ResolveBoundAttackForHand(
+            N7.ItemId, 7, TEXT("Attack_Dagger_01"), EGridEquipmentSlot::MainHand, A7));
+    TestTrue(TEXT("N11 MainHand attack is explicitly bound"),
+        Fixture.Registry->ResolveBoundAttackForHand(
+            N11.ItemId, 11, TEXT("Attack_Dagger_01"), EGridEquipmentSlot::MainHand, A11));
+    TestTrue(TEXT("Shared ActionId does not copy or override weapon-level damage"),
+        A7.ActionId == A11.ActionId &&
+        N7.ItemLevel == 7 && N11.ItemLevel == 11);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015PassiveAndFailureTest,
-	"Grimrock.RPG.ARMEMENT01.5.PassiveAndMissingReference",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.PassiveAndMissingReference",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015PassiveAndFailureTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Catalogue available"), Catalogue)) { return false; }
-	UGridItemDefinitionAsset* Shield = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM070"), false);
-	TestTrue(TEXT("Passive linked item definition remains valid"), Shield->IsValidDefinition());
-	TestFalse(TEXT("Passive item offers no attack"), Shield->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-	FGridOffensiveEquipmentProfile Out;
-	TestFalse(TEXT("Passive item refuses fake attacks"), Shield->ResolveEquippedOffensiveProfile(
-		ARMEMENT015::MakeInstance(Shield, 6), ARMEMENT015::MakeLegacyAttack(), Out));
-
-	UGridItemDefinitionAsset* Missing = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM099"), true);
-	TestFalse(TEXT("Unknown archetype is invalid"), Missing->IsValidDefinition());
-	FGridItemInstance Bad = ARMEMENT015::MakeInstance(Missing, 6);
-	TestFalse(TEXT("Bad archetype refuses fallback"), Missing->ResolveEquippedOffensiveProfile(
-		Bad, Missing->CombatActions[0], Out));
-	TestFalse(TEXT("Rejected profile clears output"), Out.IsValid());
-
-	UGridItemDefinitionAsset* Unset = ARMEMENT015::MakeDefinition(nullptr, TEXT("ARM001"), true);
-	TestFalse(TEXT("Missing catalogue reference invalid"), Unset->IsValidDefinition());
-	FGridItemInstance InvalidLevel = ARMEMENT015::MakeInstance(Shield, 21);
-	TestFalse(TEXT("ItemLevel above 20 invalid"), InvalidLevel.IsValid());
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("One configured ItemSystem"), Fixture.bReady)) return false;
+    FGridResolvedItem Focus, Rejected;
+    if (!TestTrue(TEXT("N6 passive Orb exists"),
+        Fixture.Resolve(TEXT("Weapon_ArcaneOrb_01"), 6, Focus))) return false;
+    TestTrue(TEXT("Passive focus has OffHand permission without any attack"),
+        Focus.bIsArmament && !Focus.Weapon.DamageDice.bEnabled &&
+        Focus.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
+        !Focus.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
+        Focus.AvailableActions.IsEmpty());
+    FGridResolvedBoundAction Attack;
+    TestFalse(TEXT("Passive focus cannot borrow Dagger action"),
+        Fixture.Registry->ResolveBoundAttackForHand(
+            Focus.ItemId, 6, TEXT("Attack_Dagger_01"), EGridEquipmentSlot::OffHand, Attack));
+    TestFalse(TEXT("No invented ARM099 archetype"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_ARM099"), 6, Rejected));
+    TestFalse(TEXT("N21 invalid, not clamped to N20"),
+        Fixture.Registry->ResolveItem(Focus.ItemId, 21, Rejected));
+    TestFalse(TEXT("N0 invalid for ARM, not promoted"),
+        Fixture.Registry->ResolveItem(Focus.ItemId, 0, Rejected));
+    return !HasAnyErrors();
 }
 
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015InventoryEquipmentTest,
-	"Grimrock.RPG.ARMEMENT01.5.InventoryEquipmentTransfer",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.InventoryEquipmentTransfer",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015InventoryEquipmentTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Catalogue available"), Catalogue)) { return false; }
-	UGridItemDefinitionAsset* Definition = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM001"), true);
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-	Inventory->InitializeDefaultPartyIfNeeded();
-
-	// InitializeDefaultPartyIfNeeded already creates character zero and its
-	// matching equipment state. Do not insert a second unmatched character.
-	Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.SetNum(40);
-	if (!TestTrue(TEXT("Linked definition registers"), Inventory->RegisterItemDefinition(Definition))) { return false; }
-
-	FGridItemInstance Loot = ARMEMENT015::MakeInstance(Definition, 9);
-	if (!TestTrue(TEXT("Fixed level 9 item enters inventory"), Inventory->AddItemToCharacterInventory(0, Loot)))
-	{
-		return false;
-	}
-	const FGridItemInstance& InBag = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item;
-	TestEqual(TEXT("Level in inventory remains nine"), InBag.ItemLevel, 9);
-	if (!TestTrue(TEXT("Equipment accepts fixed-level profile"), Inventory->CanEquipItemToSlot(0, InBag, EGridEquipmentSlot::MainHand)))
-	{
-		return false;
-	}
-	if (!TestTrue(TEXT("Equip from inventory succeeds"), Inventory->EquipItemFromInventorySlot(0, 0, EGridEquipmentSlot::MainHand)))
-	{
-		return false;
-	}
-	FGridItemInstance Equipped;
-	TestTrue(TEXT("Equipped item is available"), Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, Equipped));
-	TestEqual(TEXT("Equipment preserves level nine"), Equipped.ItemLevel, 9);
-	TestEqual(TEXT("Equipment preserves identity"), Equipped.RuntimeObjectId, Loot.RuntimeObjectId);
-	FGridOffensiveEquipmentProfile Attack;
-	TestTrue(TEXT("Equipped level resolves real dice"), Definition->ResolveEquippedOffensiveProfile(
-		Equipped, Definition->CombatActions[0], Attack));
-	const FGridWeaponLevelProfile* LevelNine = Catalogue->FindProfile(TEXT("ARM001"), 9);
-	if (!TestNotNull(TEXT("Ninth level source"), LevelNine)) { return false; }
-	TestEqual(TEXT("Attack uses equipped level's flat K"), Attack.AttackDefinition.DamageDice.FlatBonus, LevelNine->DamageDice.FlatBonus);
-	return true;
+    FGridCanonicalWeightTestWorld Fixture({});
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Native world inventory"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    FGridItemInstance Item = ARMEMENT015::Make(TEXT("Weapon_Dagger_01"), 9);
+    if (!TestTrue(TEXT("N9 real physical item is valid"),
+        Inventory->ApplyItemDefinitionToInstance(Item)) ||
+        !TestTrue(TEXT("N9 item enters bag"),
+            Inventory->AddItemToCharacterInventory(0, Item)))
+        return false;
+    int32 Index = INDEX_NONE;
+    const auto& Bag = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots;
+    for (int32 I = 0; I < Bag.Num(); ++I)
+        if (!Bag[I].IsEmpty() && Bag[I].Item.RuntimeObjectId == Item.RuntimeObjectId)
+        { Index = I; break; }
+    if (!TestTrue(TEXT("N9 physical bag slot exists"), Index != INDEX_NONE))
+        return false;
+    const FGridItemInstance FromBag = Bag[Index].Item;
+    TestEqual(TEXT("Bag preserves N9"), FromBag.ItemLevel, 9);
+    if (!TestTrue(TEXT("Canonical MainHand equipped via real transaction"),
+        Inventory->EquipItemFromInventorySlot(
+            0, Index, EGridEquipmentSlot::MainHand))) return false;
+    FGridItemInstance Held;
+    if (!TestTrue(TEXT("Equipped N9 physical instance available"),
+        Inventory->GetEquippedItem(0, EGridEquipmentSlot::MainHand, Held)))
+        return false;
+    TestEqual(TEXT("Equipment preserves original level"), Held.ItemLevel, 9);
+    TestEqual(TEXT("Equipment preserves original GUID"), Held.RuntimeObjectId, Item.RuntimeObjectId);
+    FGridResolvedItem N9;
+    TestTrue(TEXT("Equipped damage resolves via physical N9, never character level"),
+        Fixture.Scope.Registry->ResolveItem(Held.ItemDefinitionId, Held.ItemLevel, N9) &&
+        N9.ItemLevel == 9 && N9.Weapon.DamageDice.bEnabled);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT015LegacyTest,
-	"Grimrock.RPG.ARMEMENT01.5.LegacyUnchanged",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.5.LegacyUnchanged",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT015LegacyTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("ARM015_Legacy");
-	Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	Definition->CombatActions.Add(ARMEMENT015::MakeLegacyAttack());
-	TestTrue(TEXT("Legacy definition remains valid"), Definition->IsValidDefinition());
-	FGridItemInstance Instance = ARMEMENT015::MakeInstance(Definition);
-	TestTrue(TEXT("Legacy ItemLevel zero is valid"), Instance.IsValid());
-	FGridOffensiveEquipmentProfile Resolved;
-	TestTrue(TEXT("Legacy attack resolves"), Definition->ResolveEquippedOffensiveProfile(
-		Instance, Definition->CombatActions[0], Resolved));
-	TestFalse(TEXT("Legacy attack stays Range mode"), Resolved.AttackDefinition.DamageDice.bEnabled);
-	TestEqual(TEXT("Legacy min unchanged"), Resolved.AttackDefinition.MinDamage, 1);
-	TestEqual(TEXT("Legacy max unchanged"), Resolved.AttackDefinition.MaxDamage, 3);
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Native ItemSystem is the only definition authority"),
+        Fixture.bReady)) return false;
+    FGridResolvedItem N0, Wrong;
+    if (!TestTrue(TEXT("N0 non-ARM remains valid after retirement"),
+        Fixture.Resolve(TEXT("Stone"), 0, N0))) return false;
+    TestTrue(TEXT("Non-ARM N0 is not silently promoted"),
+        !N0.bIsArmament && N0.ItemLevel == 0);
+    TestFalse(TEXT("Unknown historical definition does not acquire combat data"),
+        Fixture.Registry->ResolveItem(TEXT("ARM015_Legacy"), 0, Wrong));
+    TestFalse(TEXT("ARM weapon cannot borrow a Legacy N0 level"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 0, Wrong));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTCLEAN02LevelArmorAuthorityTest,
-	"Grimrock.RPG.ARMEMENT.CLEAN02.FixedLevelArmorAuthority",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT.CLEAN02.FixedLevelArmorAuthority",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENTCLEAN02LevelArmorAuthorityTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT015::LoadProductionCatalogue();
-	if (!TestNotNull(TEXT("Production catalogue"), Catalogue)) return false;
-	const FGridWeaponLevelProfile* N1 = Catalogue->FindProfile(TEXT("ARM075"), 1);
-	const FGridWeaponLevelProfile* N20 = Catalogue->FindProfile(TEXT("ARM075"), 20);
-	if (!TestNotNull(TEXT("Shield level 1"), N1) ||
-		!TestNotNull(TEXT("Shield level 20"), N20)) return false;
-
-	UGridItemDefinitionAsset* Shield = ARMEMENT015::MakeDefinition(Catalogue, TEXT("ARM075"), false);
-	// Deliberately stale N1 copies must not be authoritative.
-	Shield->EquipmentStatBonus.ArmorBonus = 999;
-	Shield->EquipmentStatBonus.MagicalArmorBonus = 999;
-	FGridItemInstance Item = ARMEMENT015::MakeInstance(Shield, 1);
-	FGridEquipmentStatBonus Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
-	TestEqual(TEXT("N1 physical armor is catalogue-derived"), Effective.ArmorBonus, N1->PhysicalArmor);
-	TestEqual(TEXT("N1 magical armor is catalogue-derived"), Effective.MagicalArmorBonus, N1->MagicalArmor);
-
-	Item.ItemLevel = 20;
-	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
-	TestEqual(TEXT("N20 physical armor is catalogue-derived"), Effective.ArmorBonus, N20->PhysicalArmor);
-	TestEqual(TEXT("N20 magical armor is catalogue-derived"), Effective.MagicalArmorBonus, N20->MagicalArmor);
-
-	Item.ItemLevel = 21;
-	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
-	TestEqual(TEXT("Invalid level never inherits N1 physical armor"), Effective.ArmorBonus, 0);
-	TestEqual(TEXT("Invalid level never inherits N1 magical armor"), Effective.MagicalArmorBonus, 0);
-
-	Shield->bUseWeaponCatalogue = false;
-	Effective = Shield->GetEffectiveEquipmentStatBonusForInstance(Item);
-	TestEqual(TEXT("Legacy physical bonus unchanged"), Effective.ArmorBonus, 999);
-	TestEqual(TEXT("Legacy magical bonus unchanged"), Effective.MagicalArmorBonus, 999);
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real numeric armor authority configured"), Fixture.bReady))
+        return false;
+    FGridResolvedItem N1, N20, Invalid;
+    if (!TestTrue(TEXT("N1 and N20 RoundShield exist in ItemSystem"),
+        Fixture.Resolve(TEXT("Weapon_RoundShield_01"), 1, N1) &&
+        Fixture.Resolve(TEXT("Weapon_RoundShield_01"), 20, N20)))
+        return false;
+    TestTrue(TEXT("Both levels remain passive and retain valid armor"),
+        !N1.Weapon.DamageDice.bEnabled && !N20.Weapon.DamageDice.bEnabled &&
+        N1.Weapon.PhysicalArmor >= 0 && N20.Weapon.PhysicalArmor >= 0 &&
+        N1.Weapon.MagicalArmor >= 0 && N20.Weapon.MagicalArmor >= 0);
+    FGridCanonicalArmorReserveView AtOne, AtTwenty;
+    TestTrue(TEXT("Physical N1 reserve is computed, not an item cache"),
+        FGridCanonicalArmorReserveResolver::TryCompute(N1.Weapon, 0, 0, AtOne));
+    TestTrue(TEXT("Physical N20 reserve is computed from level growth"),
+        FGridCanonicalArmorReserveResolver::TryCompute(N20.Weapon, 0, 0, AtTwenty));
+    TestEqual(TEXT("Actual N1 physical armor"), AtOne.NominalPhysicalArmor, N1.Weapon.PhysicalArmor);
+    TestEqual(TEXT("Actual N20 physical armor"), AtTwenty.NominalPhysicalArmor, N20.Weapon.PhysicalArmor);
+    TestEqual(TEXT("Actual N1 magical armor"), AtOne.NominalMagicalArmor, N1.Weapon.MagicalArmor);
+    TestEqual(TEXT("Actual N20 magical armor"), AtTwenty.NominalMagicalArmor, N20.Weapon.MagicalArmor);
+    TestFalse(TEXT("Invalid N21 cannot infer N1 armor"),
+        Fixture.Registry->ResolveItem(N1.ItemId, 21, Invalid));
+    return !HasAnyErrors();
 }
-
 #endif // WITH_DEV_AUTOMATION_TESTS

@@ -1,28 +1,20 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/IAssetRegistry.h"
-#include "AssetRegistry/AssetData.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Modules/ModuleManager.h"
 #include "Serialization/Csv/CsvParser.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/UObjectGlobals.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace ARMEMENT01101
 {
-    static const TCHAR* const WeaponFolder =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons");
-    static const TCHAR* const RpgPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-    static const TCHAR* const VisualPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
-
+    bool IsArmId(FName Id)
+    {
+        const FString Text = Id.ToString();
+        return Text.Len() == 6 && Text.StartsWith(TEXT("ARM")) &&
+            Text.Mid(3).IsNumeric();
+    }
     bool ReadRequiredArchetypes(TSet<FName>& OutRequired, FString& OutError)
     {
         OutRequired.Reset();
@@ -63,7 +55,7 @@ namespace ARMEMENT01101
             }
 
             const FName First(Row[3]);
-            if (!UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(First))
+            if (!IsArmId(First))
             {
                 OutError = FString::Printf(TEXT("Invalid first archetype at row %d"), Index + 1);
                 return false;
@@ -73,7 +65,7 @@ namespace ARMEMENT01101
             if (FCString::Strcmp(Row[6], TEXT("None")) != 0)
             {
                 const FName Second(Row[6]);
-                if (!UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(Second))
+                if (!IsArmId(Second))
                 {
                     OutError = FString::Printf(TEXT("Invalid second archetype at row %d"), Index + 1);
                     return false;
@@ -92,189 +84,100 @@ namespace ARMEMENT01101
         return true;
     }
 
-    bool IsPilot(FName ArchetypeId)
-    {
-        return ArchetypeId == TEXT("ARM001") ||
-            ArchetypeId == TEXT("ARM045") ||
-            ArchetypeId == TEXT("ARM075");
-    }
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01101ReadinessAudit,
     "Grimrock.RPG.ARMEMENT01.10.Readiness.Audit22N1",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FARMEMENT01101ReadinessAudit::RunTest(const FString&)
 {
     TSet<FName> Required;
     FString Error;
-    if (!TestTrue(TEXT("18 approved recipes determine the 22 N1 archetypes"),
+    if (!TestTrue(TEXT("18 approved recipes exactly cover 22 N1 identities"),
         ARMEMENT01101::ReadRequiredArchetypes(Required, Error)))
     {
-        AddInfo(Error);
+        AddError(Error);
         return false;
     }
-
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, ARMEMENT01101::RpgPath);
-    UGridWeaponVisualCatalogueAsset* Visuals =
-        LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT01101::VisualPath);
-    if (!TestNotNull(TEXT("Production RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Production visual catalogue"), Visuals))
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production DA_ItemSystem registry configured"), Fixture.bReady))
+        return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real production root"), Root) ||
+        !TestNotNull(TEXT("Native weapon numbers"), Root->WeaponCatalogue.Get()) ||
+        !TestNotNull(TEXT("Native visuals"), Root->WeaponVisualCatalogue.Get()))
+        return false;
+    const bool bNumbersDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();
+    const bool bVisualsDirty = Root->WeaponVisualCatalogue->GetOutermost()->IsDirty();
+    TArray<FGridWeaponPipelineRow> Rows;
+    if (!TestTrue(TEXT("22 authored physical ARM identities"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Rows, Error)))
     {
+        AddError(Error);
         return false;
     }
-    if (!TestTrue(TEXT("1640 authoritative RPG profiles"), Rpg->IsValidCatalogue()) ||
-        !TestTrue(TEXT("Existing partial visual catalogue is valid"), Visuals->IsValidCatalogue()))
-    {
-        return false;
-    }
-
-    IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
-        TEXT("AssetRegistry")).Get();
-    const FString WeaponFolder(ARMEMENT01101::WeaponFolder);
-    TArray<FString> ScanPaths = { WeaponFolder };
-    Registry.ScanPathsSynchronous(ScanPaths, true);
-    TArray<FAssetData> Assets;
-    Registry.GetAssetsByPath(FName(*WeaponFolder), Assets, true);
-
-    TMap<FName, TArray<UGridItemDefinitionAsset*>> ByArchetype;
-    for (const FAssetData& AssetData : Assets)
-    {
-        UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(AssetData.GetAsset());
-        if (Item && Required.Contains(Item->WeaponArchetypeId))
-        {
-            ByArchetype.FindOrAdd(Item->WeaponArchetypeId).Add(Item);
-        }
-    }
-
-    TArray<FName> SortedRequired = Required.Array();
-    SortedRequired.Sort([](FName Left, FName Right)
-    {
-        return Left.ToString() < Right.ToString();
-    });
-
-    FString CsvReport = TEXT(
+    FString Report = TEXT(
         "ArchetypeId,ItemLevel,VisualMapped,IconLoaded,WorldMeshLoaded,ItemCount,ItemId,DefinitionValid,ActionChecked,Status\n");
-    int32 Candidates = 0;
-    int32 MissingDefinitions = 0;
-    int32 MissingVisuals = 0;
-    int32 DuplicateDefinitions = 0;
-    int32 VerifiedPilots = 0;
-
-    const bool bRpgDirtyBefore = Rpg->GetOutermost()->IsDirty();
-    const bool bVisualDirtyBefore = Visuals->GetOutermost()->IsDirty();
-
-    for (const FName Archetype : SortedRequired)
+    TSet<FName> SeenItems, SeenArms;
+    int32 Ready = 0, VerifiedPilots = 0;
+    for (const FGridWeaponPipelineRow& Row : Rows)
     {
-        const FGridWeaponLevelProfile* Profile = Rpg->FindProfile(Archetype, 1);
-        if (!TestNotNull(TEXT("Authoritative level-1 profile"), Profile))
+        if (Row.ProductionState != TEXT("Active")) continue;
+        const FName ArmId(Row.ArchetypeId), ItemId(Row.ItemDefinitionId);
+        TestTrue(TEXT("Every recipe archetype belongs to physical ItemSystem"),
+            Required.Contains(ArmId));
+        TestFalse(TEXT("No duplicate production ItemId"), SeenItems.Contains(ItemId));
+        TestFalse(TEXT("No duplicate production ARM"), SeenArms.Contains(ArmId));
+        SeenItems.Add(ItemId);
+        SeenArms.Add(ArmId);
+        FGridResolvedItem N1;
+        if (!TestTrue(TEXT("Actual native weapon N1 available"),
+            Fixture.Resolve(ItemId, 1, N1))) continue;
+        const FGridCanonicalWeaponVisual* Visual =
+            Root->WeaponVisualCatalogue->FindForArchetype(ArmId);
+        const bool bMapped = Visual && Visual->VisualId == FName(Row.VisualId);
+        const bool bIcon = N1.ItemIcon.LoadSynchronous() != nullptr;
+        const bool bMesh = N1.WorldMesh.LoadSynchronous() != nullptr;
+        const bool bDefinitionValid = N1.bIsArmament &&
+            N1.ArchetypeId == ArmId && N1.MaxStack == 1 &&
+            N1.ItemLevel == 1 && FMath::IsFinite(N1.WeightKg);
+        const bool bAttack = Row.IsPassive()
+            ? N1.AvailableActions.IsEmpty()
+            : N1.AvailableActions.Num() == 1 &&
+              N1.AvailableActions[0].ActionId == FName(Row.AttackId);
+        const bool bGood = bMapped && bIcon && bMesh &&
+            bDefinitionValid && bAttack;
+        TestTrue(TEXT("Native production candidate is complete, not legacy or missing"), bGood);
+        if (bGood) ++Ready;
+        if (ArmId == FName(TEXT("ARM001")) || ArmId == FName(TEXT("ARM045")) ||
+            ArmId == FName(TEXT("ARM075")))
         {
-            return false;
+            TestTrue(TEXT("Original three pilot silhouettes remain valid"), bGood);
+            if (bGood) ++VerifiedPilots;
         }
-
-        const FGridWeaponVisualProfile* Look = Visuals->FindProfileForArchetype(Archetype);
-        const bool bMapped = Look && Look->IsValidProfile();
-        const bool bIcon = bMapped && !Look->BaseIcon.IsNull() &&
-            Look->BaseIcon.LoadSynchronous() != nullptr;
-        const bool bMesh = bMapped && !Look->WorldMesh.IsNull() &&
-            Look->WorldMesh.LoadSynchronous() != nullptr;
-        const bool bVisualReady = bIcon && bMesh;
-
-        const TArray<UGridItemDefinitionAsset*>* Matches = ByArchetype.Find(Archetype);
-        const int32 ItemCount = Matches ? Matches->Num() : 0;
-        UGridItemDefinitionAsset* Item = (ItemCount == 1) ? (*Matches)[0] : nullptr;
-        if (ItemCount > 1)
-        {
-            ++DuplicateDefinitions;
-        }
-        if (ItemCount == 0)
-        {
-            ++MissingDefinitions;
-        }
-        if (!bVisualReady)
-        {
-            ++MissingVisuals;
-        }
-
-        const bool bDefinitionValid = Item &&
-            Item->IsValidDefinition() &&
-            Item->bUseWeaponCatalogue &&
-            Item->WeaponCatalogue.LoadSynchronous() == Rpg &&
-            Item->WeaponArchetypeId == Archetype &&
-            Item->DefaultWeaponItemLevel == 1 &&
-            Item->bUseWeaponVisualCatalogue &&
-            Item->WeaponVisualCatalogue.LoadSynchronous() == Visuals &&
-            !Item->bStackable &&
-            FMath::IsNearlyEqual(Item->Weight, Profile->WeightKg);
-
-        // Advisory only: throwing items and passive foci require separate
-        // feature-specific tests. This does NOT certify runtime readiness.
-        const bool bActionChecked = bDefinitionValid &&
-            (Profile->DamageDice.bEnabled
-                ? (Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand) ||
-                   Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand))
-                : Item->CombatActions.IsEmpty());
-
-        const TCHAR* Status =
-            ItemCount > 1 ? TEXT("DuplicateDefinitions") :
-            ItemCount == 0 && !bVisualReady ? TEXT("MissingItemAndVisual") :
-            ItemCount == 0 ? TEXT("MissingItem") :
-            !bVisualReady ? TEXT("MissingVisual") :
-            !bDefinitionValid ? TEXT("InvalidDefinition") :
-            !bActionChecked ? TEXT("NeedsActionReview") :
-            TEXT("CandidateForPlaytest");
-
-        const bool bCandidate = FCString::Strcmp(Status, TEXT("CandidateForPlaytest")) == 0;
-        if (bCandidate)
-        {
-            ++Candidates;
-        }
-
-        if (ARMEMENT01101::IsPilot(Archetype))
-        {
-            TestTrue(TEXT("Existing pilot remains a valid playtest candidate"), bCandidate);
-            if (bCandidate)
-            {
-                ++VerifiedPilots;
-            }
-        }
-        else if (ItemCount > 0)
-        {
-            // No newly authored item may silently pass with an incomplete
-            // definition or missing visual. Missing items are expected today.
-            TestTrue(TEXT("Additional definition must pass the production preflight"),
-                bCandidate);
-        }
-
-        CsvReport += FString::Printf(TEXT("%s,1,%d,%d,%d,%d,%s,%d,%d,%s\n"),
-            *Archetype.ToString(), bMapped ? 1 : 0, bIcon ? 1 : 0, bMesh ? 1 : 0,
-            ItemCount, Item ? *Item->ItemDefinitionId.ToString() : TEXT("None"),
-            bDefinitionValid ? 1 : 0, bActionChecked ? 1 : 0, Status);
-        AddInfo(FString::Printf(TEXT("[ARMEMENT01.10.1] %s -> %s"),
-            *Archetype.ToString(), Status));
+        Report += FString::Printf(TEXT("%s,1,%d,%d,%d,1,%s,%d,%d,%s\n"),
+            *ArmId.ToString(), bMapped ? 1 : 0, bIcon ? 1 : 0,
+            bMesh ? 1 : 0, *ItemId.ToString(), bDefinitionValid ? 1 : 0,
+            bAttack ? 1 : 0, bGood ? TEXT("CanonicalReady") : TEXT("BLOCKED"));
     }
-
-    const FString ReportDirectory =
-        FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT01"));
-    IFileManager::Get().MakeDirectory(*ReportDirectory, true);
-    const FString ReportPath =
-        FPaths::Combine(ReportDirectory, TEXT("ARMEMENT01_10_ProductionReadiness.csv"));
-    TestTrue(TEXT("Read-only production readiness report was written under Saved"),
-        FFileHelper::SaveStringToFile(CsvReport, *ReportPath,
-            FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
-
-    TestEqual(TEXT("Three existing pilots must survive unchanged"), VerifiedPilots, 3);
-    TestEqual(TEXT("No conflicting item definitions by archetype"), DuplicateDefinitions, 0);
-    TestEqual(TEXT("Read-only audit leaves RPG catalogue untouched"),
-        Rpg->GetOutermost()->IsDirty(), bRpgDirtyBefore);
-    TestEqual(TEXT("Read-only audit leaves visual catalogue untouched"),
-        Visuals->GetOutermost()->IsDirty(), bVisualDirtyBefore);
-
-    AddInfo(FString::Printf(
-        TEXT("[ARMEMENT01.10.1] 22 N1 archetypes; %d candidates, %d without item, %d without complete visuals; report=%s"),
-        Candidates, MissingDefinitions, MissingVisuals, *ReportPath));
-    return true;
+    TestEqual(TEXT("All 22 concrete ARM N1 are production-ready"), Ready, 22);
+    TestEqual(TEXT("All 22 unique ItemIds"), SeenItems.Num(), 22);
+    TestEqual(TEXT("Exactly 3 original visual pilots"), VerifiedPilots, 3);
+    const FString ReportDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT01"));
+    IFileManager::Get().MakeDirectory(*ReportDir, true);
+    const FString ReportPath = FPaths::Combine(
+        ReportDir, TEXT("ARMEMENT01_10_ProductionReadiness.csv"));
+    TestTrue(TEXT("Read-only report stored under Saved"),
+        FFileHelper::SaveStringToFile(
+            Report, *ReportPath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
+    TestEqual(TEXT("Native numeric source never dirtied"),
+        Root->WeaponCatalogue->GetOutermost()->IsDirty(), bNumbersDirty);
+    TestEqual(TEXT("Native visual source never dirtied"),
+        Root->WeaponVisualCatalogue->GetOutermost()->IsDirty(), bVisualsDirty);
+    AddInfo(FString::Printf(TEXT("ARMEMENT01.10 native production readiness: %d/22 N1, report=%s"),
+        Ready, *ReportPath));
+    return !HasAnyErrors();
 }
-
 #endif // WITH_DEV_AUTOMATION_TESTS
