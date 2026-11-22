@@ -28,7 +28,9 @@ bool FRPG0396CProductionClassTest::RunTest(const FString&)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396CProductionItemsTest,
 	"Grimrock.RPG.RPG03.9.6C.ProductionItems",
-	EAutomationTestFlags::Editobool FRPG0396CProductionItemsTest::RunTest(const FString&)
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPG0396CProductionItemsTest::RunTest(const FString&)
 {
     TArray<FName> Ids, B2;
     FRPGAlchemistAuthoring::GetB1ItemIds(Ids);
@@ -93,11 +95,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396CProductionItemsTest,
     }
     TestEqual(TEXT("All eleven native Alchemist items and detailed actions inspected"), Validated, 11);
     return !HasAnyErrors();
-}
-
-QuickItemActionIdOverride);
-	}
-	return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396CProductionStatusesTest,
