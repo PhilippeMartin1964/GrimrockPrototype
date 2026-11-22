@@ -30,12 +30,12 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
         const FString Path = FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_%s.DA_Class_%s"), ClassId, ClassId);
         auto* Original = LoadObject<URPGClassAsset>(nullptr, *Path);
         if (!TestNotNull(TEXT("Production class"), Original)) return false;
-        TStrongObjectPtr<URPGClassAsset> Legacy(DuplicateObject<URPGClassAsset>(Original, GetTransientPackage()));
+        TStrongObjectPtr<URPGClassAsset> Reference(DuplicateObject<URPGClassAsset>(Original, GetTransientPackage()));
         TStrongObjectPtr<URPGClassAsset> Canonical(DuplicateObject<URPGClassAsset>(Original, GetTransientPackage()));
         TStrongObjectPtr<URPGClassAsset> Missing(DuplicateObject<URPGClassAsset>(Original, GetTransientPackage()));
         FString Error;
-        if (!TestTrue(TEXT("Historical recipe parity reference"),
-                FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Legacy.Get(), Error)) ||
+        if (!TestTrue(TEXT("Independent native reference recipes resolve"),
+                FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Reference.Get(), Error, Registry.Get())) ||
             !TestTrue(TEXT("Canonical recipes resolve"), 
                 FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Canonical.Get(), Error, Registry.Get())))
         { AddError(Error); return false; }
@@ -43,11 +43,11 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
             FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Missing.Get(), Error, Empty.Get()));
         TestTrue(TEXT("Failed materialization remains atomic"), Missing->StartingEquipmentKits.IsEmpty() &&
             Missing->DefaultStartingEquipmentKitId.IsNone());
-        TestEqual(TEXT("Same default kit"), Canonical->DefaultStartingEquipmentKitId, Legacy->DefaultStartingEquipmentKitId);
+        TestEqual(TEXT("Same default kit"), Canonical->DefaultStartingEquipmentKitId, Reference->DefaultStartingEquipmentKitId);
         if (!TestEqual(TEXT("Three approved kits"), Canonical->StartingEquipmentKits.Num(), 3)) return false;
         for (const auto& Kit : Canonical->StartingEquipmentKits)
         {
-            const auto* Old = Legacy->FindStartingEquipmentKit(Kit.KitId);
+            const auto* Old = Reference->FindStartingEquipmentKit(Kit.KitId);
             if (!TestNotNull(TEXT("Same approved kit ID"), Old) ||
                 !TestEqual(TEXT("Same number of entries"), Kit.Items.Num(), Old->Items.Num())) return false;
             FGridCharacterInventoryState Character;
@@ -63,10 +63,16 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
             {
                 const auto& Entry = Kit.Items[I];
                 const auto& Source = Old->Items[I];
-                if (!TestNotNull(TEXT("Historical parity source"), Source.ItemDefinition.Get())) return false;
-                TestNull(TEXT("Canonical entry has no legacy pointer"), Entry.ItemDefinition.Get());
-                TestEqual(TEXT("Exact same item identity"), Entry.CanonicalItemId, Source.ItemDefinition->ItemDefinitionId);
-                TestEqual(TEXT("Physical level explicit"), Entry.ItemLevel, Source.ItemDefinition->bUseWeaponCatalogue ? 1 : 0);
+                TestNull(TEXT("Independent native reference contains no old ItemDefinition"),
+                    Source.ItemDefinition.Get());
+                TestNull(TEXT("Native test entry has no obsolete ItemDefinition"),
+                    Entry.ItemDefinition.Get());
+                TestFalse(TEXT("Stable native ItemId is explicit"),
+                    Entry.CanonicalItemId.IsNone());
+                TestEqual(TEXT("Reference and native ItemId are identical"),
+                    Entry.CanonicalItemId, Source.CanonicalItemId);
+                TestEqual(TEXT("Both native projections preserve the same physical level"),
+                    Entry.ItemLevel, Source.ItemLevel);
                 TestEqual(TEXT("Identical quantity"), Entry.Quantity, Source.Quantity);
                 TestTrue(TEXT("Identical equipment slot"), Entry.TargetSlot == Source.TargetSlot);
                 const FGridItemInstance* Granted = nullptr;
