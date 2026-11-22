@@ -3,6 +3,10 @@
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "RPG/RPGRaceAsset.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -14,6 +18,7 @@ namespace ArmClean062AD
     struct FMemoryFixture
     {
         FGridCanonicalRegistryFixture Registry;
+        TStrongObjectPtr<UGridPartyInventoryComponent> Inventory;
         TStrongObjectPtr<UGrimrockPartySaveGame> Before;
         TStrongObjectPtr<UGrimrockPartySaveGame> After;
         FString Failure;
@@ -40,11 +45,51 @@ namespace ArmClean062AD
                 Failure = TEXT("save_alloc");
                 return false;
             }
+            // Create the character through the same validated CC2 path as
+            // MON12.8.1.SaveMemoryRoundTrip. Raw AddDefaulted_GetRef()
+            // fails the v27 attribute-point/class identity save gate.
+            FRPGAuthoringIdentityResolver::ResetRuntimeCache();
+            Inventory.Reset(NewObject<UGridPartyInventoryComponent>());
+            if (!Inventory.IsValid())
+            {
+                Failure = TEXT("inventory_alloc");
+                return false;
+            }
+            Inventory->InitializeDefaultPartyIfNeeded();
+            URPGRaceAsset* Race = NewObject<URPGRaceAsset>(Inventory.Get());
+            URPGClassAsset* Class = NewObject<URPGClassAsset>(Inventory.Get());
+            if (!Race || !Class)
+            {
+                Failure = TEXT("rpg_assets_alloc");
+                return false;
+            }
+            Race->RaceId = TEXT("ARM06_MemoryHuman");
+            Race->DisplayName = FText::FromString(TEXT("ARM06 Memory Human"));
+            Race->AttributeBonuses = FRPGAttributes{0,0,0,0,0,0};
+            Class->ClassId = TEXT("ARM06_MemoryWarrior");
+            Class->DisplayName = FText::FromString(TEXT("ARM06 Memory Warrior"));
+            Class->BaseAttributes = FRPGAttributes{12,11,12,9,9,9};
+            Class->HealthAtLevelOne = 18;
+            Class->HealthPerLevel = 8;
+            Class->ManaAtLevelOne = 5;
+            Class->ManaPerLevel = 2;
+            FRPGCharacterCreationRequest Request;
+            Request.DisplayName = FText::FromString(TEXT("ARM06 Memory Hero"));
+            Request.RaceDefinition = Race;
+            Request.ClassDefinition = Class;
+            FText CreateError;
+            if (!Inventory->CreateInitialCharacter(Request, CreateError) ||
+                !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
+            {
+                Failure = TEXT("character_create");
+                return false;
+            }
+            Before->PartyInventoryState = Inventory->PartyInventoryState;
             FGridCharacterInventoryState& Hero =
-                Before->PartyInventoryState.ActiveCharacters.AddDefaulted_GetRef();
-            Hero.CharacterId = FGuid(0x2026, 0xAD06, 0x1, 0x1);
-            Hero.DisplayName = FText::FromString(TEXT("ARM-CLEAN06 Memory Only"));
+                Before->PartyInventoryState.ActiveCharacters[0];
             Hero.InventorySlots.SetNum(44);
+            for (FGridInventorySlot& Slot : Hero.InventorySlots)
+                Slot = FGridInventorySlot();
             int32 Index = 0;
             for (const FGridWeaponPipelineRow& Row : Rows)
             {
@@ -76,6 +121,12 @@ namespace ArmClean062AD
                     Item.ReadTextOverride = FText();
                     Item.LastWorldTransform = FTransform::Identity;
                 }
+            }
+            FText ValidationError;
+            if (!Before->ValidateCurrentState(ValidationError))
+            {
+                Failure = TEXT("validation_preflight");
+                return false;
             }
             if (!UGameplayStatics::SaveGameToMemory(Before.Get(), Bytes) || Bytes.IsEmpty())
             {
