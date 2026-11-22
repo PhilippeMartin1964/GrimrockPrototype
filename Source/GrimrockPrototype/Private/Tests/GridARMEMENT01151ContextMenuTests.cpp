@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -10,36 +11,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 
-namespace ARMEMENT01151Context
-{
-    struct FWorldFixture
-    {
-        UWorld* World = nullptr;
-        FWorldFixture()
-        {
-            const UWorld::InitializationValues Values = UWorld::InitializationValues()
-                .AllowAudioPlayback(false).RequiresHitProxies(false)
-                .CreatePhysicsScene(false).CreateNavigation(false)
-                .CreateAISystem(false).ShouldSimulatePhysics(false)
-                .SetTransactional(false);
-            World = UWorld::CreateWorld(EWorldType::Game, false,
-                FName(*FString::Printf(TEXT("ARM01151_Context_%s"),
-                    *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
-                nullptr, true, ERHIFeatureLevel::Num, &Values);
-            if (World && GEngine)
-            {
-                FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
-                Context.SetCurrentWorld(World);
-            }
-        }
-        ~FWorldFixture()
-        {
-            if (!World) return;
-            World->DestroyWorld(false);
-            if (GEngine) GEngine->DestroyWorldContext(World);
-        }
-    };
-}
+// Use a GameInstance-owned canonical ItemSystem in world interaction tests.
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01151ContextMenu,
     "Grimrock.RPG.ARMEMENT01.15.SelfConsume.ContextMenuByIndex",
@@ -47,8 +19,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01151ContextMenu,
 
 bool FARMEMENT01151ContextMenu::RunTest(const FString&)
 {
-    ARMEMENT01151Context::FWorldFixture Fixture;
-    if (!TestNotNull(TEXT("Transient world exists"), Fixture.World)) return false;
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical world exists"), Fixture.World) ||
+        !TestNotNull(TEXT("Registered world ItemSystem"), Fixture.Scope.Registry)) return false;
     AGrimrockPartyPawn* Pawn = Fixture.World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Party Pawn exists"), Pawn) ||
         !TestNotNull(TEXT("Party inventory exists"), Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr))

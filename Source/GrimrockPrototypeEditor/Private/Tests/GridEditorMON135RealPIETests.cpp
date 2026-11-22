@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Tests/GridAutomationSaveIsolation.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
 
 #include "Misc/AutomationTest.h"
 #include "Misc/FileHelper.h"
@@ -62,13 +63,12 @@ namespace
 		TArray<uint8> TemporarySaveBytesBeforeFreshPIE;
 	};
 
-	UGridPartyInventoryComponent* CreateMON135SerializablePartyFixture()
+	bool BuildMON135SerializablePartyState(FGridPartyInventoryState& OutState)
 	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-		if (!Component)
-		{
-			return nullptr;
-		}
+		FGridEditorCanonicalStarterTestWorld NativeWorld;
+		if (!NativeWorld.Ready()) return false;
+		UGridPartyInventoryComponent* Component = NativeWorld.MakeInventory();
+		if (!Component) return false;
 
 		Component->InitializeDefaultPartyIfNeeded();
 
@@ -78,7 +78,7 @@ namespace
 			nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Warrior.DA_Class_Warrior"));
 		if (!RaceDefinition || !ClassDefinition)
 		{
-			return nullptr;
+			return false;
 		}
 
 		FRPGCharacterCreationRequest Request;
@@ -90,10 +90,11 @@ namespace
 		if (!Component->CreateInitialCharacter(Request, CreationError) ||
 			!Component->PartyInventoryState.ActiveCharacters.IsValidIndex(0))
 		{
-			return nullptr;
+			return false;
 		}
 
-		return Component;
+		OutState = Component->PartyInventoryState;
+		return true;
 	}
 
 	bool InstallMON135TransientPIEFixture(FAutomationTestBase& Test, AGridLevelEditorActor* EditorActor, FMON135RealPIEState& State)
@@ -402,15 +403,16 @@ namespace
 			State->bOriginalAutoPreparePIE = EditorActor->bAutoPreparePIE;
 
 			UGameplayStatics::DeleteGameInSlot(State->TemporarySaveSlot, 0);
-			UGridPartyInventoryComponent* SavePartyFixture = CreateMON135SerializablePartyFixture();
-			Test->TestNotNull(TEXT("The MON13.5 temporary save party is current-schema valid"), SavePartyFixture);
-			if (!SavePartyFixture)
+			FGridPartyInventoryState SavePartyState;
+			const bool bSavePartyReady = BuildMON135SerializablePartyState(SavePartyState);
+			Test->TestTrue(TEXT("The MON13.5 temporary save party is current-schema valid"), bSavePartyReady);
+			if (!bSavePartyReady)
 			{
 				return true;
 			}
 
 			UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-			Save->PartyInventoryState = SavePartyFixture->PartyInventoryState;
+			Save->PartyInventoryState = MoveTemp(SavePartyState);
 			Save->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
 			Save->PartyCellX = State->StartCell.X;
 			Save->PartyCellY = State->StartCell.Y;

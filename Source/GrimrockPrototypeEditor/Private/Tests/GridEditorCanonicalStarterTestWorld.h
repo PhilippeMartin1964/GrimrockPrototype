@@ -34,6 +34,8 @@ struct FGridEditorCanonicalStarterTestWorld
         GameInstance.Reset(NewObject<UGameInstance>(GetTransientPackage()));
         if (!GameInstance.IsValid()) return;
         GameInstance->Init();
+        Context.OwningGameInstance = GameInstance.Get();
+        Context.SetCurrentWorld(World);
         World->SetGameInstance(GameInstance.Get());
         Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
     }

@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "Blueprint/UserWidget.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
@@ -136,7 +138,12 @@ bool FARMEMENT0193KitProjectionTest::RunTest(const FString&)
             .EqualTo(FText::FromString(TEXT("Gardien"))));
     URPGClassAsset* Class = ARMEMENT0193Localization::LoadWarrior();
     if (!TestNotNull(TEXT("Production Warrior definition"), Class)) return false;
-    URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("Native localization world"), NativeWorld.World) ||
+        !TestNotNull(TEXT("Native localization ItemSystem"), NativeWorld.Scope.Registry)) return false;
+    URPGCharacterCreationWizardWidget* Wizard = CreateWidget<URPGCharacterCreationWizardWidget>(
+        NativeWorld.World, URPGCharacterCreationWizardWidget::StaticClass());
+    if (!TestNotNull(TEXT("World-bound localized wizard"), Wizard)) return false;
     Wizard->ClassDefinition = Class;
     if (!TestTrue(TEXT("Select alternative kit"), Wizard->SelectStartingEquipmentKit(TEXT("Kit_Warrior_WeaponMaster"))))
     {

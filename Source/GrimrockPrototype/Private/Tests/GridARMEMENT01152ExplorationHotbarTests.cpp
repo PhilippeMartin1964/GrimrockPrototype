@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -10,38 +11,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridCombatHudWidget.h"
 
-namespace ARMEMENT01152
-{
-    struct FWorldFixture
-    {
-        UWorld* World = nullptr;
-
-        FWorldFixture()
-        {
-            const UWorld::InitializationValues Values = UWorld::InitializationValues()
-                .AllowAudioPlayback(false).RequiresHitProxies(false)
-                .CreatePhysicsScene(false).CreateNavigation(false)
-                .CreateAISystem(false).ShouldSimulatePhysics(false)
-                .SetTransactional(false);
-            World = UWorld::CreateWorld(EWorldType::Game, false,
-                FName(*FString::Printf(TEXT("ARM01152_Hotbar_%s"),
-                    *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
-                nullptr, true, ERHIFeatureLevel::Num, &Values);
-            if (World && GEngine)
-            {
-                FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
-                Context.SetCurrentWorld(World);
-            }
-        }
-
-        ~FWorldFixture()
-        {
-            if (!World) return;
-            World->DestroyWorld(false);
-            if (GEngine) GEngine->DestroyWorldContext(World);
-        }
-    };
-}
+// Use a GameInstance-owned canonical ItemSystem in world interaction tests.
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01152ExplorationHotbar,
     "Grimrock.RPG.ARMEMENT01.15.ExplorationHotbar.PriestAndApothecary",
@@ -62,8 +32,9 @@ bool FARMEMENT01152ExplorationHotbar::RunTest(const FString&)
     const FName PotionId(TEXT("Item_Potion_Healing_01"));
     for (const FCase& Case : Cases)
     {
-        ARMEMENT01152::FWorldFixture Fixture;
-        if (!TestNotNull(TEXT("Transient world available"), Fixture.World)) return false;
+        FGridCanonicalWeightTestWorld Fixture({});
+        if (!TestNotNull(TEXT("Canonical hotbar world"), Fixture.World) ||
+            !TestNotNull(TEXT("Native hotbar ItemSystem"), Fixture.Scope.Registry)) return false;
         AGrimrockPartyPawn* Pawn = Fixture.World->SpawnActor<AGrimrockPartyPawn>();
         if (!TestNotNull(TEXT("Party pawn available"), Pawn) ||
             !TestNotNull(TEXT("Party inventory available"), Pawn ? Pawn->PartyInventoryComponent.Get() : nullptr))

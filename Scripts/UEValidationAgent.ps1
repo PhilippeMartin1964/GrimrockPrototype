@@ -34,12 +34,22 @@ function Save-JsonAtomic {
 function Publish-CommitStatus {
     param([string]$Sha, [string]$State, [string]$Description, [string]$Context = 'UE5.5.4/LocalAuto')
     $Description = $Description.Substring(0, [Math]::Min(135, $Description.Length))
-    & gh api -X POST "repos/$GitHubRepository/statuses/$Sha" -f "state=$State" -f "context=$Context" -f "description=$Description" --silent
-    if ($LASTEXITCODE -ne 0) { throw "Publication du statut GitHub impossible (code $LASTEXITCODE)." }
+    $LastCode = -1
+    for ($Attempt = 0; $Attempt -lt 3; ++$Attempt) {
+        & gh api -X POST "repos/$GitHubRepository/statuses/$Sha" -f "state=$State" -f "context=$Context" -f "description=$Description" --silent
+        $LastCode = $LASTEXITCODE
+        if ($LastCode -eq 0) { return }
+        if ($Attempt -lt 2) {
+            Write-Warning "[VALIDATION-AUTO01] Publication statut GitHub echouee; nouvelle tentative bornee."
+            Start-Sleep -Seconds (2 * ($Attempt + 1))
+        }
+    }
+    throw "Publication du statut GitHub impossible apres 3 essais (code $LastCode)."
 }
 
 function Get-PublicSetupCode {
     param([string]$Message)
+    if ($Message -match '(?i)Publication du statut GitHub') { return 'GITHUB_STATUS' }
     if ($Message -match '(?i)worktrees de ce depot') { return 'WORKTREE_REGISTRATION' }
     if ($Message -match '(?i)Worktree de validation modifie') { return 'WORKTREE_DIRTY' }
     if ($Message -match '(?i)Repertoire de validation non vide|Worktree d.origine differente') { return 'WORKTREE_LOCATION' }

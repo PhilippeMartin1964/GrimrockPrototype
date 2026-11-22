@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
 #include "../ARMEMENT/GridEditorAlchemySaveCopy.h"
 #include "../ARMEMENT/GridEditorReadableSaveRepair.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
@@ -254,8 +255,10 @@ bool FGridEditorARMCLEAN064X66ColdNativeSave::RunTest(const FString&)
         *ObjectPath(TEXT("Visuals/PortraitSets/"), TEXT("DA_PortraitSet_Dwarf")));
     if (!Race || !Class || !Portrait) return false;
     FResolver::ResetRuntimeCache();
-    TStrongObjectPtr<UGridPartyInventoryComponent> Inventory(NewObject<UGridPartyInventoryComponent>());
-    Inventory->InitializeDefaultPartyIfNeeded();
+    FGridEditorCanonicalStarterTestWorld NativeWorld;
+    if (!TestTrue(TEXT("Cold-save uses a native ItemSystem"), NativeWorld.Ready())) return false;
+    UGridPartyInventoryComponent* Inventory = NativeWorld.MakeInventory();
+    if (!TestNotNull(TEXT("Native cold-save inventory"), Inventory)) return false;
     FRPGCharacterCreationRequest Request;
     Request.DisplayName = FText::FromString(TEXT("X66 Native Hero"));
     Request.RaceDefinition = Race;
