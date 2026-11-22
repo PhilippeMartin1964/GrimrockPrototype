@@ -2,6 +2,238 @@
 
 **Référence :** `master`, `a8de4f58b6c7ecc42e62aef0dbbe8fa9b7ede272`, relevé du 22 novembre 2026. Lot documentaire limité à [DataModel.svg](../Architecture/DataModel.svg), [DataModel.md](../Architecture/DataModel.md) et ce fichier. Aucun code, asset, script, configuration ou SaveGame modifié ; aucun renommage ou retrait engagé. Cette référence et ses constats datés sont conservés ci-dessous ; l’état courant et la clôture ARM-CLEAN06 figurent dans la mise à jour suivante.
 
+## CLEANUP03 — audit C++ et préparation de CLEANUP04
+
+**Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.
+
+### Périmètre et méthode
+
+Analyse récursive de tous les fichiers C++ des deux modules demandés : définitions, tokens, includes résolus, corps de fonctions, réflexion, chargements et callbacks, tests et branches conditionnelles compris. Types recoupés par reconnaissance syntaxique et lexicale. Les forward declarations et classes générées par macros de tests ne sont pas comptées comme définitions explicites ; quatre structures anonymes le sont.
+
+Le parseur exploratoire ne remplace ni UHT ni le préprocesseur Unreal : ses rapprochements servent au triage, pas à prouver un graphe d’appels complet. Les candidats retenus sont relus. Les lignes ci-dessous désignent le SHA analysé. **Une absence d’appel textuel ne prouve pas qu’un type réfléchi est mort.**
+
+Recoupements indirects : Asset Registry natif en lecture seule, classes d’assets, parents Blueprint, imports cuisinés du tooltip, noms sérialisés, INI, delegates/timers, Automation et v27. Le registre local contient 1 501 packages `/Game` : 1 316 packages versionnés et 185 locaux ; ce n’est pas un inventaire Git. Les trois anciennes classes ont zéro instance dans les deux ensembles.
+
+Données détaillées et outils jetables : `%TEMP%/GrimrockCleanup03/`, rien de permanent ajouté. Les preuves CLEANUP02 au même SHA restent applicables : 2 044 tests, sept copies v27, 70 Blueprints, Cook/Shipping, alias et empreintes. Aucun nouveau build, packaging, conversion ni chargement de sauvegarde personnelle nécessaire ; seule l’archive existante a été inspectée en lecture seule.
+
+### Inventaire exact
+
+| Module | `.h` | `.cpp` | `.inl` | Lignes physiques | Classes | Structures | Enums |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| GrimrockPrototype | 322 | 730 | 0 | 242 488 | 200 | 708 | 157 |
+| GrimrockPrototypeEditor | 86 | 270 | 23 | 70 187 | 58 | 150 | 16 |
+| **Total** | **408** | **1 000** | **23** | **312 675** | **258** | **858** | **173** |
+
+**1 408 fichiers h/cpp, 1 431 avec les inl** ; lignes incluant commentaires/blancs, pas du code exécuté. Les neuf fichiers C++ de GrimrockLua expliquent l’écart avec les 1 440 de CLEANUP02 ; ce module est une dépendance examinée, pas une extension du corpus. Les deux Build.cs sont lus séparément.
+
+**694 fichiers de tests** (481 Runtime, 213 Editor), 147 737 lignes ; hors Tests : 737 fichiers, 164 938 lignes. Hors Tests ne signifie pas Shipping : des corps Automation y subsistent. Repérage de 2 049 macros SIMPLE et une COMPLEX_AUTOMATION_TEST : ce comptage source n’est pas le nombre de cas exécutés, dépendant du préprocesseur, des flags et cas complexes.
+
+Réflexion déclarée : **165 UCLASS, 278 USTRUCT, 141 UENUM, 4 109 UPROPERTY, 1 190 UFUNCTION**. Types réfléchis Runtime : 143/277/138 ; Editor : 22/1/3. Une déclaration réfléchie signale un usage indirect possible, pas à elle seule un consommateur métier.
+
+Répartition physique exhaustive : `R` = `Source/GrimrockPrototype`, `E` = `Source/GrimrockPrototypeEditor`, Public/Private réunis. Dungeon/inventaire/équipement/interactions sont surtout dans Runtime racine ; Skills/Talents dans RPG et UI. Les tests restent séparés.
+
+| Module / domaine | h / cpp / inl | Lignes | Classes / structures / enums |
+| --- | --- | ---: | --- |
+| R · racine | 0 / 1 / 0 | 27 | 1 / 0 / 0 |
+| R · Core | 29 / 4 / 0 | 5 166 | 6 / 53 / 22 |
+| R · Magic | 13 / 11 / 0 | 2 483 | 4 / 26 / 10 |
+| R · Quests | 3 / 2 / 0 | 773 | 2 / 4 / 3 |
+| R · RPG/Skills/Talents/StatusEffects | 40 / 36 / 0 | 10 231 | 17 / 67 / 18 |
+| R · Runtime racine | 86 / 73 / 0 | 43 253 | 38 / 98 / 24 |
+| R · Runtime/Combat | 33 / 35 / 0 | 24 291 | 30 / 99 / 40 |
+| R · Runtime/Items | 11 / 4 / 0 | 3 193 | 14 / 23 / 11 |
+| R · Runtime/Map | 3 / 2 / 0 | 1 252 | 2 / 10 / 3 |
+| R · Runtime/Monsters | 25 / 23 / 0 | 9 959 | 28 / 22 / 8 |
+| R · Save | 3 / 3 / 0 | 736 | 3 / 0 / 0 |
+| R · UI | 69 / 62 / 0 | 31 791 | 55 / 58 / 17 |
+| R · Tests | 7 / 474 / 0 | 109 333 | 0 / 248 / 1 |
+| E · racine | 0 / 1 / 0 | 269 | 1 / 0 / 0 |
+| E · ARMEMENT | 27 / 10 / 0 | 3 940 | 10 / 21 / 2 |
+| E · Details | 1 / 2 / 0 | 329 | 3 / 0 / 0 |
+| E · EditorTools | 27 / 23 / 23 | 19 539 | 18 / 20 / 11 |
+| E · Effects | 1 / 1 / 0 | 170 | 1 / 0 / 0 |
+| E · Localization | 3 / 3 / 0 | 677 | 2 / 2 / 0 |
+| E · RPG | 17 / 17 / 0 | 5 978 | 9 / 14 / 0 |
+| E · Tests | 5 / 208 / 0 | 38 404 | 11 / 90 / 3 |
+| E · UI | 5 / 5 / 0 | 881 | 3 / 3 / 0 |
+
+Concentrations : ActionCatalog joueur 3 815 lignes, GridCombatTypes.h 3 237, InventoryWidget 2 721, LevelRuntimeActor 2 339, PartyInventoryComponent 2 165, LevelRuntimeActorSurfaces 2 144, CombatHudWidget 2 062. Le plus gros fichier est un test : GridMonsterMON12CombatHudTests.cpp, 3 880 lignes. **La taille seule n’est pas un défaut.**
+
+Agrégats des cpp de même préfixe : GridTurnManager 10 892 lignes/11 fichiers, GridLevelRuntimeActor 9 840/12, GridPartyInventoryComponent 4 579/8. Le découpage physique existe : analyser responsabilités et états partagés avant un nouveau fractionnement.
+
+### Architecture et autorités
+
+9 398 includes, dont 5 455 résolus dans le corpus ; aucun cycle résolu, include Runtime → Editor ou Editor → header privé Runtime détecté. Cela n’exclut ni les cycles logiques ni les includes transitifs inutiles. Hubs hors Tests : GridItemSubsystem.h (88), GridPartyInventoryComponent.h (83), GridLevelRuntimeActor.h (69), GrimrockPartyPawn.h (67), ancien GridItemDefinitionAsset.h (66), GridInventoryTypes.h (46), GridCombatTypes.h (36). ActionCatalog inclut 51 headers.
+
+Runtime n’a pas de dépendance UBT vers Editor. Editor expose largement AssetTools/UnrealEd/Slate/Json en dépendances publiques : examiner ce qui peut devenir privé selon les signatures. Les deux modules sont volontairement non-unity pour isoler helpers/logs ; ne pas réactiver unity comme optimisation supposée. Les UPROPERTY embarquées peuvent nécessiter des includes complets ; ne pas imposer des forward declarations impossibles pour UHT.
+
+Le [modèle relationnel](../Architecture/DataModel.svg) concorde : une racine/quatre catalogues, 48 définitions/22 ARM ; ItemId statique, GUID/niveau physiques, réserves dépensées et possession dans les instances, présentation transitoire. Aucun second catalogue d’équipements proposé.
+
+- [GridItemSubsystem.cpp:33](../../Source/GrimrockPrototype/Private/Runtime/Items/GridItemSubsystem.cpp#L33),65 : validation initiale, RootRegistry/ItemIndex possédés par UPROPERTY, refus d’IDs/niveaux ; cet index est utile.
+- [GridInventoryTypes.h:398](../../Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h#L398),409,424 : ClassDefinition, Level, DerivedStats sont Transient ; [GrimrockPartySaveGame.cpp:293](../../Source/GrimrockPrototype/Private/Save/GrimrockPartySaveGame.cpp#L293),340 les reconstruit. Pas d’autorité persistée concurrente à ClassId/Experience/Attributes.
+- [GridItemCatalogues.cpp:87](../../Source/GrimrockPrototype/Private/Runtime/Items/GridItemCatalogues.cpp#L87) contrôle l’unicité entre formes : 19 actions compactes + 14 détaillées ; cinq présentations compactes + une détaillée. Les deux formes sont consommées ; ne pas inventer de doublon inter-formes ni fusionner sans caractériser les payloads.
+- Quests valide définitions et ordre des objectifs ; Map/occupation/perception ont des contrats distincts. Deux BFS voisines ne sont pas forcément interchangeables.
+- Skills : caches UPROPERTY et invalidation explicite ([GridSkillsWidget.cpp:178](../../Source/GrimrockPrototype/Private/UI/GridSkillsWidget.cpp#L178), [GridSkillsWidget.h:374](../../Source/GrimrockPrototype/Public/UI/GridSkillsWidget.h#L374)). Tableau ordonné et index ID ont deux usages ; leur fusion n’a pas de gain démontré.
+- Ownership examiné : timers arrêtés en EndPlay, lambda VFX weak ([GridLevelRuntimeActorSurfaces.cpp:254](../../Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActorSurfaces.cpp#L254)), quatre AddRaw Editor retirés ([GrimrockPrototypeEditor.cpp:75](../../Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp#L75),87). Pas de défaut de durée de vie démontré sur ces sites. Les 24 const_cast ne sont pas 24 bugs : plusieurs servent un simple accès const.
+
+### Candidats au retrait : 13 unités, pas 13 suppressions autorisées
+
+Certitude : **A** absence de consommateur étayée pour un helper non réfléchi ; **B** API sans appel repéré, vérification indirecte finale nécessaire ; **C** historique encore utilisé, retrait conditionné au remplacement de ses garanties. **4 A, 3 B, 6 C**. Aucune classe réfléchie n’est prouvée supprimable sans préparation.
+
+| ID | Unité et preuve au SHA analysé | Certitude / condition |
+| --- | --- | --- |
+| D01 | [R/Public/Runtime/Items/GridNonArmamentReadPolicies.h:13](../../Source/GrimrockPrototype/Public/Runtime/Items/GridNonArmamentReadPolicies.h#L13) | A ; aucun include/usage du type, trois méthodes sans appel |
+| D02 | Même dossier, [GridNonArmamentThrowReadModel.h:8](../../Source/GrimrockPrototype/Public/Runtime/Items/GridNonArmamentThrowReadModel.h#L8) | A ; aucun include/usage, projections remplacées par les lecteurs actuels |
+| D03 | [R/Private/UI/GridInventoryWidget.cpp:117](../../Source/GrimrockPrototype/Private/UI/GridInventoryWidget.cpp#L117), FormatFloatWithBonus | A ; helper anonyme, une occurrence lexicale, aucune inscription réfléchie |
+| D04 | [E/Public/ARMEMENT/GridAssassinDaggerN1ItemAuthoringSpecs.h:8](../../Source/GrimrockPrototypeEditor/Public/ARMEMENT/GridAssassinDaggerN1ItemAuthoringSpecs.h#L8) | A ; table/namespace sans include ; ne pas retirer les identités d’assets correspondantes |
+| D05 | [R/Public/Magic/GridSpellbookTypes.h:75](../../Source/GrimrockPrototype/Public/Magic/GridSpellbookTypes.h#L75), Sanitize | B ; méthode native inline sans appel ; préserver les validations actives de persistance |
+| D06 | [R/Public/Runtime/GridInventoryTypes.h:680](../../Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h#L680), ClearSlot | B ; méthode native inline sans appel ; pas la donnée d’équipement elle-même |
+| D07 | [R/Public/RPG/RPGCharacterTypes.h:185](../../Source/GrimrockPrototype/Public/RPG/RPGCharacterTypes.h#L185), FRPGCharacterPortraitOption | B ; USTRUCT sans usage C++ ni nom repéré dans les assets locaux ; contrat réfléchi/public à confirmer |
+| D08 | UGridItemDefinitionAsset | C ; 188 fichiers citants, propriétés/fixtures et résidu Blueprint ; voir collisions |
+| D09 | UGridWeaponCatalogueAsset | C ; sept fichiers citants ; extraire les règles de croissance toujours actives |
+| D10 | UGridWeaponVisualCatalogueAsset | C ; huit fichiers citants ; fixtures et signatures réfléchies |
+| D11 | [R/Private/Runtime/Combat/GridWeaponVisualResolver.cpp:3](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridWeaponVisualResolver.cpp#L3) | C ; corps WITH_DEV_AUTOMATION_TESTS, caractérisations à remplacer |
+| D12 | Même dossier, [GridWorldItemVisualResolver.cpp:3](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridWorldItemVisualResolver.cpp#L3) | C ; même garde ; conserver la matérialisation actuelle via GridItemMeshResolver |
+| D13 | [R/Private/Runtime/GridLegacyItemLookup.h:12](../../Source/GrimrockPrototype/Private/Runtime/GridLegacyItemLookup.h#L12) | C ; Resolve retourne nullptr en Shipping ; corps historique utile aux tests, IsRegistered encore utile |
+
+Paramètres LegacyDefinition, corps historiques et ExpandedProfileCache sont rattachés à D08–D13, pas recomptés en dizaines de candidats. Faux positifs écartés : SetGridPose est une UFUNCTION, ShutdownModule un override Engine ; ResourceCosts/DirectDamageScaling/HealingScaling/TargetedActionResult sont embarqués dans d’autres structures, plusieurs dans sept assets RPG.
+
+Le Main qui retourne 1 dans [GridWeaponCatalogueImportCommandlet.cpp:16](../../Source/GrimrockPrototypeEditor/Private/ARMEMENT/GridWeaponCatalogueImportCommandlet.cpp#L16) est un **refus de recréer une ancienne autorité**, pas un import à réactiver ou du code mort certain. Plans/reçus/commandlets de protection restent consommés par les validations ; examen coordonné des scripts en CLEANUP06, aucun retrait ici.
+
+### Duplications : 12 familles retenues
+
+Criblage hors Tests des corps d’au moins 50 tokens : **37 groupes identiques après retrait des commentaires/espaces**, **93 groupes après normalisation des identifiants**, exacts inclus. Candidats syntaxiques, pas 93 défauts ; lecture et décision retenues pour les **12 familles** suivantes.
+
+| ID | Fonctions / preuves | Proposition et garde |
+| --- | --- | --- |
+| U01 | E/Private/RPG : SaveAuthoredAsset dans six authorings ([RPGMageAuthoring.cpp:275](../../Source/GrimrockPrototypeEditor/Private/RPG/RPGMageAuthoring.cpp#L275), [RPGAlchemistAuthoring.cpp:218](../../Source/GrimrockPrototypeEditor/Private/RPG/RPGAlchemistAuthoring.cpp#L218)…) ; SaveClassAsset dans deux commandlets ([RPGClassProgressionAuthoringCommandlet.cpp:21](../../Source/GrimrockPrototypeEditor/Private/RPG/RPGClassProgressionAuthoringCommandlet.cpp#L21) / [UIRPGTalentTreeAuthoringCommandlet.cpp:23](../../Source/GrimrockPrototypeEditor/Private/RPG/UIRPGTalentTreeAuthoringCommandlet.cpp#L23)) | Petit helper Editor de sauvegarde/erreur, transactions et autorisations d’écriture inchangées |
+| U02 | R/Private/Runtime : GetWorldMonsters et variantes, [GridLevelRuntimeActor.cpp:81](../../Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp#L81), [GridLevelRuntimeActorDiagnostics.cpp:135](../../Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActorDiagnostics.cpp#L135), [GridLevelRuntimeActorMonsters.cpp:46](../../Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActorMonsters.cpp#L46), [GridLevelRuntimeActorPersistence.cpp:80](../../Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActorPersistence.cpp#L80) | Primitive de lecture ; mêmes ordre/filtrage, pas de cache global d’acteurs |
+| U03 | [GridItemContextActionLibrary.cpp:33](../../Source/GrimrockPrototype/Private/Runtime/GridItemContextActionLibrary.cpp#L33) / [GridInventoryWidget.cpp:157](../../Source/GrimrockPrototype/Private/UI/GridInventoryWidget.cpp#L157) | Mapping localisé des libellés d’action partagé ; préserver clés ST_UI et formats |
+| U04 | [GridTurnManagerTypes.cpp:54](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerTypes.cpp#L54) / [GridMonsterRangedAttackPlanner.cpp:31](../../Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterRangedAttackPlanner.cpp#L31), AppendTurnsToward ; variante Keeper | Calcul pur commun ; ordre déterministe des rotations, politiques des planificateurs distinctes |
+| U05 | [GridCombatResolver.cpp:254](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatResolver.cpp#L254) / [GridMonsterCombatComponent.cpp:585](../../Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterCombatComponent.cpp#L585), GetResistancePercent | Lecture commune ; huit types, bornes et ordre des effets testés |
+| U06 | [RPGAttributePointService.cpp:72](../../Source/GrimrockPrototype/Private/RPG/RPGAttributePointService.cpp#L72),89 / [RPGLevelUpService.cpp:13](../../Source/GrimrockPrototype/Private/RPG/RPGLevelUpService.cpp#L13),29 | PreserveHealthDeficit/PreserveManaDeficit ; ne pas ressusciter ni rembourser le mana |
+| U07 | [GridCombatModifierResolver.cpp:46](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatModifierResolver.cpp#L46) / [GridCombatReactionResolver.cpp:11](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatReactionResolver.cpp#L11) | Collecte commune des prérequis du propriétaire ; effets/réactions restent distincts |
+| U08 | [GrimrockPartyPawnSave.cpp:25](../../Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawnSave.cpp#L25) / [GrimrockPartySaveGame.cpp:240](../../Source/GrimrockPrototype/Private/Save/GrimrockPartySaveGame.cpp#L240) ; BuildSelectionSet dans [GrimrockPartySaveGame.cpp:63](../../Source/GrimrockPrototype/Private/Save/GrimrockPartySaveGame.cpp#L63) et [RPGClassProgressionTransactionService.cpp:58](../../Source/GrimrockPrototype/Private/RPG/RPGClassProgressionTransactionService.cpp#L58) | Projections/prédicats purs partagés ; maintenir rejets et validations avant mutation |
+| U09 | [GridMonsterActor.cpp:21](../../Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterActor.cpp#L21), [GridMonsterOccupancySubsystem.cpp:12](../../Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterOccupancySubsystem.cpp#L12), [GridMonsterSpawnConfiguration.cpp:10](../../Source/GrimrockPrototype/Private/Runtime/Monsters/GridMonsterSpawnConfiguration.cpp#L10) | Lookup de RuntimeActor commun ; préserver contexte et durée de vie du monde |
+| U10 | GetGridEdgeName et cinq variantes ; GridObjectEventToString dans trois unités Activation | Noms techniques de diagnostic ; ne pas confondre avec les libellés joueur |
+| U11 | [E/Private/EditorTools/GridEditorLuaService.cpp:207](../../Source/GrimrockPrototypeEditor/Private/EditorTools/GridEditorLuaService.cpp#L207) / [GridLuaAuthoringCompiler.cpp:625](../../Source/GrimrockPrototypeEditor/Private/EditorTools/GridLuaAuthoringCompiler.cpp#L625) | Un prédicat de compatibilité des définitions persistantes Lua ; ordre/noms/types inchangés |
+| U12 | E/Private/EditorTools : FindEditorActor dans [GridLevelEdMode.cpp:276](../../Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdMode.cpp#L276), [GridLevelEdModeToolkit.cpp:58](../../Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp#L58), [SGridEditorLuaScriptsPanel.cpp:51](../../Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLuaScriptsPanel.cpp#L51), [SGridEditorWorkspaceTab.cpp:72](../../Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorWorkspaceTab.cpp#L72) | Lookup partagé ; pas de singleton de monde ni confusion PIE/EditorWorld |
+
+Ne pas mutualiser les wrappers historiques destinés au retrait avant D08–D13. Constructeurs Button/Lever, Bind/Unbind, accès const/mutable et BFS différentes peuvent exprimer des contrats distincts. Deux validations à des frontières différentes (asset/instance, préflight/commit) ne sont pas automatiquement redondantes.
+
+### Top 10 prioritaire
+
+P0 = critique/intégrité démontrée ; P1 = complexité importante ou risque élevé à caractériser ; P2 = maintenance ; P3 = secondaire. **Aucun P0 démontré.** Difficulté indicative F/M/E = faible/moyenne/élevée, pas un engagement de délai.
+
+| ID / priorité / domaine | Preuve et problème | Impact / correction |
+| --- | --- | --- |
+| C03-01 · P1 · Items/compatibilité | D08–D10, types historiques encore dans les signatures malgré zéro asset | Collision et dette de fixtures ; libérer les trois noms selon la procédure ci-dessous, sans réinterpréter l’ancien schéma |
+| C03-02 · P1 · possession/transactions | [GridItemTransferService.cpp:88](../../Source/GrimrockPrototype/Private/Runtime/GridItemTransferService.cpp#L88)–101,143 : Notify entre mutation et insertion/rollback ; Notify diffuse synchroniquement ([GridPartyInventoryComponent.cpp:321](../../Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponent.cpp#L321)) | Réentrance plausible, référence CharacterState conservée à travers callback ; caractériser et réacquérir par identité sans changer implicitement les notifications |
+| C03-03 · P1 · combat/RPG | U05–U08 : mêmes prédicats métier dans plusieurs calculs | Divergence possible lors d’une correction ; factoriser de petites fonctions pures dans leurs domaines, pas un gestionnaire global |
+| C03-04 · P1 · lecteurs/UI | [GridInventoryWidget.cpp:1056](../../Source/GrimrockPrototype/Private/UI/GridInventoryWidget.cpp#L1056),1064 : type puis tri ; [GridInventoryItemMetadataReadModel.h:34](../../Source/GrimrockPrototype/Private/UI/GridInventoryItemMetadataReadModel.h#L34) revalide la vue résolue | Répétition des résolutions/contrats ; une résolution par opération, mêmes erreurs/niveaux/piles/refus de fallback |
+| C03-05 · P1 · tests/migration | 110 fichiers de tests citent l’ancienne définition ; [GridItemCacheParityAudit.cpp:13](../../Source/GrimrockPrototype/Private/Runtime/Items/GridItemCacheParityAudit.cpp#L13) compare des projections d’une même racine | Matrice assertions/invariants/oracles avant condensation ; une façade comparée à la même source n’est pas un oracle indépendant |
+| C03-06 · P2 · dépendances | Ancien header inclus 66 fois hors Tests ; [GridItemCatalogues.h:5](../../Source/GrimrockPrototype/Public/Runtime/Items/GridItemCatalogues.h#L5) l’importe pour la croissance | Extraire les types partagés sans changer leur chemin réfléchi ; nettoyer après analyse, pas d’après le seul nombre d’includes |
+| C03-07 · P2 · orchestration | ActionCatalog 3 815 lignes/51 includes ; LevelRuntime mêle monde, VFX, état et sauvegarde | Clarifier contrats et déléguer aux politiques existantes ; garder les propriétaires d’état actuels |
+| C03-08 · P2 · Editor | U01/U11/U12, sauvegardes et lookups répétés | Mutualiser dans Editor, garder erreurs/transactions ; aucun déplacement de cet outillage vers Runtime |
+| C03-09 · P2 · assets/performance | [RPGSkillRequirementProjectionService.cpp:89](../../Source/GrimrockPrototype/Private/RPG/RPGSkillRequirementProjectionService.cpp#L89), [GridStatusEffectPersistence.cpp:348](../../Source/GrimrockPrototype/Private/RPG/StatusEffects/GridStatusEffectPersistence.cpp#L348), [RPGAuthoringIdentityResolver.cpp:32](../../Source/GrimrockPrototype/Private/RPG/RPGAuthoringIdentityResolver.cpp#L32) | Scans/chargements synchrones à froid ; mesurer avant découverte commune/préchargement, préserver l’identité sémantique |
+| C03-10 · P2 · résidus | D01–D07, quatre candidats forts non réfléchis | Petit retrait vérifiable d’abord ; séparer les trois candidats publics/réfléchis à confirmer |
+
+Critères propres à chaque constat, en plus de la validation commune des lots :
+
+- **C03-01 : E, risque élevé**, dépend de C03-05/06. Tests UHT/anciens chemins, croissance N1–N20, BP/53 assets, v27 sur copies, empreintes, IDs et Cook/Shipping.
+- **C03-02 : M, risque élevé**, indépendant du retrait historique. Callback changeant sélection/roster, réallouant un conteneur ou tentant un transfert imbriqué ; succès, échec et rollback. [RPGClassProgressionTransactionService.cpp:397](../../Source/GrimrockPrototype/Private/RPG/RPGClassProgressionTransactionService.cpp#L397)–402 réutilise aussi Character après Broadcast. Aucune perte/UAF reproduite ; changer chronologie ou nombre de notifications serait une décision comportementale distincte.
+- **C03-03 : M, risque moyen**, U04–U08. Résistances, prérequis invalides, doublons de choix, mort, déficits, rotations et Save/load ; préserver refus/diagnostics.
+- **C03-04 : M, risque moyen/élevé**, après C03-01 pour retirer les paramètres historiques. Type/tri/icône/tooltip, ARM N0 et non-ARM N1 rejetés, piles/réserves ; ne pas confondre masse d’un pickup et poids total.
+- **C03-05 : E, risque élevé**, préalable à C03-01. Carte assertions → invariants → oracles ; garder identités inconnues, GUID unique, deux mains sans duplication, monde/réceptacles/pending, v27 et alias.
+- **C03-06 : M, risque moyen**, précède les libérations de noms. UHT, public/private, consommateurs hors des deux modules, builds Editor/Shipping ; préserver les enums de catégorie actifs.
+- **C03-07 : E, risque moyen/élevé**, après prédicats/lecteurs. Autorisation/source/coût des actions, déplacements, rebuild/load ; pas de God object ni de changement du ciblage visuel reporté.
+- **C03-08 : M, risque moyen**, Editor seulement. Save réussie/refusée sur packages jetables, erreurs/transactions, Lua/PIE ; ne pas tester par réécriture des assets utilisateur.
+- **C03-09 : M/E, risque moyen, mesure préalable**, après stabilisation des autorités. Froid/chaud, IDs absents/doublons, Insights/AssetRegistry ; aucun gain démontré, optimisation reportée à CLEANUP05.
+- **C03-10 : F pour D01–D04, M pour D05–D07**, indépendant. Absence de consommateurs indirects, builds/tests ciblés ; D07 exige l’examen Blueprint avant retrait.
+
+Priorités/dépendances des familles : U01/U11/U12 → C03-08 ; U03 → C03-04 ; U04–U08 → C03-03. U02/U09 : P2, F/M, contrats monde/occupation/PIE à préserver ; U10 : P3, F, seulement si la maintenance y gagne, tests de diagnostic. D01–D07 → C03-10 ; D08–D13 → C03-01/05. Aucune priorité de retrait ne supprime ses conditions de compatibilité.
+
+### Trois collisions : résolution définitive proposée
+
+Chiffres = fichiers citant le nom hors commentaires/chaînes, **pas appels** ; déclarations, forward declarations et gardes inclus. Ancien → actuel :
+
+| Types | Ancien : Runtime / Editor / Tests | Actuel : Runtime / Editor / Tests | Responsabilité à préserver |
+| --- | --- | --- | --- |
+| UGridItemDefinitionAsset / UGridCanonicalItemDefinitionAsset | 74 / 4 / 110 | 6 / 1 / 19 | Base actuelle à cinq champs ; EGridItemType et autres types réutilisés ne disparaissent pas avec l’ancienne classe |
+| UGridWeaponCatalogueAsset / UGridCanonicalWeaponCatalogueAsset | 5 / 1 / 1 | 2 / 0 / 4 | FGridWeaponIntegerGrowthRule, FGridWeaponGrowthException et Resolve/IsValid actifs ; pas les anciens 1 640 profils/cache sans asset de production |
+| UGridWeaponVisualCatalogueAsset / UGridCanonicalWeaponVisualCatalogueAsset | 5 / 1 / 2 | 2 / 0 / 2 | Catalogue actuel ; fixtures de profils/résolveurs historiques à remplacer avant retrait |
+
+Le nom GridItemDefinitionAsset existe encore dans le package Editor WBP_ItemTooltip. Parent natif actuel : GridItemTooltipWidget ; les **58 imports de sa version cuisinée au SHA 176bb664 ne nomment pas l’ancienne classe**. Résidu Editor à qualifier (nom/import/nœud orphelin), pas dépendance Shipping vivante démontrée. L’API Python exposée ne donne pas ces graphes : examiner/recompiler/réenregistrer nativement une copie avant retrait. Aucun nom des deux anciens catalogues repéré dans les uasset locaux ; leurs signatures réfléchies C++ existent néanmoins.
+
+Procédure proposée, **un lot de compatibilité préparé intégralement avant commit**, sans nouveaux noms temporaires :
+
+1. Déplacer les deux types de croissance/méthodes vers un header/source de progression métier, **sans renommer USTRUCT, propriétés ni module**. Pas de Core Redirect pour ce déplacement physique. [GridWeaponCatalogueCompact.cpp:86](../../Source/GrimrockPrototype/Private/Runtime/Combat/GridWeaponCatalogueCompact.cpp#L86),102 reste appelé par le modèle actuel ; ne pas retirer tout le fichier avec l’ancienne classe.
+2. Adapter fixtures/consommateurs/signatures et le résidu Blueprint par mécanismes natifs sur copies. Garder des valeurs attendues indépendantes et les refus de fallback Shipping. Ne pas supprimer l’ancien header tant que ses enums de catégorie sont nécessaires.
+3. Retirer les trois anciennes UCLASS puis renommer les actuelles vers les trois noms naturels. **Ne pas rediriger aveuglément l’ancien schéma vers le nouveau.** L’ancien chemin de classe sera réoccupé : les vieux packages retirés doivent rester interdits par les gardes, jamais interprétés implicitement comme de nouvelles définitions.
+4. Ajouter trois ClassRedirects `/Script/GrimrockPrototype.GridCanonical…` → `Grid…` ; conserver tous les anciens alias directement vers leur cible finale. Aucun ItemId/ActionId/ArchetypeId/GUID changé ; contrôler les références UFUNCTION/UPROPERTY, BP et AssetRegistry.
+5. Les deux catalogues changeraient de PrimaryAssetType natif : deux PrimaryAssetTypeRedirects, plus **aplatissement des deux valeurs concernées des 50 PrimaryAssetIdRedirects existants**. AssetManager consulte d’abord l’alias d’ID : ne pas supposer un second redirect de type ensuite. Les classes concrètes des 48 définitions ne changent pas par le seul renommage de leur base abstraite.
+6. Vérifier UHT/Editor/Shipping, BP/53 assets, anciens/current Primary IDs, 53 alias Editor et soft paths Shipping, sept copies v27 et hashes originaux, Cook/Package. Aucun retrait de redirecteur ou Readable inclus dans cette opération.
+
+### Les 144 identifiants Canonical restants
+
+Classement exclusif, pas un compte d’occurrences :
+
+| Ensemble | Nombre | Décision |
+| --- | ---: | --- |
+| Tests/preuves ARMEMENT uniquement, plus le friend de test 4X41 | 82 | Filtres, reçus et traçabilité conservés jusqu’au remplacement des garanties |
+| UCLASS en collision | 3 | Procédure ci-dessus ; pas de nouvelle génération de noms temporaires |
+| Noms réfléchis à traiter explicitement | 4 | EGridCombatSurfaceInteraction::AnyCanonical, CanonicalBranches, les deux CachedCanonicalSkillDefinitions ; Enum ValueChanges ou PropertyRedirect selon propriétaire |
+| Normalisation sans distinction de migration | 2 | MakeCanonical (frontières), CanonicalName (bindings Niagara) : sens fonctionnel à conserver |
+| Autres noms de production simplifiables | 53 | Locaux/paramètres/helpers : CanonicalRegistry, TryResolveCanonical, LogGridCanonicalItems, helpers RPG… ; choisir au retrait des anciennes interfaces, jamais changer les identités |
+
+« Production » ne certifie pas Shipping : HasCanonicalProjection reste une preuve Editor. CanonicalBranches est un nom de propriété, AnyCanonical une valeur d’enum réfléchie. Les API RPG de référence et les signatures anciennes ne doivent pas être renommées mécaniquement ; aucune recherche artificielle de zéro occurrence.
+
+### Performances : distinguer les niveaux de preuve
+
+| Niveau | Observation vérifiable | Mesure / décision |
+| --- | --- | --- |
+| 1 · opération démontrée, pas ralentissement mesuré | [GridInventoryWidget.cpp:1056](../../Source/GrimrockPrototype/Private/UI/GridInventoryWidget.cpp#L1056),1064 résout type puis métadonnées ; [GridItemSubsystem.cpp:94](../../Source/GrimrockPrototype/Private/Runtime/Items/GridItemSubsystem.cpp#L94),135 copie tags/actions/profils et cherche dans les catalogues | Compter résolutions/octets par refresh, p50/p95 ; réutilisation locale possible avant tout cache persistant |
+| 1 · opération démontrée | [GridMapWidget.cpp:1563](../../Source/GrimrockPrototype/Private/UI/GridMapWidget.cpp#L1563) reconstruit 12 brushes par Paint ; U02/U09 répètent des parcours TActorIterator | Mesurer Slate/Paint, acteurs/appels ; pas de LoadSynchronous dans ce Paint, pas de gain par cache promis |
+| 2 · risque plausible | 75 sites LoadSynchronous dans 32 fichiers hors Tests, incluant Editor et corps historiques ; boot, événements mesh/VFX, refresh d’icônes | Isoler les sites Shipping atteints et chargements froids ; ce ne sont pas 75 appels par frame |
+| 2 · risque plausible | Quatre sites ScanPathsForPrimaryAssets, fallback RPG/Skills/StatusEffects ; conversions FString/FName et tableaux reconstruits | Froid/chaud, ID inconnu, taille des catalogues ; observer stalls avant préchargement ou index nouveaux |
+| 3 · hypothèse | Fusion de caches Skills, cache global de vues d’objet, autres conteneurs ou centralisation des pathfinders | Aucune mesure favorable ; invalidation, ownership et maintenance peuvent dépasser le gain |
+
+NativeTick du HUD ([GridPersistentHudWidget.cpp:91](../../Source/GrimrockPrototype/Private/UI/GridPersistentHudWidget.cpp#L91)) synchronise des layouts avec ses caches, pas toute l’UI. Planificateurs déjà bornés/déterministes ; traces PERF_PROFILE01 disponibles, mais aucun profil actuel chiffré. Aucun coût CPU/GPU/IO ni gain en millisecondes certifié. Mesures et optimisations non prouvées sont réservées à CLEANUP05.
+
+### Tests, compatibilité et lacunes
+
+Baseline publiée : 1 996 succès + 48 succès avec avertissements, zéro échec. Les 694 fichiers ne sont ni tous redondants ni tous indépendants. Les fixtures monde/GI réalistes ([GridARMCLEAN063ATSavedItemRehydrationTests.cpp:25](../../Source/GrimrockPrototype/Private/Tests/GridARMCLEAN063ATSavedItemRehydrationTests.cpp#L25)) et les oracles mémoire v27 ([GridEditorARMCLEAN062ADSaveInstanceParityTests.cpp:20](../../Source/GrimrockPrototypeEditor/Private/Tests/GridEditorARMCLEAN062ADSaveInstanceParityTests.cpp#L20)) couvrent des frontières différentes.
+
+- Conserver : refus d’IDs/niveaux, piles/masse, attaque/source/main, GUID et possession uniques, réserves, monde/réceptacles/pending, Save/Continue v27 exact et deux Readables. La version stricte n’est pas une migration automatique des anciennes sauvegardes.
+- Condenser seulement après carte des assertions : helpers historiques, micro-étapes relisant les mêmes données, parités de façades à la même racine. Un test de raccordement reste utile, sans remplacer un oracle indépendant.
+- Lacunes prioritaires : réentrance/invalidation des références ; ancien nom de classe réutilisé ; résidu Editor du tooltip ; échec/rollback d’authoring mutualisé ; invalidation après changement d’asset ; cold-load/cooked lookup sans contenu local optionnel.
+- Maintenir **34 redirects réfléchis, 53 Core Asset Redirects, 53 redirecteurs natifs, 50 alias Primary IDs** ; tester la cible finale après renommage. Ne pas enlever les gardes parce que les chemins courants sont propres.
+- NullRHI ne prouve pas le rendu ; ciblage visuel reporté hors périmètre. Aucun texte joueur, Designer, ST_UI ou localisation modifié ici.
+
+### Plan CLEANUP04 : sept lots cohérents
+
+Les lettres désignent des objectifs, pas des micro-jalons par fichier. Toute dépendance indivisible code/asset doit être préparée ensemble avant publication. Une décision comportementale issue de C03-02 doit être isolée et approuvée avant correction, jamais glissée dans une mutualisation.
+
+| Lot | Objectif / fichiers | Dépendances et validation spécifique |
+| --- | --- | --- |
+| A · résidus natifs | D01–D04 ; D05–D07 seulement après confirmation | Indépendant ; consommateurs indirects, Editor/Shipping et tests ciblés, aucune protection retirée |
+| B · invariants métier | U04–U08, Combat/RPG/Save cités ; caractériser C03-02 dans TransferService/ProgressionTransaction avant réorganisation | Indépendant de A ; limites/prérequis/résistances/ressources/rotations, réentrance/rollback ; diagnostics et chronologie conservés |
+| C · outillage Editor | U01/U11/U12, authorings RPG, Lua, EdMode/Toolkit/panels | Indépendant de A/B ; packages jetables, échec SavePackage, Lua, PIE/EditorWorld ; aucun script modifié |
+| D · collisions et compatibilité | D08–D13, croissance, classes actuelles/historiques, fixtures, tooltip si nécessaire, INI/alias et écritures natives indispensables | Matrice C03-05 et extraction C03-06 préparées ; atomique si types interdépendants ; UHT/BP/53 assets/v27/anciens chemins/Cook/Shipping |
+| E · projections et UI | C03-04/U03, Metadata/Sort/Type/Mesh/Equipment views, InventoryWidget/Slot/Tooltip | Après D pour retirer les paramètres historiques ; une résolution par opération, aucun cache durable nouveau ; tri/icônes/poids/refus/comparaisons inchangés |
+| F · orchestration monde/combat | C03-07/U02/U09, unités LevelRuntime/TurnManager/Monster existantes ; déléguer aux politiques actuelles | Après B/E ; sources/coûts/actions, surfaces, rebuild/load, occupation et EndPlay ; pas de nouveau manager central ni d’évolution du ciblage |
+| G · interfaces finales | Includes/hubs, visibilités UBT, 53 noms simplifiables et commentaires de transition | Après D/E/F ; public/private/UHT, Editor/Shipping et suite complète ; tous les alias sérialisés conservés |
+
+Validation commune de chaque lot technique : périmètre Git et diff --check, Editor/Shipping, tests ciblés puis Grimrock, SilentTask/LocalAuto SUCCESS au SHA exact. Ajouter hashes originaux et chargement sur copies pour une frontière persistante ; BP/AssetRegistry/CoreRedirects et Cook/Package pour D ou toute évolution réfléchie/asset. Conserver snapshots et reçus privés ; aucun retrait groupé sur la seule taille ou le nombre de candidats.
+
+Hors CLEANUP04 : profiling/optimisations non prouvées → CLEANUP05 ; scripts → CLEANUP06 ; restructuration documentaire → CLEANUP07. Aucun équipement futur implémenté. **DataModel.md:81 conserve une phrase historique sur deux sauvegardes récentes non démontrées, contredite par CLEANUP02** : incohérence signalée, sans modifier ce fichier ni le SVG dans CLEANUP03.
+
+### Contrôle et clôture documentaire
+
+L’exhaustivité porte sur le corpus indexé, pas sur l’absence de toute erreur dynamique. Faux positifs écartés, 13 candidats gradués, 12 familles de duplication et risques de performance ont des critères distincts. Aucun P0 confirmé ; incertitudes Blueprint/callbacks/profiling = conditions de CLEANUP04/05, pas blocages à la publication de l’audit.
+
+Contrôles : recomptage fichiers/types/domaines, chemins/lignes vérifiés, empreintes du corpus inchangées, registre/imports du tooltip en lecture seule, cohérence SVG, observations/hypothèses séparées, lots réalisables et diff --check. **Seul Consolidation.md est modifié** : aucun C++, asset, Blueprint, script, configuration ou SaveGame changé. Un seul commit documentaire ; validation utilisateur requise avant CLEANUP04.
+
 ## État courant — ARM-CLEAN06 clos, CLEANUP02 — nomenclature consolidée
 
 ARM-CLEAN06 est **clos**, sur confirmation utilisateur des recettes PIE et Shipping : Continue, inventaire, équipement, présentation, combat et Save/Continue validés. Référence fonctionnelle `420dce2ee4f55c3630e8a99fa7ae9d77299a461e` : SilentTask/LocalAuto SUCCESS, 2 044 tests réussis (48 avec avertissements analysés), sept copies v27 compatibles dont les deux récentes, originaux inchangés, Build/Cook/Stage/Package/Archive Shipping réussis. Preuves privées conservées sous `D:/GrimrockNativeSnapshots/ARM_CLEAN06_FinalAcceptance_420dce2ee4f5_20261122-155244/`. Le problème visuel de ciblage déjà reporté reste hors périmètre.
