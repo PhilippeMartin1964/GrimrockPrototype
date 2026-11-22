@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "Blueprint/UserWidget.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGCharacterTypes.h"
@@ -25,9 +27,9 @@ namespace ARMEMENT0193
             nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
     }
 
-    UGridPartyInventoryComponent* NewParty()
+    UGridPartyInventoryComponent* NewParty(FGridCanonicalWeightTestWorld& Fixture)
     {
-        UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
+        UGridPartyInventoryComponent* Party = Fixture.MakeInventory();
         Party->InitializeDefaultPartyIfNeeded();
         return Party;
     }
@@ -77,7 +79,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193WizardReadModelTest,
 
 bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
 {
-    URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
+        return false;
+    URPGCharacterCreationWizardWidget* Wizard = CreateWidget<URPGCharacterCreationWizardWidget>(Fixture.World,
+        URPGCharacterCreationWizardWidget::StaticClass());
     URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
     URPGClassAsset* Warrior = ARMEMENT0193::Class(TEXT("Warrior"));
     if (!TestNotNull(TEXT("Wizard object exists"), Wizard) ||
@@ -100,9 +107,15 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
     const FRPGStartingEquipmentKit* Pathfinder = Kits.FindByPredicate(
         [](const FRPGStartingEquipmentKit& Kit) { return Kit.KitId == FName(TEXT("Kit_Ranger_Hunter")); });
     if (!TestNotNull(TEXT("Pathfinder kit exists"), Pathfinder)) return false;
-    const UGridItemDefinitionAsset* Pilot = Pathfinder->Items[0].ItemDefinition.Get();
-    if (!TestNotNull(TEXT("Hunter item exists"), Pilot)) return false;
-    const FString PilotName = Pilot->DisplayName.IsEmpty() ? Pilot->ItemDefinitionId.ToString() : Pilot->DisplayName.ToString();
+    TestNull(TEXT("Native Hunter kit has no old item definition pointer"),
+        Pathfinder->Items[0].ItemDefinition.Get());
+    FGridResolvedItem Pilot;
+    if (!TestTrue(TEXT("Physical Hunter item resolves at its canonical level"),
+        Fixture.Scope.Registry->ResolveItem(
+            Pathfinder->Items[0].CanonicalItemId, Pathfinder->Items[0].ItemLevel, Pilot)))
+        return false;
+    const FString PilotName = Pilot.DisplayName.IsEmpty()
+        ? Pilot.ItemId.ToString() : Pilot.DisplayName.ToString();
     TestTrue(TEXT("Selection description includes authored display name"),
         Wizard->GetSelectedStartingEquipmentKitDescription().ToString().Contains(PilotName));
 
@@ -122,9 +135,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193RequestTest,
 
 bool FARMEMENT0193RequestTest::RunTest(const FString&)
 {
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
+        return false;
     URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
     if (!TestNotNull(TEXT("Ranger exists"), Ranger)) return false;
-    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty();
+    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty(Fixture);
     FText Error;
     const FRPGCharacterCreationRequest NewGame =
         ARMEMENT0193::Request(Ranger, TEXT("Kit_Ranger_Hunter"));
@@ -160,9 +177,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193InvalidSelectionTest,
 
 bool FARMEMENT0193InvalidSelectionTest::RunTest(const FString&)
 {
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
+        return false;
     URPGClassAsset* Ranger = ARMEMENT0193::Class(TEXT("Ranger"));
     if (!TestNotNull(TEXT("Ranger exists"), Ranger)) return false;
-    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty();
+    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty(Fixture);
     const FGuid PreviousId = Party->PartyInventoryState.ActiveCharacters[0].CharacterId;
     FText Error;
     const FRPGCharacterCreationRequest WrongClass =
@@ -191,9 +212,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193CompatibilityTest,
 
 bool FARMEMENT0193CompatibilityTest::RunTest(const FString&)
 {
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
+        return false;
     URPGClassAsset* Warrior = ARMEMENT0193::Class(TEXT("Warrior"));
     if (!TestNotNull(TEXT("Warrior exists"), Warrior)) return false;
-    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty();
+    UGridPartyInventoryComponent* Party = ARMEMENT0193::NewParty(Fixture);
     FText Error;
     if (!TestTrue(TEXT("Omitting the kit selection preserves default New Game"),
         Party->CreateInitialCharacter(ARMEMENT0193::Request(Warrior, NAME_None), Error))) return false;
@@ -201,7 +226,8 @@ bool FARMEMENT0193CompatibilityTest::RunTest(const FString&)
         Party->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
         FName(TEXT("Kit_Warrior_Guardian")));
 
-    URPGCharacterCreationWizardWidget* Recruit = NewObject<URPGCharacterCreationWizardWidget>();
+    URPGCharacterCreationWizardWidget* Recruit = CreateWidget<URPGCharacterCreationWizardWidget>(Fixture.World,
+        URPGCharacterCreationWizardWidget::StaticClass());
     Recruit->ClassDefinition = Warrior;
     Recruit->CreationContext = ERPGCharacterCreationContext::CustomRecruit;
     TestTrue(TEXT("Custom recruitment does not introduce starting-kit options"),
@@ -219,7 +245,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193KitPresentationTest,
 
 bool FARMEMENT0193KitPresentationTest::RunTest(const FString&)
 {
-    URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("Canonical NewGame GameInstance world"), Fixture.World) ||
+        !TestNotNull(TEXT("Configured canonical ItemSystem"), Fixture.Scope.Registry))
+        return false;
+    URPGCharacterCreationWizardWidget* Wizard = CreateWidget<URPGCharacterCreationWizardWidget>(Fixture.World,
+        URPGCharacterCreationWizardWidget::StaticClass());
     Wizard->ClassDefinition = ARMEMENT0193::Class(TEXT("Warrior"));
     if (!TestNotNull(TEXT("Production Warrior exists"), Wizard->ClassDefinition.Get()))
     {
