@@ -128,12 +128,14 @@ namespace ARMCLEAN063BB
         if (FCString::Strcmp(Scenario, TEXT("Projection")) == 0)
         {
             Test.TestTrue(TEXT("Canonical ammunition is valid before any AP reservation"), Required.bCanonicalAmmunition);
-            const auto* OldArrow = LoadObject<UGridItemDefinitionAsset>(nullptr,
-                TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-            if (!Test.TestNotNull(TEXT("Native historical arrow for retirement evidence"), OldArrow)) return false;
-            Test.TestEqual(TEXT("Migrated speed equals actual former authored speed"), Ammo.GenericThrow.InitialSpeed, OldArrow->ThrowSpeed);
+            // Migration parity of the old arrow source was proven by the
+            // native X.66 asset audit. Runtime flight now has one authority.
+            Test.TestTrue(TEXT("Canonical arrow owns finite authored flight speed"),
+                FMath::IsFinite(Ammo.GenericThrow.InitialSpeed) &&
+                Ammo.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER);
             const float ExpectedSpeed = Weapon.Weapon.Projectile.bEnabled
-                ? Weapon.Weapon.Projectile.InitialSpeed : FMath::Clamp(OldArrow->ThrowSpeed, 400.0f, 4800.0f);
+                ? Weapon.Weapon.Projectile.InitialSpeed
+                : FMath::Clamp(Ammo.GenericThrow.InitialSpeed, 400.0f, 4800.0f);
             Test.TestEqual(TEXT("Canonical ranged speed preserves former flight"), Required.AmmunitionLaunchSpeed, ExpectedSpeed);
             Test.TestEqual(TEXT("Pointerless and contradictory launcher same speed"), NoLegacy.AmmunitionLaunchSpeed, ExpectedSpeed);
             FGridResolvedItem ProbeWeapon = Weapon;

@@ -33,7 +33,15 @@ if ($SelfTest) {
         (Get-ArmH23Kind 'Source/GrimrockPrototype/Private/Runtime/X.cpp') -cne 'game_source') {
         throw 'Source reader classification self-test failed.'
     }
-    Write-Host '[OK] ARM-CLEAN06.5H.23 static source inventory self-test.'
+    $StarterSource = Join-Path $RepoRoot 'Source/GrimrockPrototype/Private/RPG/RPGStartingEquipmentPresetCatalog.cpp'
+    $StarterText = [IO.File]::ReadAllText($StarterSource)
+    $ApprovedStart = $StarterText.IndexOf('const FApprovedKitSpec ApprovedKits[] =', [StringComparison]::Ordinal)
+    $ApprovedEnd = $StarterText.IndexOf('bool AddApprovedItem(', [StringComparison]::Ordinal)
+    if ($ApprovedStart -lt 0 -or $ApprovedEnd -le $ApprovedStart -or
+        $StarterText.Substring($ApprovedStart, $ApprovedEnd - $ApprovedStart) -match 'DA_(?:Item|Weapon)_') {
+        throw 'Approved production starting kits reintroduced historical asset-name literals.'
+    }
+    Write-Host '[OK] ARM-CLEAN06.5H.23 static source inventory and canonical starter self-test.'
     return
 }
 if ($ExpectedHead -cnotmatch '^[a-f0-9]{40}$' -or

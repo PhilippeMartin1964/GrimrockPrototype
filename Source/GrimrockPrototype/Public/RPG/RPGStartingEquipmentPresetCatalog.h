@@ -22,6 +22,8 @@ public:
     static bool TryPopulateTransientClass(URPGClassAsset& TransientClass, FString& OutError);
 
     /** ARMEMENT01.13.2: active New Game path, three approved N1 kits per class.
+     * Recipes store canonical ItemIds only; the old DA_Weapon/DA_Item path
+     * exists exclusively as an isolated editor Automation parity fixture.
      * Called by the wizard preview and CreateInitialCharacter on transient copies.
      * Missing future support items are never fabricated.
      */

@@ -5,12 +5,13 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
 namespace GridTD07352Normalization
 {
-	const TCHAR* ShurikenAssetPath = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Shuriken.DA_Weapon_Shuriken");
-
 	bool LoadProjectFile(const TCHAR* RelativePath, FString& OutText)
 	{
 		return FFileHelper::LoadFileToString(OutText, *FPaths::Combine(FPaths::ProjectDir(), RelativePath));
@@ -96,47 +97,38 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07352ShurikenAssetAuthorityTest, "Grimro
 
 bool FGridTD07352ShurikenAssetAuthorityTest::RunTest(const FString& Parameters)
 {
-	(void)Parameters;
-	using namespace GridTD07352Normalization;
-
-	UGridItemDefinitionAsset* Shuriken = LoadObject<UGridItemDefinitionAsset>(nullptr, ShurikenAssetPath);
-	TestNotNull(TEXT("Repaired DA_Weapon_Shuriken loads"), Shuriken);
-	if (!Shuriken)
-	{
-		return false;
-	}
-
-	TestEqual(TEXT("Shuriken business id remains stable"), Shuriken->ItemDefinitionId, FName(TEXT("Shuriken")));
-	TestEqual(TEXT("Shuriken explicitly remains one-handed"), Shuriken->HandUsage, EGridItemHandUsage::OneHanded);
-	TestTrue(TEXT("Shuriken explicitly remains a combat throw weapon"), Shuriken->bCombatThrowWeapon);
-	TestTrue(TEXT("Shuriken remains physically throwable"), Shuriken->IsPhysicallyThrowable());
-	TestTrue(TEXT("Shuriken remains combat throwable"), Shuriken->IsCombatThrowable());
-	TestTrue(TEXT("Shuriken remains a MainHand item"), Shuriken->CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("Repaired Shuriken is valid"), Shuriken->IsValidDefinition());
-	TestTrue(TEXT("Repaired Shuriken provides its attack from CombatActions"), Shuriken->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-
-	const FGridCombatActionDefinition* Attack = Shuriken->CombatActions.FindByPredicate(
-		[](const FGridCombatActionDefinition& Candidate)
-		{
-			return Candidate.ActionId == FName(TEXT("Attack_Shuriken"));
-		});
-	TestNotNull(TEXT("Attack_Shuriken exists in CombatActions"), Attack);
-	if (!Attack)
-	{
-		return false;
-	}
-
-	TestEqual(TEXT("Shuriken action is ranged"), Attack->ActionType, EGridCombatActionType::RangedAttack);
-	TestEqual(TEXT("Shuriken action uses Equipment source"), Attack->SourcePolicy, EGridCombatActionSourcePolicy::Equipment);
-	TestEqual(TEXT("Shuriken action targets first axial target"), Attack->TargetingPolicy, EGridCombatTargetingPolicy::FirstAxialTarget);
-	TestEqual(TEXT("Shuriken range remains three cells"), Attack->RangeCells, 3);
-	TestEqual(TEXT("Shuriken damage remains Physical"), Attack->OffensiveProfile.AttackDefinition.DamageType, EGridDamageType::Physical);
-	TestEqual(TEXT("Shuriken subtype remains Piercing"), Attack->OffensiveProfile.AttackDefinition.PhysicalSubtype, EGridPhysicalDamageSubtype::Piercing);
-	TestEqual(TEXT("Shuriken minimum damage remains one"), Attack->OffensiveProfile.AttackDefinition.MinDamage, 1);
-	TestEqual(TEXT("Shuriken maximum damage remains four"), Attack->OffensiveProfile.AttackDefinition.MaxDamage, 4);
-	TestEqual(TEXT("Shuriken scaling remains Dexterity"), Attack->OffensiveProfile.DamageScalingAttribute, EGridAttackScalingAttribute::Dexterity);
-	TestEqual(TEXT("Shuriken profile range remains three"), Attack->OffensiveProfile.RangeCells, 3);
-	return true;
+    (void)Parameters;
+    // Production shuriken is now the unique N0 non-armament identity.
+    // No historical DA_Weapon_Shuriken is needed to exercise throw policy.
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+    if (!TestNotNull(TEXT("Canonical root loads"), Root))
+        return false;
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Canonical item registry validates"),
+        Registry->RegisterItemSystem(Root, Errors)))
+        return false;
+    FGridResolvedItem Shuriken;
+    if (!TestTrue(TEXT("Real N0 Shuriken resolves"),
+        Registry->ResolveItem(TEXT("Shuriken"), 0, Shuriken)))
+        return false;
+    TestTrue(TEXT("Resolved Shuriken is valid"), Shuriken.IsValid());
+    TestFalse(TEXT("Physical Shuriken is not one of the 22 ARM weapons"), Shuriken.bIsArmament);
+    TestEqual(TEXT("Shuriken keeps canonical N0"), Shuriken.ItemLevel, 0);
+    TestEqual(TEXT("Shuriken keeps stable ItemId"), Shuriken.ItemId, FName(TEXT("Shuriken")));
+    TestTrue(TEXT("Shuriken physical throw is authored canonically"),
+        Shuriken.Tags.Contains(FName(TEXT("Throwable"))) &&
+        Shuriken.GenericThrow.bCombatRecoverable &&
+        FMath::IsFinite(Shuriken.GenericThrow.InitialSpeed) &&
+        Shuriken.GenericThrow.InitialSpeed > KINDA_SMALL_NUMBER);
+    TestTrue(TEXT("Shuriken world mesh comes from the canonical visual source"),
+        Shuriken.WorldMesh.LoadSynchronous() != nullptr);
+    FGridResolvedItem WrongLevel;
+    TestFalse(TEXT("N1 Shuriken cannot borrow an ARM level"),
+        Registry->ResolveItem(TEXT("Shuriken"), 1, WrongLevel));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07352RuntimeFallbackRemovalTest, "Grimrock.TechnicalDebt.TD07_3_5_2.Normalization.RuntimeFallbackRemoval",
