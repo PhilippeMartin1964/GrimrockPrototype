@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -165,13 +166,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0192SixClassCreationTest,
 
 bool FARMEMENT0192SixClassCreationTest::RunTest(const FString&)
 {
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("World for six canonical NewGame classes"), NativeWorld.World) ||
+        !TestNotNull(TEXT("Registered 48-item NewGame source"), NativeWorld.Scope.Registry)) return false;
     URPGRaceAsset* Human = ARMEMENT0192::LoadHuman();
     if (!TestNotNull(TEXT("Production human race exists"), Human)) return false;
     for (const ARMEMENT0192::FClassSpec& Spec : ARMEMENT0192::Classes)
     {
         URPGClassAsset* Class = ARMEMENT0192::LoadClass(Spec.Name);
         if (!TestNotNull(TEXT("Production class loads"), Class)) return false;
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+        UGridPartyInventoryComponent* Inventory = NativeWorld.MakeInventory();
+        if (!TestNotNull(TEXT("NewGame inventory owned by actual world"), Inventory)) return false;
         Inventory->InitializeDefaultPartyIfNeeded();
 
         FRPGCharacterCreationRequest Request;
@@ -199,13 +204,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0192RangerTest,
 
 bool FARMEMENT0192RangerTest::RunTest(const FString&)
 {
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("Real Ranger test world"), NativeWorld.World) ||
+        !TestNotNull(TEXT("World-bound Ranger ItemSystem"), NativeWorld.Scope.Registry)) return false;
     FGridCanonicalRegistryFixture Fixture;
     if (!TestTrue(TEXT("Native Ranger kit registry available"), Fixture.bReady)) return false;
     URPGClassAsset* Ranger = ARMEMENT0192::LoadClass(TEXT("Ranger"));
     URPGRaceAsset* Human = ARMEMENT0192::LoadHuman();
     if (!TestNotNull(TEXT("Production Ranger exists"), Ranger) || !TestNotNull(TEXT("Production race exists"), Human)) return false;
 
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    UGridPartyInventoryComponent* Inventory = NativeWorld.MakeInventory();
+    if (!TestNotNull(TEXT("Native Ranger party inventory"), Inventory)) return false;
     Inventory->InitializeDefaultPartyIfNeeded();
     FRPGCharacterCreationRequest Request;
     Request.DisplayName = FText::FromString(TEXT("Archer"));

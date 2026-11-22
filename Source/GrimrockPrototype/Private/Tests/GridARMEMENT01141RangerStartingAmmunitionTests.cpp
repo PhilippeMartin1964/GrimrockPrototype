@@ -1,11 +1,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01141RangerStartingAmmunition,
     "Grimrock.RPG.ARMEMENT01.14.RangerStarterAmmunition",
@@ -20,13 +20,17 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
     if (!TestNotNull(TEXT("Ranger production class exists"), Ranger) ||
         !TestNotNull(TEXT("Human race exists"), Human)) return false;
 
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("Canonical Ranger world"), NativeWorld.World) ||
+        !TestNotNull(TEXT("Canonical ammunition registry"), NativeWorld.Scope.Registry)) return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const FName KitIds[] = {TEXT("Kit_Ranger_Marksman"), TEXT("Kit_Ranger_Scout")};
     const FName BowIds[] = {TEXT("Weapon_ShortBow_01"), TEXT("Weapon_RecurveBow_01")};
 
     for (int32 KitIndex = 0; KitIndex < UE_ARRAY_COUNT(KitIds); ++KitIndex)
     {
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+        UGridPartyInventoryComponent* Inventory = NativeWorld.MakeInventory();
+        if (!TestNotNull(TEXT("Native Ranger inventory"), Inventory)) return false;
         Inventory->InitializeDefaultPartyIfNeeded();
         FRPGCharacterCreationRequest Request;
         Request.DisplayName = FText::FromString(TEXT("Ranger Ammo Integration"));
@@ -47,10 +51,16 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
         TestEqual(TEXT("Exact approved bow is equipped"), Gear.MainHand.ItemDefinitionId, BowIds[KitIndex]);
         TestFalse(TEXT("Two-handed bow does not duplicate OffHand item"), Gear.OffHand.IsValid());
 
-        UGridItemDefinitionAsset* Bow = Inventory->FindItemDefinition(BowIds[KitIndex]);
-        if (!TestNotNull(TEXT("Starting bow definition registered"), Bow)) return false;
-        TestEqual(TEXT("Bow explicitly requires real arrow item ID"),
-            Bow->RequiredAmmunitionItemDefinitionId, ArrowId);
+        TestNull(TEXT("Canonical starter does not register a historical bow definition"),
+            Inventory->FindItemDefinition(BowIds[KitIndex]));
+        const FGridRangedAmmunitionRequirement BowRequirement =
+            FGridRangedAmmunitionPolicy::ResolveForAttack(
+                NativeWorld.Scope.Registry, BowIds[KitIndex], 1, nullptr, true);
+        if (!TestTrue(TEXT("Native Ranger bow has valid ranged ammunition policy"),
+            BowRequirement.bCanonicalSource && BowRequirement.bValid &&
+            BowRequirement.bCanonicalAmmunition)) return false;
+        TestEqual(TEXT("Canonical bow requires the registered arrow identity"),
+            BowRequirement.AmmunitionItemId, ArrowId);
         TestEqual(TEXT("New ranger starts with twelve arrows"),
             Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 12);
 
@@ -59,16 +69,16 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
         for (int32 Remaining = 12; Remaining > 0; --Remaining)
         {
             TestTrue(TEXT("Ranger can use one arrow"), 
-                FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Bow));
+                FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, BowRequirement));
             TestTrue(TEXT("Accepted ranged attack consumes exactly one arrow"),
-                FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Bow));
+                FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, BowRequirement));
             TestEqual(TEXT("Arrow count decreases by one"),
                 Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), Remaining - 1);
         }
         TestFalse(TEXT("Empty quiver blocks ranged attack"),
-            FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Bow));
+            FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, BowRequirement));
         TestFalse(TEXT("No thirteenth arrow can be consumed"),
-            FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Bow));
+            FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, BowRequirement));
         TestEqual(TEXT("Arrow quantity stays at zero"),
             Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
         TestEqual(TEXT("Bow remains equipped after consuming all ammunition"),

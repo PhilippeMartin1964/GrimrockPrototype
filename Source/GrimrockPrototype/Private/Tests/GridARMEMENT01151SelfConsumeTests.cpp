@@ -1,9 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -20,7 +20,11 @@ bool FARMEMENT01151SelfRestoration::RunTest(const FString&)
     if (!TestNotNull(TEXT("Production Priest available"), Priest) ||
         !TestNotNull(TEXT("Production Human available"), Human)) return false;
 
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("Canonical Priest world"), NativeWorld.World) ||
+        !TestNotNull(TEXT("Registered native potion ItemSystem"), NativeWorld.Scope.Registry)) return false;
+    UGridPartyInventoryComponent* Inventory = NativeWorld.MakeInventory();
+    if (!TestNotNull(TEXT("Native Priest inventory"), Inventory)) return false;
     Inventory->InitializeDefaultPartyIfNeeded();
     FRPGCharacterCreationRequest Request;
     Request.DisplayName = FText::FromString(TEXT("Context Consume Test"));
@@ -48,11 +52,19 @@ bool FARMEMENT01151SelfRestoration::RunTest(const FString&)
     const FGuid HeroGuid = Hero.CharacterId;
     TestTrue(TEXT("Potion runtime GUID valid"), PotionGuid.IsValid());
     TestEqual(TEXT("One starting potion"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionId), 1);
-    UGridItemDefinitionAsset* Definition = Inventory->FindItemDefinition(PotionId);
-    if (!TestNotNull(TEXT("Production potion definition registered"), Definition)) return false;
+    TestNull(TEXT("No legacy healing potion definition registered"),
+        Inventory->FindItemDefinition(PotionId));
+    FGridResolvedItem NativePotion;
+    if (!TestTrue(TEXT("Exact N0 healing potion resolves from ItemSystem"),
+        NativeWorld.Scope.Registry->ResolveItem(PotionId, 0, NativePotion)) ||
+        !TestEqual(TEXT("One native potion action"), NativePotion.AvailableActions.Num(), 1))
+        return false;
     FGridCombatActionDefinition Action;
-    if (!TestTrue(TEXT("Item has an executable QuickItem action"),
-        Definition->BuildQuickItemCombatActionDefinition(Action))) return false;
+    if (!TestTrue(TEXT("Native potion has an executable detailed QuickItem action"),
+        NativeWorld.Scope.Registry->ResolveDetailedNonArmAction(
+            PotionId, 0, NativePotion.AvailableActions[0].ActionId, Action))) return false;
+    TestEqual(TEXT("Potion action retains QuickItem policy"),
+        Action.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
     TestEqual(TEXT("Potion is self-targeted"), Action.TargetingPolicy, EGridCombatTargetingPolicy::Self);
     TestEqual(TEXT("Potion has health effect"), Action.EffectProfile.RestoreHealth, 20);
 

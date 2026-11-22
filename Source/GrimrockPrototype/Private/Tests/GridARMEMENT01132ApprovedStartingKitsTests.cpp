@@ -5,6 +5,7 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "GridCanonicalWeightTestWorld.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -105,8 +106,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Projection,
 
 bool FARMEMENT01132Projection::RunTest(const FString&)
 {
-    FGridCanonicalRegistryFixture Canonical;
-    if (!TestTrue(TEXT("Native ItemSystem available for eighteen kit previews"), Canonical.bReady))
+    FGridCanonicalWeightTestWorld PreviewWorld({});
+    if (!TestNotNull(TEXT("Native GameInstance world for eighteen kit previews"), PreviewWorld.World) ||
+        !TestNotNull(TEXT("Native registry for approved starting kits"), PreviewWorld.Scope.Registry))
         return false;
     TSet<FName> GlobalIds;
     for (const TCHAR* Id : ARMEMENT01132::Classes)
@@ -116,7 +118,7 @@ bool FARMEMENT01132Projection::RunTest(const FString&)
         const int32 PreviousCount = Original->StartingEquipmentKits.Num();
         const FName PreviousDefault = Original->DefaultStartingEquipmentKitId;
         FString Error;
-        URPGClassAsset* Preview = ARMEMENT01132::Approved(Original, Error, Canonical.Registry.Get());
+        URPGClassAsset* Preview = ARMEMENT01132::Approved(Original, Error, PreviewWorld.Scope.Registry);
         if (!TestNotNull(TEXT("Approved preview builds"), Preview))
         {
             AddError(Error);
@@ -139,8 +141,10 @@ bool FARMEMENT01132Projection::RunTest(const FString&)
         TestEqual(TEXT("Production class not mutated"), Original->StartingEquipmentKits.Num(), PreviousCount);
         TestEqual(TEXT("Production default not mutated"), Original->DefaultStartingEquipmentKitId, PreviousDefault);
 
-        URPGCharacterCreationWizardWidget* Wizard = NewObject<URPGCharacterCreationWizardWidget>();
-        Wizard->ClassDefinition = Original;
+        URPGCharacterCreationWizardWidget* Wizard = CreateWidget<URPGCharacterCreationWizardWidget>(
+            PreviewWorld.World, URPGCharacterCreationWizardWidget::StaticClass());
+        if (!TestNotNull(TEXT("World-bound kit selection wizard"), Wizard)) return false;
+        Wizard->ClassDefinition = Preview;
         const TArray<FRPGStartingEquipmentKit> Options = Wizard->GetAvailableStartingEquipmentKits();
         if (!TestEqual(TEXT("Wizard exposes three options"), Options.Num(), 3)) return false;
         for (const FRPGStartingEquipmentKit& Kit : Options)
