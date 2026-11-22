@@ -1,11 +1,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UObjectGlobals.h"
@@ -16,110 +16,88 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT025MarksmanStarter,
 
 bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
 {
-    const FName ArrowId(TEXT("Item_Arrows_01"));
-    UGridItemDefinitionAsset* Bow = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01"));
-    UGridItemDefinitionAsset* Dagger = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-    UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-    if (!TestNotNull(TEXT("ARM045 has a definition"), Bow) ||
-        !TestNotNull(TEXT("ARM001 has a definition"), Dagger) ||
-        !TestNotNull(TEXT("Real arrow package resolves for SaveGame"), Arrows))
-    {
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("World-bound canonical ItemSystem"), Fixture.Ready()))
         return false;
-    }
-    TestTrue(TEXT("Valid stackable arrow definition"),
-        Arrows->IsValidDefinition() && Arrows->bStackable && Arrows->MaxStackSize >= 12);
-    TestEqual(TEXT("Bow explicitly requires the authored arrow ID"),
-        Bow->RequiredAmmunitionItemDefinitionId, ArrowId);
-    if (!TestTrue(TEXT("Arrow requirement passes definition validation"),
-        Bow->IsValidDefinition())) return false;
+    const FName ArrowId(TEXT("Item_Arrows_01"));
+    const FName BowId(TEXT("Weapon_ShortBow_01"));
+    FGridResolvedItem Bow, Dagger, Arrows;
+    if (!TestTrue(TEXT("Canonical ranged starter resolves completely"),
+        Fixture.Registry->ResolveItem(BowId, 1, Bow) &&
+        Fixture.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 1, Dagger) &&
+        Fixture.Registry->ResolveItem(ArrowId, 0, Arrows)))
+        return false;
+    TestTrue(TEXT("Canonical arrows are a stackable N0 item"), Arrows.MaxStack >= 12);
+    TestTrue(TEXT("Canonical short bow consumes real arrow identity"),
+        Bow.Weapon.RequiredAmmoKindId == ArrowId);
+    const FGridRangedAmmunitionRequirement Required =
+        FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry, BowId, 1, nullptr, true);
+    TestTrue(TEXT("Valid canonical ammo preflight"),
+        Required.bValid && Required.bCanonicalSource &&
+        Required.bCanonicalAmmunition && Required.AmmunitionItemId == ArrowId);
 
-    URPGClassAsset* Ranger = LoadObject<URPGClassAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger"));
-    URPGRaceAsset* Human = LoadObject<URPGRaceAsset>(
-        nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
+    URPGClassAsset* Ranger = LoadObject<URPGClassAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_Ranger.DA_Class_Ranger"));
+    URPGRaceAsset* Human = LoadObject<URPGRaceAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
     if (!TestNotNull(TEXT("Production Ranger"), Ranger) ||
         !TestNotNull(TEXT("Production Human"), Human)) return false;
     const int32 ProductionCount = Ranger->StartingEquipmentKits.Num();
-    URPGClassAsset* Temporary = DuplicateObject<URPGClassAsset>(Ranger, GetTransientPackage());
-    if (!TestNotNull(TEXT("Production class cloned"), Temporary)) return false;
+    const FName Default = Ranger->DefaultStartingEquipmentKitId;
+    UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("Canonical world-bound inventory"), Inventory)) return false;
 
-    FRPGStartingEquipmentKit& Kit = Temporary->StartingEquipmentKits.AddDefaulted_GetRef();
-    Kit.KitId = TEXT("Kit_Ranger_Marksman");
-    Kit.DisplayName = FText::FromString(TEXT("Tireur (test)"));
-    auto Add = [&Kit](UGridItemDefinitionAsset* Item, EGridEquipmentSlot Slot, int32 Level, int32 Count)
-    {
-        FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-        Entry.ItemDefinition = Item;
-        Entry.TargetSlot = Slot;
-        Entry.ItemLevel = Level;
-        Entry.Quantity = Count;
-    };
-    Add(Bow, EGridEquipmentSlot::MainHand, 1, 1);
-    Add(Dagger, EGridEquipmentSlot::None, 1, 1);
-    Add(Arrows, EGridEquipmentSlot::None, 0, 12);
-    Temporary->DefaultStartingEquipmentKitId = Kit.KitId;
-    if (!TestTrue(TEXT("Transient Marksman kit passes class validation"),
-        Temporary->IsValidDefinition())) return false;
-
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-    Inventory->InitializeDefaultPartyIfNeeded();
     FRPGCharacterCreationRequest Request;
     Request.DisplayName = FText::FromString(TEXT("Marksman test"));
     Request.RaceDefinition = Human;
-    Request.ClassDefinition = Temporary;
-    Request.CombatActionSourceClassDefinition = Temporary;
-    Request.StartingEquipmentKitId = Kit.KitId;
+    Request.ClassDefinition = Ranger;
+    Request.CombatActionSourceClassDefinition = Ranger;
+    Request.StartingEquipmentKitId = TEXT("Kit_Ranger_Marksman");
     FText Error;
-    if (!TestTrue(TEXT("Real CreateInitialCharacter grants the ranged kit"),
+    if (!TestTrue(TEXT("Real NewGame grants real canonical ranger kit"),
         Inventory->CreateInitialCharacter(Request, Error)))
     {
         AddError(Error.ToString());
         return false;
     }
+
     const FGridPartyInventoryState& State = Inventory->PartyInventoryState;
     const FGridCharacterInventoryState& Character = State.ActiveCharacters[0];
     const FGridCharacterEquipmentState& Gear = State.ActiveEquipment[0];
-    TestEqual(TEXT("Approved Marksman kit identity"), Character.StartingEquipmentKitId, Kit.KitId);
-    TestEqual(TEXT("Equipped two-handed bow"), Gear.MainHand.ItemDefinitionId, Bow->ItemDefinitionId);
-    TestFalse(TEXT("Offhand physical slot remains empty"), Gear.OffHand.IsValid());
-    TestEqual(TEXT("Exactly twelve arrows"), Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 12);
-    TestTrue(TEXT("Ready to fire with ammo"), FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Bow));
-    TestTrue(TEXT("One ammo consumed"), FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Bow));
+    TestEqual(TEXT("Approved Marksman orientation"), Character.StartingEquipmentKitId, Request.StartingEquipmentKitId);
+    TestEqual(TEXT("N1 two-handed short bow equipped"), Gear.MainHand.ItemDefinitionId, BowId);
+    TestFalse(TEXT("OffHand is not a physical duplicate"), Gear.OffHand.IsValid());
+    TestEqual(TEXT("Exactly 12 physical arrows"), Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 12);
+    TestTrue(TEXT("Shot requires real canonical arrows"),
+        FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Required));
+    TestTrue(TEXT("One arrow consumed"),
+        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Required));
     TestEqual(TEXT("Eleven arrows remain"), Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 11);
-    TestTrue(TEXT("Bow remains registered"), Inventory->FindItemDefinition(Bow->ItemDefinitionId) == Bow);
-    TestTrue(TEXT("Arrows registered"), Inventory->FindItemDefinition(ArrowId) == Arrows);
+    TestNull(TEXT("No obsolete bow source registered"), Inventory->FindItemDefinition(BowId));
+    TestNull(TEXT("No obsolete arrow source registered"), Inventory->FindItemDefinition(ArrowId));
     FString OwnershipError;
-    TestTrue(TEXT("Ownership invariants"), Inventory->ValidateInventoryOwnership(OwnershipError));
+    TestTrue(TEXT("Inventory ownership invariants"), Inventory->ValidateInventoryOwnership(OwnershipError));
 
     UGrimrockPartySaveGame* Snapshot = NewObject<UGrimrockPartySaveGame>();
     Snapshot->PartyInventoryState = Inventory->PartyInventoryState;
-    UGridPartyInventoryComponent* Restored = NewObject<UGridPartyInventoryComponent>();
-    Restored->InitializeDefaultPartyIfNeeded();
-    if (!TestTrue(TEXT("SaveGame snapshot restores"), Restored->RestorePartyInventoryState(Snapshot->PartyInventoryState, Error)))
+    UGridPartyInventoryComponent* Restored = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("World-bound restore destination"), Restored)) return false;
+    if (!TestTrue(TEXT("SaveGame state restores without old definition pointers"),
+        Restored->RestorePartyInventoryState(Snapshot->PartyInventoryState, Error)))
     {
         AddError(Error.ToString());
         return false;
     }
-    FName MissingId;
-    TestTrue(TEXT("Saved starting items rehydrate without dungeon placement"),
-        Restored->RehydrateOwnedItemDefinitions(
-            [Bow, Dagger, Arrows](FName Id) -> UGridItemDefinitionAsset*
-            {
-                for (UGridItemDefinitionAsset* Definition : {Bow, Dagger, Arrows})
-                    if (Definition && Definition->ItemDefinitionId == Id) return Definition;
-                return nullptr;
-            },
-            MissingId));
-    TestTrue(TEXT("No missing item IDs"), MissingId.IsNone());
-    TestEqual(TEXT("Saved stack quantity"), Restored->CountItemDefinitionInCharacterInventory(0, ArrowId), 11);
-    TestEqual(TEXT("Saved kit ID"), Restored->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId, Kit.KitId);
-    TestEqual(TEXT("Saved bow GUID"), Restored->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId,
-        Gear.MainHand.RuntimeObjectId);
-    TestTrue(TEXT("Restored ammunition policy uses stack"), FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Restored, 0, *Bow));
-    TestEqual(TEXT("No mutation to production class"), Ranger->StartingEquipmentKits.Num(), ProductionCount);
-    return true;
+    TestEqual(TEXT("Saved arrow quantity"), Restored->CountItemDefinitionInCharacterInventory(0, ArrowId), 11);
+    TestEqual(TEXT("Saved kit identity"),
+        Restored->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId, Request.StartingEquipmentKitId);
+    TestEqual(TEXT("Saved bow GUID"),
+        Restored->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId, Gear.MainHand.RuntimeObjectId);
+    TestTrue(TEXT("Restored bow still uses canonical ammunition policy"),
+        FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Restored, 0, Required));
+    TestEqual(TEXT("Production class not modified"), Ranger->StartingEquipmentKits.Num(), ProductionCount);
+    TestEqual(TEXT("Class default not modified"), Ranger->DefaultStartingEquipmentKitId, Default);
+    return !HasAnyErrors();
 }
+
 #endif
