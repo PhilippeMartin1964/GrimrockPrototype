@@ -11,7 +11,6 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -19,9 +18,6 @@
 
 namespace ARMEMENT0181
 {
-    constexpr const TCHAR* DaggerPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01");
-
     struct FWorldFixture
     {
         UWorld* World = nullptr;
@@ -29,7 +25,6 @@ namespace ARMEMENT0181
         UGridItemSubsystem* Registry = nullptr;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
-        UGridItemDefinitionAsset* Dagger = nullptr;
 
         explicit FWorldFixture(EWorldType::Type WorldType = EWorldType::Game)
         {
@@ -67,7 +62,6 @@ namespace ARMEMENT0181
                 Cell.bBlocksOccupancy = false;
             }
             Runtime->LevelAsset = Level;
-            Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, DaggerPath);
         }
 
         ~FWorldFixture()
@@ -82,7 +76,11 @@ namespace ARMEMENT0181
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
 
-        bool Ready() const { return World && Runtime && Level && Dagger; }
+        bool Ready() const
+        {
+            return World && Runtime && Level &&
+                (!Registry || Registry->HasCanonicalItem(TEXT("Weapon_Dagger_01")));
+        }
 
         FGuid Place(int32 CellX, int32 CellY, int32 LevelNumber)
         {
@@ -227,13 +225,13 @@ bool FARMEMENT0181DropTest::RunTest(const FString&)
     if (!TestTrue(TEXT("Runtime dagger fixture loaded"), Fixture.Ready())) return false;
     FGridItemInstance WorldItem;
     WorldItem.RuntimeObjectId = FGuid::NewGuid();
-    WorldItem.ItemDefinitionId = Fixture.Dagger->ItemDefinitionId;
+    WorldItem.ItemDefinitionId = TEXT("Weapon_Dagger_01");
     WorldItem.ItemLevel = 13;
     WorldItem.Quantity = 1;
     WorldItem.OwnerType = EGridItemOwnerType::World;
 
     if (!TestTrue(TEXT("Drop fixed level 13 item"), Fixture.Runtime->TryDropItemInstanceAtCell(
-        WorldItem, Fixture.Dagger, 0, 0, EGridEdge::None, FVector::ZeroVector))) return false;
+        WorldItem, 0, 0, EGridEdge::None, FVector::ZeroVector))) return false;
     AGridItemActor* DroppedActor = ARMEMENT0181::FindWorldActor(Fixture.World, WorldItem.RuntimeObjectId);
     if (!TestNotNull(TEXT("Dropped item exists"), DroppedActor)) return false;
     if (!TestTrue(TEXT("Capture dropped state"), Fixture.Runtime->CaptureCurrentLevelRuntimeState())) return false;

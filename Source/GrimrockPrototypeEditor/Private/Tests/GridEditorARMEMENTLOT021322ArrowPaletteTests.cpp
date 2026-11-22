@@ -6,7 +6,9 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UObjectGlobals.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT021322Arrows,
@@ -17,12 +19,22 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
 {
     UGridObjectPaletteAsset* Palette = LoadObject<UGridObjectPaletteAsset>(nullptr,
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default"));
-    UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
+    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
     if (!TestNotNull(TEXT("Real palette"), Palette) ||
-        !TestNotNull(TEXT("Real arrow stack"), Arrows)) return false;
+        !TestNotNull(TEXT("Canonical ItemSystem root"), Root.Get()))
+        return false;
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Canonical ItemSystem registers"),
+        Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
+    FGridResolvedItem Arrows;
+    if (!TestTrue(TEXT("Production N0 arrows resolve without retired asset"),
+        Registry->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows))) return false;
+    TestTrue(TEXT("Real canonical arrow stack is valid"), Arrows.IsValid() && Arrows.MaxStack >= 12);
     const bool WasPaletteDirty = Palette->GetOutermost()->IsDirty();
-    const bool WasArrowDirty = Arrows->GetOutermost()->IsDirty();
+    const bool WasRootDirty = Root->GetOutermost()->IsDirty();
     TArray<FGridWorldObjectDefinitionValidationMessage> Validation;
     const bool bPaletteValid = Palette->ValidatePalette(Validation);
     if (!bPaletteValid)
@@ -104,9 +116,9 @@ bool FARMEMENTLOT021322Arrows::RunTest(const FString&)
     if (GEngine) GEngine->DestroyWorldContext(World);
     TestEqual(TEXT("Production palette not modified by test"),
         Palette->GetOutermost()->IsDirty(), WasPaletteDirty);
-    TestEqual(TEXT("Arrow asset not modified by test"),
-        Arrows->GetOutermost()->IsDirty(), WasArrowDirty);
-    AddInfo(TEXT("[LOT02.13.4.1] Direct arrow entry/placement verified against canonical ItemDefinition; PIE acceptance is separate."));
+    TestEqual(TEXT("Canonical root not modified by test"),
+        Root->GetOutermost()->IsDirty(), WasRootDirty);
+    AddInfo(TEXT("[ARM-CLEAN06] Direct arrow entry and grid placement verified against canonical ItemSystem; PIE acceptance is separate."));
     return true;
 }
 #endif

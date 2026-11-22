@@ -10,6 +10,9 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace EffectsOrg011
 {
@@ -332,9 +335,34 @@ bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
 
     HasDependency(PotionNiagara, NewPotionMaterial,
         TEXT("Potion bubble material is used by NS_LiquideSparkle"));
-    HasDependency(
-        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01")),
-        PotionNiagara, TEXT("Healing potion uses NS_LiquideSparkle"));
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+        TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
+        UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
+        TArray<FString> Errors;
+        if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))
+            return false;
+        FGridResolvedItem Torch;
+        if (!TestTrue(TEXT("Canonical N0 torch resolves without old DataAsset"),
+            Items->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
+    
+    FGridResolvedItem Healing;
+    if (!TestTrue(TEXT("Canonical N0 healing potion resolves"),
+        Items->ResolveItem(TEXT("Item_Potion_Healing_01"), 0, Healing)))
+        return false;
+    auto HasNiagara = [](const FGridResolvedItem& Item, const TCHAR* AssetPath)
+    {
+        const FSoftObjectPath Path(AssetPath);
+        return Item.VisualEffects.Effects.ContainsByPredicate(
+            [&Path](const FGridItemNiagaraEffectConfig& Effect)
+            {
+                return Effect.NiagaraSystem.ToSoftObjectPath() == Path;
+            });
+    };
+    bAllDependenciesValid &= TestTrue(TEXT("Canonical healing potion uses NS_LiquideSparkle"),
+        HasNiagara(Healing,
+            TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.NS_LiquideSparkle")));
 
     const FName TeleporterNiagara(TEXT("/Game/GrimrockPrototype/Effects/Teleporter/NS_Teleporter_Blue"));
     for (const TCHAR* MaterialPath : {
@@ -359,9 +387,10 @@ bool FGridEditorEffectsOrg012ADependencyContractTest::RunTest(const FString&)
         return false;
     }
     const FName TorchNiagara = bNewTorch ? NewTorchNiagara : OldTorchNiagara;
-    HasDependency(
-        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch")),
-        TorchNiagara, TEXT("Torch item keeps its Niagara"));
+    bAllDependenciesValid &= TestTrue(TEXT("Canonical torch preserves its Niagara"),
+        HasNiagara(Torch, bNewTorch
+            ? TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch.NS_Flame_8_Torch")
+            : TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch.NS_Flame_8_Torch")));
     HasDependency(TorchNiagara,
         FName(TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Flame/MI_Flame_8")),
         TEXT("Torch uses its Flame 8 material"));

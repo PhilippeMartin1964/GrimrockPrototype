@@ -11,7 +11,6 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -19,8 +18,6 @@
 
 namespace ARMEMENT0182
 {
-    const TCHAR* DaggerPath = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01");
-
     struct FFixture
     {
         UWorld* World = nullptr;
@@ -28,7 +25,6 @@ namespace ARMEMENT0182
         UGridItemSubsystem* Registry = nullptr;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* Level = nullptr;
-        UGridItemDefinitionAsset* Dagger = nullptr;
 
         explicit FFixture(EWorldType::Type WorldType = EWorldType::Game)
         {
@@ -66,7 +62,6 @@ namespace ARMEMENT0182
                 Cell.bBlocksOccupancy = false;
             }
             Runtime->LevelAsset = Level;
-            Dagger = LoadObject<UGridItemDefinitionAsset>(nullptr, DaggerPath);
         }
 
         ~FFixture()
@@ -81,7 +76,11 @@ namespace ARMEMENT0182
             if (GEngine) GEngine->DestroyWorldContext(World);
         }
 
-        bool Ready() const { return World && Runtime && Level && Dagger; }
+        bool Ready() const
+        {
+            return World && Runtime && Level &&
+                (!Registry || Registry->HasCanonicalItem(TEXT("Weapon_Dagger_01")));
+        }
 
         FGuid AddSpawn(int32 X, int32 Y, int32 ItemLevel, bool bAtStart = true)
         {

@@ -1,9 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/IAssetRegistry.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Misc/AutomationTest.h"
-#include "Modules/ModuleManager.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
@@ -12,24 +12,52 @@ namespace GridItemVFX014Policy
 {
     constexpr TCHAR SparklePath[] =
         TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.NS_LiquideSparkle");
-    constexpr TCHAR HealingPath[] =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01");
-    constexpr const TCHAR* FlaskPaths[] =
+    const FName HealingId(TEXT("Item_Potion_Healing_01"));
+    const FName FlaskIds[] =
     {
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.DA_Item_Flask_Acid"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.DA_Item_Flask_CorrosiveCloud")
+        TEXT("Item_Flask_Oil"),
+        TEXT("Item_Flask_Acid"),
+        TEXT("Item_Flask_CorrosiveCloud")
     };
 
-    bool HasSparkle(const UGridItemDefinitionAsset& Item)
+    bool HasSparkle(const FGridItemVisualEffectsConfig& VisualEffects)
     {
-        return Item.VisualEffects.Effects.ContainsByPredicate(
+        return VisualEffects.Effects.ContainsByPredicate(
             [](const FGridItemNiagaraEffectConfig& Effect)
             {
                 return Effect.EffectId == FName(TEXT("LiquidSparkle")) ||
                     Effect.NiagaraSystem.ToSoftObjectPath() == FSoftObjectPath(SparklePath);
             });
     }
+
+    struct FCanonicalFixture
+    {
+        TStrongObjectPtr<UGameInstance> GI;
+        TStrongObjectPtr<UGridItemSubsystem> Registry;
+        TStrongObjectPtr<UGridItemSystemAsset> Root;
+
+        FCanonicalFixture()
+            : GI(NewObject<UGameInstance>()),
+              Registry(NewObject<UGridItemSubsystem>(GI.Get())),
+              Root(LoadObject<UGridItemSystemAsset>(nullptr,
+                  TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+        {
+        }
+
+        bool Configure()
+        {
+            TArray<FString> Errors;
+            return Registry.IsValid() && Root.IsValid() &&
+                Registry->RegisterItemSystem(Root.Get(), Errors);
+        }
+
+        bool Resolve(FName ItemId, FGridResolvedItem& OutItem) const
+        {
+            return Registry.IsValid() && Registry->ResolveItem(ItemId, 0, OutItem);
+        }
+    };
+
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX014FlaskVisualPolicyTest,
@@ -53,7 +81,7 @@ bool FGridItemVFX014FlaskVisualPolicyTest::RunTest(const FString& Parameters)
 
     TestTrue(TEXT("An empty flask VFX list is valid"), CleanFlask->VisualEffects.IsValid());
     TestFalse(TEXT("No sparkle is automatically added to a clean flask"),
-        GridItemVFX014Policy::HasSparkle(*CleanFlask));
+        GridItemVFX014Policy::HasSparkle(CleanFlask->VisualEffects));
 
     UNiagaraSystem* Other = NewObject<UNiagaraSystem>(GetTransientPackage());
     FGridItemNiagaraEffectConfig OtherVfx;
@@ -63,14 +91,14 @@ bool FGridItemVFX014FlaskVisualPolicyTest::RunTest(const FString& Parameters)
 
     TestTrue(TEXT("An unrelated VFX remains valid without LiquidSparkle"),
         CleanFlask->VisualEffects.IsValid() &&
-        !GridItemVFX014Policy::HasSparkle(*CleanFlask));
+        !GridItemVFX014Policy::HasSparkle(CleanFlask->VisualEffects));
 
     FGridItemNiagaraEffectConfig SparkleVfx;
     SparkleVfx.EffectId = TEXT("LiquidSparkle");
     SparkleVfx.NiagaraSystem = Sparkle;
     CleanFlask->VisualEffects.Effects.Add(SparkleVfx);
     TestTrue(TEXT("Test detects unintended sparkle in another item"),
-        GridItemVFX014Policy::HasSparkle(*CleanFlask));
+        GridItemVFX014Policy::HasSparkle(CleanFlask->VisualEffects));
     return true;
 }
 
@@ -81,77 +109,64 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX014ProductionPolicyAuditTest,
 bool FGridItemVFX014ProductionPolicyAuditTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
+    using namespace GridItemVFX014Policy;
 
-    UGridItemDefinitionAsset* Healing = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, GridItemVFX014Policy::HealingPath);
-    if (!TestNotNull(TEXT("Healing potion loads"), Healing))
-    {
+    FCanonicalFixture Source;
+    if (!TestTrue(TEXT("Production ItemSystem registers"), Source.Configure()))
         return false;
-    }
-    TestTrue(TEXT("Healing potion is the canonical LiquidSparkle owner"),
-        GridItemVFX014Policy::HasSparkle(*Healing));
 
-    for (const TCHAR* Path : GridItemVFX014Policy::FlaskPaths)
+    FGridResolvedItem Healing;
+    if (!TestTrue(TEXT("Healing potion resolves at canonical N0"),
+        Source.Resolve(HealingId, Healing))) return false;
+    TestTrue(TEXT("Only healing potion owns authored LiquidSparkle"),
+        HasSparkle(Healing.VisualEffects));
+    for (FName Id : FlaskIds)
     {
-        UGridItemDefinitionAsset* Flask = LoadObject<UGridItemDefinitionAsset>(nullptr, Path);
-        if (!TestNotNull(*FString::Printf(TEXT("Flask %s loads"), Path), Flask))
-        {
-            continue;
-        }
-        TestTrue(TEXT("Flask definition remains valid"), Flask->IsValidDefinition());
-        TestFalse(*FString::Printf(TEXT("No LiquidSparkle on %s"), Path),
-            GridItemVFX014Policy::HasSparkle(*Flask));
+        FGridResolvedItem Flask;
+        if (!TestTrue(TEXT("Canonical flask resolves at N0"),
+            Source.Resolve(Id, Flask))) continue;
+        TestFalse(TEXT("Flask does not borrow healing sparkle"), HasSparkle(Flask.VisualEffects));
     }
 
-    // Re-scan production assets rather than trusting Git LFS pointer texts.
-    FAssetRegistryModule& Module =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-    IAssetRegistry& Registry = Module.Get();
-    Registry.SearchAllAssets(true);
-    TArray<FAssetData> Assets;
-    Registry.GetAssetsByClass(UGridItemDefinitionAsset::StaticClass()->GetClassPathName(),
-        Assets, true);
-    if (!TestTrue(TEXT("Production registry contains item definitions"), !Assets.IsEmpty()))
-    {
-        return false;
-    }
-
+    // Inspect all 48 identities from the root, including non-ARM N0 and
+    // ARM N1. No AssetRegistry walk of obsolete UGridItemDefinitionAsset.
+    TArray<FName> Ids;
+    Source.Registry->GetCanonicalItemIds(Ids);
+    TestEqual(TEXT("All native production items are audited"), Ids.Num(), 48);
     int32 Checked = 0;
     int32 Invalid = 0;
-    for (const FAssetData& Data : Assets)
+    for (FName Id : Ids)
     {
-        UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(Data.GetAsset());
-        if (!IsValid(Item))
+        FGridResolvedItem Item;
+        if (!Source.Registry->ResolveItem(Id, 0, Item) &&
+            !Source.Registry->ResolveItem(Id, 1, Item))
         {
             ++Invalid;
-            AddError(FString::Printf(TEXT("Could not load item asset: %s"),
-                *Data.PackageName.ToString()));
+            AddError(FString::Printf(TEXT("Canonical item not resolved: %s"), *Id.ToString()));
             continue;
         }
         ++Checked;
-        if (!Item->IsValidDefinition())
+        if (!Item.IsValid())
         {
             ++Invalid;
-            AddError(FString::Printf(TEXT("Invalid item definition: %s"),
-                *Item->GetPathName()));
+            AddError(FString::Printf(TEXT("Invalid canonical item: %s"), *Id.ToString()));
         }
-        if (Item != Healing && GridItemVFX014Policy::HasSparkle(*Item))
+        if (Id != HealingId && HasSparkle(Item.VisualEffects))
         {
             ++Invalid;
-            AddError(FString::Printf(TEXT("LiquidSparkle is reserved for healing potion: %s"),
-                *Item->GetPathName()));
+            AddError(FString::Printf(TEXT("LiquidSparkle reserved for healing potion: %s"),
+                *Id.ToString()));
         }
     }
-
-    TestTrue(TEXT("At least the 5 canonical assets were audited"), Checked >= 5);
-    TestEqual(TEXT("No invalid production item or misplaced LiquidSparkle"), Invalid, 0);
-    TestNull(TEXT("Legacy NiagaraSystem UPROPERTY is absent from LightEmitter"),
+    TestEqual(TEXT("Every canonical identity was resolved"), Checked, 48);
+    TestEqual(TEXT("No invalid canonical item or misplaced LiquidSparkle"), Invalid, 0);
+    TestNull(TEXT("Legacy NiagaraSystem property is absent from LightEmitter"),
         FindFProperty<FProperty>(FGridLightEmitterConfig::StaticStruct(), TEXT("NiagaraSystem")));
-    TestNull(TEXT("Legacy NiagaraRelativeLocation UPROPERTY is absent"),
+    TestNull(TEXT("Legacy NiagaraRelativeLocation property is absent"),
         FindFProperty<FProperty>(FGridLightEmitterConfig::StaticStruct(), TEXT("NiagaraRelativeLocation")));
-    TestNull(TEXT("Legacy NiagaraRelativeRotation UPROPERTY is absent"),
+    TestNull(TEXT("Legacy NiagaraRelativeRotation property is absent"),
         FindFProperty<FProperty>(FGridLightEmitterConfig::StaticStruct(), TEXT("NiagaraRelativeRotation")));
-    return true;
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS

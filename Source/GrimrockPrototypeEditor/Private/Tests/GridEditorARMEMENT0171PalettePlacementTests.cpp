@@ -7,13 +7,13 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "Runtime/Combat/GridWorldItemVisualResolver.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
@@ -21,26 +21,38 @@ namespace ARMEMENT0171Tests
 {
     constexpr const TCHAR* PalettePath =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default");
-    constexpr const TCHAR* ItemFolder = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons");
-
     struct FPilot
     {
-        const TCHAR* EntryId;
-        const TCHAR* AssetName;
         const TCHAR* ItemId;
     };
     const FPilot Pilots[] =
     {
-        {TEXT("Weapon_Dagger_01"), TEXT("DA_Weapon_Dagger_01"), TEXT("Weapon_Dagger_01")},
-        {TEXT("Weapon_ShortBow_01"), TEXT("DA_Weapon_ShortBow_01"), TEXT("Weapon_ShortBow_01")},
-        {TEXT("Weapon_RoundShield_01"), TEXT("DA_Weapon_RoundShield_01"), TEXT("Weapon_RoundShield_01")}
+        {TEXT("Weapon_Dagger_01")},
+        {TEXT("Weapon_ShortBow_01")},
+        {TEXT("Weapon_RoundShield_01")}
     };
 
-    UGridItemDefinitionAsset* LoadPilot(const FPilot& Pilot)
+    struct FCanonicalFixture
     {
-        const FString Path = FString::Printf(TEXT("%s/%s.%s"), ItemFolder, Pilot.AssetName, Pilot.AssetName);
-        return LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-    }
+        TStrongObjectPtr<UGameInstance> GI;
+        TStrongObjectPtr<UGridItemSubsystem> Registry;
+        TStrongObjectPtr<UGridItemSystemAsset> Root;
+
+        FCanonicalFixture()
+            : GI(NewObject<UGameInstance>()),
+              Registry(NewObject<UGridItemSubsystem>(GI.Get())),
+              Root(LoadObject<UGridItemSystemAsset>(nullptr,
+                  TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+        {
+        }
+
+        bool Configure()
+        {
+            TArray<FString> Errors;
+            return Root.IsValid() && Registry.IsValid() &&
+                Registry->RegisterItemSystem(Root.Get(), Errors);
+        }
+    };
 
     struct FWorldFixture
     {
@@ -76,14 +88,18 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0171ProductionPaletteTest,
 bool FARMEMENT0171ProductionPaletteTest::RunTest(const FString&)
 {
     UGridObjectPaletteAsset* Palette = LoadObject<UGridObjectPaletteAsset>(nullptr, ARMEMENT0171Tests::PalettePath);
-    if (!TestNotNull(TEXT("Production palette exists"), Palette)) { return false; }
+    ARMEMENT0171Tests::FCanonicalFixture Canonical;
+    if (!TestNotNull(TEXT("Production palette exists"), Palette) ||
+        !TestTrue(TEXT("Canonical production catalogue validates"), Canonical.Configure()))
+        return false;
     TArray<FGridWorldObjectDefinitionValidationMessage> Messages;
     TestTrue(TEXT("Production palette is valid"), Palette->ValidatePalette(Messages));
     for (const ARMEMENT0171Tests::FPilot& Pilot : ARMEMENT0171Tests::Pilots)
     {
-        UGridItemDefinitionAsset* Item = ARMEMENT0171Tests::LoadPilot(Pilot);
-        if (!TestNotNull(TEXT("Real item asset exists"), Item)) { continue; }
-        const FName Id(Pilot.EntryId);
+        FGridResolvedItem Item;
+        const FName Id(Pilot.ItemId);
+        if (!TestTrue(TEXT("Canonical pilot exists without old source asset"),
+            Canonical.Registry->ResolveItem(Id, 1, Item))) continue;
         const FGridObjectPaletteEntry* Entry = Palette->FindEntryById(Id);
         if (!TestNotNull(TEXT("Pilot has a palette entry"), Entry)) { continue; }
         const int32 Count = Palette->Entries.FilterByPredicate(
@@ -91,7 +107,7 @@ bool FARMEMENT0171ProductionPaletteTest::RunTest(const FString&)
         TestEqual(TEXT("EntryId occurs once"), Count, 1);
         TestTrue(TEXT("Pilot retains legacy Items or migrated Weapon palette category"),
             Entry->PaletteCategory == FName(TEXT("Items")) || Entry->PaletteCategory == FName(TEXT("Weapon")));
-        TestEqual(TEXT("Entry stores the canonical ItemId"), Entry->CanonicalItemId, Item->ItemDefinitionId);
+        TestEqual(TEXT("Entry stores the canonical ItemId"), Entry->CanonicalItemId, Item.ItemId);
         TestTrue(TEXT("Any retained pilot source matches"), FGridObjectPaletteEntry::StaticStruct()->FindPropertyByName(TEXT("DefaultItemDefinition")) == nullptr);
         TestTrue(TEXT("No companion WorldObjectDefinition"), Entry->DefaultWorldObjectDefinition == nullptr);
         TestTrue(TEXT("No duplicate palette Icon"), Entry->Icon == nullptr);
@@ -128,26 +144,29 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
     Editor->LevelAsset = Level;
     Editor->ObjectPalette = Palette;
     Runtime->LevelAsset = Level;
+    const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
+    if (!TestNotNull(TEXT("Registered editor item resolver"), Registry)) return false;
 
     for (int32 Index = 0; Index < UE_ARRAY_COUNT(ARMEMENT0171Tests::Pilots); ++Index)
     {
         const ARMEMENT0171Tests::FPilot& Pilot = ARMEMENT0171Tests::Pilots[Index];
-        UGridItemDefinitionAsset* Definition = ARMEMENT0171Tests::LoadPilot(Pilot);
-        if (!TestNotNull(TEXT("Pilot Definition loads"), Definition)) { continue; }
+        FGridResolvedItem Definition;
+        if (!TestTrue(TEXT("Canonical pilot resolves for placement"),
+            Registry->ResolveItem(FName(Pilot.ItemId), 1, Definition))) continue;
         Editor->SelectedCellX = Index;
         Editor->SelectedCellY = 1;
         Editor->SelectedEdge = EGridEdge::None;
         if (!TestTrue(TEXT("Select palette entry via existing editor command"),
-            Editor->ApplyPaletteEntry(FName(Pilot.EntryId)))) { continue; }
+            Editor->ApplyPaletteEntry(FName(Pilot.ItemId)))) { continue; }
         TestEqual(TEXT("Paint type is collectible Item"), Editor->PaintObjectType, EGridLevelObjectType::Item);
         TestTrue(TEXT("No world-object definition selected"), Editor->WorldObjectDefinitionId.IsNone());
         Editor->PlaceSelectedObject();
         if (Level->LooseItemInstances.Num() <= Index) { continue; }
         const FGridLooseItemInstance& Placed = Level->LooseItemInstances[Index];
         TestNull(TEXT("New canonical item does not persist old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
-        TestEqual(TEXT("Real canonical ItemId persisted"), Placed.CanonicalItemId, Definition->ItemDefinitionId);
+        TestEqual(TEXT("Real canonical ItemId persisted"), Placed.CanonicalItemId, Definition.ItemId);
         TestTrue(TEXT("ARM physical N1–N20 retained"), Placed.ItemLevel >= 1 && Placed.ItemLevel <= 20);
-        TestEqual(TEXT("Palette identity is persisted on placement"), Placed.PaletteEntryId, FName(Pilot.EntryId));
+        TestEqual(TEXT("Palette identity is persisted on placement"), Placed.PaletteEntryId, FName(Pilot.ItemId));
         TestEqual(TEXT("Correct grid X"), Placed.CellX, Index);
         TestEqual(TEXT("Correct grid Y"), Placed.CellY, 1);
         TestEqual(TEXT("Default is floor placement"), Placed.SurfaceSide, EGridEdge::None);
@@ -161,8 +180,6 @@ bool FARMEMENT0171PlacementPreviewTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Existing preview component"), PreviewComponent)) { return false; }
     PreviewComponent->Initialize(Runtime);
     PreviewComponent->RebuildPreviewObjects();
-    const UGridItemSubsystem* Registry = Editor->ResolveEditorItemRegistry();
-    if (!TestNotNull(TEXT("Registered preview resolver"), Registry)) return false;
     for (const FGridLooseItemInstance& Placed : Level->LooseItemInstances)
     {
         TestNull(TEXT("New registered placement is pointerless"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));

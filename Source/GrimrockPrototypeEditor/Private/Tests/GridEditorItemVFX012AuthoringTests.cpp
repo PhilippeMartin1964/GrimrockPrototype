@@ -3,18 +3,20 @@
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace GridItemVFX012AuthoringTests
 {
     constexpr TCHAR SparklePath[] =
         TEXT("/Game/GrimrockPrototype/Effects/Alchimie/NS_LiquideSparkle.NS_LiquideSparkle");
-    constexpr TCHAR HealingPath[] =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01.DA_Item_Potion_Healing_01");
-    constexpr const TCHAR* FlaskPaths[] =
+    const FName HealingId(TEXT("Item_Potion_Healing_01"));
+    const FName FlaskIds[] =
     {
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil.DA_Item_Flask_Oil"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid.DA_Item_Flask_Acid"),
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud.DA_Item_Flask_CorrosiveCloud")
+        TEXT("Item_Flask_Oil"),
+        TEXT("Item_Flask_Acid"),
+        TEXT("Item_Flask_CorrosiveCloud")
     };
 
     const FName SparkleId(TEXT("LiquidSparkle"));
@@ -25,11 +27,40 @@ namespace GridItemVFX012AuthoringTests
             Effect.NiagaraSystem.ToSoftObjectPath() == FSoftObjectPath(SparklePath);
     }
 
-    const FGridItemNiagaraEffectConfig* FindSparkle(const UGridItemDefinitionAsset& Definition)
+    const FGridItemNiagaraEffectConfig* FindSparkle(const FGridItemVisualEffectsConfig& VisualEffects)
     {
-        return Definition.VisualEffects.Effects.FindByPredicate(
+        return VisualEffects.Effects.FindByPredicate(
             [](const FGridItemNiagaraEffectConfig& Effect) { return IsSparkle(Effect); });
     }
+
+    struct FCanonicalFixture
+    {
+        TStrongObjectPtr<UGameInstance> GI;
+        TStrongObjectPtr<UGridItemSubsystem> Registry;
+        TStrongObjectPtr<UGridItemSystemAsset> Root;
+
+        FCanonicalFixture()
+            : GI(NewObject<UGameInstance>()),
+              Registry(NewObject<UGridItemSubsystem>(GI.Get())),
+              Root(LoadObject<UGridItemSystemAsset>(nullptr,
+                  TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")))
+        {
+        }
+
+        bool Configure()
+        {
+            TArray<FString> Errors;
+            return Registry.IsValid() && Root.IsValid() &&
+                Registry->RegisterItemSystem(Root.Get(), Errors);
+        }
+
+        bool Resolve(FName ItemId, FGridResolvedItem& OutItem) const
+        {
+            return Registry.IsValid() && Registry->ResolveItem(ItemId, 0, OutItem);
+        }
+    };
+
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX012VisualOnlyAuthoringTest,
@@ -84,30 +115,28 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX012ProductionPreflightTest,
 bool FGridItemVFX012ProductionPreflightTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
+    using namespace GridItemVFX012AuthoringTests;
 
-    UGridItemDefinitionAsset* Healing = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, GridItemVFX012AuthoringTests::HealingPath);
-    if (!TestNotNull(TEXT("Healing potion DataAsset loads"), Healing))
-    {
+    FCanonicalFixture Source;
+    if (!TestTrue(TEXT("Production ItemSystem registers"), Source.Configure()))
         return false;
-    }
+    FGridResolvedItem Healing;
+    if (!TestTrue(TEXT("Healing potion resolves canonically at N0"),
+        Source.Resolve(HealingId, Healing))) return false;
+    TestTrue(TEXT("Canonical healing potion has valid identity"), Healing.IsValid());
+    TestNotNull(TEXT("Only healing potion authors LiquidSparkle"),
+        FindSparkle(Healing.VisualEffects));
 
-    TestTrue(TEXT("Healing potion is a valid definition"), Healing->IsValidDefinition());
-    const FGridItemNiagaraEffectConfig* Effect = GridItemVFX012AuthoringTests::FindSparkle(*Healing);
-    TestNotNull(TEXT("Only healing potion authors LiquidSparkle"), Effect);
-
-    for (const TCHAR* Path : GridItemVFX012AuthoringTests::FlaskPaths)
+    for (FName Id : FlaskIds)
     {
-        UGridItemDefinitionAsset* Flask = LoadObject<UGridItemDefinitionAsset>(nullptr, Path);
-        if (!TestNotNull(*FString::Printf(TEXT("Flask %s loads"), Path), Flask))
-        {
-            continue;
-        }
-        TestTrue(*FString::Printf(TEXT("Flask %s remains valid"), Path), Flask->IsValidDefinition());
-        TestNull(*FString::Printf(TEXT("Flask %s does not author LiquidSparkle"), Path),
-            GridItemVFX012AuthoringTests::FindSparkle(*Flask));
+        FGridResolvedItem Flask;
+        if (!TestTrue(TEXT("Canonical flask resolves without DA_Item source"),
+            Source.Resolve(Id, Flask))) continue;
+        TestTrue(TEXT("Flask remains valid"), Flask.IsValid());
+        TestNull(TEXT("Flask does not author LiquidSparkle"),
+            FindSparkle(Flask.VisualEffects));
     }
-    return true;
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX012ProductionVfxContractTest,
@@ -117,39 +146,27 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX012ProductionVfxContractTest,
 bool FGridItemVFX012ProductionVfxContractTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
+    using namespace GridItemVFX012AuthoringTests;
 
-    UGridItemDefinitionAsset* Healing = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, GridItemVFX012AuthoringTests::HealingPath);
-    if (!TestNotNull(TEXT("Healing potion loads"), Healing))
-    {
+    FCanonicalFixture Source;
+    if (!TestTrue(TEXT("Production ItemSystem registers"), Source.Configure()))
         return false;
-    }
-
-    const FGridItemNiagaraEffectConfig* Sparkle =
-        GridItemVFX012AuthoringTests::FindSparkle(*Healing);
-    if (!TestNotNull(TEXT("LiquidSparkle effect exists"), Sparkle))
-    {
+    FGridResolvedItem Healing;
+    if (!TestTrue(TEXT("Healing N0 is canonical"), Source.Resolve(HealingId, Healing)))
         return false;
-    }
-
-    TestEqual(TEXT("Only canonical effect ID is allowed"), Sparkle->EffectId,
-        GridItemVFX012AuthoringTests::SparkleId);
-    TestTrue(TEXT("Canonical Niagara system referenced"),
-        Sparkle->NiagaraSystem.ToSoftObjectPath() ==
-        FSoftObjectPath(GridItemVFX012AuthoringTests::SparklePath));
+    const FGridItemNiagaraEffectConfig* Sparkle = FindSparkle(Healing.VisualEffects);
+    if (!TestNotNull(TEXT("Canonical LiquidSparkle effect exists"), Sparkle))
+        return false;
+    TestEqual(TEXT("Only expected effect ID"), Sparkle->EffectId, SparkleId);
+    TestEqual(TEXT("Canonical Niagara system"),
+        Sparkle->NiagaraSystem.ToSoftObjectPath(), FSoftObjectPath(SparklePath));
     TestTrue(TEXT("Visual sparkle ignores instance light state"),
         Sparkle->ActivationMode == EGridItemVfxActivationMode::Always);
-
     int32 SparkleCount = 0;
-    for (const FGridItemNiagaraEffectConfig& Entry : Healing->VisualEffects.Effects)
-    {
-        if (GridItemVFX012AuthoringTests::IsSparkle(Entry))
-        {
-            ++SparkleCount;
-        }
-    }
-    TestEqual(TEXT("Healing potion has exactly one canonical sparkle"), SparkleCount, 1);
-    return true;
+    for (const FGridItemNiagaraEffectConfig& Entry : Healing.VisualEffects.Effects)
+        if (IsSparkle(Entry)) ++SparkleCount;
+    TestEqual(TEXT("Only one canonical healing sparkle"), SparkleCount, 1);
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS

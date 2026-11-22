@@ -6,6 +6,9 @@
 #include "Misc/AssetRegistryInterface.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -20,7 +23,6 @@ bool FGridEditorEffectsOrg012DTorchPreflightTest::RunTest(const FString&)
     // No content package is modified in either path.
     static const FString OldPackage(TEXT("/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch"));
     static const FString NewPackage(TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch"));
-    static const FName TorchItem(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch"));
     static const FName FlameMaterial(TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Flame/MI_Flame_8"));
     static const FName DistortionMaterial(TEXT("/Game/GrimrockPrototype/Art/Materials/Instances/Flame/MI_Distortion_1"));
 
@@ -52,14 +54,30 @@ bool FGridEditorEffectsOrg012DTorchPreflightTest::RunTest(const FString&)
     IAssetRegistry& Registry =
         FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
     Registry.SearchAllAssets(true);
-    TArray<FName> ItemDependencies;
+        TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+        TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
+        UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+        if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
+        TArray<FString> Errors;
+        if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))
+            return false;
+        FGridResolvedItem Torch;
+        if (!TestTrue(TEXT("Canonical N0 torch resolves without old DataAsset"),
+            Items->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
+    
+    const FSoftObjectPath ExpectedNiagara(
+        TEXT("/Game/GrimrockPrototype/Effects/Fire/Torch/NS_Flame_8_Torch.NS_Flame_8_Torch"));
+    const bool bLinked = Torch.VisualEffects.Effects.ContainsByPredicate(
+        [&ExpectedNiagara](const FGridItemNiagaraEffectConfig& Effect)
+        {
+            return Effect.EffectId == FName(TEXT("TorchFlame")) &&
+                Effect.NiagaraSystem.ToSoftObjectPath() == ExpectedNiagara;
+        });
     TArray<FName> NiagaraDependencies;
-    const bool bItemOK = Registry.GetDependencies(TorchItem, ItemDependencies,
-        UE::AssetRegistry::EDependencyCategory::All, UE::AssetRegistry::FDependencyQuery());
     const bool bNiagaraOK = Registry.GetDependencies(FName(*NewPackage), NiagaraDependencies,
         UE::AssetRegistry::EDependencyCategory::All, UE::AssetRegistry::FDependencyQuery());
-    return TestTrue(TEXT("Torch item's dependency graph is readable"), bItemOK) &&
-        TestTrue(TEXT("Torch item points to relocated Niagara"), ItemDependencies.Contains(FName(*NewPackage))) &&
+    return TestTrue(TEXT("Canonical torch points to relocated Niagara"), bLinked) &&
         TestTrue(TEXT("Relocated Niagara dependency graph is readable"), bNiagaraOK) &&
         TestTrue(TEXT("Flame material remains intact"), NiagaraDependencies.Contains(FlameMaterial)) &&
         TestTrue(TEXT("Distortion material remains intact"), NiagaraDependencies.Contains(DistortionMaterial));

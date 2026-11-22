@@ -3,12 +3,13 @@
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Misc/PackageName.h"
 
 namespace GridItemVFX013AuthoringTests
 {
-    constexpr TCHAR TorchPath[] =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch.DA_Item_Torch");
     /** Temporary 2D staging selector; removed after Unreal renames the .uasset. */
     const TCHAR* ResolveFlamePath()
     {
@@ -22,9 +23,9 @@ namespace GridItemVFX013AuthoringTests
     }
     const FName FlameId(TEXT("TorchFlame"));
 
-    const FGridItemNiagaraEffectConfig* FindFlame(const UGridItemDefinitionAsset& Torch)
+    const FGridItemNiagaraEffectConfig* FindFlame(const FGridItemVisualEffectsConfig& VisualEffects)
     {
-        return Torch.VisualEffects.Effects.FindByPredicate(
+        return VisualEffects.Effects.FindByPredicate(
             [](const FGridItemNiagaraEffectConfig& Effect)
             {
                 return Effect.EffectId == FlameId;
@@ -91,23 +92,27 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX013ProductionPreflightTest,
 bool FGridItemVFX013ProductionPreflightTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
-    UGridItemDefinitionAsset* Torch = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, GridItemVFX013AuthoringTests::TorchPath);
-    if (!TestNotNull(TEXT("Production torch exists"), Torch))
-    {
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
+    UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+    if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))
         return false;
-    }
+    FGridResolvedItem Torch;
+    if (!TestTrue(TEXT("Canonical N0 torch resolves without old DataAsset"),
+        Items->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
 
-    TestTrue(TEXT("Canonical torch type is retained"), Torch->ItemType == EGridItemType::Torch);
-    TestTrue(TEXT("Production torch has a valid authored definition"), Torch->IsValidDefinition());
-    TestTrue(TEXT("Production torch still has a PointLight"), Torch->LightEmitter.bUsePointLight);
-    TestTrue(TEXT("Light starts enabled by default"), Torch->IsLightEnabledByDefault());
-    TestTrue(TEXT("Light parameters stay positive"),
-        Torch->LightEmitter.LightIntensity > 0.f &&
-        Torch->LightEmitter.LightRadius > 0.f);
-    TestNotNull(TEXT("Flame is in VisualEffects, not LightEmitter"),
-        GridItemVFX013AuthoringTests::FindFlame(*Torch));
-    return true;
+    TestTrue(TEXT("Canonical torch identity and level are valid"),
+        Torch.IsValid() && !Torch.bIsArmament && Torch.ItemLevel == 0);
+    TestTrue(TEXT("Torch has an authored PointLight"), Torch.LightEmitter.bUsePointLight);
+    TestTrue(TEXT("Light starts enabled by default"), Torch.LightEmitter.bDefaultEnabled);
+    TestTrue(TEXT("Light parameters remain positive"),
+        Torch.LightEmitter.LightIntensity > 0.f && Torch.LightEmitter.LightRadius > 0.f);
+    TestNotNull(TEXT("TorchFlame is in canonical VisualEffects"),
+        GridItemVFX013AuthoringTests::FindFlame(Torch.VisualEffects));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX013MigratedProductionTest,
@@ -117,38 +122,34 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemVFX013MigratedProductionTest,
 bool FGridItemVFX013MigratedProductionTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
-    UGridItemDefinitionAsset* Torch = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, GridItemVFX013AuthoringTests::TorchPath);
-    if (!TestNotNull(TEXT("Production torch loads"), Torch))
-    {
+    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
+    TStrongObjectPtr<UGridItemSubsystem> Items(NewObject<UGridItemSubsystem>(GI.Get()));
+    UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
+    if (!TestNotNull(TEXT("Canonical ItemSystem root"), Root)) return false;
+    TArray<FString> Errors;
+    if (!TestTrue(TEXT("Canonical ItemSystem registers"), Items->RegisterItemSystem(Root, Errors)))
         return false;
-    }
+    FGridResolvedItem Torch;
+    if (!TestTrue(TEXT("Canonical N0 torch resolves without old DataAsset"),
+        Items->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
 
     const FGridItemNiagaraEffectConfig* Flame =
-        GridItemVFX013AuthoringTests::FindFlame(*Torch);
-    if (!TestNotNull(TEXT("TorchFlame exists"), Flame))
-    {
+        GridItemVFX013AuthoringTests::FindFlame(Torch.VisualEffects);
+    if (!TestNotNull(TEXT("Canonical TorchFlame exists"), Flame))
         return false;
-    }
-
-    TestTrue(TEXT("Production Niagara system is the canonical torch flame"),
+    TestTrue(TEXT("Niagara still resolves from the authored torch effect"),
         Flame->NiagaraSystem.ToSoftObjectPath() ==
         FSoftObjectPath(GridItemVFX013AuthoringTests::ResolveFlamePath()));
-    TestTrue(TEXT("Flame visibility is conditional on item light state"),
+    TestTrue(TEXT("Flame follows the instance light state"),
         Flame->ActivationMode == EGridItemVfxActivationMode::WhenLightEnabled);
-    TestFalse(TEXT("Flame local transform is valid"),
+    TestFalse(TEXT("Flame local transform contains no invalid values"),
         Flame->RelativeTransform.ContainsNaN());
-
     int32 Count = 0;
-    for (const FGridItemNiagaraEffectConfig& Effect : Torch->VisualEffects.Effects)
-    {
-        if (Effect.EffectId == GridItemVFX013AuthoringTests::FlameId)
-        {
-            ++Count;
-        }
-    }
-    TestEqual(TEXT("No duplicated torch flame VFX"), Count, 1);
-    return true;
+    for (const FGridItemNiagaraEffectConfig& Effect : Torch.VisualEffects.Effects)
+        if (Effect.EffectId == GridItemVFX013AuthoringTests::FlameId) ++Count;
+    TestEqual(TEXT("Only one canonical torch flame"), Count, 1);
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
