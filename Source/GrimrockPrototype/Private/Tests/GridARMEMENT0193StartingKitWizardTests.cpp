@@ -120,6 +120,37 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
 
 // Dedicated test names allow the isolated Windows agent to report whether
 // a failure is in the UI's canonical text read model or class-switch behavior.
+// A separate canary pinpoints the actual UMG world context, independently
+// from the authored item name and selection/localization read model.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193WizardWorldBindingTest,
+    "Grimrock.RPG.ARMEMENT01.9.WizardSelection.HunterWorldBinding",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FARMEMENT0193WizardWorldBindingTest::RunTest(const FString&)
+{
+    FGridCanonicalWeightTestWorld Fixture({});
+    if (!TestNotNull(TEXT("World exists"), Fixture.World) ||
+        !TestNotNull(TEXT("World has registered registry"), Fixture.Scope.Registry))
+        return false;
+    URPGCharacterCreationWizardWidget* Wizard =
+        CreateWidget<URPGCharacterCreationWizardWidget>(
+            Fixture.World, URPGCharacterCreationWizardWidget::StaticClass());
+    if (!TestNotNull(TEXT("World-bound wizard exists"), Wizard))
+        return false;
+    const UWorld* WidgetWorld = Wizard->GetWorld();
+    if (!TestNotNull(TEXT("UMG world context exists"), WidgetWorld))
+        return false;
+    TestTrue(TEXT("Widget uses the exact canonical test world"),
+        WidgetWorld == Fixture.World);
+    TestTrue(TEXT("Widget world retains original GameInstance"),
+        WidgetWorld->GetGameInstance() == Fixture.Scope.GI.Get());
+    TestTrue(TEXT("Widget world can resolve native items"),
+        WidgetWorld->GetGameInstance() &&
+        WidgetWorld->GetGameInstance()->GetSubsystem<UGridItemSubsystem>() ==
+            Fixture.Scope.Registry);
+    return !HasAnyErrors();
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0193WizardHunterDescriptionTest,
     "Grimrock.RPG.ARMEMENT01.9.WizardSelection.HunterCanonicalDescription",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
