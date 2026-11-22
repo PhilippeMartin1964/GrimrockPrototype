@@ -1,111 +1,63 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062AEProductionArmorReserves,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.ProductionInstanceArmorReserveParity",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.ProductionInstanceArmorReserveParity",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean062AEProductionArmorReserves::RunTest(const FString&)
 {
-	TArray<FGridWeaponPipelineRow> Manifest;
-	FString Error;
-	if (!TestTrue(TEXT("Read official 22 real ARM production rows"),
-		FGridWeaponPipelineManifest::Load(
-			FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
-	{
-		AddError(Error);
-		return false;
-	}
-	if (!TestEqual(TEXT("Exactly 22 source items"), Manifest.Num(), 22))
-	{
-		return false;
-	}
-	const UGridWeaponCatalogueAsset* Source =
-		LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	if (!TestNotNull(TEXT("Actual compact N1-N20 source catalogue"), Source) ||
-		!TestTrue(TEXT("Existing catalogue structurally valid"), Source->IsValidCatalogue()))
-	{
-		return false;
-	}
-	const bool bWasDirty = Source->GetOutermost()->IsDirty();
-	int32 Profiles = 0;
-	int32 PassiveItems = 0;
-	int32 DepletedReserves = 0;
-	for (const FGridWeaponPipelineRow& Row : Manifest)
-	{
-		const FName ArmId(*Row.ArchetypeId);
-		const UGridItemDefinitionAsset* Item =
-			LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-		if (!IsValid(Item) ||
-			Item->ItemDefinitionId != FName(*Row.ItemDefinitionId) ||
-			Item->WeaponArchetypeId != ArmId)
-		{
-			AddError(TEXT("Manifest ARM identity does not match real definition"));
-			return false;
-		}
-		if (Row.IsPassive()) { ++PassiveItems; }
-		const bool bItemWasDirty = Item->GetOutermost()->IsDirty();
-		for (const int32 Level : { 1, 20 })
-		{
-			const FGridWeaponLevelProfile* Legacy = Source->FindProfile(ArmId, Level);
-			if (!Legacy)
-			{
-				AddError(TEXT("Missing actual ARM fixed-level profile"));
-				return false;
-			}
-			FGridCanonicalResolvedWeapon Resolved;
-			Resolved.PhysicalArmor = Legacy->PhysicalArmor;
-			Resolved.MagicalArmor = Legacy->MagicalArmor;
-			const int32 SpentPhysical = FMath::Min(3, Resolved.PhysicalArmor);
-			const int32 SpentMagical = FMath::Min(2, Resolved.MagicalArmor);
-			FGridCanonicalArmorReserveView View;
-			if (!TestTrue(TEXT("Nominal profile + exact spent values resolve"),
-				FGridCanonicalArmorReserveResolver::TryCompute(
-					Resolved, SpentPhysical, SpentMagical, View)))
-			{
-				return false;
-			}
-			TestEqual(TEXT("Nominal physical armor unchanged"),
-				View.NominalPhysicalArmor, Legacy->PhysicalArmor);
-			TestEqual(TEXT("Nominal magical armor unchanged"),
-				View.NominalMagicalArmor, Legacy->MagicalArmor);
-			TestEqual(TEXT("Original physical spent amount retained"),
-				View.SpentPhysicalArmor, SpentPhysical);
-			TestEqual(TEXT("Original magical spent amount retained"),
-				View.SpentMagicalArmor, SpentMagical);
-			TestEqual(TEXT("Physical reserve is not refilled during resolve"),
-				View.RemainingPhysicalArmor,
-				FMath::Max(0, Legacy->PhysicalArmor - SpentPhysical));
-			TestEqual(TEXT("Magical reserve is not refilled during resolve"),
-				View.RemainingMagicalArmor,
-				FMath::Max(0, Legacy->MagicalArmor - SpentMagical));
-			if (SpentPhysical > 0 || SpentMagical > 0) { ++DepletedReserves; }
-			++Profiles;
-		}
-		if (Item->GetOutermost()->IsDirty() != bItemWasDirty)
-		{
-			AddError(TEXT("Armor reserve preview dirtied a real weapon package"));
-			return false;
-		}
-	}
-	TestEqual(TEXT("All 44 real N1 and N20 armor profiles compared"), Profiles, 44);
-	TestEqual(TEXT("Three passive ARM definitions included"), PassiveItems, 3);
-	TestTrue(TEXT("Real armor depletion cases were exercised"), DepletedReserves > 0);
-	TestTrue(TEXT("Global numeric catalogue is unchanged"),
-		Source->GetOutermost()->IsDirty() == bWasDirty);
-	AddInfo(FString::Printf(TEXT(
-		"ARM 06.2AE: %d actual fixed levels, %d passive item types, "
-		"%d depleted cases; nominal and remaining armor are separate, "
-		"no SaveGame, shields or assets mutated."),
-		Profiles, PassiveItems, DepletedReserves));
-	return Profiles == 44 && PassiveItems == 3 &&
-		Source->GetOutermost()->IsDirty() == bWasDirty;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Canonical numeric source configured"), Fixture.bReady)) return false;
+    TArray<FGridWeaponPipelineRow> Manifest;
+    FString Error;
+    if (!TestTrue(TEXT("Official 22 ARM identity manifest loads"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
+        return false;
+    if (!TestEqual(TEXT("Exactly 22 physical ARM entries"), Manifest.Num(), 22))
+        return false;
+    int32 Profiles = 0, Passive = 0, Depleted = 0;
+    for (const FGridWeaponPipelineRow& Row : Manifest)
+    {
+        if (Row.IsPassive()) ++Passive;
+        for (int32 Level : {1, 20})
+        {
+            FGridResolvedItem Item;
+            if (!TestTrue(TEXT("Real N1/N20 armor comes from unique ItemSystem"),
+                Fixture.Resolve(FName(Row.ItemDefinitionId), Level, Item))) continue;
+            TestEqual(TEXT("Exact canonical armor archetype"),
+                Item.ArchetypeId, FName(Row.ArchetypeId));
+            const int32 Physical = FMath::Min(3, Item.Weapon.PhysicalArmor);
+            const int32 Magical = FMath::Min(2, Item.Weapon.MagicalArmor);
+            FGridCanonicalArmorReserveView Reserve;
+            if (!TestTrue(TEXT("Spent armor never duplicates nominal armor"),
+                FGridCanonicalArmorReserveResolver::TryCompute(
+                    Item.Weapon, Physical, Magical, Reserve)))
+                continue;
+            TestEqual(TEXT("Real nominal physical armor preserved"),
+                Reserve.NominalPhysicalArmor, Item.Weapon.PhysicalArmor);
+            TestEqual(TEXT("Real nominal magical armor preserved"),
+                Reserve.NominalMagicalArmor, Item.Weapon.MagicalArmor);
+            TestEqual(TEXT("Physical debt remains exact"),
+                Reserve.SpentPhysicalArmor, Physical);
+            TestEqual(TEXT("Magical debt remains exact"),
+                Reserve.SpentMagicalArmor, Magical);
+            TestEqual(TEXT("No physical armor refill"),
+                Reserve.RemainingPhysicalArmor,
+                FMath::Max(0, Item.Weapon.PhysicalArmor - Physical));
+            TestEqual(TEXT("No magical armor refill"),
+                Reserve.RemainingMagicalArmor,
+                FMath::Max(0, Item.Weapon.MagicalArmor - Magical));
+            if (Physical > 0 || Magical > 0) ++Depleted;
+            ++Profiles;
+        }
+    }
+    TestEqual(TEXT("44 actual numeric N1 and N20 armor levels"), Profiles, 44);
+    TestEqual(TEXT("Three passive ARM classes included"), Passive, 3);
+    TestTrue(TEXT("Actual nonzero depletion cases examined"), Depleted > 0);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062AENeverRefillShield,

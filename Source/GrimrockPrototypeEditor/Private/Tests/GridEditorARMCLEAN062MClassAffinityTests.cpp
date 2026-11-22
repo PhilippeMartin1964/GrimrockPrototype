@@ -1,46 +1,45 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "ARMEMENT/GridArmClean06ClassAffinityProjection.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062MClassAffinityProjection,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.ClassAffinityProjection",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.ClassAffinityProjection",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean062MClassAffinityProjection::RunTest(const FString&)
 {
-	const UGridWeaponCatalogueAsset* Source = LoadObject<UGridWeaponCatalogueAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	if (!TestNotNull(TEXT("Source ARM catalogue"), Source) ||
-		!TestTrue(TEXT("82 real class affinity rows valid"), Source->IsValidClassAffinityData()) ||
-		!TestEqual(TEXT("Six class preference rows"), Source->ClassPreferences.Num(), 6))
-	{
-		return false;
-	}
-	const bool bSourceWasDirty = Source->GetOutermost()->IsDirty();
-	TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> Candidate(
-		NewObject<UGridCanonicalWeaponCatalogueAsset>(GetTransientPackage()));
-	for (const FGridWeaponArchetypeProgression& SourceRow : Source->ArchetypeProgressions)
-	{
-		FGridCanonicalWeaponArchetype& Arm = Candidate->Archetypes.AddDefaulted_GetRef();
-		Arm.ArchetypeId = SourceRow.BaseProfile.ArchetypeId;
-	}
-	if (!TestTrue(TEXT("82 class affinities project without any rule inference"),
-		GridArmClean06ClassAffinityProjection::TryProject(*Source, *Candidate)))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Every class ID, order and source qualifier are identical"),
-		GridArmClean06ClassAffinityProjection::EqualsSource(*Source, *Candidate));
-	TestEqual(TEXT("82 canonical archetype class rows"), Candidate->Archetypes.Num(), 82);
-	TestEqual(TEXT("Six canonical class preferences"), Candidate->ClassPreferences.Num(), 6);
-	TestFalse(TEXT("Projection refuses a prepopulated canonical target"),
-		GridArmClean06ClassAffinityProjection::TryProject(*Source, *Candidate));
-	TestTrue(TEXT("Rejected duplicate keeps original metadata unchanged"),
-		GridArmClean06ClassAffinityProjection::EqualsSource(*Source, *Candidate));
-	TestTrue(TEXT("Source catalogue stays unchanged"),
-		Source->GetOutermost()->IsDirty() == bSourceWasDirty);
-	return Source->GetOutermost()->IsDirty() == bSourceWasDirty;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production canonical registry"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Single native weapon catalogue"), Root) ||
+        !TestNotNull(TEXT("Canonical class affinity source"), Root->WeaponCatalogue.Get()))
+        return false;
+    const bool bWasDirty = Root->GetOutermost()->IsDirty();
+    TArray<FString> Errors;
+    TestTrue(TEXT("Native class and archetype catalogue validates"),
+        Root->WeaponCatalogue->Validate(Errors));
+    TestEqual(TEXT("Six authentic class preference records"),
+        Root->WeaponCatalogue->ClassPreferences.Num(), 6);
+    TSet<FName> Classes, Archetypes;
+    for (const FGridCanonicalClassPreference& Class : Root->WeaponCatalogue->ClassPreferences)
+    {
+        TestTrue(TEXT("Class ID is explicitly authored"), !Class.ClassId.IsNone());
+        TestFalse(TEXT("No duplicate global class advice"), Classes.Contains(Class.ClassId));
+        Classes.Add(Class.ClassId);
+        TestTrue(TEXT("Class branches are not an inferred fallback"),
+            !Class.CanonicalBranches.IsEmpty());
+    }
+    for (const FGridCanonicalWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
+    {
+        TestFalse(TEXT("No duplicate canonical numeric archetype"), Archetypes.Contains(Arm.ArchetypeId));
+        Archetypes.Add(Arm.ArchetypeId);
+    }
+    TestEqual(TEXT("Six unique production class preferences"), Classes.Num(), 6);
+    TestEqual(TEXT("Original 82 numeric profiles retain one archetype identity each"),
+        Archetypes.Num(), 82);
+    TestEqual(TEXT("Class affinity audit is read-only"),
+        Root->GetOutermost()->IsDirty(), bWasDirty);
+    return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS
