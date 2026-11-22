@@ -48,7 +48,7 @@ bool FARMEMENT0165RuntimeMeshTest::RunTest(const FString&)
         if (!TestTrue(TEXT("Runtime actor reads canonical physical instance"),
             Actor->InitializeFromCanonicalItem(Instance, Fixture.Scope.Registry)))
             continue;
-        const UStaticMesh* Expected = Canonical.WorldMesh.LoadSynchronous();
+        UStaticMesh* Expected = Canonical.WorldMesh.LoadSynchronous();
         TestNotNull(TEXT("Authored canonical real world geometry"), Expected);
         TestEqual(TEXT("World actor renders exact canonical mesh"),
             Actor->MeshComponent->GetStaticMesh().Get(), Expected);
