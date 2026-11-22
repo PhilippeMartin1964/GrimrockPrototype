@@ -1,69 +1,110 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorArmHandThrowPlan.h"
-#include "Engine/GameInstance.h"
-#include "Runtime/Items/GridItemSubsystem.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
 
+// Permanent final-state regression for the installed ItemSystem. The one-shot
+// HandThrowPlan is retired; this test never opens a legacy DA_Weapon_* asset.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065D3NativeProjection,
     "Grimrock.RPG.ARM.CLEAN06_5D3.RealHandThrowProjection",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridEditorARMCLEAN065D3NativeProjection::RunTest(const FString&)
 {
-    namespace Plan = GridEditorArmHandThrowPlan;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
-    if (!TestNotNull(TEXT("Real native registry"), Root.Get())) return false;
-    const FString Baseline = Plan::Export(*Root->WeaponCatalogue) + Plan::Export(*Root->WeaponVisualCatalogue);
-    Plan::FPlan Projection;
-    FString Error;
-    if (!TestTrue(TEXT("Exactly 22 real sources and no conflicting physics"), Plan::Build(*Root.Get(), Projection, Error)))
-    { AddError(Error); return false; }
-    TestEqual(TEXT("Ordinary policies"), Projection.Ordinary, 19);
-    TestEqual(TEXT("Specialized projectiles preserved"), Projection.Specialized, 3);
-    TStrongObjectPtr<UGridItemSystemAsset> Preview(NewObject<UGridItemSystemAsset>());
-    if (!TestTrue(TEXT("Projected root validates"), Plan::AssignPreview(*Root.Get(), Projection, *Preview.Get()))) return false;
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> Errors;
-    if (!TestTrue(TEXT("Runtime accepts projected root"), Registry->RegisterItemSystem(Preview.Get(), Errors))) return false;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real installed ItemSystem registry"), Fixture.bReady))
+        return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Only canonical root"), Root) ||
+        !TestNotNull(TEXT("Numeric archetype catalogue"), Root->WeaponCatalogue.Get()) ||
+        !TestNotNull(TEXT("Weapon visual catalogue"), Root->WeaponVisualCatalogue.Get()))
+        return false;
+    const bool bNumericDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();
+    const bool bVisualDirty = Root->WeaponVisualCatalogue->GetOutermost()->IsDirty();
     TArray<FGridWeaponPipelineRow> Rows;
-    if (!FGridWeaponPipelineManifest::Load(FGridWeaponPipelineManifest::DefaultFile(), Rows, Error)) return false;
-    for (const auto& Row : Rows)
+    FString Error;
+    if (!TestTrue(TEXT("22 real ARM identity rows parse"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Rows, Error)))
+        return false;
+    int32 Ordinary = 0, Specialized = 0, Levels = 0, Physical = 0;
+    TSet<FName> Seen;
+    for (const FGridWeaponPipelineRow& Row : Rows)
     {
-        const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-        if (!TestNotNull(TEXT("Exact old source"), Old)) return false;
-        for (int32 N : {1,20})
+        if (Row.ProductionState != TEXT("Active")) continue;
+        const FName ItemId(Row.ItemDefinitionId);
+        TestFalse(TEXT("No duplicate physical ItemId"), Seen.Contains(ItemId));
+        Seen.Add(ItemId);
+        FGridResolvedItem N1;
+        if (!TestTrue(TEXT("Real first level resolves from canonical registry"),
+            Fixture.Resolve(ItemId, 1, N1))) continue;
+        const auto& P = N1.Weapon.Projectile;
+        const auto& V = N1.ProjectileAppearance;
+        const bool bSpecialized = Row.IsThrowable();
+        TestEqual(TEXT("Only three specialized combat projectiles"),
+            P.bEnabled, bSpecialized);
+        TestEqual(TEXT("Ordinary ARM has explicit hand-toss policy"),
+            P.bGenericThrowAuthored, !bSpecialized);
+        TestEqual(TEXT("Ordinary throw has no dedicated projectile mesh"),
+            N1.ProjectileMesh.IsNull(), !bSpecialized);
+        if (bSpecialized)
+        {
+            ++Specialized;
+            TestFalse(TEXT("Specialized action does not double-grant generic throw"),
+                P.bGenericThrowOneHanded);
+            TestTrue(TEXT("Dedicated flight has authored visual"),
+                V.bEnabled && !N1.ProjectileMesh.IsNull());
+        }
+        else
+        {
+            ++Ordinary;
+            TestFalse(TEXT("Ordinary hand toss does not grant combat attack source"),
+                P.bEnabled || V.bEnabled && !P.bGenericThrowAuthored);
+            TestTrue(TEXT("Ordinary authored speed is finite and nonnegative"),
+                FMath::IsFinite(P.InitialSpeed) && P.InitialSpeed >= 0.0f);
+            if (P.bGenericThrowOneHanded)
+            {
+                ++Physical;
+                TestTrue(TEXT("Eligible hand toss has a real positive flight speed"),
+                    P.InitialSpeed > KINDA_SMALL_NUMBER);
+            }
+            if (Row.IsPassive())
+                TestFalse(TEXT("Passive shield/focus is not a generic hand throw"),
+                    P.bGenericThrowOneHanded);
+        }
+        TestTrue(TEXT("Flight arc/lifetime/offset finite and valid"),
+            FMath::IsFinite(P.Arc) && FMath::IsFinite(P.FlightLifetime) &&
+            P.FlightLifetime >= 0.0f &&
+            FMath::IsFinite(P.ImpactDropOffset) && P.ImpactDropOffset >= 0.0f);
+        TestTrue(TEXT("Visual transform and angular velocities are finite"),
+            !V.RelativeRotation.ContainsNaN() && !V.RelativeScale.ContainsNaN() &&
+            !V.TumbleAxis.ContainsNaN() &&
+            FMath::IsFinite(V.TumbleDegreesPerSecond) &&
+            FMath::IsFinite(V.SpinDegreesPerSecond));
+        for (int32 Level = 1; Level <= 20; ++Level)
         {
             FGridResolvedItem Item;
-            if (!TestTrue(TEXT("Runtime resolves physical level"), Registry->ResolveItem(FName(*Row.ItemDefinitionId), N, Item))) return false;
-            const auto& P = Item.Weapon.Projectile;
-            const auto& V = Item.ProjectileAppearance;
-            TestEqual(TEXT("Specialized combat authorization unchanged"), P.bEnabled, Row.IsThrowable());
-            TestEqual(TEXT("Ordinary policy explicit"), P.bGenericThrowAuthored, !Row.IsThrowable());
-            TestEqual(TEXT("Explicit physical one-hand permission"), P.bGenericThrowOneHanded,
-                !Row.IsThrowable() && Old->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded);
-            if (!Row.IsThrowable())
-            {
-                const bool bPhysical = P.bGenericThrowOneHanded && FMath::IsFinite(Item.WeightKg) &&
-                    Item.WeightKg >= 0.f && P.InitialSpeed > KINDA_SMALL_NUMBER;
-                TestEqual(TEXT("Physical eligibility matches original"), bPhysical, Old->IsPhysicallyThrowable());
-                if (Row.IsPassive()) TestFalse(TEXT("Passive off-hand source is not a hand-toss permission"), P.bGenericThrowOneHanded);
-            }
-            TestEqual(TEXT("Exact speed"), P.InitialSpeed, Old->ThrowSpeed);
-            TestEqual(TEXT("Exact signed arc"), P.Arc, Old->ThrowArc);
-            TestEqual(TEXT("Exact lifetime"), P.FlightLifetime, Old->ThrowLifeSeconds);
-            TestEqual(TEXT("Exact impact offset"), P.ImpactDropOffset, Old->ThrowImpactDropOffset);
-            TestTrue(TEXT("Flight rotation"), V.RelativeRotation.Equals(Old->ThrowVisualRelativeRotation));
-            TestTrue(TEXT("Flight scale"), V.RelativeScale.Equals(Old->ThrowVisualRelativeScale));
-            TestTrue(TEXT("Flight angular axis"), V.TumbleAxis.Equals(Old->ThrowVisualTumbleAxis));
-            TestTrue(TEXT("Flight forward axis"), V.MeshForwardAxis == Old->ProjectileMeshForwardAxis);
-            TestEqual(TEXT("Tumble"), V.TumbleDegreesPerSecond, Old->ThrowVisualTumbleDegreesPerSecond);
-            TestEqual(TEXT("Spin"), V.SpinDegreesPerSecond, Old->ThrowVisualSpinDegreesPerSecond);
-            TestTrue(TEXT("No dedicated projectile mesh for ordinary ARM"), Row.IsThrowable() || Item.ProjectileMesh.IsNull());
+            if (!TestTrue(TEXT("N1-N20 physical flight policy resolves"),
+                Fixture.Resolve(ItemId, Level, Item))) continue;
+            ++Levels;
+            TestEqual(TEXT("Hand throw is authored per archetype, not level"),
+                Item.Weapon.Projectile.bGenericThrowOneHanded, P.bGenericThrowOneHanded);
+            TestEqual(TEXT("Combat throw permission stays fixed at all levels"),
+                Item.Weapon.Projectile.bEnabled, P.bEnabled);
+            TestEqual(TEXT("No visual identity drift from N1 to N20"),
+                Item.VisualId, N1.VisualId);
         }
     }
-    TestEqual(TEXT("Original catalogues untouched"), Plan::Export(*Root->WeaponCatalogue) + Plan::Export(*Root->WeaponVisualCatalogue), Baseline);
+    TestEqual(TEXT("All 22 concrete ARM identities"), Seen.Num(), 22);
+    TestEqual(TEXT("19 ordinary generic flights"), Ordinary, 19);
+    TestEqual(TEXT("Three specialized combat projectiles"), Specialized, 3);
+    TestEqual(TEXT("440 real N1-N20 physical weapon sources"), Levels, 440);
+    TestTrue(TEXT("At least one real one-handed weapon is throwable"), Physical > 0);
+    TestEqual(TEXT("Numeric catalogue never dirtied"), Root->WeaponCatalogue->GetOutermost()->IsDirty(), bNumericDirty);
+    TestEqual(TEXT("Visual catalogue never dirtied"), Root->WeaponVisualCatalogue->GetOutermost()->IsDirty(), bVisualDirty);
+    FGridResolvedItem Invalid;
+    TestFalse(TEXT("No bad physical N21 source can project flight"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_ThrowingKnife_01"), 21, Invalid));
     return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS

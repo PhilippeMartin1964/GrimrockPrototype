@@ -1,9 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Texture2D.h"
 #include "Materials/MaterialInstance.h"
@@ -11,9 +10,6 @@
 
 namespace ARMEMENT0163
 {
-	const TCHAR* CataloguePath =
-		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
-
 	struct FFinalPilot
 	{
 		const TCHAR* ArchetypeId;
@@ -60,128 +56,103 @@ namespace ARMEMENT0163
 			TEXT("/Game/GrimrockPrototype/Art/Textures/Final/Weapons/%s/T_%s_01_%s.T_%s_01_%s"),
 			Pilot.TextureFolder, Pilot.TextureStem, Suffix, Pilot.TextureStem, Suffix);
 	}
+    FName FFinalPilotId(const FFinalPilot& Pilot)
+    {
+        if (FCString::Strcmp(Pilot.ArchetypeId, TEXT("ARM001")) == 0)
+            return TEXT("Weapon_Dagger_01");
+        if (FCString::Strcmp(Pilot.ArchetypeId, TEXT("ARM045")) == 0)
+            return TEXT("Weapon_ShortBow_01");
+        return TEXT("Weapon_RoundShield_01");
+    }
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0163MaterializedAssetTest,
-	"Grimrock.RPG.ARMEMENT01.6.Pilot.MaterializedAssets",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.6.Pilot.MaterializedAssets",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT0163MaterializedAssetTest::RunTest(const FString&)
 {
-	const UGridWeaponVisualCatalogueAsset* Catalogue =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT0163::CataloguePath);
-	if (!TestNotNull(TEXT("Realistic visual catalogue exists"), Catalogue)) { return false; }
-	TestTrue(TEXT("Final catalogue is structurally valid"), Catalogue->IsValidCatalogue());
-	// The pilot set stays immutable, but the production visual catalogue grows.
-	TestTrue(TEXT("Production catalogue contains at least the three pilots"),
-		Catalogue->VisualProfiles.Num() >= UE_ARRAY_COUNT(ARMEMENT0163::Pilots) &&
-		Catalogue->ArchetypeBindings.Num() >= UE_ARRAY_COUNT(ARMEMENT0163::Pilots));
-	for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
-	{
-		int32 PilotBindingCount = 0;
-		int32 PilotProfileCount = 0;
-		for (const FGridWeaponVisualArchetypeBinding& Binding : Catalogue->ArchetypeBindings)
-		{
-			if (Binding.ArchetypeId == FName(Pilot.ArchetypeId))
-			{
-				++PilotBindingCount;
-				TestEqual(TEXT("Pilot binding still points to its original visual"), Binding.VisualId, FName(Pilot.VisualId));
-			}
-		}
-		for (const FGridWeaponVisualProfile& Visual : Catalogue->VisualProfiles)
-		{
-			if (Visual.VisualId == FName(Pilot.VisualId))
-			{
-				++PilotProfileCount;
-			}
-		}
-		TestEqual(TEXT("Pilot archetype binding occurs exactly once"), PilotBindingCount, 1);
-		TestEqual(TEXT("Pilot visual profile occurs exactly once"), PilotProfileCount, 1);
-		const FGridWeaponVisualProfile* Profile =
-			Catalogue->FindProfileForArchetype(FName(Pilot.ArchetypeId));
-		if (!TestNotNull(*FString::Printf(TEXT("Profile %s"), Pilot.ArchetypeId), Profile)) { continue; }
-		TestEqual(TEXT("Approved numeric VisualId"), Profile->VisualId, FName(Pilot.VisualId));
-		TestEqual(TEXT("Art family preserved"), Profile->FamilyTag, FName(Pilot.Family));
-		TestEqual(TEXT("Resolved icon path"), Profile->BaseIcon.ToSoftObjectPath().ToString(),
-			ARMEMENT0163::IconPath(Pilot));
-		TestEqual(TEXT("Resolved mesh path"), Profile->WorldMesh.ToSoftObjectPath().ToString(),
-			ARMEMENT0163::MeshPath(Pilot));
-
-		const UTexture2D* Icon = Profile->BaseIcon.LoadSynchronous();
-		const UStaticMesh* Mesh = Profile->WorldMesh.LoadSynchronous();
-		if (TestNotNull(TEXT("Art icon loads"), Icon))
-		{
-			const FIntPoint Size = Icon->GetImportedSize();
-			TestTrue(TEXT("Art icon is square with a positive imported resolution"),
-				Size.X > 0 && Size.X == Size.Y);
-		}
-		if (TestNotNull(TEXT("Realistic mesh loads"), Mesh))
-		{
-			TestTrue(TEXT("Realistic mesh has render geometry"), Mesh->GetNumLODs() > 0);
-			TestTrue(TEXT("Realistic mesh bounds are not degenerate"),
-				Mesh->GetBounds().SphereRadius > 0.5f);
-		}
-	}
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production canonical visual authority configured"), Fixture.bReady))
+        return false;
+    UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Single installed native visual catalogue"), Root) ||
+        !TestNotNull(TEXT("Real canonical visual source"), Root->WeaponVisualCatalogue.Get()))
+        return false;
+    for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
+    {
+        const FName ArmId(Pilot.ArchetypeId);
+        const FGridCanonicalWeaponVisual* Profile =
+            Root->WeaponVisualCatalogue->FindForArchetype(ArmId);
+        if (!TestNotNull(TEXT("Actual production pilot profile"), Profile)) continue;
+        FGridResolvedItem Item;
+        if (!TestTrue(TEXT("Pilot N1 resolves from sole ItemSystem"),
+            Fixture.Resolve(ARMEMENT0163::FFinalPilotId(Pilot), 1, Item))) continue;
+        TestEqual(TEXT("Exact visual identity"), Profile->VisualId, FName(Pilot.VisualId));
+        TestEqual(TEXT("Exact art family"), Profile->FamilyTag, FName(Pilot.Family));
+        TestEqual(TEXT("Author-approved icon path"),
+            Item.ItemIcon.ToSoftObjectPath().ToString(), ARMEMENT0163::IconPath(Pilot));
+        TestEqual(TEXT("Author-approved mesh path"),
+            Item.WorldMesh.ToSoftObjectPath().ToString(), ARMEMENT0163::MeshPath(Pilot));
+        const UTexture2D* Icon = Item.ItemIcon.LoadSynchronous();
+        const UStaticMesh* Mesh = Item.WorldMesh.LoadSynchronous();
+        if (TestNotNull(TEXT("Real icon loads"), Icon))
+        {
+            const FIntPoint Size = Icon->GetImportedSize();
+            TestTrue(TEXT("RGBA icon is square"), Size.X > 0 && Size.X == Size.Y);
+        }
+        if (TestNotNull(TEXT("Real world mesh loads"), Mesh))
+        {
+            TestTrue(TEXT("Real geometry present"), Mesh->GetNumLODs() > 0);
+            TestTrue(TEXT("Mesh bounding radius physical"), Mesh->GetBounds().SphereRadius > 0.5f);
+        }
+    }
+    return !HasAnyErrors();
 }
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0163ResolverTest,
-	"Grimrock.RPG.ARMEMENT01.6.Pilot.ProductionResolver",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.6.Pilot.ProductionResolver",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT0163ResolverTest::RunTest(const FString&)
 {
-	UGridWeaponVisualCatalogueAsset* Catalogue =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT0163::CataloguePath);
-	if (!TestNotNull(TEXT("Approved visual catalogue exists"), Catalogue)) { return false; }
-	for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-		Definition->ItemDefinitionId = TEXT("ARM0163_FinalReadOnly");
-		Definition->WeaponArchetypeId = FName(Pilot.ArchetypeId);
-		Definition->bUseWeaponVisualCatalogue = true;
-		Definition->WeaponVisualCatalogue = Catalogue;
-
-		FGridResolvedWeaponVisual Visual;
-		EGridWeaponVisualResolutionError Error = EGridWeaponVisualResolutionError::CatalogueUnavailable;
-		TestTrue(TEXT("Realistic profile resolves"), FGridWeaponVisualResolver::TryResolve(
-			*Definition, nullptr, Visual, Error));
-		TestTrue(TEXT("No resolver errors"), Error == EGridWeaponVisualResolutionError::None);
-		TestEqual(TEXT("Approved numeric VisualId preserved"), Visual.VisualId, FName(Pilot.VisualId));
-		TestFalse(TEXT("No fabricated item level for editor preview"), Visual.bHasItemLevel);
-		TestFalse(TEXT("No Legacy fallback for approved profile"), Visual.bLegacyFallback);
-		TestTrue(TEXT("Equipped presentation has a valid visual mesh reference"),
-			!Visual.EquippedMesh.IsNull());
-	}
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Canonical visual registry configured"), Fixture.bReady)) return false;
+    for (const ARMEMENT0163::FFinalPilot& Pilot : ARMEMENT0163::Pilots)
+    {
+        FGridResolvedItem Item;
+        if (!TestTrue(TEXT("Canonical N1 visually resolves"),
+            Fixture.Resolve(ARMEMENT0163::FFinalPilotId(Pilot), 1, Item))) continue;
+        TestEqual(TEXT("Stable visual identity"), Item.VisualId, FName(Pilot.VisualId));
+        TestTrue(TEXT("One equipped mesh is authored"),
+            Item.EquippedMesh.LoadSynchronous() != nullptr);
+        TestTrue(TEXT("World offset contains no invalid data"),
+            !Item.WorldVisualTransform.ContainsNaN());
+        FGridResolvedItem N20;
+        TestTrue(TEXT("Same art asset from N1 to N20"),
+            Fixture.Resolve(Item.ItemId, 20, N20) &&
+            N20.VisualId == Item.VisualId &&
+            N20.WorldMesh.ToSoftObjectPath() == Item.WorldMesh.ToSoftObjectPath());
+    }
+    return !HasAnyErrors();
 }
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0163PassiveTest,
-	"Grimrock.RPG.ARMEMENT01.6.Pilot.PassiveShieldNoAttack",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARMEMENT01.6.Pilot.PassiveShieldNoAttack",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT0163PassiveTest::RunTest(const FString&)
 {
-	UGridWeaponVisualCatalogueAsset* Catalogue =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT0163::CataloguePath);
-	if (!TestNotNull(TEXT("Approved visual catalogue exists"), Catalogue)) { return false; }
-	TestNotNull(TEXT("ARM075 shield has its own visual profile"),
-		Catalogue->FindProfileForArchetype(TEXT("ARM075")));
-
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("ARM0163_FinalRoundShield");
-	Definition->ItemType = EGridItemType::Shield;
-	Definition->WeaponArchetypeId = TEXT("ARM075");
-	Definition->bUseWeaponVisualCatalogue = true;
-	Definition->WeaponVisualCatalogue = Catalogue;
-	TestTrue(TEXT("Shield definition is valid"), Definition->IsValidDefinition());
-	TestFalse(TEXT("Appearance does not enable RPG catalogue"), Definition->bUseWeaponCatalogue);
-	TestFalse(TEXT("Appearance does not add a main-hand attack"),
-		Definition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("Appearance does not add combat actions"), Definition->CombatActions.IsEmpty());
-	return true;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Registered ItemSystem"), Fixture.bReady)) return false;
+    FGridResolvedItem Shield;
+    if (!TestTrue(TEXT("True N1 RoundShield resolves"),
+        Fixture.Resolve(TEXT("Weapon_RoundShield_01"), 1, Shield))) return false;
+    TestEqual(TEXT("Shield visual is unique"), Shield.VisualId, FName(TEXT("VIS_RoundShield_01")));
+    TestEqual(TEXT("Actual passive shield kind"),
+        Shield.Weapon.Kind, EGridCanonicalArmamentKind::Shield);
+    TestTrue(TEXT("No attacking bindings"), Shield.AvailableActions.IsEmpty());
+    TestFalse(TEXT("No MainHand attack"), Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
+    TestFalse(TEXT("No OffHand attack"), Shield.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));
+    TestTrue(TEXT("Equippable OffHand"), Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand));
+    return !HasAnyErrors();
 }
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0163MaterialDepsTest,
 	"Grimrock.RPG.ARMEMENT01.6.Pilot.MaterialDependencies",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
