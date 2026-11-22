@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 
+#include "Runtime/Combat/GridCombatOwnerRequirements.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
@@ -43,41 +44,6 @@ namespace
 		Target.ArcaneResistance = SaturatingAdd(Target.ArcaneResistance, Source.ArcaneResistance);
 	}
 
-	bool CollectCharacterOwnerRequirements(const FGridCharacterInventoryState& Character, TSet<FName>& OutRequirements)
-	{
-		OutRequirements.Reset();
-		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!IsValid(ClassDefinition))
-		{
-			return Character.SelectedClassProgressionChoiceIds.IsEmpty();
-		}
-
-		TSet<FName> SelectedChoiceIds;
-		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
-		{
-			if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
-			{
-				return false;
-			}
-			SelectedChoiceIds.Add(ChoiceId);
-		}
-
-		return FRPGClassProgressionService::CollectSatisfiedRequirements(
-			ClassDefinition, Character.Level, SelectedChoiceIds, OutRequirements);
-	}
-
-	bool AreOwnerRequirementsSatisfied(const TArray<FName>& RequiredIds, const TSet<FName>& OwnerRequirements)
-	{
-		for (const FName RequirementId : RequiredIds)
-		{
-			if (!OwnerRequirements.Contains(RequirementId))
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
 	bool CollectChoiceModifiersWithRequirements(const FGridCharacterInventoryState& Character, const TSet<FName>& OwnerRequirements,
 		TArray<FGridCombatModifierProfile>& OutProfiles)
 	{
@@ -99,7 +65,7 @@ namespace
 
 			for (const FGridCombatModifierProfile& AuthoredProfile : Choice->CombatModifiers)
 			{
-				if (!AreOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+				if (!GridCombatOwnerRequirements::AreSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
 				{
 					continue;
 				}
@@ -403,7 +369,7 @@ bool FGridCombatModifierResolver::CollectCharacterChoiceModifiers(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles)
 {
 	TSet<FName> OwnerRequirements;
-	if (!CollectCharacterOwnerRequirements(Character, OwnerRequirements))
+	if (!GridCombatOwnerRequirements::Collect(Character, OwnerRequirements))
 	{
 		OutProfiles.Reset();
 		return false;
@@ -432,7 +398,7 @@ bool FGridCombatModifierResolver::CollectStatusModifiers(const FGridStatusEffect
 		{
 			for (const FGridCombatModifierProfile& AuthoredProfile : State.DefinitionAsset->CombatModifiers)
 			{
-				if (!AreOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+				if (!GridCombatOwnerRequirements::AreSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
 				{
 					continue;
 				}
@@ -449,7 +415,7 @@ bool FGridCombatModifierResolver::CollectCharacterModifiers(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatModifierProfile>& OutProfiles)
 {
 	TSet<FName> OwnerRequirements;
-	if (!CollectCharacterOwnerRequirements(Character, OwnerRequirements))
+	if (!GridCombatOwnerRequirements::Collect(Character, OwnerRequirements))
 	{
 		OutProfiles.Reset();
 		return false;

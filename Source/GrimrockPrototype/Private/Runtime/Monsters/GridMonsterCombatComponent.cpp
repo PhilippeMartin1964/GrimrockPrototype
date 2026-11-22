@@ -264,7 +264,7 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 	Target.CurrentHealth = Character.Resources.CurrentHealth;
 	Target.PhysicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentPhysicalArmor(TargetCharacterIndex);
 	Target.MagicalArmor = PartyPawn->PartyInventoryComponent->GetEffectiveCurrentMagicalArmor(TargetCharacterIndex);
-	Target.ResistancePercent = GetResistancePercent(Resistances, Attack.DamageType);
+	Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(Resistances, Attack.DamageType);
 	Target.DamageMultiplier = 1.0f;
 	if (Attack.IsRangedAttack() && IsValid(BoundTurnManager) && IsValid(BoundTurnManager->RuntimeActor) &&
 		BoundTurnManager->RuntimeActor->IsCombatSmokeAtCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY))
@@ -580,29 +580,4 @@ AGrimrockPartyPawn* UGridMonsterCombatComponent::FindPartyPawn() const
 		}
 	}
 	return nullptr;
-}
-
-int32 UGridMonsterCombatComponent::GetResistancePercent(const FGridDamageResistanceSet& Resistances, EGridDamageType DamageType)
-{
-	switch (DamageType)
-	{
-		case EGridDamageType::Physical:
-			return Resistances.PhysicalResistance;
-		case EGridDamageType::Fire:
-			return Resistances.FireResistance;
-		case EGridDamageType::Ice:
-			return Resistances.IceResistance;
-		case EGridDamageType::Lightning:
-			return Resistances.LightningResistance;
-		case EGridDamageType::Poison:
-			return Resistances.PoisonResistance;
-		case EGridDamageType::Holy:
-			return Resistances.HolyResistance;
-		case EGridDamageType::Necrotic:
-			return Resistances.NecroticResistance;
-		case EGridDamageType::Arcane:
-			return Resistances.ArcaneResistance;
-		default:
-			return 0;
-	}
 }

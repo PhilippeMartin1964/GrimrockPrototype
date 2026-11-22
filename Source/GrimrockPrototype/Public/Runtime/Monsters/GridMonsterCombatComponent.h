@@ -199,5 +199,4 @@ private:
 	void HandleCombatPhaseChanged(EGridCombatPhase NewPhase);
 
 	AGrimrockPartyPawn* FindPartyPawn() const;
-	static int32 GetResistancePercent(const FGridDamageResistanceSet& Resistances, EGridDamageType DamageType);
 };

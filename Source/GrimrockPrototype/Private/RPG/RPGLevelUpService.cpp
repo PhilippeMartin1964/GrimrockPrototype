@@ -1,5 +1,6 @@
 #include "RPG/RPGLevelUpService.h"
 
+#include "RPG/RPGResourceRules.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
@@ -10,31 +11,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridLevelUp, Log, All);
 
 namespace
 {
-	int32 PreserveHealthDeficit(const FRPGDerivedStats& PreviousStats, const FRPGCharacterResources& PreviousResources, int32 NewMaximumHealth)
-	{
-		const int32 SafeNewMaximum = FMath::Max(1, NewMaximumHealth);
-		const int32 SafePreviousMaximum = FMath::Max(1, PreviousStats.MaxHealth);
-		const int32 SafePreviousCurrent = FMath::Clamp(PreviousResources.CurrentHealth, 0, SafePreviousMaximum);
-
-		// A level-up must never resurrect a defeated character.
-		if (SafePreviousCurrent <= 0)
-		{
-			return 0;
-		}
-
-		const int32 DamageTaken = SafePreviousMaximum - SafePreviousCurrent;
-		return FMath::Clamp(SafeNewMaximum - DamageTaken, 0, SafeNewMaximum);
-	}
-
-	int32 PreserveManaDeficit(const FRPGDerivedStats& PreviousStats, const FRPGCharacterResources& PreviousResources, int32 NewMaximumMana)
-	{
-		const int32 SafeNewMaximum = FMath::Max(0, NewMaximumMana);
-		const int32 SafePreviousMaximum = FMath::Max(0, PreviousStats.MaxMana);
-		const int32 SafePreviousCurrent = FMath::Clamp(PreviousResources.CurrentMana, 0, SafePreviousMaximum);
-		const int32 ManaSpent = SafePreviousMaximum - SafePreviousCurrent;
-		return FMath::Clamp(SafeNewMaximum - ManaSpent, 0, SafeNewMaximum);
-	}
-
 	URPGClassAsset* ResolveCharacterClassDefinition(FGridCharacterInventoryState& Character)
 	{
 		if (URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
@@ -111,8 +87,8 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 
 	FRPGDerivedStats NewStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, TargetLevel);
 	FRPGCharacterResources NewResources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewStats, ClassDefinition);
-	NewResources.CurrentHealth = PreserveHealthDeficit(PreviousStats, PreviousResources, NewStats.MaxHealth);
-	NewResources.CurrentMana = PreserveManaDeficit(PreviousStats, PreviousResources, NewStats.MaxMana);
+	NewResources.CurrentHealth = RPGResourceRules::PreserveHealthDeficit(PreviousStats, PreviousResources, NewStats.MaxHealth);
+	NewResources.CurrentMana = RPGResourceRules::PreserveManaDeficit(PreviousStats, PreviousResources, NewStats.MaxMana);
 
 	// Commit the new calculated projection and mutable resources together.
 	Character.Level = TargetLevel;

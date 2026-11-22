@@ -1,6 +1,6 @@
 #include "Runtime/Monsters/GridMonsterRangedKeeperPlanner.h"
 
-#include "Core/GridDirectionUtils.h"
+#include "Runtime/Combat/GridCombatTurnPlan.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 #include "Runtime/Monsters/GridMonsterRangedAttackPlanner.h"
 
@@ -28,45 +28,6 @@ namespace
 		Action.ActionPointCost = 1;
 		Action.bIsRepositioningAction = true;
 		return Action;
-	}
-
-	bool MON174AppendTurnsToward(
-		const FGuid& SourceActorId, const FIntPoint& CurrentCell, EGridEdge DesiredFacing, EGridEdge& InOutFacing, TArray<FGridCombatAction>& OutActions)
-	{
-		if (DesiredFacing == EGridEdge::None)
-		{
-			return false;
-		}
-
-		if (InOutFacing == EGridEdge::None)
-		{
-			InOutFacing = EGridEdge::North;
-		}
-
-		if (InOutFacing == DesiredFacing)
-		{
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateLeft(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-			OutActions.Add(MON174MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateRight(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateRight(InOutFacing);
-			OutActions.Add(MON174MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MON174MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MON174MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		return InOutFacing == DesiredFacing;
 	}
 }
 
@@ -122,7 +83,7 @@ bool FGridMonsterRangedKeeperPlanner::BuildRepositionTurn(const FGuid& SourceAct
 		}
 
 		const EGridEdge DesiredFacing = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(SimulatedCell, Step);
-		if (!MON174AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions))
+		if (!GridCombatTurnPlan::AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions, MON174MakeTurnAction))
 		{
 			break;
 		}

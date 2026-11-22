@@ -1,6 +1,6 @@
 #include "Runtime/Monsters/GridMonsterRangedAttackPlanner.h"
 
-#include "Core/GridDirectionUtils.h"
+#include "Runtime/Combat/GridCombatTurnPlan.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 
 namespace
@@ -26,45 +26,6 @@ namespace
 		Action.AttackId = AttackId;
 		Action.ActionPointCost = FMath::Max(0, ActionPointCost);
 		return Action;
-	}
-
-	bool AppendTurnsToward(
-		const FGuid& SourceActorId, const FIntPoint& CurrentCell, EGridEdge DesiredFacing, EGridEdge& InOutFacing, TArray<FGridCombatAction>& OutActions)
-	{
-		if (DesiredFacing == EGridEdge::None)
-		{
-			return false;
-		}
-
-		if (InOutFacing == EGridEdge::None)
-		{
-			InOutFacing = EGridEdge::North;
-		}
-
-		if (InOutFacing == DesiredFacing)
-		{
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateLeft(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-			OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateRight(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateRight(InOutFacing);
-			OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		return InOutFacing == DesiredFacing;
 	}
 }
 
@@ -108,7 +69,7 @@ bool FGridMonsterRangedAttackPlanner::BuildStationaryRangedTurn(const FGuid& Sou
 	}
 
 	EGridEdge SimulatedFacing = StartFacing == EGridEdge::None ? EGridEdge::North : StartFacing;
-	if (!AppendTurnsToward(SourceActorId, StartCell, AttackFacing, SimulatedFacing, OutActions))
+	if (!GridCombatTurnPlan::AppendTurnsToward(SourceActorId, StartCell, AttackFacing, SimulatedFacing, OutActions, MakeTurnAction))
 	{
 		OutActions.Reset();
 		return false;

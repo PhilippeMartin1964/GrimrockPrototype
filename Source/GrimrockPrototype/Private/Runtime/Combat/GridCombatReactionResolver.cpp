@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridCombatReactionResolver.h"
 
+#include "Runtime/Combat/GridCombatOwnerRequirements.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -8,52 +9,17 @@
 
 namespace
 {
-	bool CollectReactionOwnerRequirements(const FGridCharacterInventoryState& Character, TSet<FName>& OutRequirements)
-	{
-		OutRequirements.Reset();
-		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!IsValid(ClassDefinition))
-		{
-			return Character.SelectedClassProgressionChoiceIds.IsEmpty();
-		}
-
-		TSet<FName> SelectedChoiceIds;
-		for (const FName ChoiceId : Character.SelectedClassProgressionChoiceIds)
-		{
-			if (ChoiceId.IsNone() || SelectedChoiceIds.Contains(ChoiceId))
-			{
-				return false;
-			}
-			SelectedChoiceIds.Add(ChoiceId);
-		}
-
-		return FRPGClassProgressionService::CollectSatisfiedRequirements(
-			ClassDefinition, Character.Level, SelectedChoiceIds, OutRequirements);
-	}
-
-	bool AreReactionOwnerRequirementsSatisfied(const TArray<FName>& RequiredIds, const TSet<FName>& OwnerRequirements)
-	{
-		for (const FName RequirementId : RequiredIds)
-		{
-			if (!OwnerRequirements.Contains(RequirementId))
-			{
-				return false;
-			}
-		}
-		return true;
-	}
-
 	void AddProjectedReactionBinding(const FGridCombatReactionProfile& AuthoredProfile, const TSet<FName>& OwnerRequirements,
 		const TSet<FName>* StatusSourceRequirements, FName OwningStatusEffectId, const FGuid& OwningStatusSourceId,
 		TArray<FGridCombatReactionBinding>& OutBindings)
 	{
-		if (!AreReactionOwnerRequirementsSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
+		if (!GridCombatOwnerRequirements::AreSatisfied(AuthoredProfile.RequiredOwnerRequirementIds, OwnerRequirements))
 		{
 			return;
 		}
 		if (!AuthoredProfile.RequiredStatusSourceRequirementIds.IsEmpty() &&
 			(!StatusSourceRequirements ||
-				!AreReactionOwnerRequirementsSatisfied(AuthoredProfile.RequiredStatusSourceRequirementIds, *StatusSourceRequirements)))
+				!GridCombatOwnerRequirements::AreSatisfied(AuthoredProfile.RequiredStatusSourceRequirementIds, *StatusSourceRequirements)))
 		{
 			return;
 		}
@@ -231,7 +197,7 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 	const FGridCharacterInventoryState& Character, TArray<FGridCombatReactionBinding>& OutBindings)
 {
 	TSet<FName> OwnerRequirements;
-	if (!CollectReactionOwnerRequirements(Character, OwnerRequirements))
+	if (!GridCombatOwnerRequirements::Collect(Character, OwnerRequirements))
 	{
 		OutBindings.Reset();
 		return false;
@@ -279,7 +245,7 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 	TArray<FGridCombatReactionBinding>& OutBindings)
 {
 	TSet<FName> OwnerRequirements;
-	if (!CollectReactionOwnerRequirements(Character, OwnerRequirements))
+	if (!GridCombatOwnerRequirements::Collect(Character, OwnerRequirements))
 	{
 		OutBindings.Reset();
 		return false;
@@ -297,7 +263,7 @@ bool FGridCombatReactionResolver::CollectCharacterBindings(
 		TSet<FName> SourceRequirements;
 		const FGridCharacterInventoryState* SourceCharacter = FindPartyCharacterById(PartyState, State.SourceId);
 		const bool bHasSourceRequirements =
-			SourceCharacter && CollectReactionOwnerRequirements(*SourceCharacter, SourceRequirements);
+			SourceCharacter && GridCombatOwnerRequirements::Collect(*SourceCharacter, SourceRequirements);
 		for (const FGridCombatReactionProfile& Profile : State.DefinitionAsset->CombatReactions)
 		{
 			AddProjectedReactionBinding(

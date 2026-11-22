@@ -1,5 +1,7 @@
 #include "Save/GrimrockPartySaveGame.h"
 
+#include "Save/GridPartySaveProjections.h"
+#include "RPG/RPGSelectionRules.h"
 #include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGAttributePointService.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -60,21 +62,6 @@ namespace GridPartySaveValidationPrivate
 		}
 	}
 
-	bool BuildSelectionSet(const TArray<FName>& ChoiceIds, TSet<FName>& OutChoiceIds)
-	{
-		OutChoiceIds.Reset();
-		for (const FName ChoiceId : ChoiceIds)
-		{
-			if (ChoiceId.IsNone() || OutChoiceIds.Contains(ChoiceId))
-			{
-				OutChoiceIds.Reset();
-				return false;
-			}
-			OutChoiceIds.Add(ChoiceId);
-		}
-		return true;
-	}
-
 	bool ValidateCharacterProgression(const FGridCharacterInventoryState& Character, const TCHAR* Location, FText& OutError)
 	{
 		if (Character.Experience != URPGCharacterRulesLibrary::NormalizeExperience(Character.Experience))
@@ -101,7 +88,7 @@ namespace GridPartySaveValidationPrivate
 		}
 
 		TSet<FName> SelectedChoiceIds;
-		if (!BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
+		if (!RPGSelectionRules::BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 		{
 			OutError = FText::FromString(FString::Printf(TEXT("%s contient un ChoiceId de progression vide ou dupliqué."), Location));
 			return false;
@@ -237,20 +224,6 @@ namespace GridPartySaveValidationPrivate
 		return Count;
 	}
 
-	int32 CountCharactersWithKnownSpells(const FGridPartyInventoryState& PartyState)
-	{
-		int32 Count = 0;
-		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
-		{
-			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
-		}
-		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
-		{
-			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
-		}
-		return Count;
-	}
-
 	int32 CountCharactersWithStatusEffects(const FGridPartyInventoryState& PartyState)
 	{
 		int32 Count = 0;
@@ -366,5 +339,5 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 	UE_LOG(LogGrimrockPartySave, Log,
 		TEXT("[GridSave] Load Version=%d ClassChoices=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"), SaveVersion,
 		CountSelectedClassChoices(PartyInventoryState), CountCharactersWithStatusEffects(PartyInventoryState),
-		CountCharactersWithKnownSpells(PartyInventoryState));
+		GridPartySaveProjections::CountCharactersWithKnownSpells(PartyInventoryState));
 }

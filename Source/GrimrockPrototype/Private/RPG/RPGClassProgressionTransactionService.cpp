@@ -1,5 +1,6 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 
+#include "RPG/RPGSelectionRules.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -55,21 +56,6 @@ namespace
 		return FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 	}
 
-	bool BuildSelectionSet(const TArray<FName>& ChoiceIds, TSet<FName>& OutChoiceIds)
-	{
-		OutChoiceIds.Reset();
-		for (const FName ChoiceId : ChoiceIds)
-		{
-			if (ChoiceId.IsNone() || OutChoiceIds.Contains(ChoiceId))
-			{
-				OutChoiceIds.Reset();
-				return false;
-			}
-			OutChoiceIds.Add(ChoiceId);
-		}
-		return true;
-	}
-
 	void NormalizeSelectionOrder(const URPGClassAsset& ClassDefinition, const TSet<FName>& SelectedChoiceIds, TArray<FName>& OutSelectedChoiceIds)
 	{
 		OutSelectedChoiceIds.Reset(SelectedChoiceIds.Num());
@@ -95,7 +81,7 @@ namespace
 		}
 
 		TSet<FName> SelectedChoiceIds;
-		if (!BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
+		if (!RPGSelectionRules::BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 		{
 			OutError = FText::FromString(FString::Printf(TEXT("Les choix persistants du personnage %s contiennent un identifiant vide ou dupliqué."),
 				*Character.CharacterId.ToString(EGuidFormats::Digits)));
@@ -284,7 +270,7 @@ bool FRPGClassProgressionTransactionService::TryGetChoicePointBalance(
 	}
 
 	TSet<FName> SelectedChoiceIds;
-	if (!BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, SelectedChoiceIds))
+	if (!RPGSelectionRules::BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 	{
 		return false;
 	}
@@ -322,7 +308,7 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 	}
 
 	TSet<FName> CurrentSelection;
-	if (!BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, CurrentSelection) ||
+	if (!RPGSelectionRules::BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, CurrentSelection) ||
 		!FRPGClassProgressionService::TryGetChoicePointBalance(
 			ClassDefinition, Character->Level, CurrentSelection, OutResult.GrantedPoints, OutResult.SpentPointsBefore, OutResult.RemainingPoints))
 	{

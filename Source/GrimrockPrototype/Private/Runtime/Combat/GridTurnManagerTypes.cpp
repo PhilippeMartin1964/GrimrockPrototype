@@ -1,6 +1,6 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
-#include "Core/GridDirectionUtils.h"
+#include "Runtime/Combat/GridCombatTurnPlan.h"
 #include "Runtime/Monsters/GridMonsterFastHarasserPlanner.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 
@@ -49,45 +49,6 @@ namespace
 		Action.TargetCell = CurrentCell;
 		Action.ActionPointCost = 0;
 		return Action;
-	}
-
-	bool AppendTurnsToward(
-		const FGuid& SourceActorId, const FIntPoint& CurrentCell, EGridEdge DesiredFacing, EGridEdge& InOutFacing, TArray<FGridCombatAction>& OutActions)
-	{
-		if (DesiredFacing == EGridEdge::None)
-		{
-			return false;
-		}
-
-		if (InOutFacing == EGridEdge::None)
-		{
-			InOutFacing = EGridEdge::North;
-		}
-
-		if (InOutFacing == DesiredFacing)
-		{
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateLeft(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-			OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		if (GridDirectionUtils::RotateRight(InOutFacing) == DesiredFacing)
-		{
-			InOutFacing = GridDirectionUtils::RotateRight(InOutFacing);
-			OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-			return true;
-		}
-
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		InOutFacing = GridDirectionUtils::RotateLeft(InOutFacing);
-		OutActions.Add(MakeTurnAction(SourceActorId, CurrentCell, InOutFacing));
-		return InOutFacing == DesiredFacing;
 	}
 }
 
@@ -280,7 +241,7 @@ void FGridMonsterTurnPlanner::BuildMovementTurn(const FGuid& SourceActorId, cons
 		}
 
 		const EGridEdge DesiredFacing = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(SimulatedCell, Step);
-		if (!AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions))
+		if (!GridCombatTurnPlan::AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions, MakeTurnAction))
 		{
 			break;
 		}
@@ -313,7 +274,7 @@ void FGridMonsterTurnPlanner::BuildDirectMeleeTurn(const FGuid& SourceActorId, c
 		if (DistanceToParty == 1 && !AttackId.IsNone() && RemainingActionPoints >= SafeAttackCost)
 		{
 			const EGridEdge AttackFacing = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(SimulatedCell, PartyCell);
-			if (AppendTurnsToward(SourceActorId, SimulatedCell, AttackFacing, SimulatedFacing, OutActions))
+			if (GridCombatTurnPlan::AppendTurnsToward(SourceActorId, SimulatedCell, AttackFacing, SimulatedFacing, OutActions, MakeTurnAction))
 			{
 				OutActions.Add(MakeMeleeAttackAction(SourceActorId, PartyCell, AttackId, SafeAttackCost));
 			}
@@ -327,7 +288,7 @@ void FGridMonsterTurnPlanner::BuildDirectMeleeTurn(const FGuid& SourceActorId, c
 
 		const FIntPoint Step = Path[PathIndex++];
 		const EGridEdge DesiredFacing = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(SimulatedCell, Step);
-		if (!AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions))
+		if (!GridCombatTurnPlan::AppendTurnsToward(SourceActorId, SimulatedCell, DesiredFacing, SimulatedFacing, OutActions, MakeTurnAction))
 		{
 			break;
 		}
@@ -390,7 +351,7 @@ void FGridMonsterTurnPlanner::BuildFastHarasserTurn(const FGuid& SourceActorId, 
 	}
 
 	const int32 FirstRetreatActionIndex = OutActions.Num();
-	if (!AppendTurnsToward(SourceActorId, SimulatedCell, RetreatDecision.RetreatDirection, SimulatedFacing, OutActions))
+	if (!GridCombatTurnPlan::AppendTurnsToward(SourceActorId, SimulatedCell, RetreatDecision.RetreatDirection, SimulatedFacing, OutActions, MakeTurnAction))
 	{
 		return;
 	}

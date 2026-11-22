@@ -1,6 +1,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridWorldSnapshotReadModel.h"
 
+#include "Save/GridPartySaveProjections.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Magic/GridPartySpellbookComponent.h"
@@ -20,20 +21,6 @@ namespace
 	UGridPartySpellbookComponent* GridPartyPawnSaveGetSpellbookComponent(AGrimrockPartyPawn* PartyPawn)
 	{
 		return IsValid(PartyPawn) ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>() : nullptr;
-	}
-
-	int32 GridPartyPawnSaveCountKnownSpellCharacters(const FGridPartyInventoryState& PartyState)
-	{
-		int32 Count = 0;
-		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
-		{
-			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
-		}
-		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
-		{
-			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
-		}
-		return Count;
 	}
 }
 
@@ -112,7 +99,7 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 
 	UE_LOG(LogGrimrockPartySave, Verbose, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d PortraitOrder=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
 		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), SaveGame->PartyPortraitOrder.Num(),
-		GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState), CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
+		GridPartySaveProjections::CountCharactersWithKnownSpells(SaveGame->PartyInventoryState), CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
 	return true;
 }
 
