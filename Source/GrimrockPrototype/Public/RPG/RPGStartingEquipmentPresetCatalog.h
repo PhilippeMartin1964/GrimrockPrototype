@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 
 class URPGClassAsset;
-class UGridItemDefinitionAsset;
 class UGridItemSubsystem;
 
 /**
@@ -18,13 +17,10 @@ class GRIMROCKPROTOTYPE_API FRPGStartingEquipmentPresetCatalog
 public:
     static bool IsProductionClassAsset(const URPGClassAsset* ClassAsset);
 
-    /** Historical two-kit migration/audit only (Editor). Packaged builds fail closed. */
-    static bool TryPopulateTransientClass(URPGClassAsset& TransientClass, FString& OutError);
-
     /** ARMEMENT01.13.2: active New Game path, three approved N1 kits per class.
-     * Recipes store canonical ItemIds only; the old DA_Weapon/DA_Item path
-     * exists exclusively as an isolated editor Automation parity fixture.
-     * Called by the wizard preview and CreateInitialCharacter on transient copies.
+     * Recipes store canonical ItemIds only and resolve exclusively through
+     * a configured UGridItemSubsystem, including Editor Automation tests.
+     * Called by wizard previews and CreateInitialCharacter on transient copies.
      * Missing future support items are never fabricated.
      */
     static bool TryPopulateApprovedTransientClass(URPGClassAsset& TransientClass, FString& OutError,
