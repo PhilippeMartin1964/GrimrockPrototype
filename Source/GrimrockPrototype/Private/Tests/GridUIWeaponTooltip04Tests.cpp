@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "GridCanonicalWeightTestWorld.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridWeaponTooltipProjection.h"
@@ -13,9 +12,6 @@
 
 namespace WeaponTooltipTests
 {
-    const TCHAR* CataloguePath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-
     FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Def, int32 Level)
     {
         FGridItemInstance Item;
@@ -341,100 +337,144 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponTooltipPAValenceTest,
 
 bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Production =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponTooltipTests::CataloguePath);
-    if (!TestNotNull(TEXT("Production catalogue"), Production))
+    // Verify tooltip comparison semantics with actual production N1 items.
+    // No source DA_WeaponCatalogue, no transient legacy production authority,
+    // and no mutation of an installed ItemSystem asset.
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Real canonical tooltip registry"), Fixture.bReady))
         return false;
-    const FGridWeaponLevelProfile* Real1 = Production->FindProfile(TEXT("ARM002"), 1);
-    const FGridWeaponLevelProfile* Real9 = Production->FindProfile(TEXT("ARM002"), 9);
-    if (!TestNotNull(TEXT("Real N1 profile"), Real1) ||
-        !TestNotNull(TEXT("Real N9 profile"), Real9))
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Production ItemSystem"), Root))
         return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
 
-    // Synthetic fixture on transient objects only; no production .uasset mutation.
-    UGridWeaponCatalogueAsset* Sim = NewObject<UGridWeaponCatalogueAsset>();
-    FGridWeaponLevelProfile EquipProfile = *Real1;
-    FGridWeaponLevelProfile CandidateProfile = *Real9;
-    EquipProfile.ActionPointCost = 3;
-    CandidateProfile.ActionPointCost = 2;
-    Sim->Profiles.Add(EquipProfile);
-    Sim->Profiles.Add(CandidateProfile);
-
-    UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-    Item->ItemDefinitionId = TEXT("Weapon_TooltipPAFixture");
-    Item->bUseWeaponCatalogue = true;
-    Item->WeaponArchetypeId = TEXT("ARM002");
-    Item->WeaponCatalogue = Sim;
-    TArray<FGridWeaponTooltipComparisonFact> Facts;
-    if (!TestTrue(TEXT("PA fixture resolves both levels"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            Item, WeaponTooltipTests::MakeItem(Item, 9),
-            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
-        return false;
-    const auto* AP = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
+    TArray<FName> Ids;
+    TArray<FGridResolvedItem> Physical;
+    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
-        return F.StatId == TEXT("WeaponAP");
-    });
-    if (!TestNotNull(TEXT("PA comparison fact"), AP))
-        return false;
-    TestEqual(TEXT("Candidate 2 PA minus equipped 3 PA"), AP->Delta, -1.f);
-    TestTrue(TEXT("Lower AP is a green beneficial delta"),
-        AP->DeltaState == EGridItemTooltipDeltaState::Positive);
-    TestEqual(TEXT("Display signed PA delta"), AP->DeltaText.ToString(), FString(TEXT("-1")));
-
-    // Raw damage dice are comparable despite different attribute scaling.
-    // Pic de guerre (Force) vs poignard d'assassin (Dexterite):
-    // their 1d4+3 versus 1d4 base rolls should generate two green +3s.
-    Sim->Profiles[1].DamageDice = Real1->DamageDice;
-    Sim->Profiles[1].DamageDice.FlatBonus += 3;
-    Sim->Profiles[1].DamageType = Real1->DamageType;
-    Sim->Profiles[1].PhysicalSubtype = Real1->PhysicalSubtype;
-    Sim->Profiles[1].ScalingAttribute =
-        Real1->ScalingAttribute == EGridAttackScalingAttribute::Strength
-            ? EGridAttackScalingAttribute::Dexterity
-            : EGridAttackScalingAttribute::Strength;
-    Facts.Reset();
-    if (TestTrue(TEXT("Different scaling attributes preserve comparable raw dice"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            Item, WeaponTooltipTests::MakeItem(Item, 9),
-            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
-    {
-        for (const FName StatId : { FName(TEXT("WeaponMinDamage")), FName(TEXT("WeaponMaxDamage")) })
+        if (!IsValid(Definition)) continue;
+        FGridResolvedItem Profile;
+        if (Fixture.Resolve(Definition->ItemId, 1, Profile) &&
+            Profile.bIsArmament && Profile.Weapon.DamageDice.bEnabled)
         {
-            const auto* RawFact = Facts.FindByPredicate(
-                [StatId](const FGridWeaponTooltipComparisonFact& F)
-                { return F.StatId == StatId; });
-            if (TestNotNull(TEXT("Raw damage fact is projected"), RawFact))
+            Ids.Add(Definition->ItemId);
+            Physical.Add(MoveTemp(Profile));
+        }
+    }
+    TestTrue(TEXT("Production registry contains offensive N1 ARM"), Ids.Num() > 1);
+    if (Ids.Num() < 2) return false;
+
+    FName CheaperId = NAME_None, CostlierId = NAME_None;
+    FName StrongerId = NAME_None, WeakerId = NAME_None;
+    FName OtherDamageId = NAME_None, OtherBaseId = NAME_None;
+    int32 ExpectedMinGain = 0, ExpectedMaxGain = 0, ExpectedApDelta = 0;
+    for (int32 A = 0; A < Physical.Num(); ++A)
+    {
+        for (int32 B = 0; B < Physical.Num(); ++B)
+        {
+            if (A == B) continue;
+            const FGridCanonicalResolvedWeapon& Candidate = Physical[A].Weapon;
+            const FGridCanonicalResolvedWeapon& Equipped = Physical[B].Weapon;
+            if (CheaperId.IsNone() && Candidate.ActionPointCost > 0 &&
+                Candidate.ActionPointCost < Equipped.ActionPointCost)
             {
-                TestTrue(TEXT("Different scaling permits raw dice delta"), RawFact->bHasDelta);
-                TestEqual(TEXT("Raw damage bonus is +3"), RawFact->Delta, 3.f);
-                TestTrue(TEXT("Raw damage improvement is positive (green)"),
-                    RawFact->DeltaState == EGridItemTooltipDeltaState::Positive);
-                TestEqual(TEXT("Signed positive display value"),
-                    RawFact->DeltaText.ToString(), FString(TEXT("+3")));
+                CheaperId = Ids[A];
+                CostlierId = Ids[B];
+                ExpectedApDelta = Candidate.ActionPointCost - Equipped.ActionPointCost;
+            }
+            if (StrongerId.IsNone() &&
+                Candidate.DamageType == EGridDamageType::Physical &&
+                Equipped.DamageType == EGridDamageType::Physical &&
+                Candidate.ScalingAttribute != Equipped.ScalingAttribute &&
+                Candidate.DamageDice.GetMinimumDamage() > Equipped.DamageDice.GetMinimumDamage() &&
+                Candidate.DamageDice.GetMaximumDamage() > Equipped.DamageDice.GetMaximumDamage())
+            {
+                StrongerId = Ids[A];
+                WeakerId = Ids[B];
+                ExpectedMinGain = Candidate.DamageDice.GetMinimumDamage() -
+                    Equipped.DamageDice.GetMinimumDamage();
+                ExpectedMaxGain = Candidate.DamageDice.GetMaximumDamage() -
+                    Equipped.DamageDice.GetMaximumDamage();
+            }
+            if (OtherDamageId.IsNone() && Candidate.DamageType != Equipped.DamageType)
+            {
+                OtherDamageId = Ids[A];
+                OtherBaseId = Ids[B];
             }
         }
     }
+    if (!TestTrue(TEXT("Real production weapons demonstrate cheaper action points"),
+        !CheaperId.IsNone()) ||
+        !TestTrue(TEXT("Real physical N1 weapons differ in scaling and raw damage"),
+            !StrongerId.IsNone()) ||
+        !TestTrue(TEXT("Real offensive weapons include distinct primary damage types"),
+            !OtherDamageId.IsNone()))
+        return false;
 
-    // A different damage element is NOT an automatic green numeric damage gain.
-    Sim->Profiles[1].DamageType = EGridDamageType::Fire;
-    Sim->Profiles[1].PhysicalSubtype = EGridPhysicalDamageSubtype::None;
-    Facts.Reset();
-    if (TestTrue(TEXT("Different damage types still show both sets of facts"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            Item, WeaponTooltipTests::MakeItem(Item, 9),
-            Item, WeaponTooltipTests::MakeItem(Item, 1), Facts)))
+    auto Compare = [&Fixture](FName CandidateId, FName EquippedId,
+        TArray<FGridWeaponTooltipComparisonFact>& Out)
     {
-        const auto* Minimum = Facts.FindByPredicate(
-            [](const FGridWeaponTooltipComparisonFact& F)
-            { return F.StatId == TEXT("WeaponMinDamage"); });
-        if (TestNotNull(TEXT("Damage bounds remain readable"), Minimum))
-        {
-            TestFalse(TEXT("Different damage semantics suppress misleading delta"),
-                Minimum->bHasDelta);
-        }
+        return FGridWeaponTooltipProjection::BuildComparison(
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(CandidateId, 1),
+            nullptr, WeaponTooltipTests::MakeCanonicalItem(EquippedId, 1),
+            Out, Fixture.Registry.Get());
+    };
+    TArray<FGridWeaponTooltipComparisonFact> Facts;
+    if (!TestTrue(TEXT("Two real ARM compare their lower PA expense"),
+        Compare(CheaperId, CostlierId, Facts)))
+        return false;
+    const auto* Ap = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& Fact)
+    {
+        return Fact.StatId == TEXT("WeaponAP");
+    });
+    if (!TestNotNull(TEXT("Canonical PA comparison fact"), Ap))
+        return false;
+    TestTrue(TEXT("A lower PA cost is a meaningful nonzero delta"), Ap->bHasDelta);
+    TestEqual(TEXT("Signed native PA difference"), Ap->Delta,
+        static_cast<float>(ExpectedApDelta));
+    TestTrue(TEXT("Lower PA is green/beneficial"),
+        Ap->DeltaState == EGridItemTooltipDeltaState::Positive);
+    TestEqual(TEXT("Signed lower-PA label"), Ap->DeltaText.ToString(),
+        FString::Printf(TEXT("%d"), ExpectedApDelta));
+
+    Facts.Reset();
+    if (!TestTrue(TEXT("Different scaling attributes compare physical raw damage"),
+        Compare(StrongerId, WeakerId, Facts)))
+        return false;
+    for (const auto& Expected : {
+        TPair<FName, int32>(TEXT("WeaponMinDamage"), ExpectedMinGain),
+        TPair<FName, int32>(TEXT("WeaponMaxDamage"), ExpectedMaxGain) })
+    {
+        const auto* Raw = Facts.FindByPredicate(
+            [&Expected](const FGridWeaponTooltipComparisonFact& Fact)
+            { return Fact.StatId == Expected.Key; });
+        if (!TestNotNull(TEXT("Canonical raw-damage comparison fact"), Raw))
+            continue;
+        TestTrue(TEXT("Different scaling still permits comparable physical raw points"),
+            Raw->bHasDelta);
+        TestEqual(TEXT("Signed raw damage delta"), Raw->Delta,
+            static_cast<float>(Expected.Value));
+        TestEqual(TEXT("Positive raw damage delta label"),
+            Raw->DeltaText.ToString(), FString::Printf(TEXT("+%d"), Expected.Value));
+        TestTrue(TEXT("Higher raw damage is green/beneficial"),
+            Raw->DeltaState == EGridItemTooltipDeltaState::Positive);
     }
-    return true;
+
+    Facts.Reset();
+    if (!TestTrue(TEXT("Different elemental damage types still render facts"),
+        Compare(OtherDamageId, OtherBaseId, Facts)))
+        return false;
+    const auto* Min = Facts.FindByPredicate(
+        [](const FGridWeaponTooltipComparisonFact& Fact)
+        { return Fact.StatId == TEXT("WeaponMinDamage"); });
+    if (TestNotNull(TEXT("Different-type raw damage row is shown"), Min))
+        TestFalse(TEXT("Different damage types suppress misleading numeric delta"),
+            Min->bHasDelta);
+
+    TestEqual(TEXT("Production ItemSystem was never changed"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
+    return !HasAnyErrors();
 }
 
 
