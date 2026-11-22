@@ -4,6 +4,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Kismet/GameplayStatics.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -34,11 +35,12 @@ namespace ARMEMENT01132
             TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
     }
 
-    URPGClassAsset* Approved(URPGClassAsset* Original, FString& Error)
+    URPGClassAsset* Approved(URPGClassAsset* Original, FString& Error,
+        const UGridItemSubsystem* Registry)
     {
         URPGClassAsset* Preview = Original
             ? DuplicateObject<URPGClassAsset>(Original, GetTransientPackage()) : nullptr;
-        return Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Error)
+        return Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(*Preview, Error, Registry)
             ? Preview : nullptr;
     }
 
@@ -56,7 +58,8 @@ namespace ARMEMENT01132
     const FGridItemInstance* Find(const FGridCharacterInventoryState& Character,
         const FGridCharacterEquipmentState& Equipment, const FRPGStartingEquipmentEntry& Entry)
     {
-        const FName Id = Entry.ItemDefinition->ItemDefinitionId;
+        const FName Id = Entry.CanonicalItemId;
+        if (Id.IsNone()) return nullptr;
         if (Entry.TargetSlot != EGridEquipmentSlot::None)
         {
             const FGridItemInstance* Item = Equipment.GetSlot(Entry.TargetSlot);
@@ -102,6 +105,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Projection,
 
 bool FARMEMENT01132Projection::RunTest(const FString&)
 {
+    FGridCanonicalRegistryFixture Canonical;
+    if (!TestTrue(TEXT("Native ItemSystem available for eighteen kit previews"), Canonical.bReady))
+        return false;
     TSet<FName> GlobalIds;
     for (const TCHAR* Id : ARMEMENT01132::Classes)
     {
@@ -110,7 +116,7 @@ bool FARMEMENT01132Projection::RunTest(const FString&)
         const int32 PreviousCount = Original->StartingEquipmentKits.Num();
         const FName PreviousDefault = Original->DefaultStartingEquipmentKitId;
         FString Error;
-        URPGClassAsset* Preview = ARMEMENT01132::Approved(Original, Error);
+        URPGClassAsset* Preview = ARMEMENT01132::Approved(Original, Error, Canonical.Registry.Get());
         if (!TestNotNull(TEXT("Approved preview builds"), Preview))
         {
             AddError(Error);
@@ -157,6 +163,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Creation,
 bool FARMEMENT01132Creation::RunTest(const FString&)
 {
 	if (!GridAutomationSaveIsolation::Require(*this)) return false;
+    FGridCanonicalWeightTestWorld NativeWorld({});
+    if (!TestNotNull(TEXT("Transient game world for canonical disk-save kits"), NativeWorld.World) ||
+        !TestNotNull(TEXT("Registered game-world ItemSystem"), NativeWorld.Scope.Registry))
+        return false;
     URPGRaceAsset* Race = ARMEMENT01132::Human();
     if (!TestNotNull(TEXT("Production race exists"), Race)) return false;
     int32 Created = 0;
@@ -167,7 +177,7 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
         URPGClassAsset* Class = ARMEMENT01132::LoadClass(Id);
         if (!TestNotNull(TEXT("Production class exists"), Class)) return false;
         FString Error;
-        URPGClassAsset* Preview = ARMEMENT01132::Approved(Class, Error);
+        URPGClassAsset* Preview = ARMEMENT01132::Approved(Class, Error, NativeWorld.Scope.Registry);
         if (!TestNotNull(TEXT("Approved class copy available"), Preview))
         {
             AddError(Error);
@@ -175,7 +185,8 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
         }
         for (const FRPGStartingEquipmentKit& Kit : Preview->StartingEquipmentKits)
         {
-            UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
+            UGridPartyInventoryComponent* Party = NativeWorld.MakeInventory();
+            if (!TestNotNull(TEXT("World-bound starter inventory"), Party)) return false;
             Party->InitializeDefaultPartyIfNeeded();
             FText Failure;
             if (!Party->CreateInitialCharacter(ARMEMENT01132::Request(Class, Race, Kit.KitId), Failure))
@@ -206,11 +217,19 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                 TestEqual(TEXT("Owner type correct"), Item->OwnerType,
                     bBag ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot);
                 TestEqual(TEXT("Equipment destination correct"), Item->EquipmentSlot, Entry.TargetSlot);
-                const UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-                if (!TestNotNull(TEXT("Item definition resolves"), Definition)) return false;
-                TestEqual(TEXT("Catalogue N1 level"), Item->ItemLevel,
-                    Definition->bUseWeaponCatalogue ? Definition->DefaultWeaponItemLevel : 0);
-                TestTrue(TEXT("Item definition registered"), Party->FindItemDefinition(Definition->ItemDefinitionId) == Definition);
+                FGridResolvedItem NativeItem;
+                if (!TestTrue(TEXT("New Game source resolves from game-world ItemSystem"),
+                    NativeWorld.Scope.Registry->ResolveItem(
+                        Entry.CanonicalItemId, Entry.ItemLevel, NativeItem)))
+                    return false;
+                TestEqual(TEXT("Persisted exact canonical physical ItemId"),
+                    Item->ItemDefinitionId, Entry.CanonicalItemId);
+                TestEqual(TEXT("Persisted explicit N1/N0 physical level"),
+                    Item->ItemLevel, Entry.ItemLevel);
+                TestNull(TEXT("Canonical recipe never embeds an obsolete definition"),
+                    Entry.ItemDefinition.Get());
+                TestNull(TEXT("No legacy map entry for a canonical starting item"),
+                    Party->FindItemDefinition(Entry.CanonicalItemId));
                 if (Item->ItemDefinitionId == FName(TEXT("Item_Arrows_01")) && bBag)
                 {
                     if (Kit.KitId == FName(TEXT("Kit_Ranger_Marksman"))) bMarksmanArrows = Item->Quantity == 12;
@@ -251,7 +270,9 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
             {
                 return false;
             }
-            UGridPartyInventoryComponent* Continued = NewObject<UGridPartyInventoryComponent>();
+            UGridPartyInventoryComponent* Continued = NativeWorld.MakeInventory();
+            if (!TestNotNull(TEXT("Fresh world-bound SaveGame restore inventory"), Continued))
+                return false;
             Continued->DefaultInventorySlotCountPerCharacter = 48;
             Continued->InitializeDefaultPartyIfNeeded();
             FText RestoreError;
@@ -264,11 +285,10 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
             FName MissingDefinitionId = NAME_None;
             if (!TestTrue(*FString::Printf(TEXT("%s: rehydrate starting item definitions"), *Kit.KitId.ToString()),
                 Continued->RehydrateOwnedItemDefinitions(
-                    [&Kit](FName ItemId) -> UGridItemDefinitionAsset*
+                    [](FName) -> UGridItemDefinitionAsset*
                     {
-                        for (const auto& Entry : Kit.Items)
-                            if (Entry.ItemDefinition && Entry.ItemDefinition->ItemDefinitionId == ItemId)
-                                return Entry.ItemDefinition.Get();
+                        // Every saved physical ItemId resolves from the registry;
+                        // requesting a legacy definition would be a regression.
                         return nullptr;
                     }, MissingDefinitionId)))
             {
@@ -316,8 +336,9 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     After->EquipmentSlot == Entry.TargetSlot &&
                     After->OwnerType == (Entry.TargetSlot == EGridEquipmentSlot::None
                         ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot)) ||
-                    !TestTrue(TEXT("Exact item definition available after disk load"),
-                        Continued->FindItemDefinition(Entry.ItemDefinition->ItemDefinitionId) == Entry.ItemDefinition.Get()))
+                    !TestTrue(TEXT("Exact canonical ID available after disk load, without a legacy definition"),
+                        NativeWorld.Scope.Registry->HasCanonicalItem(Entry.CanonicalItemId) &&
+                         Continued->FindItemDefinition(Entry.CanonicalItemId) == nullptr))
                 {
                     return false;
                 }
@@ -346,53 +367,63 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01132Legacy,
 bool FARMEMENT01132Legacy::RunTest(const FString&)
 {
     FGridCanonicalRegistryFixture Canonical;
-    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
-    int32 Count = 0;
+    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady))
+        return false;
+    int32 NativeKits = 0;
     for (const TCHAR* Id : ARMEMENT01132::Classes)
     {
         URPGClassAsset* Class = ARMEMENT01132::LoadClass(Id);
-        if (!TestNotNull(TEXT("Class exists"), Class)) return false;
-        URPGClassAsset* Legacy = DuplicateObject<URPGClassAsset>(Class, GetTransientPackage());
+        if (!TestNotNull(TEXT("Production class exists"), Class)) return false;
+        URPGClassAsset* Preview = DuplicateObject<URPGClassAsset>(Class, GetTransientPackage());
         FString Error;
-        if (!TestTrue(TEXT("Twelve historical kits remain materializable"),
-            Legacy && FRPGStartingEquipmentPresetCatalog::TryPopulateTransientClass(*Legacy, Error)))
+        if (!TestTrue(TEXT("Three approved canonical kits materialize without legacy source"),
+            Preview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *Preview, Error, Canonical.Registry.Get())))
         {
             AddError(Error);
             return false;
         }
-        for (const FRPGStartingEquipmentKit& Kit : Legacy->StartingEquipmentKits)
+        if (!TestEqual(TEXT("Three real kits per class"),
+            Preview->StartingEquipmentKits.Num(), 3))
+            return false;
+        for (const FRPGStartingEquipmentKit& Kit : Preview->StartingEquipmentKits)
         {
-            ++Count;
+            ++NativeKits;
             for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
             {
-                UGridItemDefinitionAsset* Definition = Entry.ItemDefinition.Get();
-                if (!TestNotNull(TEXT("Legacy definition exists"), Definition)) return false;
+                TestNull(TEXT("A canonical kit never retains an old definition pointer"),
+                    Entry.ItemDefinition.Get());
                 FGridResolvedItem Resolved;
-                TestTrue(TEXT("Every old kit identity has a canonical physical representation"),
-                    Canonical.Resolve(Definition->ItemDefinitionId, Definition->bUseWeaponCatalogue ? 1 : 0, Resolved));
+                TestTrue(TEXT("Every approved physical item resolves at the exact level"),
+                    Canonical.Resolve(Entry.CanonicalItemId, Entry.ItemLevel, Resolved));
             }
         }
     }
-    TestEqual(TEXT("All twelve legacy recipes preserved"), Count, 12);
+    TestEqual(TEXT("All eighteen native recipes inspected"), NativeKits, 18);
     FGridResolvedItem Missing;
-    TestFalse(TEXT("Unknown saved ID is not substituted"), Canonical.Resolve(TEXT("Unknown_01132"), 0, Missing));
+    TestFalse(TEXT("Unknown saved ID is not substituted"),
+        Canonical.Resolve(TEXT("Unknown_01132"), 0, Missing));
 
     URPGClassAsset* Warrior = ARMEMENT01132::LoadClass(TEXT("Warrior"));
     URPGRaceAsset* Race = ARMEMENT01132::Human();
-    if (!TestNotNull(TEXT("Warrior exists"), Warrior) || !TestNotNull(TEXT("Race exists"), Race)) return false;
+    if (!TestNotNull(TEXT("Warrior exists"), Warrior) ||
+        !TestNotNull(TEXT("Race exists"), Race))
+        return false;
     UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
     Party->InitializeDefaultPartyIfNeeded();
     const FGuid OriginalId = Party->PartyInventoryState.ActiveCharacters[0].CharacterId;
     FText Error;
-    TestFalse(TEXT("Old kit cannot be selected for new hero"),
-        Party->CreateInitialCharacter(ARMEMENT01132::Request(Warrior, Race, TEXT("Warrior_Defender")), Error));
-    TestFalse(TEXT("Invalid ID reports error"), Error.IsEmpty());
-    TestFalse(TEXT("Rejected creation incomplete"), Party->HasCompletedInitialCharacterCreation());
-    TestEqual(TEXT("No hero mutation after failure"),
+    TestFalse(TEXT("Obsolete two-kit ID cannot be selected for a new hero"),
+        Party->CreateInitialCharacter(
+            ARMEMENT01132::Request(Warrior, Race, TEXT("Warrior_Defender")), Error));
+    TestFalse(TEXT("Invalid selection reports an error"), Error.IsEmpty());
+    TestFalse(TEXT("Rejected creation remains incomplete"),
+        Party->HasCompletedInitialCharacterCreation());
+    TestEqual(TEXT("No hero mutation after rejected selection"),
         Party->PartyInventoryState.ActiveCharacters[0].CharacterId, OriginalId);
-    TestFalse(TEXT("No weapon registered on failed creation"),
-        Party->FindItemDefinition(TEXT("Weapon_Dagger_01")) != nullptr);
-    return true;
+    TestNull(TEXT("No historical dagger registered on failed creation"),
+        Party->FindItemDefinition(TEXT("Weapon_Dagger_01")));
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
