@@ -4,6 +4,8 @@
 
 #include "RPG/RPGAlchemistAuthoring.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemSubsystem.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace UIRPGCONTENTTEXT021
 {
@@ -613,5 +615,86 @@ bool FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest::RunTest(const FString&)
 	TestEqual(TEXT("Final ownership audit covers all eleven Alchemist QuickItems"), AuditedItemCount, 11);
 	return true;
 }
+
+/**
+ * ARM-CLEAN06.5: before retiring serialized DA_Item_* packages, preserve
+ * independent evidence that the eleven item text surfaces survived in the
+ * native registered ItemSystem. Neither source nor destination is modified.
+ * Detailed action text uses its own canonical action authority.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest,
+    "Grimrock.UI.RPG.CONTENTTEXT02.CanonicalTextRetirementParity",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest::RunTest(const FString&)
+{
+    using namespace UIRPGCONTENTTEXT021;
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Configured native ItemSystem is registered"), Fixture.bReady))
+        return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Installed native ItemSystem root"), Root))
+        return false;
+    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+
+    TArray<FName> ItemIds;
+    CollectProductionItemIds(ItemIds);
+    if (!TestEqual(TEXT("Exactly eleven Alchemist item source identities"), ItemIds.Num(), 11))
+        return false;
+
+    int32 Matched = 0;
+    for (const FName ItemId : ItemIds)
+    {
+        const FString OldPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
+        const UGridItemDefinitionAsset* Old =
+            LoadObject<UGridItemDefinitionAsset>(nullptr, *OldPath);
+        if (!TestNotNull(TEXT("Historical text reference exists before retirement"), Old))
+            continue;
+        const bool bOldDirty = Old->GetOutermost()->IsDirty();
+        FGridResolvedItem Native;
+        if (!TestTrue(TEXT("Canonical N0 Alchemist item resolves"),
+            Fixture.Resolve(ItemId, 0, Native)))
+            continue;
+        TestFalse(TEXT("Alchemist text is attached to a non-ARM item"), Native.bIsArmament);
+        const bool bSameItemText =
+            Native.DisplayName.ToString() == Old->DisplayName.ToString() &&
+            Native.Description.ToString() == Old->Description.ToString() &&
+            Native.ReadText.ToString() == Old->ReadText.ToString();
+        TestTrue(*FString::Printf(
+            TEXT("%s preserves authored item name, description and reading text"),
+            *ItemId.ToString()), bSameItemText);
+        TestFalse(TEXT("Native DisplayName is not empty"), Native.DisplayName.IsEmpty());
+        TestFalse(TEXT("Native DisplayName is not an authoring placeholder"),
+            Native.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+        TestFalse(TEXT("Native Description is not an authoring placeholder"),
+            Native.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+
+        FGridCombatActionDefinition Action;
+        const bool bOneNativeAction = Native.AvailableActions.Num() == 1 &&
+            Fixture.Registry->ResolveDetailedNonArmAction(
+                ItemId, 0, Native.AvailableActions[0].ActionId, Action);
+        if (TestTrue(TEXT("A single native detailed QuickItem action is resolved"),
+            bOneNativeAction))
+        {
+            TestEqual(TEXT("Detailed native action retains the bound action identity"),
+                Action.ActionId, Native.AvailableActions[0].ActionId);
+            TestFalse(TEXT("Detailed action name is not an authoring placeholder"),
+                Action.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+            TestFalse(TEXT("Detailed action description is not an authoring placeholder"),
+                Action.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
+        }
+        TestEqual(TEXT("Historical item not modified by parity"),
+            Old->GetOutermost()->IsDirty(), bOldDirty);
+        if (bSameItemText && bOneNativeAction) ++Matched;
+    }
+    TestEqual(TEXT("Eleven Alchemist texts agree with their registered replacements"),
+        Matched, 11);
+    TestEqual(TEXT("Installed ItemSystem was not modified by parity"),
+        Root->GetOutermost()->IsDirty(), bRootDirty);
+    return !HasAnyErrors();
+}
+
 
 #endif
