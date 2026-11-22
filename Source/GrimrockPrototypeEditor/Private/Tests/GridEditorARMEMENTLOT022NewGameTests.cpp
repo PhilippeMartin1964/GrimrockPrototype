@@ -5,7 +5,8 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Serialization/Csv/CsvParser.h"
@@ -87,29 +88,24 @@ namespace ARMEMENTLOT022
         return true;
     }
 
-    UGridItemDefinitionAsset* ResolveActiveWeapon(
-        FName Archetype, const TArray<FGridWeaponPipelineRow>& Manifest)
+    bool ResolveActiveWeapon(FName Archetype,
+        const TArray<FGridWeaponPipelineRow>& Manifest,
+        const UGridItemSubsystem* Registry, FName& OutItemId,
+        FGridResolvedItem& OutProfile)
     {
+        OutItemId = NAME_None;
+        OutProfile = FGridResolvedItem();
         const FGridWeaponPipelineRow* Row =
             FGridWeaponPipelineManifest::Find(Manifest, Archetype.ToString());
-        if (!Row || Row->ProductionState != TEXT("Active")) return nullptr;
-        UGridItemDefinitionAsset* Item =
-            LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->ItemPath);
-        if (!IsValid(Item) || !Item->IsValidDefinition() ||
-            Item->ItemDefinitionId != FName(*Row->ItemDefinitionId) ||
-            Item->WeaponArchetypeId != Archetype ||
-            Item->DefaultWeaponItemLevel != 1) return nullptr;
-        return Item;
-    }
-
-    void AddEntry(FRPGStartingEquipmentKit& Kit,
-                  UGridItemDefinitionAsset* Item, EGridEquipmentSlot Slot)
-    {
-        FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-        Entry.ItemDefinition = Item;
-        Entry.ItemLevel = 1;
-        Entry.Quantity = 1;
-        Entry.TargetSlot = Slot;
+        if (!Registry || !Row || Row->ProductionState != TEXT("Active"))
+            return false;
+        const FName ItemId(*Row->ItemDefinitionId);
+        if (!Registry->ResolveItem(ItemId, 1, OutProfile) ||
+            !OutProfile.IsValid() || !OutProfile.bIsArmament ||
+            OutProfile.ArchetypeId != Archetype || OutProfile.ItemLevel != 1)
+            return false;
+        OutItemId = ItemId;
+        return true;
     }
 
     int32 CountPhysical(const FGridPartyInventoryState& Party, FName ItemId)
@@ -128,56 +124,60 @@ namespace ARMEMENTLOT022
 
     bool CheckOne(const FRecipe& Spec,
                   const TArray<FGridWeaponPipelineRow>& Manifest,
+                  const FGridEditorCanonicalStarterTestWorld& Fixture,
                   FAutomationTestBase& Test)
     {
-        UGridItemDefinitionAsset* Primary = ResolveActiveWeapon(Spec.Primary, Manifest);
-        UGridItemDefinitionAsset* Secondary = Spec.Secondary.IsNone()
-            ? nullptr : ResolveActiveWeapon(Spec.Secondary, Manifest);
-        if (!Test.TestNotNull(TEXT("Approved primary weapon is active"), Primary) ||
-            (!Spec.Secondary.IsNone() &&
-             !Test.TestNotNull(TEXT("Approved secondary weapon is active"), Secondary))) return false;
+        FName PrimaryId = NAME_None, SecondaryId = NAME_None;
+        FGridResolvedItem Primary, Secondary;
+        if (!Test.TestTrue(TEXT("Approved primary N1 resolved in production ItemSystem"),
+            ResolveActiveWeapon(Spec.Primary, Manifest, Fixture.Registry, PrimaryId, Primary)))
+            return false;
+        if (!Test.TestTrue(TEXT("Canonical primary may occupy MainHand"),
+            Primary.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand)))
+            return false;
+        const bool bHasSecondary = !Spec.Secondary.IsNone();
+        if (bHasSecondary)
+        {
+            if (!Test.TestTrue(TEXT("Approved secondary N1 resolved in production ItemSystem"),
+                ResolveActiveWeapon(Spec.Secondary, Manifest, Fixture.Registry, SecondaryId, Secondary)))
+                return false;
+            if (!Test.TestTrue(TEXT("Approved second slot remains Bag or OffHand"),
+                Spec.SecondarySlot == TEXT("Bag") || Spec.SecondarySlot == TEXT("OffHand")))
+                return false;
+            if (Spec.SecondarySlot == TEXT("OffHand") &&
+                !Test.TestTrue(TEXT("Second item is physically OffHand-compatible"),
+                    Secondary.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) &&
+                    Primary.Weapon.HandPolicy != EGridCanonicalHandPolicy::TwoHanded))
+                return false;
+        }
 
         const FString ClassPath = FString::Printf(
             TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_%s.DA_Class_%s"),
             *Spec.ClassId, *Spec.ClassId);
         URPGClassAsset* Production = LoadObject<URPGClassAsset>(nullptr, *ClassPath);
-        if (!Test.TestNotNull(TEXT("Real production class exists"), Production)) return false;
+        URPGRaceAsset* Human = LoadObject<URPGRaceAsset>(nullptr,
+            TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
+        if (!Test.TestNotNull(TEXT("Real production class"), Production) ||
+            !Test.TestNotNull(TEXT("Real production human race"), Human))
+            return false;
         const bool bWasDirty = Production->GetOutermost()->IsDirty();
         const int32 PreviousKits = Production->StartingEquipmentKits.Num();
         const FName PreviousDefault = Production->DefaultStartingEquipmentKitId;
 
-        URPGClassAsset* Temporary = DuplicateObject<URPGClassAsset>(Production, GetTransientPackage());
-        if (!Test.TestNotNull(TEXT("Test class duplicated, not modified"), Temporary)) return false;
-        FRPGStartingEquipmentKit& Kit = Temporary->StartingEquipmentKits.AddDefaulted_GetRef();
-        Kit.KitId = FName(*Spec.KitId);
-        Kit.DisplayName = FText::FromString(Spec.KitId); // Test-only, never displayed in UI.
-        AddEntry(Kit, Primary, EGridEquipmentSlot::MainHand);
-        if (Secondary)
-        {
-            if (!Test.TestTrue(TEXT("Approved second slot is Bag or OffHand"),
-                Spec.SecondarySlot == TEXT("Bag") || Spec.SecondarySlot == TEXT("OffHand"))) return false;
-            AddEntry(Kit, Secondary, Spec.SecondarySlot == TEXT("OffHand")
-                ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::None);
-        }
-        Temporary->DefaultStartingEquipmentKitId = Kit.KitId;
-        if (!Test.TestTrue(TEXT("Transient class with approved kit is valid"),
-                Temporary->IsValidDefinition())) return false;
-
-        URPGRaceAsset* Human = LoadObject<URPGRaceAsset>(nullptr,
-            TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Race_Human.DA_Race_Human"));
-        if (!Test.TestNotNull(TEXT("Human race exists"), Human)) return false;
-
-        UGridPartyInventoryComponent* Party = NewObject<UGridPartyInventoryComponent>();
-        Party->InitializeDefaultPartyIfNeeded();
+        // The actual NewGame path materializes approved canonical kits on a
+        // transient class copy. Never build synthetic legacy item definitions.
+        UGridPartyInventoryComponent* Party = Fixture.MakeInventory();
+        if (!Test.TestNotNull(TEXT("Real GameInstance-bound inventory"), Party))
+            return false;
         FRPGCharacterCreationRequest Request;
-        Request.DisplayName = FText::FromString(TEXT("LOT02 Test"));
+        Request.DisplayName = FText::FromString(TEXT("LOT02 canonical test"));
         Request.RaceDefinition = Human;
-        Request.ClassDefinition = Temporary;
-        Request.CombatActionSourceClassDefinition = Temporary;
-        Request.StartingEquipmentKitId = Kit.KitId;
+        Request.ClassDefinition = Production;
+        Request.CombatActionSourceClassDefinition = Production;
+        Request.StartingEquipmentKitId = FName(*Spec.KitId);
         FText Error;
-        if (!Test.TestTrue(TEXT("Real new character creation grants approved kit"),
-                Party->CreateInitialCharacter(Request, Error)))
+        if (!Test.TestTrue(TEXT("Real NewGame grants approved ItemSystem kit"),
+            Party->CreateInitialCharacter(Request, Error)))
         {
             Test.AddError(FString::Printf(TEXT("Creation failure for %s: %s"),
                 *Spec.KitId, *Error.ToString()));
@@ -187,79 +187,93 @@ namespace ARMEMENTLOT022
         const FGridPartyInventoryState& State = Party->PartyInventoryState;
         const FGridCharacterInventoryState& Hero = State.ActiveCharacters[0];
         const FGridCharacterEquipmentState& Gear = State.ActiveEquipment[0];
-        Test.TestEqual(TEXT("Chosen kit ID persisted"), Hero.StartingEquipmentKitId, Kit.KitId);
-        Test.TestEqual(TEXT("Primary equipped in MainHand"),
-            Gear.MainHand.ItemDefinitionId, Primary->ItemDefinitionId);
-        Test.TestEqual(TEXT("Primary N1 persisted"), Gear.MainHand.ItemLevel, 1);
-        Test.TestEqual(TEXT("Primary is physically unique"),
-            CountPhysical(State, Primary->ItemDefinitionId), 1);
-        Test.TestTrue(TEXT("Primary combat definition registered"),
-            Party->FindItemDefinition(Primary->ItemDefinitionId) == Primary);
-        if (Secondary)
+        Test.TestEqual(TEXT("Selected canonical kit ID is persisted"),
+            Hero.StartingEquipmentKitId, Request.StartingEquipmentKitId);
+        Test.TestEqual(TEXT("Primary equipped in MainHand from ItemSystem"),
+            Gear.MainHand.ItemDefinitionId, PrimaryId);
+        Test.TestEqual(TEXT("Primary physical N1 retained"), Gear.MainHand.ItemLevel, 1);
+        Test.TestEqual(TEXT("One physical primary item, never duplicate"),
+            CountPhysical(State, PrimaryId), 1);
+        Test.TestNull(TEXT("No historical primary definition registered"),
+            Party->FindItemDefinition(PrimaryId));
+        if (Primary.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded)
+            Test.TestFalse(TEXT("Two-handed primary leaves no second physical object"),
+                Gear.OffHand.IsValid());
+
+        if (bHasSecondary)
         {
-            Test.TestEqual(TEXT("Secondary is physically unique"),
-                CountPhysical(State, Secondary->ItemDefinitionId), 1);
-            Test.TestTrue(TEXT("Secondary definition registered"),
-                Party->FindItemDefinition(Secondary->ItemDefinitionId) == Secondary);
+            Test.TestEqual(TEXT("Secondary physical identity occurs once"),
+                CountPhysical(State, SecondaryId), 1);
+            Test.TestNull(TEXT("No historical secondary definition registered"),
+                Party->FindItemDefinition(SecondaryId));
             if (Spec.SecondarySlot == TEXT("OffHand"))
             {
-                Test.TestEqual(TEXT("Approved OffHand item equipped"),
-                    Gear.OffHand.ItemDefinitionId, Secondary->ItemDefinitionId);
-                Test.TestEqual(TEXT("Approved OffHand item level is N1"),
-                    Gear.OffHand.ItemLevel, 1);
+                Test.TestEqual(TEXT("OffHand item uses canonical ItemId"),
+                    Gear.OffHand.ItemDefinitionId, SecondaryId);
+                Test.TestEqual(TEXT("OffHand physical N1 retained"), Gear.OffHand.ItemLevel, 1);
             }
             else
             {
-                const bool bBagFound = Hero.InventorySlots.ContainsByPredicate(
-                    [Secondary](const FGridInventorySlot& Slot)
+                const bool bInBag = Hero.InventorySlots.ContainsByPredicate(
+                    [SecondaryId](const FGridInventorySlot& Slot)
                     {
                         return !Slot.IsEmpty() &&
-                            Slot.Item.ItemDefinitionId == Secondary->ItemDefinitionId &&
+                            Slot.Item.ItemDefinitionId == SecondaryId &&
                             Slot.Item.ItemLevel == 1;
                     });
-                Test.TestTrue(TEXT("Secondary weapon present in bag at N1"), bBagFound);
+                Test.TestTrue(TEXT("Canonical second weapon resides in bag at N1"), bInBag);
             }
         }
         FString OwnershipError;
-        Test.TestTrue(TEXT("Creation has unique valid owners"),
+        Test.TestTrue(TEXT("NewGame yields unique valid physical owners"),
             Party->ValidateInventoryOwnership(OwnershipError));
 
-        // In-memory SaveGame snapshot and restore: no game save slot is written.
+        // In-memory SaveGame round-trip: zero writes to user save slots.
         UGrimrockPartySaveGame* Snapshot = NewObject<UGrimrockPartySaveGame>();
         Snapshot->PartyInventoryState = State;
-        UGridPartyInventoryComponent* Restored = NewObject<UGridPartyInventoryComponent>();
-        Restored->InitializeDefaultPartyIfNeeded();
-        if (!Test.TestTrue(TEXT("Party snapshot restores successfully"),
-                Restored->RestorePartyInventoryState(Snapshot->PartyInventoryState, Error)))
+        UGridPartyInventoryComponent* Restored = Fixture.MakeInventory();
+        if (!Test.TestNotNull(TEXT("GameInstance-bound restore destination"), Restored))
+            return false;
+        if (!Test.TestTrue(TEXT("Canonical SaveGame snapshot restores"),
+            Restored->RestorePartyInventoryState(Snapshot->PartyInventoryState, Error)))
         {
             Test.AddError(FString::Printf(TEXT("Restore failure for %s: %s"),
                 *Spec.KitId, *Error.ToString()));
             return false;
         }
         const FGridPartyInventoryState& After = Restored->PartyInventoryState;
-        Test.TestEqual(TEXT("Kit identity survives snapshot restore"),
-            After.ActiveCharacters[0].StartingEquipmentKitId, Kit.KitId);
-        Test.TestEqual(TEXT("MainHand GUID survives snapshot restore"),
-            After.ActiveEquipment[0].MainHand.RuntimeObjectId,
-            Gear.MainHand.RuntimeObjectId);
-        if (Secondary && Spec.SecondarySlot == TEXT("OffHand"))
+        Test.TestEqual(TEXT("Kit identity survives the SaveGame round-trip"),
+            After.ActiveCharacters[0].StartingEquipmentKitId, Request.StartingEquipmentKitId);
+        Test.TestEqual(TEXT("MainHand GUID survives the round-trip"),
+            After.ActiveEquipment[0].MainHand.RuntimeObjectId, Gear.MainHand.RuntimeObjectId);
+        Test.TestEqual(TEXT("Physical MainHand level survives the round-trip"),
+            After.ActiveEquipment[0].MainHand.ItemLevel, 1);
+        if (bHasSecondary && Spec.SecondarySlot == TEXT("OffHand"))
         {
-            Test.TestEqual(TEXT("OffHand GUID survives snapshot restore"),
+            Test.TestEqual(TEXT("OffHand GUID survives the round-trip"),
                 After.ActiveEquipment[0].OffHand.RuntimeObjectId,
                 Gear.OffHand.RuntimeObjectId);
         }
-        Test.TestEqual(TEXT("Original production kits unchanged"),
+        Test.TestEqual(TEXT("Secondary identity survives restore"),
+            bHasSecondary ? CountPhysical(After, SecondaryId) : 0,
+            bHasSecondary ? 1 : 0);
+        Test.TestNull(TEXT("Restored party has no historical primary definition"),
+            Restored->FindItemDefinition(PrimaryId));
+        Test.TestTrue(TEXT("Restored ownership is valid"),
+            Restored->ValidateInventoryOwnership(OwnershipError));
+        Test.TestEqual(TEXT("Production kits not modified"),
             Production->StartingEquipmentKits.Num(), PreviousKits);
-        Test.TestEqual(TEXT("Original production default unchanged"),
+        Test.TestEqual(TEXT("Production default kit not modified"),
             Production->DefaultStartingEquipmentKitId, PreviousDefault);
-        Test.TestEqual(TEXT("Original production package not dirtied"),
+        Test.TestEqual(TEXT("Production class package stays clean"),
             Production->GetOutermost()->IsDirty(), bWasDirty);
-        Test.AddInfo(FString::Printf(
-            TEXT("[LOT02.2] PASS Kit=%s Main=%s Second=%s RuntimeEnabled=0"),
-            *Spec.KitId, *Primary->ItemDefinitionId.ToString(),
-            Secondary ? *Secondary->ItemDefinitionId.ToString() : TEXT("None")));
+        Test.AddInfo(FString::Printf(TEXT(
+            "[LOT02.2] PASS CanonicalKit=%s Main=%s Second=%s WorldBound=1 SaveGameInMemory=1"),
+            *Spec.KitId, *PrimaryId.ToString(),
+            bHasSecondary ? *SecondaryId.ToString() : TEXT("None")));
         return true;
     }
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT022NewGame,
@@ -277,6 +291,9 @@ bool FARMEMENTLOT022NewGame::RunTest(const FString&)
         AddError(Error);
         return false;
     }
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("Real world-bound production ItemSystem"), Fixture.Ready()))
+        return false;
     bool bAllPassed = true;
     for (const TCHAR* KitId : ARMEMENTLOT022::CandidateIds)
     {
@@ -287,9 +304,9 @@ bool FARMEMENTLOT022NewGame::RunTest(const FString&)
             bAllPassed = false;
             continue;
         }
-        bAllPassed &= ARMEMENTLOT022::CheckOne(Recipe, Manifest, *this);
+        bAllPassed &= ARMEMENTLOT022::CheckOne(Recipe, Manifest, Fixture, *this);
     }
-    return bAllPassed;
+    return bAllPassed && !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
