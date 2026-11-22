@@ -4,6 +4,7 @@
 #include "GridCanonicalWeightTestWorld.h"
 #include "Blueprint/UserWidget.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGCharacterTypes.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -91,7 +92,25 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
         !TestNotNull(TEXT("Production Ranger exists"), Ranger) ||
         !TestNotNull(TEXT("Production Warrior exists"), Warrior)) return false;
 
-    Wizard->ClassDefinition = Ranger;
+    // The fixture's world resolves canonical items; provide the widget with
+    // explicitly materialized class previews rather than relying on the
+    // historical registryless test-only DA_Item fallback.
+    URPGClassAsset* RangerPreview =
+        DuplicateObject<URPGClassAsset>(Ranger, GetTransientPackage());
+    URPGClassAsset* WarriorPreview =
+        DuplicateObject<URPGClassAsset>(Warrior, GetTransientPackage());
+    FString PreviewError;
+    if (!TestTrue(TEXT("Canonical Ranger preview is complete"),
+            RangerPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *RangerPreview, PreviewError, Fixture.Scope.Registry)) ||
+        !TestTrue(TEXT("Canonical Warrior preview is complete"),
+            WarriorPreview && FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
+                *WarriorPreview, PreviewError, Fixture.Scope.Registry)))
+    {
+        AddError(PreviewError);
+        return false;
+    }
+    Wizard->ClassDefinition = RangerPreview;
     const TArray<FRPGStartingEquipmentKit> Kits = Wizard->GetAvailableStartingEquipmentKits();
     if (!TestEqual(TEXT("Ranger presents three approved starting kits"), Kits.Num(), 3)) return false;
     TestEqual(TEXT("Ranger default kit selected"), Wizard->GetSelectedStartingEquipmentKitId(),
@@ -119,7 +138,7 @@ bool FARMEMENT0193WizardReadModelTest::RunTest(const FString&)
     TestTrue(TEXT("Selection description includes authored display name"),
         Wizard->GetSelectedStartingEquipmentKitDescription().ToString().Contains(PilotName));
 
-    Wizard->ClassDefinition = Warrior;
+    Wizard->ClassDefinition = WarriorPreview;
     Wizard->RefreshPreview();
     TestEqual(TEXT("Switching class resets to Warrior default"), Wizard->GetSelectedStartingEquipmentKitId(),
         FName(TEXT("Kit_Warrior_Guardian")));
