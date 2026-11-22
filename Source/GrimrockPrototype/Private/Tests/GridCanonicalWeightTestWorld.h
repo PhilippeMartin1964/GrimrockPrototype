@@ -26,8 +26,18 @@ struct FGridCanonicalWeightTestWorld
             nullptr, true, ERHIFeatureLevel::Num, &Values);
         if (!World || !GEngine) return;
         FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+        // UUserWidget::GetWorld() resolves through the owning GameInstance.
+        // Bind the real test GI to the engine context BEFORE publishing its
+        // UWorld, exactly as SetCurrentWorld expects. Otherwise pure inventory
+        // tests pass but canonical starter-kit descriptions lack a UMG world.
+        if (!Scope.AttachWithWeights(World, Weights, Extend))
+        {
+            Scope.Detach();
+            Context.SetCurrentWorld(World); // still register for safe teardown
+            return;
+        }
+        Context.OwningGameInstance = Scope.GI.Get();
         Context.SetCurrentWorld(World);
-        if (!Scope.AttachWithWeights(World, Weights, Extend)) Scope.Detach();
     }
 
     UGridPartyInventoryComponent* MakeInventory() const
