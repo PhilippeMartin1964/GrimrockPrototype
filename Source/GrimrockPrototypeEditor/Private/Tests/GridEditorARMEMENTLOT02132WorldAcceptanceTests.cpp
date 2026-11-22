@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
@@ -12,7 +13,6 @@
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridThrownItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -22,32 +22,11 @@
 // Real weapon assets in a transient UWorld, not a substitute for player-driven PIE.
 namespace ARMLOT02132
 {
-    struct FFixture
+    // Same real game-world canonical fixture used by the starter regression.
+    struct FFixture : FGridEditorCanonicalStarterTestWorld
     {
-        UWorld* World = nullptr;
-        FFixture()
-        {
-            const UWorld::InitializationValues Values = UWorld::InitializationValues()
-                .AllowAudioPlayback(false).RequiresHitProxies(false).CreatePhysicsScene(false)
-                .CreateNavigation(false).CreateAISystem(false).ShouldSimulatePhysics(false)
-                .SetTransactional(false);
-            World = UWorld::CreateWorld(EWorldType::Game, false,
-                FName(*FString::Printf(TEXT("ARMLOT02132_%s"),
-                    *FGuid::NewGuid().ToString(EGuidFormats::Digits))),
-                nullptr, true, ERHIFeatureLevel::Num, &Values);
-            if (World && GEngine)
-            {
-                FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
-                Context.SetCurrentWorld(World);
-            }
-        }
-        ~FFixture()
-        {
-            if (!World) return;
-            World->DestroyWorld(false);
-            if (GEngine) GEngine->DestroyWorldContext(World);
-        }
     };
+
 
     AGridItemActor* Pickup(UWorld* World, const FGuid& Guid)
     {
@@ -76,7 +55,7 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
 {
     using namespace ARMLOT02132;
     FFixture Fixture;
-    if (!TestNotNull(TEXT("Transient game world"), Fixture.World)) return false;
+    if (!TestTrue(TEXT("Transient game world has a configured ItemSystem"), Fixture.Ready())) return false;
     AGridLevelRuntimeActor* Runtime = Fixture.World->SpawnActor<AGridLevelRuntimeActor>();
     if (!TestNotNull(TEXT("Transient level runtime actor"), Runtime)) return false;
     UGridLevelAsset* Level = NewObject<UGridLevelAsset>(Runtime);
@@ -135,23 +114,27 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
         };
         const FGridWeaponPipelineRow* Row = FGridWeaponPipelineManifest::Find(Manifest, Id);
         if (!TestNotNull(*FString::Printf(TEXT("%s row"), *Id), Row)) continue;
-        UGridItemDefinitionAsset* Definition = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->ItemPath);
-        if (!TestNotNull(*FString::Printf(TEXT("%s package"), *Id), Definition)) continue;
-        Check(TEXT("production weapon is Active"), Row->ProductionState == TEXT("Active"));
-        Check(TEXT("real definition registered"), Inv->RegisterItemDefinition(Definition));
+        FGridResolvedItem Definition;
+        if (!TestTrue(*FString::Printf(TEXT("%s canonical N1"), *Id),
+            Fixture.Registry->ResolveItem(FName(*Row->ItemDefinitionId), 1, Definition)))
+            continue;
+        Check(TEXT("production weapon remains Active"), Row->ProductionState == TEXT("Active"));
+        Check(TEXT("authoritative registered ARM identity"),
+            Definition.IsValid() && Definition.bIsArmament &&
+            Definition.ArchetypeId == FName(*Row->ArchetypeId));
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Definition->ItemDefinitionId;
+        Item.ItemDefinitionId = Definition.ItemId;
         Item.ItemLevel = 1;
         Item.Quantity = 1;
         Item.OwnerType = EGridItemOwnerType::World;
         const bool bDrop = Runtime->TryDropItemInstanceAtCell(
-            Item, Definition, 1, 2, EGridEdge::None, FVector::ZeroVector);
+            Item, 1, 2, EGridEdge::None, FVector::ZeroVector);
         Check(TEXT("world item spawned"), bDrop);
         AGridItemActor* Actor = bDrop ? Pickup(Fixture.World, Item.RuntimeObjectId) : nullptr;
         Check(TEXT("original GUID has world actor"), Actor != nullptr);
         const bool bMesh = Actor && Actor->MeshComponent &&
-            Actor->MeshComponent->GetStaticMesh() == Definition->WorldMesh.LoadSynchronous();
+            Actor->MeshComponent->GetStaticMesh() == Definition.WorldMesh.LoadSynchronous();
         Check(TEXT("actual static mesh in world"), bMesh);
         const bool bPicked = Actor && Runtime->CanPartyPickupItemActor(Actor, Party) &&
             Runtime->TryPickupItemActor(Actor, Party);
@@ -173,7 +156,7 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
         FGridItemInstance Extracted;
         const bool bExtracted = bEquipped &&
             Inv->TryExtractOneEquippedItemForWorldTransfer(
-                0, Slot, Definition->ItemDefinitionId, Extracted);
+                0, Slot, Definition.ItemId, Extracted);
         Check(TEXT("real equipment transfer to world"), bExtracted);
         Check(TEXT("physical N1 identity retained"),
             bExtracted && Extracted.RuntimeObjectId == Item.RuntimeObjectId &&
@@ -183,7 +166,7 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
             !Inv->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand) &&
             !Inv->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::OffHand));
         const bool bRedropped = bExtracted && Runtime->TryDropItemInstanceAtCell(
-            Extracted, Definition, 1, 2, EGridEdge::None, FVector::ZeroVector);
+            Extracted, 1, 2, EGridEdge::None, FVector::ZeroVector);
         Check(TEXT("extracted item reappeared in the world"), bRedropped);
         AGridItemActor* Returned = bRedropped ? Pickup(Fixture.World, Item.RuntimeObjectId) : nullptr;
         const bool bRepicked = Returned && Runtime->TryPickupItemActor(Returned, Party);
@@ -198,13 +181,21 @@ bool FARMLot02132RealWorld::RunTest(const FString&)
         {
             FGridItemInstance ProjectileItem = Item;
             ProjectileItem.RuntimeObjectId = FGuid::NewGuid();
-            AGridThrownItemActor* Thrown = Runtime->SpawnThrownItemProjectile(
-                ProjectileItem, Definition, Runtime->GetCellCenterWorld(1, 1, 120.f),
+            const bool bSpawned = Runtime->TrySpawnThrownItemProjectile(
+                ProjectileItem, Runtime->GetCellCenterWorld(1, 1, 120.f),
                 FVector(750.f, 0.f, 100.f), 1, 1);
-            const bool bValid = Thrown &&
-                Thrown->ThrownItemInstance.RuntimeObjectId == ProjectileItem.RuntimeObjectId &&
+            AGridThrownItemActor* Thrown = nullptr;
+            for (TActorIterator<AGridThrownItemActor> It(Fixture.World); It; ++It)
+            {
+                if ((*It)->ThrownItemInstance.RuntimeObjectId == ProjectileItem.RuntimeObjectId)
+                {
+                    Thrown = *It;
+                    break;
+                }
+            }
+            const bool bValid = bSpawned && Thrown &&
                 Thrown->SourceCellX == 1 && Thrown->SourceCellY == 1;
-            Check(TEXT("actual thrown actor spawned"), bValid);
+            Check(TEXT("canonical thrown actor spawned"), bValid);
             Projectile = bValid ? TEXT("SPAWNED_NO_IMPACT") : TEXT("FAILED");
             if (bValid) ++ThrownSpawned;
             if (Thrown) Thrown->Destroy();
@@ -244,49 +235,55 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMLot02132Ammo,
 
 bool FARMLot02132Ammo::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Recurve = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RecurveBow_01.DA_Weapon_RecurveBow_01"));
-    UGridItemDefinitionAsset* ShortBow = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01.DA_Weapon_ShortBow_01"));
-    UGridItemDefinitionAsset* Arrows = LoadObject<UGridItemDefinitionAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-    if (!TestNotNull(TEXT("Actual ARM048"), Recurve) ||
-        !TestNotNull(TEXT("Actual ARM045"), ShortBow) ||
-        !TestNotNull(TEXT("Actual Item_Arrows_01"), Arrows)) return false;
-    const bool RDirty = Recurve->GetOutermost()->IsDirty();
-    const bool SDirty = ShortBow->GetOutermost()->IsDirty();
-    const bool ADirty = Arrows->GetOutermost()->IsDirty();
+    ARMLOT02132::FFixture Fixture;
+    if (!TestTrue(TEXT("Canonical game-world registry"), Fixture.Ready()))
+        return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
-    TestEqual(TEXT("ARM048 linked to real arrows"), Recurve->RequiredAmmunitionItemDefinitionId, ArrowId);
-    TestEqual(TEXT("ARM045 unchanged"), ShortBow->RequiredAmmunitionItemDefinitionId, ArrowId);
-    TestTrue(TEXT("Arrow stack and bow valid"), Arrows->bStackable &&
-        Arrows->IsValidDefinition() && Recurve->IsValidDefinition());
-    UGridPartyInventoryComponent* Inv = NewObject<UGridPartyInventoryComponent>();
-    Inv->InitializeDefaultPartyIfNeeded();
-    if (!TestTrue(TEXT("Register real arrows"), Inv->RegisterItemDefinition(Arrows))) return false;
-    TestFalse(TEXT("Cannot shoot with zero arrows"),
-        FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inv, 0, *Recurve));
-    TestFalse(TEXT("Cannot consume nonexistent arrow"),
-        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inv, 0, *Recurve));
+    FGridResolvedItem Recurve, ShortBow, Arrows;
+    if (!TestTrue(TEXT("Actual canonical ARM048, ARM045 and arrows resolve"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_RecurveBow_01"), 1, Recurve) &&
+        Fixture.Registry->ResolveItem(TEXT("Weapon_ShortBow_01"), 1, ShortBow) &&
+        Fixture.Registry->ResolveItem(ArrowId, 0, Arrows)))
+        return false;
+    TestEqual(TEXT("Recurve requires the canonical arrow kind"),
+        Recurve.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId);
+    TestEqual(TEXT("Shortbow retains the same real arrow kind"),
+        ShortBow.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId);
+    TestTrue(TEXT("Canonical arrow stack and bows resolve"),
+        Arrows.MaxStack >= 12 && Recurve.IsValid() && ShortBow.IsValid());
+    const FGridRangedAmmunitionRequirement Required =
+        FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry,
+            Recurve.ItemId, 1, nullptr, true);
+    if (!TestTrue(TEXT("One canonical, resolved arrow source"),
+        Required.bValid && Required.bCanonicalSource &&
+        Required.bCanonicalAmmunition && Required.AmmunitionItemId == ArrowId))
+        return false;
+    UGridPartyInventoryComponent* Inv = Fixture.MakeInventory();
+    if (!TestNotNull(TEXT("World-bound canonical inventory"), Inv)) return false;
+    TestFalse(TEXT("Cannot shoot without arrows"),
+        FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inv, 0, Required));
+    TestFalse(TEXT("Cannot consume missing arrows"),
+        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inv, 0, Required));
     FGridItemInstance Stack;
     Stack.RuntimeObjectId = FGuid::NewGuid();
     Stack.ItemDefinitionId = ArrowId;
+    Stack.ItemLevel = 0;
     Stack.Quantity = 2;
-    if (!TestTrue(TEXT("Two arrows added"), Inv->AddItemToCharacterInventory(0, Stack))) return false;
-    TestTrue(TEXT("Can shoot with two arrows"),
-        FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inv, 0, *Recurve));
-    TestTrue(TEXT("Consume arrow one"),
-        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inv, 0, *Recurve));
+    if (!TestTrue(TEXT("Two real N0 arrows enter the bag"),
+        Inv->AddItemToCharacterInventory(0, Stack))) return false;
+    TestTrue(TEXT("Two arrows permit one shot"),
+        FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inv, 0, Required));
+    TestTrue(TEXT("First arrow consumed"),
+        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inv, 0, Required));
     TestEqual(TEXT("One arrow remains"), Inv->CountItemDefinitionInCharacterInventory(0, ArrowId), 1);
-    TestTrue(TEXT("Consume arrow two"),
-        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inv, 0, *Recurve));
-    TestEqual(TEXT("Zero arrows remain"), Inv->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
-    TestFalse(TEXT("Third shot disallowed"),
-        FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inv, 0, *Recurve));
-    TestEqual(TEXT("Recurve package read only"), Recurve->GetOutermost()->IsDirty(), RDirty);
-    TestEqual(TEXT("Short bow package read only"), ShortBow->GetOutermost()->IsDirty(), SDirty);
-    TestEqual(TEXT("Arrows package read only"), Arrows->GetOutermost()->IsDirty(), ADirty);
-    AddInfo(TEXT("[LOT02.13.2] ARM048 ammo policy: 0 denied; 2->1->0; 0 denied. PIE=NOT_RUN"));
-    return true;
+    TestTrue(TEXT("Second arrow consumed"),
+        FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inv, 0, Required));
+    TestEqual(TEXT("No arrows remain"), Inv->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
+    TestFalse(TEXT("Third shot denied"),
+        FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inv, 0, Required));
+    TestNull(TEXT("No old arrow source registered"), Inv->FindItemDefinition(ArrowId));
+    AddInfo(TEXT("[ARM-CLEAN06] ARM048 canonical ammo: 0 rejected, 2->1->0, 0 rejected. PIE pending."));
+    return !HasAnyErrors();
 }
+
 #endif // WITH_DEV_AUTOMATION_TESTS

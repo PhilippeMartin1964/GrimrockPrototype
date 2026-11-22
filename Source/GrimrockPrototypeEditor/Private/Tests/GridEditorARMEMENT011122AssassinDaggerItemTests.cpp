@@ -1,23 +1,12 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "ARMEMENT/GridAssassinDaggerN1ItemAuthoringSpecs.h"
-#include "AssetRegistry/AssetData.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/IAssetRegistry.h"
-#include "Modules/ModuleManager.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/UObjectGlobals.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
 
 namespace ARMEMENT011122Tests
 {
-    const TCHAR* const RpgPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-    const TCHAR* const VisualsPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
-    const TCHAR* const Folder = TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons");
+    constexpr TCHAR ItemId[] = TEXT("Weapon_AssassinDagger_01");
+    constexpr TCHAR ArchetypeId[] = TEXT("ARM002");
+    constexpr TCHAR VisualId[] = TEXT("VIS_AssassinDagger_01");
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011122SourceContract,
@@ -26,48 +15,30 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011122SourceContract,
 
 bool FARMEMENT011122SourceContract::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, ARMEMENT011122Tests::RpgPath);
-    UGridWeaponVisualCatalogueAsset* Visuals =
-        LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT011122Tests::VisualsPath);
-    if (!TestNotNull(TEXT("Canonical RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Canonical visual catalogue"), Visuals))
-    {
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("One production registry configured"), Fixture.Ready()))
         return false;
-    }
-    const bool bRpgDirty = Rpg->GetOutermost()->IsDirty();
-    const bool bVisualDirty = Visuals->GetOutermost()->IsDirty();
-    TestTrue(TEXT("Catalogue structurally valid"), Rpg->IsValidCatalogue());
-    TestTrue(TEXT("Class affinities valid"), Rpg->IsValidClassAffinityData());
-    TestTrue(TEXT("Visual catalogue structurally valid"), Visuals->IsValidCatalogue());
-
-    const FGridWeaponLevelProfile* N1 = Rpg->FindProfile(TEXT("ARM002"), 1);
-    if (!TestNotNull(TEXT("ARM002 level-one profile"), N1))
-    {
+    FGridResolvedItem Dagger;
+    if (!TestTrue(TEXT("ARM002 N1 is resolved by DA_ItemSystem"),
+        Fixture.Registry->ResolveItem(ARMEMENT011122Tests::ItemId, 1, Dagger)))
         return false;
-    }
-    TestTrue(TEXT("Real offensive profile"), N1->IsValidProfile() && N1->DamageDice.bEnabled);
-    TestEqual(TEXT("One handed in canonical N1 profile"), N1->HandUsage, FString(TEXT("1 main")));
-    FGridAttackDefinition Attack;
-    TestTrue(TEXT("N1 damage dice resolve into attack"), N1->TryBuildAttackDefinition(Attack));
-    const EGridWeaponKitAffinity Affinity =
-        Rpg->GetKitRecommendationAffinity(TEXT("ARM002"), TEXT("Rogue"));
-    TestTrue(TEXT("Approved Rogue affinity"),
-        Affinity == EGridWeaponKitAffinity::Primary ||
-        Affinity == EGridWeaponKitAffinity::Secondary);
-
-    TestEqual(TEXT("Already registered ARM002 visual"), Visuals->FindVisualId(TEXT("ARM002")),
-        FName(TEXT("VIS_AssassinDagger_01")));
-    const FGridWeaponVisualProfile* Look = Visuals->FindProfileForArchetype(TEXT("ARM002"));
-    if (!TestNotNull(TEXT("ARM002 real visual profile"), Look))
-    {
-        return false;
-    }
-    TestTrue(TEXT("Real icon loads"), Look->BaseIcon.LoadSynchronous() != nullptr);
-    TestTrue(TEXT("Real world mesh loads"), Look->WorldMesh.LoadSynchronous() != nullptr);
-    TestEqual(TEXT("RPG package untouched"), Rpg->GetOutermost()->IsDirty(), bRpgDirty);
-    TestEqual(TEXT("Visual package untouched"), Visuals->GetOutermost()->IsDirty(), bVisualDirty);
-    return true;
+    TestTrue(TEXT("ARM002 canonical identity is valid"),
+        Dagger.IsValid() && Dagger.bIsArmament &&
+        Dagger.ItemLevel == 1 && Dagger.ArchetypeId == FName(ARMEMENT011122Tests::ArchetypeId));
+    TestTrue(TEXT("Real ARM002 offensive dice remain authored"), Dagger.Weapon.DamageDice.bEnabled);
+    TestTrue(TEXT("One-handed MainHand attack source"),
+        Dagger.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
+        Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand) &&
+        !Dagger.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));
+    TestTrue(TEXT("Positive authored action cost and range"),
+        Dagger.Weapon.ActionPointCost > 0 && Dagger.Weapon.RangeCells > 0);
+    TestEqual(TEXT("Canonical ARM002 has one visual identity"),
+        Dagger.VisualId, FName(ARMEMENT011122Tests::VisualId));
+    TestTrue(TEXT("Real icon can be loaded"),
+        Dagger.ItemIcon.LoadSynchronous() != nullptr);
+    TestTrue(TEXT("World mesh can be loaded"),
+        Dagger.WorldMesh.LoadSynchronous() != nullptr);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011122Definition,
@@ -76,97 +47,48 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011122Definition,
 
 bool FARMEMENT011122Definition::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, ARMEMENT011122Tests::RpgPath);
-    UGridWeaponVisualCatalogueAsset* Visuals =
-        LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, ARMEMENT011122Tests::VisualsPath);
-    if (!TestNotNull(TEXT("Canonical RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Canonical visual catalogue"), Visuals))
-    {
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("Canonical ItemSystem configured"), Fixture.Ready()))
         return false;
-    }
-    const bool bRpgDirty = Rpg->GetOutermost()->IsDirty();
-    const bool bVisualDirty = Visuals->GetOutermost()->IsDirty();
-
-    IAssetRegistry& Registry =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-    TArray<FString> Paths = { FString(ARMEMENT011122Tests::Folder) };
-    Registry.ScanPathsSynchronous(Paths, true);
-    TArray<FAssetData> Assets;
-    Registry.GetAssetsByPath(FName(ARMEMENT011122Tests::Folder), Assets, true);
-    UGridItemDefinitionAsset* Item = nullptr;
+    TArray<FName> Ids;
+    Fixture.Registry->GetCanonicalItemIds(Ids);
     int32 Found = 0;
-    for (const FAssetData& Asset : Assets)
+    for (FName Id : Ids)
+        if (Id == FName(ARMEMENT011122Tests::ItemId)) ++Found;
+    TestEqual(TEXT("Exactly one registered AssassinDagger identity"), Found, 1);
+    FGridResolvedItem Item;
+    if (!TestTrue(TEXT("Assassin dagger N1 resolves"),
+        Fixture.Registry->ResolveItem(ARMEMENT011122Tests::ItemId, 1, Item)))
+        return false;
+    TestEqual(TEXT("Stable ItemId"), Item.ItemId, FName(ARMEMENT011122Tests::ItemId));
+    TestEqual(TEXT("Stable ARM archetype"), Item.ArchetypeId, FName(ARMEMENT011122Tests::ArchetypeId));
+    TestEqual(TEXT("One visual identity"), Item.VisualId, FName(ARMEMENT011122Tests::VisualId));
+    TestTrue(TEXT("Positive canonical N1 weight"), FMath::IsFinite(Item.WeightKg) && Item.WeightKg > 0.f);
+    TestEqual(TEXT("One non-stackable weapon"), Item.MaxStack, 1);
+    TestTrue(TEXT("No invented thrown projectile"), !Item.Weapon.Projectile.bEnabled);
+    TestTrue(TEXT("Physical MainHand attack exists"),
+        Item.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::MainHand));
+    TestFalse(TEXT("No OffHand attack invented"),
+        Item.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand));
+    TestTrue(TEXT("Only authored combat bindings remain"), Item.AvailableActions.Num() == 1);
+    if (Item.AvailableActions.Num() == 1)
     {
-        UGridItemDefinitionAsset* Candidate = Cast<UGridItemDefinitionAsset>(Asset.GetAsset());
-        if (Candidate && Candidate->WeaponArchetypeId == TEXT("ARM002"))
+        FGridResolvedBoundAction Bound;
+        if (TestTrue(TEXT("Bound canonical attack resolves"),
+            Fixture.Registry->ResolveBoundAttackForHand(Item.ItemId, 1,
+                Item.AvailableActions[0].ActionId,
+                EGridEquipmentSlot::MainHand, Bound)))
         {
-            ++Found;
-            Item = Candidate;
+            TestTrue(TEXT("Real attack resolved and authored"), Bound.IsValid());
+            TestEqual(TEXT("Bound action cost matches N1 weapon"),
+                Bound.Action.ActionPointCost, Item.Weapon.ActionPointCost);
         }
     }
-    TestTrue(TEXT("No duplicate ARM002 definition"), Found <= 1);
-    if (Found == 0)
-    {
-        AddInfo(TEXT("[ARMEMENT01.11.2.2] ARM002 MissingItem; audit passed but authoring not applied"));
-    }
-    else if (TestNotNull(TEXT("Actual ARM002 item"), Item))
-    {
-        const FGridWeaponLevelProfile* N1 = Rpg->FindProfile(TEXT("ARM002"), 1);
-        if (!TestNotNull(TEXT("Real N1 profile"), N1))
-        {
-            return false;
-        }
-        const FGridWeaponVisualProfile* Visual = Visuals->FindProfileForArchetype(TEXT("ARM002"));
-        if (!TestNotNull(TEXT("Real visual profile"), Visual))
-        {
-            return false;
-        }
-
-        TestEqual(TEXT("Exact DataAsset name"), Item->GetName(),
-            FString(TEXT("DA_Weapon_AssassinDagger_01")));
-        TestEqual(TEXT("Stable item ID"), Item->ItemDefinitionId,
-            FName(TEXT("Weapon_AssassinDagger_01")));
-        TestEqual(TEXT("N1 default level"), Item->DefaultWeaponItemLevel, 1);
-        TestEqual(TEXT("Weapon archetype"), Item->WeaponArchetypeId, FName(TEXT("ARM002")));
-        TestEqual(TEXT("Item type"), Item->ItemType, EGridItemType::Weapon);
-        TestEqual(TEXT("N1 weight"), Item->Weight, N1->WeightKg);
-        TestEqual(TEXT("N1 display name"), Item->DisplayName.ToString(), N1->DisplayName.ToString());
-        TestFalse(TEXT("Non-stackable"), Item->bStackable);
-        TestEqual(TEXT("One-handed physical usage"), Item->GetEffectiveHandUsage(),
-            EGridItemHandUsage::OneHanded);
-        TestTrue(TEXT("Explicit MainHand slot"),
-            Item->CompatibleEquipmentSlots.Contains(EGridEquipmentSlot::MainHand));
-        TestTrue(TEXT("Both existing catalogues enabled"),
-            Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue);
-        TestEqual(TEXT("RPG catalogue identity"), Item->WeaponCatalogue.LoadSynchronous(), Rpg);
-        TestEqual(TEXT("Visual catalogue identity"), Item->WeaponVisualCatalogue.LoadSynchronous(), Visuals);
-        TestTrue(TEXT("Same visual icon"), Item->Icon.ToSoftObjectPath() ==
-            Visual->BaseIcon.ToSoftObjectPath());
-        TestTrue(TEXT("Same visual world mesh"), Item->WorldMesh.ToSoftObjectPath() ==
-            Visual->WorldMesh.ToSoftObjectPath());
-        TestTrue(TEXT("Definition valid"), Item->IsValidDefinition());
-        TestTrue(TEXT("MainHand attack exists"), Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-        TestFalse(TEXT("No special OffHand attack invented"),
-            Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand));
-        TestFalse(TEXT("Not a combat throwing weapon"), Item->bCombatThrowWeapon);
-        TestEqual(TEXT("Exactly one equipment attack"), Item->CombatActions.Num(), 1);
-        if (Item->CombatActions.Num() == 1)
-        {
-            const FGridCombatActionDefinition& Action = Item->CombatActions[0];
-            TestEqual(TEXT("Attack identity"), Action.ActionId,
-                FName(TEXT("Attack_AssassinDagger_01")));
-            TestEqual(TEXT("Source action point cost"), Action.ActionPointCost, N1->ActionPointCost);
-            TestEqual(TEXT("Source range"), Action.RangeCells, N1->RangeCells);
-            TestTrue(TEXT("Valid equipment melee action"), Action.IsValid() &&
-                Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-                Action.ActionType == EGridCombatActionType::MeleeAttack &&
-                Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack);
-        }
-    }
-    TestEqual(TEXT("RPG package remains untouched"), Rpg->GetOutermost()->IsDirty(), bRpgDirty);
-    TestEqual(TEXT("Visual package remains untouched"), Visuals->GetOutermost()->IsDirty(), bVisualDirty);
-    return true;
+    TestTrue(TEXT("Canonical equipped mesh exists"),
+        Item.EquippedMesh.LoadSynchronous() != nullptr);
+    FGridResolvedItem Invalid;
+    TestFalse(TEXT("No N21 level from historical catalogue"),
+        Fixture.Registry->ResolveItem(Item.ItemId, 21, Invalid));
+    return !HasAnyErrors();
 }
-
 #endif // WITH_DEV_AUTOMATION_TESTS
