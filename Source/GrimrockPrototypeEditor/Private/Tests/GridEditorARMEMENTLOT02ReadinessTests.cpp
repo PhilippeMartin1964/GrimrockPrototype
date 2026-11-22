@@ -1,32 +1,20 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
-#include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Serialization/Csv/CsvParser.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace ARMEMENTLOT02
 {
-    // Historical manifest characterization only: explicit item package named by
-    // the CSV, no runtime catalogue or recipe fallback.
-    UGridItemDefinitionAsset* LoadHistoricalSupport(FName ItemId)
-    {
-        const FString Name = FString::Printf(TEXT("DA_%s"), *ItemId.ToString());
-        const FString Path = FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/%s.%s"), *Name, *Name);
-        UGridItemDefinitionAsset* Asset = LoadObject<UGridItemDefinitionAsset>(nullptr, *Path);
-        return IsValid(Asset) && Asset->ItemDefinitionId == ItemId ? Asset : nullptr;
-    }
-
     struct FRecipe
     {
         FString ClassId;
@@ -42,8 +30,10 @@ namespace ARMEMENTLOT02
 
     struct FResolved
     {
-        UGridItemDefinitionAsset* Item = nullptr;
+        FName ItemId = NAME_None;
+        FGridResolvedItem Profile;
         FString Reason;
+        bool IsValid() const { return !ItemId.IsNone() && Profile.IsValid(); }
     };
 
     FString Csv(const FString& Value)
@@ -114,7 +104,7 @@ namespace ARMEMENTLOT02
                 (R.SecondArchetype.IsNone() != (FCString::Atoi(Cells[7]) == 0)) ||
                 (R.SecondArchetype.IsNone() != (R.SecondSlot == TEXT("None"))) ||
                 (R.SecondSlot != TEXT("None") && R.SecondSlot != TEXT("Bag") &&
-                    R.SecondSlot != TEXT("OffHand")) ||
+                 R.SecondSlot != TEXT("OffHand")) ||
                 (R.SupportId.IsNone() != (R.SupportQuantity == 0)) ||
                 FCString::Strcmp(Cells[13], TEXT("ApprovedDesign")) != 0)
             {
@@ -131,9 +121,9 @@ namespace ARMEMENTLOT02
         return true;
     }
 
-    FResolved ResolveWeapon(
-        FName Archetype, EGridEquipmentSlot Slot,
-        const TArray<FGridWeaponPipelineRow>& Manifest)
+    FResolved ResolveWeapon(FName Archetype, EGridEquipmentSlot Slot,
+        const TArray<FGridWeaponPipelineRow>& Manifest,
+        const FGridCanonicalRegistryFixture& Fixture)
     {
         FResolved Result;
         const FGridWeaponPipelineRow* Spec =
@@ -143,52 +133,65 @@ namespace ARMEMENTLOT02
             Result.Reason = TEXT("NOT_ACTIVE:") + Archetype.ToString();
             return Result;
         }
-        UGridItemDefinitionAsset* Item =
-            LoadObject<UGridItemDefinitionAsset>(nullptr, *Spec->ItemPath);
-        if (!IsValid(Item) || !Item->IsValidDefinition() ||
-            Item->GetPathName() != Spec->ItemPath ||
-            Item->ItemDefinitionId != FName(*Spec->ItemDefinitionId) ||
-            Item->WeaponArchetypeId != Archetype ||
-            !Item->bUseWeaponCatalogue || Item->DefaultWeaponItemLevel != 1)
+        const FName CanonicalId(*Spec->ItemDefinitionId);
+        if (!Fixture.Resolve(CanonicalId, 1, Result.Profile) ||
+            !Result.Profile.bIsArmament ||
+            Result.Profile.ArchetypeId != Archetype)
         {
-            Result.Reason = TEXT("INVALID_ITEM:") + Archetype.ToString();
-            return Result;
-        }
-        const FGridWeaponLevelProfile* N1 = nullptr;
-        if (!Item->TryGetWeaponCatalogueProfile(1, N1) || !N1 ||
-            !N1->IsValidProfile())
-        {
-            Result.Reason = TEXT("INVALID_N1:") + Archetype.ToString();
+            Result.Reason = TEXT("INVALID_CANONICAL_N1:") + Archetype.ToString();
             return Result;
         }
         if (Slot != EGridEquipmentSlot::None &&
-            (!Item->CanEquipToSlot(Slot) ||
-             (!Spec->IsPassive() && !Item->CanProvideAttackFromSlot(Slot))))
+            (!Result.Profile.Weapon.CanEquipInHand(Slot) ||
+             (!Spec->IsPassive() && !Result.Profile.Weapon.HasAttackSourceInHand(Slot))))
         {
-            Result.Reason = TEXT("INVALID_HAND_ACTION:") + Archetype.ToString();
+            Result.Reason = TEXT("INVALID_CANONICAL_HAND_ACTION:") + Archetype.ToString();
             return Result;
         }
-        Result.Item = Item;
+        Result.ItemId = CanonicalId;
         return Result;
     }
 
-    void AddEntry(FRPGStartingEquipmentKit& Kit,
-        UGridItemDefinitionAsset* Definition, EGridEquipmentSlot Slot,
-        int32 Level, int32 Quantity)
+    bool ResolveSupport(FName ItemId, int32 MinimumStack,
+        const FGridCanonicalRegistryFixture& Fixture, FResolved& Out)
+    {
+        Out = FResolved();
+        if (ItemId.IsNone() || !Fixture.Resolve(ItemId, 0, Out.Profile) ||
+            Out.Profile.bIsArmament || Out.Profile.MaxStack < MinimumStack)
+        {
+            return false;
+        }
+        Out.ItemId = ItemId;
+        return true;
+    }
+
+    void AddEntry(FRPGStartingEquipmentKit& Kit, FName ItemId,
+        EGridEquipmentSlot Slot, int32 Level, int32 Quantity)
     {
         FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
-        Entry.ItemDefinition = Definition;
+        Entry.CanonicalItemId = ItemId;
         Entry.TargetSlot = Slot;
         Entry.ItemLevel = Level;
         Entry.Quantity = Quantity;
+        // Never load or duplicate DA_Weapon_*/DA_Item_*.
+        // The real physical identity is the canonical ItemId + ItemLevel.
     }
 
-    bool SimulateKit(const FRecipe& Recipe,
-        UGridItemDefinitionAsset* Main,
-        UGridItemDefinitionAsset* Second,
-        UGridItemDefinitionAsset* Support,
-        UGridItemDefinitionAsset* Ammunition,
-        FString& Error)
+    bool HasBagItem(const FGridCharacterInventoryState& Character,
+        FName ItemId, int32 Quantity, int32 Level)
+    {
+        return Character.InventorySlots.ContainsByPredicate(
+            [ItemId, Quantity, Level](const FGridInventorySlot& Slot)
+            {
+                return !Slot.IsEmpty() && Slot.Item.ItemDefinitionId == ItemId &&
+                    Slot.Item.Quantity == Quantity && Slot.Item.ItemLevel == Level;
+            });
+    }
+
+    bool SimulateKit(const FRecipe& Recipe, const FResolved& Main,
+        const FResolved& Second, const FResolved& Support,
+        const FResolved& Ammunition,
+        const FGridCanonicalRegistryFixture& Fixture, FString& Error)
     {
         const FString ClassPath = FString::Printf(
             TEXT("/Game/GrimrockPrototype/Core/DataAssets/RPG/DA_Class_%s.DA_Class_%s"),
@@ -199,7 +202,8 @@ namespace ARMEMENTLOT02
             Error = TEXT("MISSING_CLASS");
             return false;
         }
-        // Never mutate the six production class DataAssets or legacy kits.
+        // No mutation of any production DataAsset: a transient test class
+        // receives strictly physical ItemIds, never historical pointers.
         URPGClassAsset* TransientClass =
             DuplicateObject<URPGClassAsset>(ProductionClass, GetTransientPackage());
         if (!IsValid(TransientClass))
@@ -210,63 +214,65 @@ namespace ARMEMENTLOT02
         FRPGStartingEquipmentKit& Kit =
             TransientClass->StartingEquipmentKits.AddDefaulted_GetRef();
         Kit.KitId = FName(*Recipe.KitId);
-        Kit.DisplayName = FText::FromString(Recipe.KitId); // Test-only, not UI localization.
-        AddEntry(Kit, Main, EGridEquipmentSlot::MainHand, 1, 1);
-        if (Second)
+        Kit.DisplayName = FText::FromString(Recipe.KitId);
+        AddEntry(Kit, Main.ItemId, EGridEquipmentSlot::MainHand, 1, 1);
+        if (Second.IsValid())
         {
             const EGridEquipmentSlot Slot = Recipe.SecondSlot == TEXT("OffHand")
                 ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::None;
-            AddEntry(Kit, Second, Slot, 1, 1);
+            AddEntry(Kit, Second.ItemId, Slot, 1, 1);
         }
-        if (Support)
-        {
-            AddEntry(Kit, Support, EGridEquipmentSlot::None, 0,
-                Recipe.SupportQuantity);
-        }
-        if (Ammunition)
-        {
-            AddEntry(Kit, Ammunition, EGridEquipmentSlot::None, 0, 12);
-        }
+        if (Support.IsValid())
+            AddEntry(Kit, Support.ItemId, EGridEquipmentSlot::None, 0, Recipe.SupportQuantity);
+        if (Ammunition.IsValid())
+            AddEntry(Kit, Ammunition.ItemId, EGridEquipmentSlot::None, 0, 12);
 
         FGridCharacterInventoryState Character;
         Character.CharacterId = FGuid::NewGuid();
         Character.InventorySlots.SetNum(24);
         FGridCharacterEquipmentState Equipment;
-        TArray<UGridItemDefinitionAsset*> Definitions;
+        TArray<UGridItemDefinitionAsset*> HistoricalDefinitions;
         if (!FRPGStartingEquipmentService::TryBuildKit(
                 TransientClass, Kit.KitId, Character, Equipment,
-                Definitions, Error))
+                HistoricalDefinitions, Error, Fixture.Registry.Get()))
         {
             return false;
         }
         if (Character.StartingEquipmentKitId != Kit.KitId ||
-            Equipment.MainHand.ItemDefinitionId != Main->ItemDefinitionId)
+            Equipment.MainHand.ItemDefinitionId != Main.ItemId ||
+            Equipment.MainHand.ItemLevel != 1)
         {
-            Error = TEXT("GRANTED_MAIN_OR_KIT_ID_MISMATCH");
+            Error = TEXT("GRANTED_CANONICAL_MAIN_OR_KIT_MISMATCH");
             return false;
         }
-        if (Second && Recipe.SecondSlot == TEXT("OffHand") &&
-            Equipment.OffHand.ItemDefinitionId != Second->ItemDefinitionId)
+        if (Second.IsValid())
         {
-            Error = TEXT("GRANTED_OFFHAND_MISMATCH");
-            return false;
-        }
-        if (Ammunition &&
-            !Character.InventorySlots.ContainsByPredicate([Ammunition](const FGridInventorySlot& Slot)
+            if (Recipe.SecondSlot == TEXT("OffHand"))
             {
-                return !Slot.IsEmpty() &&
-                    Slot.Item.ItemDefinitionId == Ammunition->ItemDefinitionId &&
-                    Slot.Item.Quantity == 12;
-            }))
+                if (Equipment.OffHand.ItemDefinitionId != Second.ItemId ||
+                    Equipment.OffHand.ItemLevel != 1)
+                {
+                    Error = TEXT("GRANTED_CANONICAL_OFFHAND_MISMATCH");
+                    return false;
+                }
+            }
+            else if (!HasBagItem(Character, Second.ItemId, 1, 1))
+            {
+                Error = TEXT("GRANTED_CANONICAL_BAG_WEAPON_MISMATCH");
+                return false;
+            }
+        }
+        if ((Support.IsValid() &&
+             !HasBagItem(Character, Support.ItemId, Recipe.SupportQuantity, 0)) ||
+            (Ammunition.IsValid() &&
+             !HasBagItem(Character, Ammunition.ItemId, 12, 0)))
         {
-            Error = TEXT("STARTER_AMMUNITION_NOT_GRANTED");
+            Error = TEXT("GRANTED_CANONICAL_SUPPORT_OR_AMMO_MISMATCH");
             return false;
         }
-        const int32 ExpectedDefinitions = 1 + (Second ? 1 : 0) + (Support ? 1 : 0) +
-            (Ammunition ? 1 : 0);
-        if (Definitions.Num() != ExpectedDefinitions)
+        if (!HistoricalDefinitions.IsEmpty())
         {
-            Error = TEXT("GRANTED_DEFINITION_COUNT_MISMATCH");
+            Error = TEXT("CANONICAL_KIT_RESURRECTED_LEGACY_DEFINITIONS");
             return false;
         }
         return true;
@@ -282,12 +288,15 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
     using namespace ARMEMENTLOT02;
     TArray<FRecipe> Recipes;
     FString Error;
-    if (!TestTrue(TEXT("18 approved recipes read without mutation"),
+    if (!TestTrue(TEXT("18 approved recipes load without mutation"),
         ReadRecipes(Recipes, Error)))
     {
         AddError(Error);
         return false;
     }
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production ItemSystem is available"), Fixture.bReady))
+        return false;
     TArray<FGridWeaponPipelineRow> Manifest;
     if (!TestTrue(TEXT("Production manifest loaded"),
         FGridWeaponPipelineManifest::Load(
@@ -305,40 +314,36 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
     for (const FRecipe& Recipe : Recipes)
     {
         FResolved Main = ResolveWeapon(Recipe.MainArchetype,
-            EGridEquipmentSlot::MainHand, Manifest);
+            EGridEquipmentSlot::MainHand, Manifest, Fixture);
         const EGridEquipmentSlot SecondSlot =
             Recipe.SecondSlot == TEXT("OffHand")
             ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::None;
         FResolved Second = Recipe.SecondArchetype.IsNone()
-            ? FResolved() : ResolveWeapon(Recipe.SecondArchetype, SecondSlot, Manifest);
-        UGridItemDefinitionAsset* Support = nullptr;
-        UGridItemDefinitionAsset* Ammunition = nullptr;
+            ? FResolved() : ResolveWeapon(
+                Recipe.SecondArchetype, SecondSlot, Manifest, Fixture);
+        FResolved Support, Ammunition;
         FString Reason;
-        if (!Main.Item) Reason = Main.Reason;
-        else if (!Recipe.SecondArchetype.IsNone() && !Second.Item) Reason = Second.Reason;
+        if (!Main.IsValid()) Reason = Main.Reason;
+        else if (!Recipe.SecondArchetype.IsNone() && !Second.IsValid()) Reason = Second.Reason;
         else if (Recipe.PendingSupport != TEXT("None"))
             Reason = TEXT("PENDING_SUPPORT:") + Recipe.PendingSupport;
         else if (Recipe.DesignNote == TEXT("AmmoSupplyMustBeVerified"))
         {
-            Ammunition = LoadHistoricalSupport(TEXT("Item_Arrows_01"));
-            if (!IsValid(Ammunition) || !Ammunition->IsValidDefinition() ||
-                !Ammunition->bStackable || Ammunition->MaxStackSize < 12 ||
-                !IsValid(Main.Item) ||
-                Main.Item->RequiredAmmunitionItemDefinitionId != Ammunition->ItemDefinitionId)
+            if (!ResolveSupport(TEXT("Item_Arrows_01"), 12, Fixture, Ammunition) ||
+                Main.Profile.Weapon.RequiredAmmoKindId != Ammunition.Profile.AmmoKindId)
             {
-                Reason = TEXT("AMMO_NOT_VERIFIED");
+                Reason = TEXT("CANONICAL_AMMO_NOT_VERIFIED");
             }
         }
-        else if (!Recipe.SupportId.IsNone())
+        else if (!Recipe.SupportId.IsNone() &&
+                 !ResolveSupport(Recipe.SupportId, Recipe.SupportQuantity, Fixture, Support))
         {
-            Support = LoadHistoricalSupport(Recipe.SupportId);
-            if (!IsValid(Support) || !Support->IsValidDefinition())
-                Reason = TEXT("SUPPORT_ITEM_UNAVAILABLE:") + Recipe.SupportId.ToString();
+            Reason = TEXT("CANONICAL_SUPPORT_UNAVAILABLE:") + Recipe.SupportId.ToString();
         }
         if (Reason.IsEmpty() &&
-            !SimulateKit(Recipe, Main.Item, Second.Item, Support, Ammunition, Reason))
+            !SimulateKit(Recipe, Main, Second, Support, Ammunition, Fixture, Reason))
         {
-            Reason = TEXT("TRANSACTION_REJECTED:") + Reason;
+            Reason = TEXT("CANONICAL_TRANSACTION_REJECTED:") + Reason;
         }
 
         const FString Status = Reason.IsEmpty()
@@ -347,7 +352,7 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
         {
             ++Simulated;
             Candidates.Add(Recipe.KitId);
-            Reason = TEXT("TransientTransactionPassed;RuntimeNotEnabled");
+            Reason = TEXT("CanonicalTransientTransactionPassed;RuntimeNotEnabled");
         }
         else
         {
@@ -364,8 +369,6 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
             *Recipe.KitId, *Status, *Reason));
     }
 
-    // These six historical candidates are mandatory; later approved starter
-    // kits may also become playable as production progresses.
     const TCHAR* ExpectedCandidates[] = {
         TEXT("Kit_Warrior_Guardian"),
         TEXT("Kit_Warrior_Breaker"),
@@ -376,33 +379,30 @@ bool FARMEMENTLOT02Readiness::RunTest(const FString&)
     };
     for (const TCHAR* Id : ExpectedCandidates)
     {
-        TestTrue(*FString::Printf(TEXT("%s is a transient playtest candidate"), Id),
+        TestTrue(*FString::Printf(TEXT("%s retains a native transient playtest candidate"), Id),
             Candidates.Contains(Id));
     }
-    TestFalse(TEXT("Saboteur cannot silently omit its planned disarming tool"),
+    // The CSV still records the Saboteur disarm-tool design dependency:
+    // native tooling does not silently rewrite an approved design manifest.
+    TestFalse(TEXT("Saboteur pending support must not silently disappear"),
         Candidates.Contains(TEXT("Kit_Rogue_Saboteur")));
-    TestTrue(TEXT("Marksman ammo package and bow link explicitly verified"),
+    TestTrue(TEXT("Marksman arrow kind and real bow link are resolved from ItemSystem"),
         Candidates.Contains(TEXT("Kit_Ranger_Marksman")));
-    // Do not freeze candidate count at the historical LOT02.5 milestone:
-    // new level-one weapons/support items legitimately unlock more kits.
-    // The eighteen approved recipes and every candidate still go through
-    // ResolveWeapon/SimulateKit above; blocked recipes remain visible in CSV.
     TestTrue(TEXT("At least the six approved baseline kits remain playable"), Candidates.Num() >= 6);
-    TestTrue(TEXT("Not all eighteen kits have yet passed production"), Candidates.Num() < 18);
+    TestTrue(TEXT("Unresolved design needs still block some of the eighteen"), Candidates.Num() < 18);
 
     const FString Folder = FPaths::Combine(
         FPaths::ProjectSavedDir(), TEXT("ARMEMENT-LOT02"));
     IFileManager::Get().MakeDirectory(*Folder, true);
     const FString Path = FPaths::Combine(Folder, TEXT("LOT02_ApprovedKitsReadiness.csv"));
-    TestTrue(TEXT("Write read-only 18-kit matrix under Saved"),
+    TestTrue(TEXT("Write canonical 18-kit matrix under Saved"),
         FFileHelper::SaveStringArrayToFile(Report, *Path,
             FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
-
     TestEqual(TEXT("Exactly 18 kits evaluated"), Simulated + Blocked, 18);
     AddInfo(FString::Printf(
-        TEXT("[LOT02] Recipes=18 TransientCandidates=%d Blocked=%d RuntimeActivated=0 Report=%s"),
+        TEXT("[LOT02] Recipes=18 CanonicalCandidates=%d Blocked=%d RuntimeActivated=0 Report=%s"),
         Simulated, Blocked, *Path));
-    return true;
+    return !HasAnyErrors();
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
