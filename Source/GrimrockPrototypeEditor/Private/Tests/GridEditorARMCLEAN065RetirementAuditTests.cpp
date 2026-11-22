@@ -23,35 +23,34 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         return false;
     }
     TestEqual(TEXT("Final canonical count"), Audit.ItemIds.Num(), 48);
-    TestEqual(TEXT("Actual historical definitions"), int32(Audit.Report->GetNumberField(TEXT("legacy_definition_count"))), 48);
+    TestEqual(TEXT("Historical definitions fully retired"), int32(Audit.Report->GetNumberField(TEXT("legacy_definition_count"))), 0);
     TestEqual(TEXT("Canonical resolutions: 22 x 20 + 26 N0"),
         int32(Audit.Report->GetNumberField(TEXT("resolved_item_levels"))), 466);
     TestEqual(TEXT("All historical identities are registered"),
         Audit.Report->GetArrayField(TEXT("legacy_ids_without_canonical")).Num(), 0);
-    TestEqual(TEXT("All canonical identities have historical evidence"),
-        Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 0);
+    TestEqual(TEXT("Canonical identities no longer require old package sources"),
+        Audit.Report->GetArrayField(TEXT("canonical_ids_without_legacy_source")).Num(), 48);
     TestEqual(TEXT("No external package referencer remains after native 5F"),
         int32(Audit.Report->GetNumberField(TEXT("external_referencer_edges"))), 0);
-    // The old icon palette is the one isolated canary allowed to disappear
-    // after a separate, backed-up native Editor retirement. The other 53
-    // assets MUST stay classified; this is still not a delete manifest.
+    // After the atomic 49-package source retirement only the two protected
+    // historical authoring catalogues and two SaveGame Readables may remain.
+    // No package from the deleted set may be silently reintroduced.
     const TSharedPtr<FJsonObject> Roles = Audit.Report->GetObjectField(TEXT("candidate_role_counts"));
     if (!TestTrue(TEXT("Candidate roles are reported"), Roles.IsValid())) return false;
     const int32 LegacyIconPalettes =
         int32(Roles->GetNumberField(TEXT("historical_action_icon_palette")));
-    TestTrue(TEXT("Old icon palette is present once or retired entirely"),
-        LegacyIconPalettes == 0 || LegacyIconPalettes == 1);
-    TestEqual(TEXT("Retirement inventory retains all non-palette candidates"),
-        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))),
-        53 + LegacyIconPalettes);
-    TestEqual(TEXT("48 historical item definitions"),
-        int32(Roles->GetNumberField(TEXT("historical_item_definition"))), 48);
+    TestEqual(TEXT("No historical icon palette remains"),
+        LegacyIconPalettes, 0);
+    TestEqual(TEXT("Exactly four deliberately retained packages"),
+        int32(Audit.Report->GetNumberField(TEXT("candidate_asset_count"))), 4);
+    TestEqual(TEXT("Zero obsolete item-definition packages"),
+        int32(Roles->GetNumberField(TEXT("historical_item_definition"))), 0);
     TestEqual(TEXT("Two OLD sources, not canonical staged catalogues"),
         int32(Roles->GetNumberField(TEXT("historical_catalogue_source"))), 2);
     TestEqual(TEXT("Two saved readable fixtures protected"),
         int32(Roles->GetNumberField(TEXT("save_readable_fixture"))), 2);
-    TestEqual(TEXT("Throwing knife redirector requires fix-up"),
-        int32(Roles->GetNumberField(TEXT("historical_throwing_knife_redirector"))), 1);
+    TestEqual(TEXT("No dangling ThrowingKnife redirector"),
+        int32(Roles->GetNumberField(TEXT("historical_throwing_knife_redirector"))), 0);
     // Icon canary count checked above; never infer general deletion approval.
     TestEqual(TEXT("No unclassified paths in current sample"),
         int32(Roles->GetNumberField(TEXT("unclassified_keep_and_investigate"))), 0);
@@ -64,7 +63,7 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
             Row.IsValid() && !Row->GetStringField(TEXT("retirement_role")).IsEmpty());
     }
     const auto& Categories = Audit.Report->GetArrayField(TEXT("puzzle_category_sources"));
-    TestEqual(TEXT("Every native historical source has explicit category evidence"), Categories.Num(), 48);
+    TestEqual(TEXT("No obsolete type source remains after cutover"), Categories.Num(), 0);
     TSet<FName> CategoryIds;
     int32 ArmCategories = 0;
     for (const auto& Value : Categories)
@@ -78,7 +77,7 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         TestTrue(TEXT("Canonical tags captured independently"), Row->HasTypedField<EJson::Array>(TEXT("canonical_tags")));
         if (Row->GetBoolField(TEXT("armament"))) ++ArmCategories;
     }
-    TestEqual(TEXT("ARM category evidence"), ArmCategories, 22);
+    TestEqual(TEXT("No retired ARM type evidence remains in live packages"), ArmCategories, 0);
     TestTrue(TEXT("Native level assets scanned for category links"),
         Audit.Report->GetNumberField(TEXT("puzzle_level_assets_scanned")) > 0);
     for (const auto& Value : Audit.Report->GetArrayField(TEXT("puzzle_type_links")))
