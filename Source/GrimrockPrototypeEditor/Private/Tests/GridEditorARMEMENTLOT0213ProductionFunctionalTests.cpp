@@ -4,15 +4,14 @@
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridEditorCanonicalStarterTestWorld.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridWeaponTooltipProjection.h"
 #include "UObject/UObjectGlobals.h"
 
-/** LOT02.13: real production DataAssets, read-only UE matrix. PIE remains separate. */
+/** LOT02.13: real canonical ItemSystem, read-only UE matrix. PIE remains separate. */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT0213ProductionMatrix,
     "Grimrock.RPG.ARMEMENT.LOT02.ProductionFunctionalMatrix",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -49,15 +48,12 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
         AddError(Error);
         return false;
     }
-    UGridWeaponCatalogueAsset* Catalogue = LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-    UGridWeaponVisualCatalogueAsset* Visuals = LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-    if (!TestNotNull(TEXT("Canonical N1-N20 catalogue"), Catalogue) ||
-        !TestNotNull(TEXT("Canonical visual catalogue"), Visuals)) return false;
+    FGridCanonicalRegistryFixture Registry;
+    FGridEditorCanonicalStarterTestWorld World;
+    if (!TestTrue(TEXT("Production ItemSystem config valid"), Registry.bReady) ||
+        !TestTrue(TEXT("Canonical world inventory fixture"), World.Ready()))
+        return false;
 
-    const bool bCatalogueDirty = Catalogue->GetOutermost()->IsDirty();
-    const bool bVisualDirty = Visuals->GetOutermost()->IsDirty();
     int32 Ready = 0, LevelsTotal = 0;
     TArray<FString> Report = {
         TEXT("ArchetypeId,BuildKind,Levels,Added,Equipped,Unequipped,ThrowQuick,Ammo,Status")
@@ -77,107 +73,100 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
         {
             bOkay &= TestTrue(*FString::Printf(TEXT("%s %s"), *Id, Label), Pass);
         };
-        Check(TEXT("production weapon is Active"), Row->ProductionState == TEXT("Active"));
-        Check(TEXT("BuildKind"), Row->BuildKind == Case.Kind);
-        Check(TEXT("passive/throw/two-hand/ranged modes"),
+        Check(TEXT("manifest ARM is Active"), Row->ProductionState == TEXT("Active"));
+        Check(TEXT("BuildKind unchanged"), Row->BuildKind == Case.Kind);
+        Check(TEXT("passive / throw / two-hand / ranged are stable"),
             Row->IsPassive() == Case.bPassive && Row->IsThrowable() == Case.bThrow &&
             Row->IsTwoHanded() == Case.bTwoHand && Row->UsesRangedAction() == Case.bRanged);
-        UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row->ItemPath);
-        if (!TestNotNull(*FString::Printf(TEXT("%s real DataAsset"), *Id), Item))
+        FGridResolvedItem Definition;
+        if (!TestTrue(*FString::Printf(TEXT("%s actual canonical ARM N1"), *Id),
+            Registry.Resolve(FName(Row->ItemDefinitionId), 1, Definition)))
         {
             Report.Add(Id + TEXT(",MISSING,0,false,false,false,N_A,N_A,FAILED"));
             continue;
         }
-        const bool bItemDirty = Item->GetOutermost()->IsDirty();
-        Check(TEXT("definition valid"), Item->IsValidDefinition());
-        Check(TEXT("IDs"), Item->ItemDefinitionId == FName(Row->ItemDefinitionId) &&
-            Item->WeaponArchetypeId == FName(Row->ArchetypeId));
-        Check(TEXT("catalogue opt-ins"), Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue);
-        Check(TEXT("fixed N1 default"), Item->DefaultWeaponItemLevel == 1);
-        Check(TEXT("mesh/icon binding"),
-            Item->WorldMesh.ToSoftObjectPath() == FSoftObjectPath(Row->MeshPath) &&
-            Item->Icon.ToSoftObjectPath() == FSoftObjectPath(Row->IconPath) &&
-            Visuals->FindVisualId(FName(Row->ArchetypeId)) == FName(Row->VisualId));
-        Check(TEXT("throw flag"), Item->bCombatThrowWeapon == Case.bThrow);
+        Check(TEXT("canonical ARM identity"),
+            Definition.bIsArmament && Definition.ItemId == FName(Row->ItemDefinitionId) &&
+            Definition.ArchetypeId == FName(Row->ArchetypeId));
+        Check(TEXT("world visual identity"),
+            Definition.WorldMesh.ToSoftObjectPath() == FSoftObjectPath(Row->MeshPath) &&
+            Definition.ItemIcon.ToSoftObjectPath() == FSoftObjectPath(Row->IconPath) &&
+            Definition.VisualId == FName(Row->VisualId));
+        Check(TEXT("specialized combat throw"),
+            Definition.Weapon.Projectile.bEnabled == Case.bThrow);
         const EGridEquipmentSlot Slot = Case.bPassive
             ? EGridEquipmentSlot::OffHand : EGridEquipmentSlot::MainHand;
-        Check(TEXT("equip slot"), Item->CanEquipToSlot(Slot));
-        Check(TEXT("hand usage"), Item->GetEffectiveHandUsage() ==
-            (Case.bPassive ? EGridItemHandUsage::NotHandHeld :
-             Case.bTwoHand ? EGridItemHandUsage::TwoHanded : EGridItemHandUsage::OneHanded));
-        Check(TEXT("combat action count"), Item->CombatActions.Num() == (Case.bPassive ? 0 : 1));
-        const FGridWeaponLevelProfile* N1 = Catalogue->FindProfile(FName(Row->ArchetypeId), 1);
-        if (!TestNotNull(*FString::Printf(TEXT("%s N1"), *Id), N1)) continue;
-        Check(TEXT("catalogue weight"), FMath::IsNearlyEqual(Item->Weight, N1->WeightKg, 0.0001f));
+        Check(TEXT("physical equipment permission"),
+            Definition.Weapon.CanEquipInHand(Slot));
+        Check(TEXT("two-handed policy"),
+            (Definition.Weapon.HandPolicy == EGridCanonicalHandPolicy::TwoHanded) == Case.bTwoHand);
+        Check(TEXT("authored attack bindings"),
+            Definition.AvailableActions.Num() == (Case.bPassive ? 0 : 1));
         if (Case.bPassive)
         {
-            Check(TEXT("no passive attack"), !Item->CanProvideAttackFromSlot(Slot));
-            Check(TEXT("canonical physical armor"), Item->EquipmentStatBonus.ArmorBonus == N1->PhysicalArmor);
-            if (Row->IsFocus())
-                Check(TEXT("canonical magical armor"),
-                    Item->EquipmentStatBonus.MagicalArmorBonus == N1->MagicalArmor);
+            Check(TEXT("no invented passive attack source"),
+                !Definition.Weapon.HasAttackSourceInHand(Slot));
         }
-        else if (Item->CombatActions.Num() == 1)
+        else if (Definition.AvailableActions.Num() == 1)
         {
-            const FGridCombatActionDefinition& Action = Item->CombatActions[0];
-            Check(TEXT("equipped combat action"),
-                Action.IsValid() && Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-            Check(TEXT("action ID/AP/range"),
-                Action.ActionId == FName(Row->AttackId) &&
-                Action.ActionPointCost == N1->ActionPointCost && Action.RangeCells == N1->RangeCells);
-            Check(TEXT("line of sight and type"),
-                Action.bRequiresLineOfSight == Case.bRanged &&
-                Action.ActionType == (Case.bRanged
-                  ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack));
-            Check(TEXT("physical quantity cost"),
-                Action.ResourceCosts.SourceItemQuantityCost == (Case.bThrow ? 1 : 0));
+            FGridResolvedBoundAction Bound;
+            const bool bAction = Registry.Registry->ResolveBoundAttackForHand(
+                Definition.ItemId, 1, Definition.AvailableActions[0].ActionId,
+                EGridEquipmentSlot::MainHand, Bound);
+            Check(TEXT("physical MainHand action resolves"), bAction && Bound.IsValid());
+            if (bAction)
+            {
+                Check(TEXT("source action identity"),
+                    Bound.ActionId == FName(Row->AttackId));
+                Check(TEXT("ranged or melee mode"),
+                    Bound.Action.bRangedAttack == Case.bRanged);
+                Check(TEXT("source quantity cost"),
+                    Bound.Action.SourceItemQuantityCost == (Case.bThrow ? 1 : 0));
+            }
         }
+        const bool bQuick = !Case.bThrow ||
+            (Definition.Weapon.Projectile.bEnabled &&
+             Definition.Weapon.Projectile.InitialSpeed > 0.f);
+        Check(TEXT("authored physical throw policy"), bQuick);
 
-        bool bQuick = false;
-        if (Case.bThrow)
-        {
-            FGridCombatActionDefinition Quick;
-            bQuick = Item->IsPhysicallyThrowable() &&
-                Item->BuildInventoryCombatActionDefinition(Quick) &&
-                Quick.IsValid() &&
-                Quick.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
-                Quick.ResourceCosts.SourceItemQuantityCost == 1;
-            Check(TEXT("quick inventory throw consumes one"), bQuick);
-        }
         int32 Levels = 0;
         for (int32 Level = 1; Level <= 20; ++Level)
         {
+            FGridResolvedItem N;
+            if (!Registry.Resolve(Definition.ItemId, Level, N))
+            {
+                Check(TEXT("Missing canonical N1-N20 profile"), false);
+                continue;
+            }
             FGridItemInstance Instance;
             Instance.RuntimeObjectId = FGuid::NewGuid();
-            Instance.ItemDefinitionId = Item->ItemDefinitionId;
+            Instance.ItemDefinitionId = Definition.ItemId;
             Instance.ItemLevel = Level;
             Instance.Quantity = 1;
             Instance.OwnerType = EGridItemOwnerType::CharacterInventory;
             Instance.OwnerCharacterIndex = 0;
             FGridWeaponTooltipPresentation View;
-            if (FGridWeaponTooltipProjection::Build(Item, Instance, View) &&
+            if (FGridWeaponTooltipProjection::Build(
+                nullptr, Instance, View, Registry.Registry.Get()) &&
                 View.bHasProfile && View.ItemLevel == Level &&
                 View.ArchetypeId == FName(Case.Id) && View.bPassive == Case.bPassive)
                 ++Levels;
             else
-                Check(*FString::Printf(TEXT("N%d tooltip"), Level), false);
+                Check(TEXT("N1-N20 canonical tooltip profile failed"), false);
         }
-        Check(TEXT("all 20 fixed-level tooltip projections"), Levels == 20);
+        Check(TEXT("All twenty tooltip levels"), Levels == 20);
         LevelsTotal += Levels;
 
-        // Real inventory component roundtrip, without a game world.
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-        Inventory->InitializeDefaultPartyIfNeeded();
-        const bool bRegistered = Inventory->RegisterItemDefinition(Item);
-        Check(TEXT("register real item definition"), bRegistered);
+        UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+        if (!TestNotNull(TEXT("World-bound physical inventory"), Inventory)) continue;
         FGridItemInstance Physical;
         Physical.RuntimeObjectId = FGuid::NewGuid();
-        Physical.ItemDefinitionId = Item->ItemDefinitionId;
+        Physical.ItemDefinitionId = Definition.ItemId;
+        Physical.ItemLevel = 1;
         Physical.Quantity = 1;
-        const bool bAdded = bRegistered &&
-            Inventory->ApplyItemDefinitionToInstance(Physical) &&
+        const bool bAdded = Inventory->ApplyItemDefinitionToInstance(Physical) &&
             Inventory->AddItemToCharacterInventory(0, Physical);
-        Check(TEXT("add to inventory"), bAdded);
+        Check(TEXT("Physical item enters bag"), bAdded);
         int32 Index = INDEX_NONE;
         if (bAdded)
         {
@@ -187,44 +176,40 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
                 if (!Bag[I].IsEmpty() && Bag[I].Item.RuntimeObjectId == Physical.RuntimeObjectId)
                 { Index = I; break; }
         }
-        Check(TEXT("real item in bag"), Index != INDEX_NONE);
+        Check(TEXT("One real bag slot"), Index != INDEX_NONE);
         const bool bEquipped = Index != INDEX_NONE &&
             Inventory->EquipItemFromInventorySlot(0, Index, Slot);
-        Check(TEXT("equip real item"), bEquipped);
+        Check(TEXT("Real canonical equipment transaction"), bEquipped);
         if (bEquipped)
         {
             FGridItemInstance Held;
-            Check(TEXT("physical identity retained"),
+            Check(TEXT("Equipped GUID retained"),
                 Inventory->GetEquippedItem(0, Slot, Held) &&
                 Held.RuntimeObjectId == Physical.RuntimeObjectId);
-            Check(TEXT("two-hand occupancy"), Inventory->IsTwoHandedEquipped(0) == Case.bTwoHand);
+            Check(TEXT("Physical two-hand occupancy"),
+                Inventory->IsTwoHandedEquipped(0) == Case.bTwoHand);
         }
-        const bool bUnequipped = bEquipped &&
-            Inventory->UnequipItemToInventory(0, Slot);
-        Check(TEXT("unequip real item"), bUnequipped);
+        const bool bUnequipped = bEquipped && Inventory->UnequipItemToInventory(0, Slot);
+        Check(TEXT("Real canonical unequip transaction"), bUnequipped);
         if (bUnequipped)
         {
-            int32 Copies = 0;
+            int32 Count = 0;
             for (const FGridInventorySlot& BagSlot :
                 Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots)
-                if (!BagSlot.IsEmpty() &&
-                    BagSlot.Item.RuntimeObjectId == Physical.RuntimeObjectId) ++Copies;
-            Check(TEXT("single physical item after roundtrip"), Copies == 1);
+                if (!BagSlot.IsEmpty() && BagSlot.Item.RuntimeObjectId == Physical.RuntimeObjectId)
+                    ++Count;
+            Check(TEXT("One physical GUID after unequip"), Count == 1);
         }
-
         FString Ammo = TEXT("N_A");
         if (Row->BuildKind == TEXT("Ranged"))
         {
-            Ammo = Item->RequiredAmmunitionItemDefinitionId == FName(TEXT("Item_Arrows_01"))
-                ? TEXT("ARROWS_LINKED_PIE_REQUIRED") : TEXT("BLOCKED_MISSING_ARROWS_LINK");
-            AddInfo(FString::Printf(TEXT("[LOT02.13] %s ammunition: %s"), *Id, *Ammo));
+            Ammo = Definition.Weapon.RequiredAmmoKindId == FName(TEXT("Item_Arrows_01"))
+                ? TEXT("ARROWS_LINKED_PIE_REQUIRED")
+                : TEXT("BLOCKED_MISSING_ARROWS_LINK");
+            Check(TEXT("Canonical bow requires arrows"), Ammo == TEXT("ARROWS_LINKED_PIE_REQUIRED"));
         }
-        Check(TEXT("DataAsset unmodified"), Item->GetOutermost()->IsDirty() == bItemDirty);
         if (bOkay) ++Ready;
-        const FString Status = !bOkay ? TEXT("FAILED") :
-            Ammo == TEXT("BLOCKED_MISSING_ARROWS_LINK")
-               ? TEXT("AUTOMATED_PASS_PIE_BLOCKED_AMMO")
-               : TEXT("AUTOMATED_PASS_PIE_PENDING");
+        const FString Status = bOkay ? TEXT("AUTOMATED_PASS_PIE_PENDING") : TEXT("FAILED");
         Report.Add(FString::Printf(TEXT("%s,%s,%d,%s,%s,%s,%s,%s,%s"),
             *Id, *Row->BuildKind, Levels,
             bAdded ? TEXT("true") : TEXT("false"),
@@ -233,17 +218,16 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
             Case.bThrow ? (bQuick ? TEXT("true") : TEXT("false")) : TEXT("N_A"),
             *Ammo, *Status));
     }
-    TestEqual(TEXT("Exactly eleven authored weapons validated"), Ready, 11);
-    TestEqual(TEXT("220 real N1-N20 tooltip profiles validated"), LevelsTotal, 220);
-    TestEqual(TEXT("RPG catalogue not modified"), Catalogue->GetOutermost()->IsDirty(), bCatalogueDirty);
-    TestEqual(TEXT("Visual catalogue not modified"), Visuals->GetOutermost()->IsDirty(), bVisualDirty);
+    TestEqual(TEXT("Exactly eleven canonical weapon cases"), Ready, 11);
+    TestEqual(TEXT("All 220 N1-N20 weapon tooltips"), LevelsTotal, 220);
     const FString Directory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ARMEMENT-LOT02"));
     IFileManager::Get().MakeDirectory(*Directory, true);
     const FString Output = FPaths::Combine(Directory, TEXT("LOT02_13_ProductionFunctionalMatrix.csv"));
-    TestTrue(TEXT("Export real asset matrix"), FFileHelper::SaveStringArrayToFile(
-        Report, *Output, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
-    AddInfo(FString::Printf(TEXT("[LOT02.13] Assets=%d/11 TooltipLevels=%d/220 PIE=NOT_RUN Report=%s"),
+    TestTrue(TEXT("Export canonical production matrix under Saved"),
+        FFileHelper::SaveStringArrayToFile(
+            Report, *Output, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM));
+    AddInfo(FString::Printf(TEXT("[ARM-CLEAN06] ARM=%d/11 TooltipLevels=%d/220 PIE=NOT_RUN Report=%s"),
         Ready, LevelsTotal, *Output));
-    return true;
+    return !HasAnyErrors();
 }
 #endif

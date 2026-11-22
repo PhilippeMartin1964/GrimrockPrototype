@@ -1,306 +1,105 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "GridEditorCanonicalIconFixture.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
-#include "ARMEMENT/GridArmClean06CompleteProductionPreview.h"
-#include "../ARMEMENT/GridEditorArmHandThrowPlan.h"
-#include "UObject/UnrealType.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/StrongObjectPtr.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
 
-namespace
-{
-	bool SameAuthoredFields(const UObject* Source, const UObject* Loaded)
-	{
-		if (!IsValid(Source) || !IsValid(Loaded) ||
-			Source->GetClass() != Loaded->GetClass()) { return false; }
-		for (TFieldIterator<FProperty> Property(Source->GetClass()); Property; ++Property)
-		{
-			if (!Property->Identical_InContainer(Source, Loaded)) { return false; }
-		}
-		return true;
-	}
-
-	// The source preview deliberately contains only the 19 compact ARM
-	// actions. The persisted single catalogue additionally owns the authored
-	// detailed non-ARM QuickItem actions (06.4U). Compare ALL the original
-	// catalogue UPROPERTY fields, excluding ONLY that new authored collection.
-	// A second dedicated native-action test validates the detailed profiles,
-	// their exact owners, N0 and fail-closed N21.
-	bool SameOriginalCompactActionCatalogue(
-		const UGridActionCatalogueAsset* Source,
-		const UGridActionCatalogueAsset* Loaded)
-	{
-		if (!IsValid(Source) || !IsValid(Loaded) ||
-			Source->GetClass() != Loaded->GetClass() ||
-			!Source->DetailedActions.IsEmpty())
-		{
-			return false;
-		}
-		for (TFieldIterator<FProperty> Property(Source->GetClass()); Property; ++Property)
-		{
-			if (Property->GetFName() ==
-				GET_MEMBER_NAME_CHECKED(UGridActionCatalogueAsset, DetailedActions))
-			{
-				continue;
-			}
-			if (!Property->Identical_InContainer(Source, Loaded))
-			{
-				return false;
-			}
-		}
-		return Source->Actions.Num() == 19 && Loaded->Actions.Num() == 19;
-	}
-}
-
+// The original migration preview compared obsolete 82-archetype workbooks
+// and 23 partial assets. After cutover the only meaningful production proof
+// is the actual, validated four-catalogue 48-item DA_ItemSystem binary.
+// Keep the original Automation test identity for regression continuity.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062YCompleteProductionPreview,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.CompleteProductionPreview23",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.CompleteProductionPreview23",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridClean062YCompleteProductionPreview::RunTest(const FString&)
 {
-	TArray<FGridWeaponPipelineRow> Manifest;
-	FString Error;
-	if (!TestTrue(TEXT("Official manifest includes exactly 22 active ARM"),
-		FGridWeaponPipelineManifest::Load(
-			FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
-	{
-		AddError(Error);
-		return false;
-	}
-	const UGridWeaponCatalogueAsset* Numerics =
-		LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	const UGridWeaponVisualCatalogueAsset* Visuals =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
-		GridEditorCanonicalIconFixture::Create());
-	const UGridItemDefinitionAsset* Arrows =
-		LoadObject<UGridItemDefinitionAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-	if (!TestNotNull(TEXT("Real numbers"), Numerics) ||
-		!TestNotNull(TEXT("Real visual source"), Visuals) ||
-		!TestNotNull(TEXT("Real action icons"), Icons.Get()) ||
-		!TestNotNull(TEXT("Real arrows"), Arrows))
-	{
-		return false;
-	}
-	const bool bNumberDirty = Numerics->GetOutermost()->IsDirty();
-	const bool bVisualDirty = Visuals->GetOutermost()->IsDirty();
-	const bool bIconDirty = Icons->GetOutermost()->IsDirty();
-	const bool bArrowDirty = Arrows->GetOutermost()->IsDirty();
-	TStrongObjectPtr<UGridItemSystemAsset> Candidate(
-		NewObject<UGridItemSystemAsset>(GetTransientPackage()));
-	GridArmClean06CompleteProductionPreview::FSummary Stats;
-	if (!TestTrue(TEXT("Build single transient four-catalogue+ammo+throw preflight"),
-		GridArmClean06CompleteProductionPreview::Build(
-			Manifest, *Numerics, *Visuals, *Icons, *Candidate, Stats)))
-	{
-		return false;
-	}
-	TestEqual(TEXT("22 weapon definitions plus real arrows"), Candidate->ItemDefinitions.Num(), 23);
-	TestEqual(TEXT("All 82 source archetypes"), Stats.Core.Numerics.Archetypes, 82);
-	TestEqual(TEXT("Exact N1-N20 comparisons"), Stats.Core.Numerics.ComparedProfiles, 1640);
-	TestEqual(TEXT("All passive levels"), Stats.Core.Numerics.PassiveProfiles, 260);
-	TestEqual(TEXT("All 22 active hand/type policies proven"), Stats.Core.Numerics.ProvenConcreteArchetypes, 22);
-	TestEqual(TEXT("19 real main-hand attack sources"), Stats.Core.AttacksMainHand, 19);
-	TestEqual(TEXT("2 real off-hand attack sources"), Stats.Core.AttacksOffHand, 2);
-	TestEqual(TEXT("Exactly one authored ammunition type"), Stats.Ammo.CanonicalAmmoDefinitions, 1);
-	TestEqual(TEXT("All real ammo joins accounted for"), Stats.Core.UnmappedAmmunition, 0);
-	TestEqual(TEXT("Exactly three real throwable physics profiles"), Stats.PhysicalThrowProfiles, 3);
-	TestEqual(TEXT("Exactly three matching projectile presentations"), Stats.VisualThrowProfiles, 3);
-	TestEqual(TEXT("All originally unconverted throw physics now accounted for"),
-		Stats.Core.UnconvertedThrowPolicies, 0);
-	TestTrue(TEXT("Final visual catalogue validates"), Stats.bVisualCatalogueValid);
-	TestEqual(TEXT("Only unfinished action bindings may keep the numeric catalogue invalid"),
-		Stats.bWeaponCatalogueValid, Stats.Core.UnboundOffensiveArmaments == 0);
-	TestEqual(TEXT("Unbound offensive candidates explicitly counted"),
-		Stats.Core.UnboundOffensiveArmaments, 19 - Stats.Core.Actions.BoundActions);
-	TestEqual(TEXT("All nineteen authentic attacks are now bound"),
-		Stats.Core.Actions.BoundActions, 19);
-	TestEqual(TEXT("Only fifteen neutral defaults, sharing one canonical profile"),
-		Stats.Core.Actions.NeutralDefaultBindings, 15);
-	TestEqual(TEXT("No action remains without a presentation binding"),
-		Stats.Core.UnboundOffensiveArmaments, 0);
-	TestTrue(TEXT("Real 23-item candidate validates all four catalogues"),
-		Stats.bRegistryValidAfterProjection);
-	TestTrue(TEXT("Preflight is ready for supervised binary authoring, not a runtime cutover"),
-		Stats.ReadyForBinaryCutover());
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Production ItemSystem can be configured"), Fixture.bReady))
+        return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Real canonical root on disk"), Root))
+        return false;
+    const bool bDirty = Root->GetOutermost()->IsDirty();
+    TArray<FString> Errors;
+    TestTrue(TEXT("All four installed catalogues validate"),
+        Root->Validate(Errors));
+    TestTrue(TEXT("Strict production shape/order of 48 canonical definitions"),
+        GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root));
+    TestNotNull(TEXT("The only weapon number source exists"), Root->WeaponCatalogue.Get());
+    TestNotNull(TEXT("The only weapon visual source exists"), Root->WeaponVisualCatalogue.Get());
+    TestNotNull(TEXT("The only compact/detailed action source exists"), Root->ActionCatalogue.Get());
+    TestNotNull(TEXT("The only action presentation source exists"),
+        Root->ActionPresentationCatalogue.Get());
 
-	const FGridCanonicalWeaponArchetype* Knife =
-		Candidate->WeaponCatalogue->Find(FName(TEXT("ARM054")));
-	const FGridCanonicalWeaponVisual* KnifeVisual =
-		Candidate->WeaponVisualCatalogue->FindForArchetype(FName(TEXT("ARM054")));
-	if (!TestNotNull(TEXT("Actual canonical throwing knife numeric view"), Knife) ||
-		!TestNotNull(TEXT("Actual canonical throwing knife visual view"), KnifeVisual))
-	{
-		return false;
-	}
-	TestTrue(TEXT("Throwing knife has separate physical flight policy"), Knife->Projectile.bEnabled);
-	TestTrue(TEXT("Throwing knife has separate visual flight policy"),
-		KnifeVisual->ProjectileAppearance.bEnabled);
+    TArray<FGridWeaponPipelineRow> Manifest;
+    FString Error;
+    if (!TestTrue(TEXT("Production ARM identity manifest parses"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
+    {
+        AddError(Error);
+        return false;
+    }
+    TArray<FName> ItemIds;
+    Fixture.Registry->GetCanonicalItemIds(ItemIds);
+    TestEqual(TEXT("Canonical index holds exactly 48 identities"), ItemIds.Num(), 48);
+    int32 Arms = 0, CompleteProfiles = 0, SpecializedFlights = 0, VisualFlights = 0;
+    for (const FGridWeaponPipelineRow& Row : Manifest)
+    {
+        if (Row.ProductionState != TEXT("Active")) continue;
+        ++Arms;
+        for (int32 Level = 1; Level <= 20; ++Level)
+        {
+            FGridResolvedItem Item;
+            if (!TestTrue(TEXT("Every ARM N1 to N20 resolves with exact physical level"),
+                Fixture.Resolve(FName(Row.ItemDefinitionId), Level, Item)))
+                continue;
+            ++CompleteProfiles;
+            TestTrue(TEXT("No obsolete source supplies the numeric profile"),
+                Item.bIsArmament && Item.ArchetypeId == FName(Row.ArchetypeId));
+            TestTrue(TEXT("One valid visual identity for all ARM levels"),
+                Item.VisualId == FName(Row.VisualId) && !Item.WorldMesh.IsNull());
+            if (Level == 1)
+            {
+                SpecializedFlights += Item.Weapon.Projectile.bEnabled ? 1 : 0;
+                VisualFlights += Item.ProjectileAppearance.bEnabled ? 1 : 0;
+            }
+        }
+    }
+    TestEqual(TEXT("22 active ARM in the canonical registry"), Arms, 22);
+    TestEqual(TEXT("All 440 physical ARM levels present"), CompleteProfiles, 440);
+    TestEqual(TEXT("Three authorized specialized flights"), SpecializedFlights, 3);
+    TestEqual(TEXT("Three authored projectile visual presentations"), VisualFlights, 3);
 
-	GridArmClean06CompleteProductionPreview::FSummary Retry;
-	TestFalse(TEXT("A second pass cannot overwrite an existing canonical registry"),
-		GridArmClean06CompleteProductionPreview::Build(
-			Manifest, *Numerics, *Visuals, *Icons, *Candidate, Retry));
-	TestTrue(TEXT("Numeric source unchanged"), Numerics->GetOutermost()->IsDirty() == bNumberDirty);
-	TestTrue(TEXT("Visual source unchanged"), Visuals->GetOutermost()->IsDirty() == bVisualDirty);
-	TestTrue(TEXT("Action icon source unchanged"), Icons->GetOutermost()->IsDirty() == bIconDirty);
-	TestTrue(TEXT("Real arrow source unchanged"), Arrows->GetOutermost()->IsDirty() == bArrowDirty);
-
-	// The one-shot authoring tool has been retired. Keep the stronger,
-	// permanent test: every real binary UPROPERTY equals its real source
-	// candidate, including all N1..N20 entries, audio and visuals.
-	TStrongObjectPtr<UGridItemSystemAsset> Persisted(LoadObject<UGridItemSystemAsset>(
-		nullptr, TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
-	if (!TestNotNull(TEXT("Real ItemSystem binary exists"), Persisted.Get()))
-	{
-		return false;
-	}
-	TArray<FString> PersistedErrors;
-	TestTrue(TEXT("Persisted canonical root validates after reload"),
-		Persisted->Validate(PersistedErrors));
-	// The original complete preview intentionally knew only three specialized
-	// projectile policies. 5D.3 additionally authors the 19 ordinary hand
-	// toss policies. Rebuild those exact values from the original sources in
-	// the transient candidate, rather than excluding any catalogue property
-	// or copying a value out of the persisted destination under test.
-	int32 AuthoredOrdinary = 0;
-	for (const auto& Entry : Persisted->WeaponCatalogue->Archetypes)
-	{
-		if (Entry.Projectile.bGenericThrowAuthored) ++AuthoredOrdinary;
-	}
-	if (!TestTrue(TEXT("Ordinary native cutover is all or none"),
-		AuthoredOrdinary == 0 || AuthoredOrdinary == GridEditorArmHandThrowPlan::OrdinaryCount))
-	{
-		return false;
-	}
-	if (AuthoredOrdinary == GridEditorArmHandThrowPlan::OrdinaryCount)
-	{
-		int32 ProjectedOrdinary = 0;
-		for (const auto& Row : Manifest)
-		{
-			if (Row.IsThrowable()) continue;
-			const auto* Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-			const FName Arch(*Row.ArchetypeId), VisualId(*Row.VisualId);
-			auto* A = Candidate->WeaponCatalogue->Archetypes.FindByPredicate(
-				[Arch](const auto& Record){ return Record.ArchetypeId == Arch; });
-			auto* V = Candidate->WeaponVisualCatalogue->VisualProfiles.FindByPredicate(
-				[VisualId](const auto& Record){ return Record.VisualId == VisualId; });
-			if (!TestTrue(TEXT("Exact ordinary legacy physical and visual source"),
-				IsValid(Old) && Old->GetPathName() == Row.ItemPath &&
-				Old->ItemDefinitionId == FName(*Row.ItemDefinitionId) && A && V &&
-				GridEditorArmHandThrowPlan::Project(*Old, A->Projectile, V->ProjectileAppearance)))
-			{
-				return false;
-			}
-			++ProjectedOrdinary;
-		}
-		if (!TestEqual(TEXT("All 19 ordinary policies independently projected"), ProjectedOrdinary, AuthoredOrdinary))
-		{
-			return false;
-		}
-	}
-	TestTrue(TEXT("Real weapon number catalogue exactly matches source candidate"),
-		SameAuthoredFields(Candidate->WeaponCatalogue, Persisted->WeaponCatalogue));
-	TestTrue(TEXT("Real weapon visual catalogue exactly matches source candidate"),
-		SameAuthoredFields(Candidate->WeaponVisualCatalogue, Persisted->WeaponVisualCatalogue));
-	TestTrue(TEXT("All 19 original ARM actions exactly match source candidate"),
-		SameOriginalCompactActionCatalogue(
-			Candidate->ActionCatalogue, Persisted->ActionCatalogue));
-	// The detailed QuickItem actions are additional records of the SAME
-	// canonical action catalogue, not another data authority or fallback.
-	TArray<FString> SavedActionErrors;
-	TestTrue(TEXT("Combined canonical action catalogue is valid"),
-		Persisted->ActionCatalogue->Validate(SavedActionErrors));
-	// 06.4V adds ONE exact non-ARM presentation to the EXISTING global
-	// presentation catalogue. The original ARM presentations must remain
-	// bit-identical; only the separately tested DetailedPresentations are new.
-	const UGridActionPresentationCatalogueAsset* OldPresentations =
-		Candidate->ActionPresentationCatalogue;
-	const UGridActionPresentationCatalogueAsset* SavedPresentations =
-		Persisted->ActionPresentationCatalogue;
-	bool bOriginalPresentationParity = IsValid(OldPresentations) &&
-		IsValid(SavedPresentations) &&
-		OldPresentations->GetClass() == SavedPresentations->GetClass() &&
-		OldPresentations->DetailedPresentations.IsEmpty();
-	if (bOriginalPresentationParity)
-	{
-		for (TFieldIterator<FProperty> Property(OldPresentations->GetClass()); Property; ++Property)
-		{
-			if (Property->GetFName() ==
-				GET_MEMBER_NAME_CHECKED(UGridActionPresentationCatalogueAsset, DetailedPresentations))
-			{
-				continue;
-			}
-			if (!Property->Identical_InContainer(OldPresentations, SavedPresentations))
-			{
-				bOriginalPresentationParity = false;
-				break;
-			}
-		}
-	}
-	TestTrue(TEXT("All original ARM presentations exactly match source candidate"),
-		bOriginalPresentationParity);
-	// This test proves the original 23 ARM/ammo definitions. The real
-	// registry may also contain additional, separately checked non-ARM
-	// definitions after a native Editor materialization; never reject them
-	// merely because the historical preview had only 23 entries.
-	if (!TestTrue(TEXT("Real canonical root retains baseline definitions"),
-		Persisted->ItemDefinitions.Num() >= Candidate->ItemDefinitions.Num() &&
-		GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Persisted.Get())))
-	{
-		return false;
-	}
-	// 5G71: exactly one of the original 23 is non-ARM. Rebuild the
-	// proved category from the ORIGINAL arrow source, not the saved
-	// destination. Keep SameAuthoredFields strict for all 23 definitions.
-	int32 NativeCategories = 0;
-	for (const auto& Definition : Persisted->ItemDefinitions)
-		NativeCategories += GridCanonicalPuzzleCategoryTags::CountReserved(Definition->Tags);
-	if (!TestTrue(TEXT("Native puzzle categories are all or none"), NativeCategories == 0 || NativeCategories == 26))
-		return false;
-	if (NativeCategories == 26)
-	{
-		int32 Projected = 0;
-		for (auto& Definition : Candidate->ItemDefinitions)
-		{
-			if (Definition->IsA<UGridArmamentDefinitionAsset>()) continue;
-			if (!TestTrue(TEXT("Only original arrows receive the independently proved category"),
-				Definition->IsA<UGridAmmoDefinitionAsset>() &&
-				Definition->ItemId == Arrows->ItemDefinitionId && Arrows->ItemType == EGridItemType::Misc &&
-				GridCanonicalPuzzleCategoryTags::CountReserved(Definition->Tags) == 0))
-				return false;
-			Definition->Tags.Add(GridCanonicalPuzzleCategoryTags::ForType(FName(TEXT("Misc"))));
-			++Projected;
-		}
-		if (!TestEqual(TEXT("One original non-ARM category projected"), Projected, 1)) return false;
-	}
-	for (int32 Index = 0; Index < Candidate->ItemDefinitions.Num(); ++Index)
-	{
-		TestTrue(TEXT("Real item definition has identical authored fields"),
-			SameAuthoredFields(Candidate->ItemDefinitions[Index], Persisted->ItemDefinitions[Index]));
-	}
-	TestTrue(TEXT("Persistent parity check did not dirty numeric source"),
-		Numerics->GetOutermost()->IsDirty() == bNumberDirty);
-	TestTrue(TEXT("Persistent parity check did not dirty visual source"),
-		Visuals->GetOutermost()->IsDirty() == bVisualDirty);
-
-	AddInfo(FString::Printf(TEXT(
-		"ARM 06.2Y: 22 weapons + 1 real ammo, 82/1640/260 numeric proof; "
-		"%d real action bindings, %d unbound attacks, %d arrow links, "
-		"3 complete throw physics and 3 visual profiles; "
-		"binary cutover=%s. No assets written."),
-		Stats.Core.Actions.BoundActions,
-		Stats.Core.UnboundOffensiveArmaments,
-		Stats.Ammo.WeaponAmmoReferences,
-		Stats.ReadyForBinaryCutover() ? TEXT("ready for supervised authoring") : TEXT("refused")));
-	return Stats.ReadyForBinaryCutover() &&
-		Stats.Core.UnmappedAmmunition == 0 &&
-		Stats.Core.UnconvertedThrowPolicies == 0;
+    int32 NonArms = 0;
+    for (FName Id : ItemIds)
+    {
+        FGridResolvedItem N0;
+        if (Fixture.Resolve(Id, 0, N0))
+        {
+            ++NonArms;
+            TestFalse(TEXT("N0 cannot masquerade as an ARM"), N0.bIsArmament);
+            TestTrue(TEXT("NonARM ID keeps one physical level"), N0.ItemLevel == 0);
+        }
+    }
+    TestEqual(TEXT("All 26 non-ARM sources are present"), NonArms, 26);
+    TestEqual(TEXT("Exactly 48 persisted source definitions"),
+        Root->ItemDefinitions.Num(), 48);
+    TestEqual(TEXT("Nineteen compact ARM action definitions"),
+        Root->ActionCatalogue->Actions.Num(), 19);
+    TestEqual(TEXT("Fourteen explicit detailed N0 actions"),
+        Root->ActionCatalogue->DetailedActions.Num(), 14);
+    TestEqual(TEXT("No native audit mutated canonical binary"),
+        Root->GetOutermost()->IsDirty(), bDirty);
+    FGridResolvedItem Rejected;
+    TestFalse(TEXT("No invented N21 ARM level"),
+        Fixture.Registry->ResolveItem(TEXT("Weapon_ThrowingKnife_01"), 21, Rejected));
+    TestFalse(TEXT("No unknown historical ItemId silently materialized"),
+        Fixture.Registry->ResolveItem(TEXT("Not_An_Authored_Item"), 0, Rejected));
+    return !HasAnyErrors();
 }
 
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS
