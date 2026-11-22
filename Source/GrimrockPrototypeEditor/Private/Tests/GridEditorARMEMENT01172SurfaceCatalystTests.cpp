@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridEditorCanonicalStarterTestWorld.h"
-#include "RPG/RPGStartingSurfaceCatalystAuthoring.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
@@ -11,39 +10,46 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172CatalystContract,
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT01172CatalystContract::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	FRPGStartingSurfaceCatalystAuthoring::Configure(*Item);
-	if (!TestTrue(TEXT("N1 catalyst has a genuine validated item definition"),
-		FRPGStartingSurfaceCatalystAuthoring::Matches(*Item))) return false;
-	FGridCombatActionDefinition Action;
-	if (!TestTrue(TEXT("Canonical QuickItem action resolves"),
-		Item->BuildQuickItemCombatActionDefinition(Action))) return false;
-	TestEqual(TEXT("Uses one physical item"), Action.ResourceCosts.SourceItemQuantityCost, 1);
-	TestEqual(TEXT("Costs 2 AP in combat"), Action.ActionPointCost, 2);
-	TestEqual(TEXT("Range 4"), Action.RangeCells, 4);
-	TestTrue(TEXT("Square Area1 radius with neutral-cell acceptance and LOS"),
-		Action.TargetingPolicy == EGridCombatTargetingPolicy::Area &&
-		Action.AreaRadiusCells == 1 && Action.AreaShape == EGridCombatAreaShape::Square &&
-		Action.bAllowNoSurfaceReaction && Action.bUsableDuringExploration &&
-		Action.bRequiresLineOfSight);
-	TestTrue(TEXT("Fire interaction, no surface generation or talent action"),
-		Action.SurfaceInteraction == EGridCombatSurfaceInteraction::Fire &&
-		Action.SurfaceEffects.IsEmpty() && Action.SurfaceConversions.IsEmpty() &&
-		Action.ActionId != FName(TEXT("Action_Mage_ElementalConversion")) &&
-		Action.ActionId != FName(TEXT("Action_Alchemist_Catalyst")));
-
-	FGridCombatSurfaceState Oil;
-	Oil.SurfaceType = EGridCombatSurfaceType::Oil;
-	Oil.RemainingRounds = 4;
-	FGridCombatSurfaceReactionResult Reaction;
-	const FGridResolvedCombatModifiers None;
-	TestTrue(TEXT("Catalyst on existing oil triggers canonical Fire reaction"),
-		FGridCombatSurfaceResolver::ResolveReaction(Oil, Action.SurfaceInteraction, None, Reaction));
-	TestEqual(TEXT("Oil becomes Fire"), Reaction.OutputSurfaceType, EGridCombatSurfaceType::Fire);
-	Oil.SurfaceType = EGridCombatSurfaceType::Water;
-	TestFalse(TEXT("Catalyst cannot ignite neutral water"),
-		FGridCombatSurfaceResolver::ResolveReaction(Oil, Action.SurfaceInteraction, None, Reaction));
-	return true;
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("Canonical ItemSystem configured"), Fixture.Ready()))
+        return false;
+    FGridResolvedItem Item;
+    if (!TestTrue(TEXT("Canonical N0 catalyst exists"),
+        Fixture.Registry->ResolveItem(TEXT("Item_SurfaceCatalyst_01"), 0, Item)))
+        return false;
+    FGridCombatActionDefinition Action;
+    if (!TestTrue(TEXT("Detailed action from single registry"),
+        Fixture.Registry->ResolveDetailedNonArmAction(
+            Item.ItemId, 0, TEXT("Action_Mage_SurfaceCatalyst_01"), Action)))
+        return false;
+    TestEqual(TEXT("One physical catalyst consumed"), Action.ResourceCosts.SourceItemQuantityCost, 1);
+    TestEqual(TEXT("Two action points"), Action.ActionPointCost, 2);
+    TestEqual(TEXT("Authored four-cell range"), Action.RangeCells, 4);
+    TestTrue(TEXT("Square Area1 with neutral-cell acceptance and LOS"),
+        Action.TargetingPolicy == EGridCombatTargetingPolicy::Area &&
+        Action.AreaRadiusCells == 1 &&
+        Action.AreaShape == EGridCombatAreaShape::Square &&
+        Action.bAllowNoSurfaceReaction && Action.bUsableDuringExploration &&
+        Action.bRequiresLineOfSight);
+    TestTrue(TEXT("Pure Fire reaction, no invented surface or talent"),
+        Action.SurfaceInteraction == EGridCombatSurfaceInteraction::Fire &&
+        Action.SurfaceEffects.IsEmpty() && Action.SurfaceConversions.IsEmpty() &&
+        Action.ActionId != FName(TEXT("Action_Mage_ElementalConversion")) &&
+        Action.ActionId != FName(TEXT("Action_Alchemist_Catalyst")));
+    FGridCombatSurfaceState Oil;
+    Oil.SurfaceType = EGridCombatSurfaceType::Oil;
+    Oil.RemainingRounds = 4;
+    FGridCombatSurfaceReactionResult Reaction;
+    const FGridResolvedCombatModifiers None;
+    TestTrue(TEXT("Catalyst ignites oil from canonical action"),
+        FGridCombatSurfaceResolver::ResolveReaction(
+            Oil, Action.SurfaceInteraction, None, Reaction));
+    TestEqual(TEXT("Oil turns to Fire"), Reaction.OutputSurfaceType, EGridCombatSurfaceType::Fire);
+    Oil.SurfaceType = EGridCombatSurfaceType::Water;
+    TestFalse(TEXT("Catalyst cannot ignite neutral water"),
+        FGridCombatSurfaceResolver::ResolveReaction(
+            Oil, Action.SurfaceInteraction, None, Reaction));
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172CatalystProductionAsset,

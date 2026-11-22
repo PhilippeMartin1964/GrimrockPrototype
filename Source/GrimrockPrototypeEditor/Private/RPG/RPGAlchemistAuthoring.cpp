@@ -244,39 +244,6 @@ namespace RPGAlchemistAuthoring
 		return true;
 	}
 
-	UGridItemDefinitionAsset* FindOrCreateItem(FName ItemDefinitionId, FString& OutError)
-	{
-		if (ItemDefinitionId.IsNone())
-		{
-			OutError = TEXT("Cannot author an empty Alchemist item id.");
-			return nullptr;
-		}
-		const FString AssetName = FString::Printf(TEXT("DA_%s"), *ItemDefinitionId.ToString());
-		const FString PackageName =
-			FString::Printf(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/%s"), *AssetName);
-		if (FPackageName::DoesPackageExist(PackageName))
-		{
-			const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemDefinitionId);
-			if (UGridItemDefinitionAsset* Existing = LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath))
-			{
-				return Existing;
-			}
-			OutError = FString::Printf(TEXT("Existing Alchemist item package could not load expected asset: %s"), *ObjectPath);
-			return nullptr;
-		}
-
-		UPackage* Package = CreatePackage(*PackageName);
-		UGridItemDefinitionAsset* Created = Package
-			? NewObject<UGridItemDefinitionAsset>(Package, *AssetName, RF_Public | RF_Standalone | RF_Transactional)
-			: nullptr;
-		if (!Created)
-		{
-			OutError = FString::Printf(TEXT("Failed to create Alchemist item '%s'."), *AssetName);
-			return nullptr;
-		}
-		FAssetRegistryModule::AssetCreated(Created);
-		return Created;
-	}
 
 	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
 	{
@@ -944,21 +911,13 @@ bool FRPGAlchemistAuthoring::AuthorProductionAssets(FString& OutError)
     }
     if (!PlanUnregisteredItems(*Registry.Get(), ItemIds, OutError)) return false;
 
-	TArray<UGridItemDefinitionAsset*> Items;
-	for (const FName ItemId : ItemIds)
+	// All eleven Alchemist items now belong to DA_ItemSystem. A registry
+	// missing any of them is incomplete, not permission to rebuild DA_Item_*
+	// source assets. No legacy package may be created or modified here.
+	if (!ItemIds.IsEmpty())
 	{
-		UGridItemDefinitionAsset* Item = FindOrCreateItem(ItemId, OutError);
-		if (!IsValid(Item))
-		{
-			return false;
-		}
-		Item->Modify();
-		if (!ConfigureItem(*Item, ItemId))
-		{
-			OutError = FString::Printf(TEXT("No valid Alchemist item authoring definition for '%s'."), *ItemId.ToString());
-			return false;
-		}
-		Items.Add(Item);
+		OutError = TEXT("The canonical Alchemist ItemSystem is incomplete; legacy item authoring is retired.");
+		return false;
 	}
 
 	TArray<FName> StatusIds;
@@ -992,13 +951,6 @@ bool FRPGAlchemistAuthoring::AuthorProductionAssets(FString& OutError)
 		return false;
 	}
 
-	for (UGridItemDefinitionAsset* Item : Items)
-	{
-		if (!SaveAuthoredAsset(Item, OutError))
-		{
-			return false;
-		}
-	}
 	for (UGridStatusEffectDefinitionAsset* Status : Statuses)
 	{
 		if (!SaveAuthoredAsset(Status, OutError))

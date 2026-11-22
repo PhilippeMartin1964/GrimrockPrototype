@@ -32,34 +32,9 @@ $Branch = (& git -C $RepoRoot branch --show-current).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire la branche Git courante.' }
 if ($Branch -ne 'master') { throw "RPG03.9.6C doit etre authore sur master. Branche courante : $Branch" }
 
-# ARMEMENT01.15: additional mode of the established authoring entry point.
-# Unlike full Alchemist authoring this touches ONLY ST_UI and one NEW potion package.
-if ($StartingHealthPotion)
-{
-    if (-not $Apply) { throw 'StartingHealthPotion requires explicit -Apply.' }
-    Write-Host '=== ARMEMENT01.15 - N1 starting healing potion ==='
-    & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipAutomation
-    if ($LASTEXITCODE -ne 0 -or -not $?) { throw 'Editor build failed.' }
-
-    $SharedArguments = @($ProjectFile, '-Unattended', '-NoSplash', '-NoP4', '-NoSound', '-NullRHI', '-log')
-    & $EditorCmd @SharedArguments '-run=UIStringTableAuthoring'
-    if ($LASTEXITCODE -ne 0) { throw 'ST_UI source synchronization failed.' }
-
-    & $EditorCmd @SharedArguments '-run=RPGAlchemistAuthoring' '-StartingHealthPotion' '-Apply'
-    if ($LASTEXITCODE -ne 0) { throw 'N1 healing potion authoring failed.' }
-
-    if (-not $SkipAutomation)
-    {
-        & (Join-Path $PSScriptRoot 'ValidateUE.ps1') -EngineRoot $EngineRoot -SkipBuild `
-            -AutomationFilter 'Grimrock.RPG.ARMEMENT01.15.HealthPotion'
-        if ($LASTEXITCODE -ne 0 -or -not $?) { throw 'N1 healing potion validation failed.' }
-    }
-    Write-Host '[OK] ARMEMENT01.15 potion authoring completed.'
-    Write-Host 'Expected local packages: ST_UI.uasset and DA_Item_Potion_Healing_01.uasset.'
-    & git -C $RepoRoot status --short
-    return
-}
-if ($Apply) { throw '-Apply is only supported with -StartingHealthPotion.' }
+# The old potion writer was retired after canonical ItemSystem cutover.
+if ($StartingHealthPotion) { throw 'Retire : DA_Item_Potion_Healing_01 est desormais gere par DA_ItemSystem.' }
+if ($Apply) { throw '-Apply legacy n est plus accepte pour AuthorRPGAlchemist.' }
 
 $GitStatusBefore = @(& git -C $RepoRoot status --short)
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire git status.' }
@@ -94,7 +69,7 @@ if ($ExitCode -ne 0)
     throw "RPGAlchemistAuthoring a echoue avec le code $ExitCode."
 }
 
-Write-Host '[OK] DA_Class_Alchemist, 11 QuickItems and 6 Alchemist status assets authored through Unreal Editor.'
+Write-Host '[OK] DA_Class_Alchemist and status assets authored; ItemSystem/QuickItems not modified.'
 
 if (-not $SkipAutomation)
 {
@@ -105,4 +80,4 @@ Write-Host ''
 Write-Host '=== Generated changes ==='
 & git -C $RepoRoot status --short --untracked-files=all
 if ($LASTEXITCODE -ne 0) { throw 'Impossible de lire le git status final.' }
-Write-Host 'Expected binaries: DA_Class_Alchemist + 11 Alchemist QuickItems + 6 Alchemist statuses. DA_Status_Burning is shared and must remain unchanged.'
+Write-Host 'Expected binaries: DA_Class_Alchemist and Alchemist status assets only. DA_ItemSystem and historical DA_Item_* remain untouched.'

@@ -1,8 +1,6 @@
 #include "RPG/RPGAlchemistAuthoringCommandlet.h"
 
 #include "RPG/RPGAlchemistAuthoring.h"
-#include "RPG/RPGStartingHealthPotionAuthoring.h"
-#include "RPG/RPGStartingSurfaceCatalystAuthoring.h"
 #include "Misc/Parse.h"
 
 URPGAlchemistAuthoringCommandlet::URPGAlchemistAuthoringCommandlet()
@@ -16,26 +14,13 @@ URPGAlchemistAuthoringCommandlet::URPGAlchemistAuthoringCommandlet()
 int32 URPGAlchemistAuthoringCommandlet::Main(const FString& Params)
 {
 	FString Error;
-	if (FParse::Param(*Params, TEXT("StartingHealthPotion")))
+	// Historical item authoring can no longer write DA_Item_* packages.
+	// This commandlet remains for the separate class/status authoring path.
+	if (FParse::Param(*Params, TEXT("StartingHealthPotion")) ||
+		FParse::Param(*Params, TEXT("StartingSurfaceCatalyst")))
 	{
-		const bool bApply = FParse::Param(*Params, TEXT("Apply"));
-		if (!FRPGStartingHealthPotionAuthoring::Run(bApply, Error))
-		{
-			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.15] Starting health potion authoring failed: %s"), *Error);
-			return 1;
-		}
-		return 0;
-	}
-
-	if (FParse::Param(*Params, TEXT("StartingSurfaceCatalyst")))
-	{
-		const bool bApply = FParse::Param(*Params, TEXT("Apply"));
-		if (!FRPGStartingSurfaceCatalystAuthoring::Run(bApply, Error))
-		{
-			UE_LOG(LogTemp, Error, TEXT("[ARMEMENT01.17.2] Surface catalyst authoring failed: %s"), *Error);
-			return 1;
-		}
-		return 0;
+		UE_LOG(LogTemp, Error, TEXT("Legacy item-authoring modes were retired; configure DA_ItemSystem instead."));
+		return 1;
 	}
 
 	if (!FRPGAlchemistAuthoring::AuthorProductionAssets(Error))

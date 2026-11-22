@@ -4,7 +4,6 @@
 #include "GridEditorCanonicalStarterTestWorld.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "RPG/RPGStartingHealthPotionAuthoring.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -50,28 +49,34 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0115AuthoringContract,
 
 bool FARMEMENT0115AuthoringContract::RunTest(const FString&)
 {
-    UGridItemDefinitionAsset* Potion = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-    FRPGStartingHealthPotionAuthoring::Configure(*Potion);
-    if (!TestTrue(TEXT("Approved transient potion definition is valid"),
-        FRPGStartingHealthPotionAuthoring::Matches(*Potion))) return false;
-
-    TestEqual(TEXT("Potion restores 20 health"), Potion->QuickItemCombatAction.EffectProfile.RestoreHealth, 20);
-    TestEqual(TEXT("Potion costs one AP"), Potion->QuickItemCombatAction.ActionPointCost, 1);
-    TestTrue(TEXT("Potion contains positive potion tag"), Potion->ItemTags.Contains(TEXT("QuickItem.Potion.Positive")));
+    FGridEditorCanonicalStarterTestWorld Fixture;
+    if (!TestTrue(TEXT("Real ItemSystem configured for potion"), Fixture.Ready()))
+        return false;
+    FGridResolvedItem Potion;
+    if (!TestTrue(TEXT("One canonical N0 healing potion"),
+        Fixture.Registry->ResolveItem(TEXT("Item_Potion_Healing_01"), 0, Potion)))
+        return false;
+    TestTrue(TEXT("Canonical positive-potion tag"),
+        Potion.Tags.Contains(TEXT("QuickItem.Potion.Positive")));
+    if (!TestEqual(TEXT("One authored N0 use binding"),
+        Potion.AvailableActions.Num(), 1))
+        return false;
     FGridCombatActionDefinition Action;
-    if (!TestTrue(TEXT("QuickItem is executable by canonical builder"),
-        Potion->BuildInventoryCombatActionDefinition(Action))) return false;
-    TestEqual(TEXT("Uses item-backed stable action identity"), Action.ActionId,
-        FName(TEXT("Use_Item_Potion_Healing_01")));
-    TestEqual(TEXT("Consumable quantity is one"), Action.ResourceCosts.SourceItemQuantityCost, 1);
-    TestEqual(TEXT("No talent grant or skill bonus is baked into potion"),
+    if (!TestTrue(TEXT("Detailed canonical heal action resolves"),
+        Fixture.Registry->ResolveDetailedNonArmAction(
+            Potion.ItemId, 0, Potion.AvailableActions[0].ActionId, Action)))
+        return false;
+    TestEqual(TEXT("Heal restores 20"), Action.EffectProfile.RestoreHealth, 20);
+    TestEqual(TEXT("One AP"), Action.ActionPointCost, 1);
+    TestEqual(TEXT("One physical potion consumed"),
+        Action.ResourceCosts.SourceItemQuantityCost, 1);
+    TestEqual(TEXT("No passive skill boost baked in"),
         Action.QuickItemScaling.RestoreHealthSkillRankScale, 0);
 
-    FGridCombatActionContribution Contribution;
-    Contribution.Definition = Action;
-    Contribution.SourceDefinitionId = Potion->ItemDefinitionId;
-    Contribution.AvailableSourceQuantity = 1;
-
+    FGridCombatActionContribution Source;
+    Source.Definition = Action;
+    Source.SourceDefinitionId = Potion.ItemId;
+    Source.AvailableSourceQuantity = 1;
     FGridCombatActionCatalogContext Context;
     Context.CharacterIndex = 0;
     Context.CharacterId = FGuid::NewGuid();
@@ -82,21 +87,23 @@ bool FARMEMENT0115AuthoringContract::RunTest(const FString&)
     Context.CurrentHealth = 5;
     Context.MaximumHealth = 30;
     TArray<FGridAvailableCombatAction> Actions;
-    FGridCombatActionCatalog::Build(Context, { Contribution }, Actions);
-    if (!TestEqual(TEXT("Healing action exists at low health"), Actions.Num(), 1)) return false;
-    TestTrue(TEXT("Healing available while wounded"), Actions[0].bEnabled);
-
+    FGridCombatActionCatalog::Build(Context, {Source}, Actions);
+    if (!TestEqual(TEXT("Healing listed when wounded"), Actions.Num(), 1))
+        return false;
+    TestTrue(TEXT("Healing enabled while wounded"), Actions[0].bEnabled);
     Context.CurrentHealth = Context.MaximumHealth;
-    FGridCombatActionCatalog::Build(Context, { Contribution }, Actions);
-    if (!TestEqual(TEXT("Healing action still listed at full health"), Actions.Num(), 1)) return false;
-    TestEqual(TEXT("No healing or consumption at maximum health"), Actions[0].AvailabilityReason,
-        EGridCombatActionAvailabilityReason::NoApplicableEffect);
+    FGridCombatActionCatalog::Build(Context, {Source}, Actions);
+    if (!TestEqual(TEXT("Healing still displayed at full HP"), Actions.Num(), 1))
+        return false;
+    TestEqual(TEXT("Full HP prevents wasting potion"),
+        Actions[0].AvailabilityReason, EGridCombatActionAvailabilityReason::NoApplicableEffect);
     Context.CurrentHealth = 5;
-    Contribution.AvailableSourceQuantity = 0;
-    FGridCombatActionCatalog::Build(Context, { Contribution }, Actions);
-    if (!TestEqual(TEXT("Potion action still listed without a potion"), Actions.Num(), 1)) return false;
-    TestFalse(TEXT("Cannot consume absent potion"), Actions[0].bEnabled);
-    return true;
+    Source.AvailableSourceQuantity = 0;
+    FGridCombatActionCatalog::Build(Context, {Source}, Actions);
+    if (!TestEqual(TEXT("Action remains listed with no physical potion"), Actions.Num(), 1))
+        return false;
+    TestFalse(TEXT("No quantity, no use"), Actions[0].bEnabled);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0115ProductionKits,
