@@ -1,8 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "../ARMEMENT/GridEditorNativeStoneLootPlan.h"
-#include "Engine/GameInstance.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterLootResolver.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X60StonePlan,
     "Grimrock.RPG.ARM.CLEAN06_4X60.NativeStoneLootPlan",
@@ -10,52 +10,55 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X60StonePlan,
 
 bool FGridEditorARMCLEAN064X60StonePlan::RunTest(const FString&)
 {
-    using FPlan = FGridEditorNativeStoneLootPlan;
-    TStrongObjectPtr<UGridItemSystemAsset> Root(LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem")));
-    TStrongObjectPtr<UGridMonsterDefinitionAsset> Goblin(LoadObject<UGridMonsterDefinitionAsset>(nullptr, FPlan::MonsterPath(0)));
-    TStrongObjectPtr<UGridMonsterDefinitionAsset> Rat(LoadObject<UGridMonsterDefinitionAsset>(nullptr, FPlan::MonsterPath(1)));
-    if (!TestNotNull(TEXT("Canonical root"), Root.Get()) ||
-        !TestNotNull(TEXT("Goblin source"), Goblin.Get()) ||
-        !TestNotNull(TEXT("Rat source"), Rat.Get())) return false;
-    const bool bRootDirty = Root->GetOutermost()->IsDirty();
+    FGridCanonicalRegistryFixture Fixture;
+    UGridMonsterDefinitionAsset* Goblin = LoadObject<UGridMonsterDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Monsters/GoblinThrower/Data/DA_MON_GoblinThrower.DA_MON_GoblinThrower"));
+    UGridMonsterDefinitionAsset* Rat = LoadObject<UGridMonsterDefinitionAsset>(nullptr,
+        TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+    if (!TestTrue(TEXT("Installed 48-item ItemSystem"), Fixture.bReady) ||
+        !TestNotNull(TEXT("Real Goblin authoring"), Goblin) ||
+        !TestNotNull(TEXT("Real Rat authoring"), Rat))
+        return false;
     const bool bGoblinDirty = Goblin->GetOutermost()->IsDirty();
     const bool bRatDirty = Rat->GetOutermost()->IsDirty();
-    TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
-    TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
-    TArray<FString> Errors;
-    if (!TestTrue(TEXT("Real registry configured"), Registry->RegisterItemSystem(Root.Get(), Errors))) return false;
-    TArray<FGridMonsterLootEntry> Plan;
-    int32 Old = INDEX_NONE;
-    FString Error;
-    const bool bPlanned = FPlan::TryBuild(*Goblin.Get(), *Rat.Get(), Registry.Get(), Plan, Old, Error);
-    if (!TestTrue(*FString::Printf(TEXT("Exact native Stone projection: %s"), *Error), bPlanned) ||
-        !TestEqual(TEXT("No historical pointer state remains"), Old, 0) ||
-        !TestEqual(TEXT("Three goblin entries"), Plan.Num(), 3)) return false;
-    auto Expected = Goblin->LootTable;
-    Expected[1].ItemDefinitionId = TEXT("Stone");
-    if (!TestTrue(TEXT("All reflected loot fields except approved identity pair unchanged"),
-            FPlan::SameTable(Expected, Plan)) ||
-        !TestTrue(TEXT("128 deterministic seeds preserve every roll"), FPlan::SameRolls(Goblin->LootTable, Plan)) ||
-        !TestFalse(TEXT("Normalized full monster manifest exists"), FPlan::Export(*Goblin.Get(), &Plan).IsEmpty()))
+    if (!TestEqual(TEXT("Goblin has three loot rows"), Goblin->LootTable.Num(), 3) ||
+        !TestEqual(TEXT("Rat has two loot rows"), Rat->LootTable.Num(), 2))
         return false;
-    auto Altered = Plan;
-    Altered[1].DropChance = 0.f;
-    if (!TestFalse(TEXT("Probability modification detected"), FPlan::SameTable(Altered, Plan))) return false;
-    int32 Level = INDEX_NONE;
-    Altered = Plan;
-    Altered[1].ItemLevel = 1;
-    if (!TestFalse(TEXT("Stone N1 refused"),
-            FGridMonsterLootResolver::TryResolveItemLevel(Altered[1], Level, Registry.Get()))) return false;
-    // Source evidence is read-only; the remaining four can only be registered as one complete X.61 cutover.
-    for (int32 Index = 0; Index < 5; ++Index)
+    const FName Expected[] = {
+        TEXT("GoblinKnife"), TEXT("Stone"), TEXT("EmptyVial"),
+        TEXT("Item_RatMeat"), TEXT("Item_RatTooth")
+    };
+    for (int32 I = 0; I < UE_ARRAY_COUNT(Expected); ++I)
     {
-        const auto* Source = FPlan::LoadSource(Index);
-        if (!TestNotNull(TEXT("Exact legacy evidence source"), Source) ||
-            !TestFalse(TEXT("Complete source export"), FPlan::Export(*Source).IsEmpty())) return false;
+        const FGridMonsterLootEntry& Row = I < 3 ?
+            Goblin->LootTable[I] : Rat->LootTable[I-3];
+        TestEqual(TEXT("Exactly canonical loot ItemId"), Row.GetResolvedItemDefinitionId(), Expected[I]);
+        TestTrue(TEXT("Direct N0 loot row validates"), Row.IsValidDefinition());
+        TestEqual(TEXT("Physical level is N0"), Row.ItemLevel, 0);
+        FGridResolvedItem Real;
+        TestTrue(TEXT("Item source lives in ItemSystem"),
+            Fixture.Resolve(Row.GetResolvedItemDefinitionId(), 0, Real) &&
+            !Real.bIsArmament);
+        int32 Level = INDEX_NONE;
+        TestTrue(TEXT("Loot resolver uses physical level N0"),
+            FGridMonsterLootResolver::TryResolveItemLevel(Row, Level, Fixture.Registry.Get()) &&
+            Level == 0);
     }
-    return TestEqual(TEXT("Registry read-only"), Root->GetOutermost()->IsDirty(), bRootDirty) &&
-        TestEqual(TEXT("Goblin read-only"), Goblin->GetOutermost()->IsDirty(), bGoblinDirty) &&
-        TestEqual(TEXT("Rat read-only"), Rat->GetOutermost()->IsDirty(), bRatDirty);
+    TestEqual(TEXT("Approved Goblin monster XP"), Goblin->ExperienceReward, 125);
+    TestEqual(TEXT("Approved Rat monster XP"), Rat->ExperienceReward, 500);
+    TestTrue(TEXT("Goblin Stone chance remains one half"),
+        FMath::IsNearlyEqual(Goblin->LootTable[1].DropChance, 0.5f));
+    FGridMonsterLootEntry BadStone = Goblin->LootTable[1];
+    BadStone.ItemLevel = 1;
+    int32 BadLevel = INDEX_NONE;
+    TestFalse(TEXT("Stone cannot be promoted to ARM N1"),
+        FGridMonsterLootResolver::TryResolveItemLevel(BadStone, BadLevel, Fixture.Registry.Get()));
+    TestNull(TEXT("Historical loot pointer field absent"),
+        FGridMonsterLootEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
+    TestEqual(TEXT("Goblin native package unchanged"),
+        Goblin->GetOutermost()->IsDirty(), bGoblinDirty);
+    TestEqual(TEXT("Rat native package unchanged"),
+        Rat->GetOutermost()->IsDirty(), bRatDirty);
+    return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS

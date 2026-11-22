@@ -1,90 +1,91 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
-#include "UObject/StrongObjectPtr.h"
-#include "Runtime/Items/GridCanonicalItemCatalogues.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "../ARMEMENT/GridArmClean064X37ArmWorldProfileProjection.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
 
+// Historical X.37 is complete. Keep the Automation identity, but verify
+// persisted canonical visuals/physics rather than reproject 22 old assets.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X37WorldPresentationProjection,
     "Grimrock.RPG.ARM.CLEAN06_4X37.NativeArmWorldProfileStaging",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
 bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString&)
 {
-    UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/CanonicalStage/DA_ItemSystem.DA_ItemSystem"));
-    if (!TestNotNull(TEXT("Real canonical ItemSystem"), Root) ||
-        !TestNotNull(TEXT("Real weapon visual catalogue"), Root->WeaponVisualCatalogue.Get()) ||
-        !TestNotNull(TEXT("Real weapon catalogue"), Root->WeaponCatalogue.Get()))
-    {
+    FGridCanonicalRegistryFixture Fixture;
+    if (!TestTrue(TEXT("Only canonical ItemSystem configured"), Fixture.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Canonical native root"), Root) ||
+        !TestNotNull(TEXT("Native visuals"), Root->WeaponVisualCatalogue.Get()) ||
+        !TestNotNull(TEXT("Native weapon numbers"), Root->WeaponCatalogue.Get()))
         return false;
-    }
-    if (!TestTrue(TEXT("Exact 34/38 registry shape"), GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root)))
-        return false;
-    // Keep the obsolete X.37 commandlet's exact historical guard intact.
-    // The test uses a transient view of the original 34 and the SAME real catalogues.
-    TStrongObjectPtr<UGridItemSystemAsset> Historical;
-    if (Root->ItemDefinitions.Num() >= 38)
-    {
-        Historical.Reset(NewObject<UGridItemSystemAsset>());
-        Historical->WeaponCatalogue = Root->WeaponCatalogue;
-        Historical->WeaponVisualCatalogue = Root->WeaponVisualCatalogue;
-        Historical->ActionCatalogue = Root->ActionCatalogue;
-        Historical->ActionPresentationCatalogue = Root->ActionPresentationCatalogue;
-        Historical->ItemDefinitions = Root->ItemDefinitions;
-        Historical->ItemDefinitions.SetNum(34);
-        Root = Historical.Get();
-    }
+    TestTrue(TEXT("Final shape is 48 items, not obsolete 34/38"),
+        GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root));
     const bool bVisualDirty = Root->WeaponVisualCatalogue->GetOutermost()->IsDirty();
-    const bool bWeaponDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();
+    const bool bNumericDirty = Root->WeaponCatalogue->GetOutermost()->IsDirty();
 
-    ARMCLEAN064X37::FPlan Plan;
+    TArray<FGridWeaponPipelineRow> Rows;
     FString Error;
-    if (!TestTrue(TEXT("All 22 sources join by exact ItemId, ArchetypeId, VisualId and copy without loss"),
-        ARMCLEAN064X37::BuildPlan(Root, Plan, Error)))
-    {
-        AddError(Error);
+    if (!TestTrue(TEXT("Historical ARM identity manifest available"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Rows, Error)))
         return false;
-    }
-    bool bOk = TestEqual(TEXT("Exactly 22 historical ARM sources"), Plan.SourceCount, 22) &&
-        TestEqual(TEXT("Existing visual profile count unchanged"), Plan.Visuals.Num(), 22) &&
-        TestEqual(TEXT("All 82 numeric archetypes preserved"), Plan.Archetypes.Num(), 82);
-
-    // X.38: a real Windows UE preflight reported mismatching_profiles=0.
-    // Guard the *persisted* binary catalogue parity in every scheduled
-    // Windows validation; never fabricate LFS changes for already equal data.
-    FString NativeParityError;
-    bOk &= TestEqual(TEXT("Existing 22 native ARM world profiles already equal"), Plan.ChangedProfiles, 0);
-    const bool bDiskParity = ARMCLEAN064X37::VerifyDiskProfiles(Root, NativeParityError);
-    bOk &= TestTrue(TEXT("Reloaded real catalogues match 22 historical ARM sources"), bDiskParity);
-    if (!bDiskParity) { AddError(NativeParityError); }
-
-    // Prove the staging helper detects an actual discrepancy, rather than
-    // rubber-stamping every value. No source or real catalogue is edited.
-    const TCHAR* FirstSuffix = ARMCLEAN064X37::LegacySuffixes[0];
-    UGridItemDefinitionAsset* First = LoadObject<UGridItemDefinitionAsset>(
-        nullptr, *ARMCLEAN064X37::SourceObjectPath(FirstSuffix));
-    if (!TestNotNull(TEXT("One real source for corruption probe"), First))
+    int32 Checked = 0;
+    TSet<FName> ItemIds, VisualIds;
+    for (const FGridWeaponPipelineRow& Row : Rows)
     {
-        return false;
+        if (Row.ProductionState != TEXT("Active")) continue;
+        const FName Id(Row.ItemDefinitionId), Archetype(Row.ArchetypeId), VisualId(Row.VisualId);
+        TestFalse(TEXT("Single canonical concrete ItemId"), ItemIds.Contains(Id));
+        TestFalse(TEXT("Single authored visual profile per ARM"), VisualIds.Contains(VisualId));
+        ItemIds.Add(Id);
+        VisualIds.Add(VisualId);
+        const FGridCanonicalWeaponArchetype* Numeric = Root->WeaponCatalogue->Find(Archetype);
+        const FGridCanonicalWeaponVisual* Visual =
+            Root->WeaponVisualCatalogue->FindForArchetype(Archetype);
+        if (!TestNotNull(TEXT("Native numeric physics authoring"), Numeric) ||
+            !TestNotNull(TEXT("Native world visual authoring"), Visual))
+            continue;
+        FGridResolvedItem N1, N20;
+        if (!TestTrue(TEXT("Native physical ARM N1/N20 resolve"),
+            Fixture.Resolve(Id, 1, N1) && Fixture.Resolve(Id, 20, N20)))
+            continue;
+        ++Checked;
+        TestEqual(TEXT("Authoring identity exact join"), N1.ArchetypeId, Archetype);
+        TestEqual(TEXT("Resolved VisualId same as authored visual"), N1.VisualId, VisualId);
+        TestEqual(TEXT("Resolved world mesh from exact canonical visual"),
+            N1.WorldMesh.ToSoftObjectPath(), Visual->WorldMesh.ToSoftObjectPath());
+        TestTrue(TEXT("World transform preserves actual authored offset"),
+            N1.WorldVisualTransform.Equals(Visual->WorldTransform));
+        TestEqual(TEXT("Authored world physics mass use is preserved"),
+            N1.bUseItemWeightAsWorldPhysicsMass, Numeric->bUseItemWeightAsWorldPhysicsMass);
+        TestEqual(TEXT("Authored first-place tilt is preserved"),
+            N1.WorldPhysicsInitialTiltDegrees, Numeric->WorldPhysicsInitialTiltDegrees);
+        TestTrue(TEXT("Authored tilt finite and bounded"),
+            FMath::IsFinite(N1.WorldPhysicsInitialTiltDegrees) &&
+            N1.WorldPhysicsInitialTiltDegrees >= 0.f &&
+            N1.WorldPhysicsInitialTiltDegrees <= 45.f);
+        TestEqual(TEXT("Authored sparkle permission is preserved"),
+            N1.bEnableWorldSparkle, Visual->bEnableWorldSparkle);
+        TestTrue(TEXT("Authored sparkle material identity is preserved"),
+            N1.WorldSparkleMaterial.ToSoftObjectPath() ==
+                Visual->WorldSparkleMaterial.ToSoftObjectPath());
+        TestTrue(TEXT("Light data belongs to unique visual source"),
+            FGridLightEmitterConfig::StaticStruct()->CompareScriptStruct(
+                &N1.LightEmitter, &Visual->LightEmitter, 0));
+        TestTrue(TEXT("Niagara world presentation belongs to unique visual source"),
+            FGridItemVisualEffectsConfig::StaticStruct()->CompareScriptStruct(
+                &N1.VisualEffects, &Visual->VisualEffects, 0));
+        TestTrue(TEXT("World profile is not duplicated by item level"),
+            N20.WorldMesh.ToSoftObjectPath() == N1.WorldMesh.ToSoftObjectPath() &&
+            N20.WorldVisualTransform.Equals(N1.WorldVisualTransform) &&
+            N20.bEnableWorldSparkle == N1.bEnableWorldSparkle);
     }
-    FGridCanonicalWeaponVisual Probe;
-    FGridCanonicalWeaponArchetype ProbeArchetype;
-    bOk &= TestTrue(TEXT("Pure copy accepts real source property types"),
-        ARMCLEAN064X37::Project(*First, Probe, ProbeArchetype));
-    bOk &= TestTrue(TEXT("Copied values exactly match original"),
-        ARMCLEAN064X37::Matches(*First, Probe, ProbeArchetype));
-    ProbeArchetype.bUseItemWeightAsWorldPhysicsMass =
-        !ProbeArchetype.bUseItemWeightAsWorldPhysicsMass;
-    bOk &= TestFalse(TEXT("Modified physics policy is detected"),
-        ARMCLEAN064X37::Matches(*First, Probe, ProbeArchetype));
-
-    bOk &= TestEqual(TEXT("No native visual package made dirty by staging"),
-        Root->WeaponVisualCatalogue->GetOutermost()->IsDirty(), bVisualDirty);
-    bOk &= TestEqual(TEXT("No native weapon package made dirty by staging"),
-        Root->WeaponCatalogue->GetOutermost()->IsDirty(), bWeaponDirty);
-    AddInfo(TEXT("[ARM-CLEAN06.4X.37] 22 exact transient world-profile joins; 8 visuals + 2 physics fields per source. No SavePackage, .uasset or SaveGame edits."));
-    return bOk && !HasAnyErrors();
+    TestEqual(TEXT("All 22 native ARM visual and physics joins"), Checked, 22);
+    TestEqual(TEXT("All 22 concrete item identities unique"), ItemIds.Num(), 22);
+    TestEqual(TEXT("22 native real visuals uniquely authored"), VisualIds.Num(), 22);
+    TestEqual(TEXT("Never dirty real visual catalogue"), Root->WeaponVisualCatalogue->GetOutermost()->IsDirty(), bVisualDirty);
+    TestEqual(TEXT("Never dirty real numeric catalogue"), Root->WeaponCatalogue->GetOutermost()->IsDirty(), bNumericDirty);
+    return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS
