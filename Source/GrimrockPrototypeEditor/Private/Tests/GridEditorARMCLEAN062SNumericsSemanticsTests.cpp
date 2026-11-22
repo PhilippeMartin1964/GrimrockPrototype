@@ -1,77 +1,58 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "ARMEMENT/GridArmClean06ProductionNumericsCandidate.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
+
+// Permanent read-only regression of the installed canonical ItemSystem.
+// The obsolete transient production candidate builders were one-shot tools.
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062SProductionNumbers,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.Numeric82WithProductionSemantics22",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.Numeric82WithProductionSemantics22",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean062SProductionNumbers::RunTest(const FString&)
 {
-	TArray<FGridWeaponPipelineRow> Manifest;
-	FString Error;
-	if (!TestTrue(TEXT("Exact manifest of production ARM"),
-		FGridWeaponPipelineManifest::Load(
-			FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
-	{
-		AddError(Error);
-		return false;
-	}
-	const UGridWeaponCatalogueAsset* Source =
-		LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	if (!TestNotNull(TEXT("Compact source catalogue"), Source)) { return false; }
-	const bool bSourceDirty = Source->GetOutermost()->IsDirty();
-	TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> Candidate(
-		NewObject<UGridCanonicalWeaponCatalogueAsset>(GetTransientPackage()));
-	GridArmClean06ProductionNumericsCandidate::FSummary Stats;
-	if (!TestTrue(TEXT("Build lossless 82x20 with only 22 proven hand/kind"),
-		GridArmClean06ProductionNumericsCandidate::Build(
-			*Source, Manifest, *Candidate, Stats)))
-	{
-		return false;
-	}
-	TestEqual(TEXT("82 ARM native entries"), Stats.Archetypes, 82);
-	TestEqual(TEXT("1640 numeric profiles"), Stats.ComparedProfiles, 1640);
-	TestEqual(TEXT("260 passive profiles"), Stats.PassiveProfiles, 260);
-	TestEqual(TEXT("22 concrete entries have real hand and kind"), Stats.ProvenConcreteArchetypes, 22);
-	TestEqual(TEXT("60 numeric-only entries have no claimed hand/kind"), Stats.UnprovenUninstantiatedArchetypes, 60);
-	TestEqual(TEXT("19 mainhand attacks"), Stats.MainHandAttacks, 19);
-	TestEqual(TEXT("2 offhand attacks"), Stats.OffHandAttacks, 2);
-	TestEqual(TEXT("Six source class preferences"), Candidate->ClassPreferences.Num(), 6);
-
-	TSet<FName> ProductionIds;
-	for (const FGridWeaponPipelineRow& Row : Manifest)
-	{
-		ProductionIds.Add(FName(*Row.ArchetypeId));
-	}
-	int32 Proven = 0, Unproven = 0;
-	for (const FGridCanonicalWeaponArchetype& Arm : Candidate->Archetypes)
-	{
-		if (ProductionIds.Contains(Arm.ArchetypeId))
-		{
-			TestTrue(TEXT("Attack-source slots remain unauthored until real action bindings"),
-				Arm.AttackSourceSlots.IsEmpty());
-			if (!Arm.bHandAndKindProven) { AddError(TEXT("Active ARM semantics not qualified")); }
-			else { ++Proven; }
-		}
-		else
-		{
-			if (Arm.bHandAndKindProven) { AddError(TEXT("Uninstantiated ARM falsely marked proven")); }
-			else { ++Unproven; }
-		}
-	}
-	TestEqual(TEXT("Exactly 22 active proved"), Proven, 22);
-	TestEqual(TEXT("Exactly 60 inactive unproven"), Unproven, 60);
-	TestTrue(TEXT("Source numeric catalogue was never saved/modified"),
-		Source->GetOutermost()->IsDirty() == bSourceDirty);
-	GridArmClean06ProductionNumericsCandidate::FSummary SecondPass;
-	TestFalse(TEXT("A real numeric catalogue candidate is never silently overwritten"),
-		GridArmClean06ProductionNumericsCandidate::Build(
-			*Source, Manifest, *Candidate, SecondPass));
-	return Proven == 22 && Unproven == 60 &&
-		Source->GetOutermost()->IsDirty() == bSourceDirty;
+    FGridCanonicalRegistryFixture Registry;
+    if (!TestTrue(TEXT("Production numeric registry validates"), Registry.bReady)) return false;
+    TArray<FGridWeaponPipelineRow> Manifest;
+    FString Error;
+    if (!TestTrue(TEXT("Canonical ARM identity manifest available"),
+        FGridWeaponPipelineManifest::Load(FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
+        return false;
+    int32 Active = 0, Profiles = 0, Passive = 0;
+    for (const FGridWeaponPipelineRow& Row : Manifest)
+    {
+        if (Row.ProductionState != TEXT("Active")) continue;
+        ++Active;
+        for (int32 Level = 1; Level <= 20; ++Level)
+        {
+            FGridResolvedItem Item;
+            if (!TestTrue(TEXT("Every authored physical N1-N20 level resolves"),
+                Registry.Resolve(FName(Row.ItemDefinitionId), Level, Item))) continue;
+            ++Profiles;
+            TestEqual(TEXT("Archetype stable across physical levels"),
+                Item.ArchetypeId, FName(Row.ArchetypeId));
+            TestTrue(TEXT("Finite physical weight and numeric AP/range"),
+                FMath::IsFinite(Item.WeightKg) && Item.WeightKg >= 0.f &&
+                Item.Weapon.ActionPointCost >= 0 && Item.Weapon.RangeCells >= 0);
+            if (Row.IsPassive())
+            {
+                ++Passive;
+                TestFalse(TEXT("Passive numeric profiles have no attack dice"),
+                    Item.Weapon.DamageDice.bEnabled);
+            }
+            else
+                TestTrue(TEXT("Offensive numerics have damage dice"),
+                    Item.Weapon.DamageDice.bEnabled);
+        }
+    }
+    TestEqual(TEXT("22 ARM have proven concrete semantics"), Active, 22);
+    TestEqual(TEXT("440 item-level numeric profiles from one catalogue"), Profiles, 440);
+    TestTrue(TEXT("Passive N1-N20 profiles remain represented"), Passive >= 40);
+    FGridResolvedItem Invalid;
+    TestFalse(TEXT("N0 cannot borrow N1 weapon numbers"),
+        Registry.Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 0, Invalid));
+    TestFalse(TEXT("N21 cannot borrow N20 numbers"),
+        Registry.Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 21, Invalid));
+    return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS

@@ -1,80 +1,43 @@
 #if WITH_DEV_AUTOMATION_TESTS
-
 #include "Misc/AutomationTest.h"
-#include "GridEditorCanonicalIconFixture.h"
-#include "ARMEMENT/GridArmClean06FullProductionCandidate.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
+
+// Permanent read-only regression of the installed canonical ItemSystem.
+// The obsolete transient production candidate builders were one-shot tools.
+
+#include "Tests/GridCanonicalLootRegistryTestUtils.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062UFullProductionCandidate,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.FullProductionCandidatePreflight",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.FullProductionCandidatePreflight",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean062UFullProductionCandidate::RunTest(const FString&)
 {
-	TArray<FGridWeaponPipelineRow> Manifest;
-	FString Error;
-	if (!TestTrue(TEXT("Read 22 ARM production rows"),
-		FGridWeaponPipelineManifest::Load(
-			FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
-	{
-		AddError(Error);
-		return false;
-	}
-	const UGridWeaponCatalogueAsset* Numbers =
-		LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	const UGridWeaponVisualCatalogueAsset* Visuals =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
-		GridEditorCanonicalIconFixture::Create());
-	if (!TestNotNull(TEXT("Numeric source"), Numbers) ||
-		!TestNotNull(TEXT("Visual source"), Visuals) ||
-		!TestNotNull(TEXT("Action icon source"), Icons.Get()))
-	{
-		return false;
-	}
-	const bool bNumbersDirty = Numbers->GetOutermost()->IsDirty();
-	const bool bVisualsDirty = Visuals->GetOutermost()->IsDirty();
-	const bool bIconsDirty = Icons->GetOutermost()->IsDirty();
-
-	TStrongObjectPtr<UGridItemSystemAsset> Root(NewObject<UGridItemSystemAsset>(GetTransientPackage()));
-	GridArmClean06FullProductionCandidate::FSummary Summary;
-	if (!TestTrue(TEXT("Assemble one transient registry with 4 real catalogue projections"),
-		GridArmClean06FullProductionCandidate::Build(
-			Manifest, *Numbers, *Visuals, *Icons, *Root, Summary)))
-	{
-		return false;
-	}
-	TestEqual(TEXT("22 concrete data-only item definitions"), Root->ItemDefinitions.Num(), 22);
-	TestEqual(TEXT("82 catalogued archetypes"), Root->WeaponCatalogue->Archetypes.Num(), 82);
-	TestEqual(TEXT("1640 numeric level comparisons"), Summary.Numerics.ComparedProfiles, 1640);
-	TestEqual(TEXT("260 passives"), Summary.Numerics.PassiveProfiles, 260);
-	TestEqual(TEXT("19 actual main attacks"), Summary.AttacksMainHand, 19);
-	TestEqual(TEXT("2 actual offhand attacks"), Summary.AttacksOffHand, 2);
-	TestEqual(TEXT("Every missing action-to-presentation link reported"),
-		Summary.UnboundOffensiveArmaments, 19 - Summary.Actions.BoundActions);
-	TestFalse(TEXT("A dry-run preflight does not authorize binary cutover"),
-		Summary.ReadyForBinaryCutover());
-	TestTrue(TEXT("Numeric source not modified"), Numbers->GetOutermost()->IsDirty() == bNumbersDirty);
-	TestTrue(TEXT("Visual source not modified"), Visuals->GetOutermost()->IsDirty() == bVisualsDirty);
-	TestTrue(TEXT("Icon source not modified"), Icons->GetOutermost()->IsDirty() == bIconsDirty);
-
-	GridArmClean06FullProductionCandidate::FSummary Retry;
-	TestFalse(TEXT("Populated root refuses overwriting on second pass"),
-		GridArmClean06FullProductionCandidate::Build(
-			Manifest, *Numbers, *Visuals, *Icons, *Root, Retry));
-	AddInfo(FString::Printf(TEXT(
-		"ARM-CLEAN06.2U: 22 concrete ARM, 82 numerics, 1640 levels; "
-		"%d actions bound, %d missing bindings, %d ammo and %d throw policies "
-		"unconverted, %d invalid canonical identities; full registry valid=%s; "
-		"binary cutover REFUSED, 0 packages saved."),
-		Summary.Actions.BoundActions, Summary.UnboundOffensiveArmaments,
-		Summary.UnmappedAmmunition, Summary.UnconvertedThrowPolicies,
-		Summary.InvalidCanonicalIdentities,
-		Summary.bRegistryValid ? TEXT("true") : TEXT("false")));
-	return Root->ItemDefinitions.Num() == 22 &&
-		Root->WeaponCatalogue->Archetypes.Num() == 82 &&
-		!Summary.ReadyForBinaryCutover();
+    FGridCanonicalRegistryFixture Registry;
+    if (!TestTrue(TEXT("Single installed ItemSystem validates"), Registry.bReady)) return false;
+    UGridItemSystemAsset* Root =
+        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Authored ItemSystem is present"), Root)) return false;
+    const bool bWasDirty = Root->GetOutermost()->IsDirty();
+    TArray<FString> Errors;
+    TestTrue(TEXT("Root plus four canonical catalogues structurally valid"),
+        Root->Validate(Errors));
+    TestTrue(TEXT("Exact 48-item native source order and classes"),
+        GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root));
+    TestNotNull(TEXT("Single numeric catalogue"), Root->WeaponCatalogue.Get());
+    TestNotNull(TEXT("Single visual catalogue"), Root->WeaponVisualCatalogue.Get());
+    TestNotNull(TEXT("Single compact/detailed action catalogue"), Root->ActionCatalogue.Get());
+    TestNotNull(TEXT("Single presentation catalogue"), Root->ActionPresentationCatalogue.Get());
+    TestEqual(TEXT("48 actual production items"), Root->ItemDefinitions.Num(), 48);
+    TestEqual(TEXT("All 14 N0 runtime action definitions"),
+        Root->ActionCatalogue->DetailedActions.Num(), 14);
+    TestEqual(TEXT("Original 19 compact ARM action definitions"),
+        Root->ActionCatalogue->Actions.Num(), 19);
+    FGridResolvedItem Missing;
+    TestFalse(TEXT("Unknown IDs do not load obsolete DataAssets"),
+        Registry.Registry->ResolveItem(TEXT("ObsoleteCandidateItem"), 0, Missing));
+    TestEqual(TEXT("Read-only preflight leaves native package unchanged"),
+        Root->GetOutermost()->IsDirty(), bWasDirty);
+    return !HasAnyErrors();
 }
-#endif
+#endif // WITH_DEV_AUTOMATION_TESTS
