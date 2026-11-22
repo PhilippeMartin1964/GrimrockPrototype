@@ -4,13 +4,6 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "ARMEMENT/GridWeaponPipelinePalette.h"
 #include "Core/GridObjectPaletteAsset.h"
-#include "AssetRegistry/AssetData.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "AssetRegistry/IAssetRegistry.h"
-#include "Modules/ModuleManager.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -30,10 +23,6 @@ namespace WeaponPipelineTests
             bReady = IsValid(Root) && Registry.IsValid() && Registry->RegisterItemSystem(Root, Errors);
         }
     };
-    constexpr const TCHAR* RpgPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue");
-    constexpr const TCHAR* VisualsPath =
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue");
     constexpr const TCHAR* PalettePath =
         TEXT("/Game/GrimrockPrototype/Core/DataAssets/DA_ObjectPalette_Default.DA_ObjectPalette_Default");
 
@@ -107,42 +96,36 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponPipelineWorkbookContracts,
 
 bool FWeaponPipelineWorkbookContracts::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponPipelineTests::RpgPath);
-    if (!TestNotNull(TEXT("Actual weapon catalogue exists"), Rpg))
+    WeaponPipelineTests::FCanonicalRegistry Canonical;
+    if (!TestTrue(TEXT("Unique canonical registry validates"), Canonical.bReady))
         return false;
-    const bool BeforeDirty = Rpg->GetOutermost()->IsDirty();
-    TestTrue(TEXT("1,640 profiles are valid"), Rpg->IsValidCatalogue());
-    TestTrue(TEXT("Class affinities from workbook valid"), Rpg->IsValidClassAffinityData());
-
     TArray<FGridWeaponPipelineRow> Rows;
-    if (!WeaponPipelineTests::Read(Rows, *this))
-        return false;
+    if (!WeaponPipelineTests::Read(Rows, *this)) return false;
+    int32 Active = 0, Checked = 0;
     for (const FGridWeaponPipelineRow& Row : Rows)
     {
-        const FGridWeaponLevelProfile* N1 =
-            Rpg->FindProfile(FName(Row.ArchetypeId), 1);
-        if (!TestNotNull(*FString::Printf(TEXT("Real N1 for %s"), *Row.ArchetypeId), N1))
+        if (Row.ProductionState != TEXT("Active")) continue;
+        ++Active;
+        FGridResolvedItem N1, N20;
+        if (!TestTrue(*FString::Printf(TEXT("%s N1 canonical workbook row"), *Row.ArchetypeId),
+            Canonical.Registry->ResolveItem(FName(Row.ItemDefinitionId), 1, N1)))
             continue;
-        TestTrue(*FString::Printf(TEXT("Valid N1 for %s"), *Row.ArchetypeId),
-            N1->IsValidProfile());
-        if (Row.IsPassive())
-        {
-            TestFalse(TEXT("Passive item never acquires dice"), N1->DamageDice.bEnabled);
-        }
-        else
-        {
-            FGridAttackDefinition Attack;
-            TestTrue(*FString::Printf(TEXT("Real offensive definition %s"),
-                *Row.ArchetypeId), N1->TryBuildAttackDefinition(Attack));
-            TestEqual(TEXT("One/two hand contract from workbook"), N1->HandUsage,
-                (!Row.IsTwoHanded())
-                    ? FString(TEXT("1 main")) : FString(TEXT("2 mains")));
-        }
+        if (!TestTrue(*FString::Printf(TEXT("%s N20 canonical workbook row"), *Row.ArchetypeId),
+            Canonical.Registry->ResolveItem(FName(Row.ItemDefinitionId), 20, N20)))
+            continue;
+        ++Checked;
+        TestTrue(TEXT("Both profiles are ARM weapons"), N1.bIsArmament && N20.bIsArmament);
+        TestEqual(TEXT("One authored archetype identity"), N1.ArchetypeId, FName(Row.ArchetypeId));
+        TestEqual(TEXT("Archetype remains stable across 20 levels"), N20.ArchetypeId, N1.ArchetypeId);
+        TestTrue(TEXT("N1/N20 weight finite and physical"),
+            FMath::IsFinite(N1.WeightKg) && N1.WeightKg >= 0.f &&
+            FMath::IsFinite(N20.WeightKg) && N20.WeightKg >= 0.f);
+        TestEqual(TEXT("Passive N1 still has no dice"), !N1.Weapon.DamageDice.bEnabled, Row.IsPassive());
+        TestEqual(TEXT("Passive N20 still has no dice"), !N20.Weapon.DamageDice.bEnabled, Row.IsPassive());
     }
-    TestEqual(TEXT("Read-only workbook check did not dirty package"),
-        Rpg->GetOutermost()->IsDirty(), BeforeDirty);
-    return true;
+    TestEqual(TEXT("All active rows resolved N1 and N20"), Checked, Active);
+    TestTrue(TEXT("Full production manifest contains 22 authored ARM"), Active == 22);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponPipelineExistingContracts,
@@ -151,110 +134,68 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponPipelineExistingContracts,
 
 bool FWeaponPipelineExistingContracts::RunTest(const FString&)
 {
-    UGridWeaponCatalogueAsset* Rpg =
-        LoadObject<UGridWeaponCatalogueAsset>(nullptr, WeaponPipelineTests::RpgPath);
-    UGridWeaponVisualCatalogueAsset* Visuals =
-        LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr, WeaponPipelineTests::VisualsPath);
+    WeaponPipelineTests::FCanonicalRegistry Canonical;
     UGridObjectPaletteAsset* Palette =
         LoadObject<UGridObjectPaletteAsset>(nullptr, WeaponPipelineTests::PalettePath);
-    if (!TestNotNull(TEXT("RPG catalogue"), Rpg) ||
-        !TestNotNull(TEXT("Visual catalogue"), Visuals) ||
+    if (!TestTrue(TEXT("Real canonical ItemSystem"), Canonical.bReady) ||
         !TestNotNull(TEXT("Production palette"), Palette))
         return false;
-    WeaponPipelineTests::FCanonicalRegistry Canonical;
-    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
-    const bool BeforeRpg = Rpg->GetOutermost()->IsDirty();
-    const bool BeforeVisuals = Visuals->GetOutermost()->IsDirty();
-    const bool BeforePalette = Palette->GetOutermost()->IsDirty();
-    TestTrue(TEXT("Existing visual catalogue valid"), Visuals->IsValidCatalogue());
-    TArray<FGridWorldObjectDefinitionValidationMessage> ValidationMessages;
-    TestTrue(TEXT("Production palette valid"), Palette->ValidatePalette(ValidationMessages));
+    const bool bPaletteDirty = Palette->GetOutermost()->IsDirty();
+    TArray<FGridWorldObjectDefinitionValidationMessage> Errors;
+    TestTrue(TEXT("Production palette validates"), Palette->ValidatePalette(Errors));
 
     TArray<FGridWeaponPipelineRow> Rows;
-    if (!WeaponPipelineTests::Read(Rows, *this))
-        return false;
-    IAssetRegistry& Registry =
-        FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
-    TArray<FString> Scan = { TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons") };
-    Registry.ScanPathsSynchronous(Scan, true);
-    TArray<FAssetData> Items;
-    Registry.GetAssetsByPath(
-        FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons")), Items, true);
-
+    if (!WeaponPipelineTests::Read(Rows, *this)) return false;
+    TSet<FName> SeenItemIds, SeenArchetypeIds;
+    int32 Active = 0;
     for (const FGridWeaponPipelineRow& Row : Rows)
     {
-        if (Row.ProductionState != TEXT("Active"))
-            continue;
-        UGridItemDefinitionAsset* Item =
-            LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-        if (!TestNotNull(*FString::Printf(TEXT("Active authored item %s"),
-            *Row.ArchetypeId), Item))
-            continue;
-        int32 Matches = 0;
-        for (const FAssetData& Data : Items)
-        {
-            const UGridItemDefinitionAsset* Candidate =
-                Cast<UGridItemDefinitionAsset>(Data.GetAsset());
-            if (Candidate && Candidate->WeaponArchetypeId == FName(Row.ArchetypeId))
-                ++Matches;
-        }
-        TestEqual(TEXT("No item duplicates for active archetype"), Matches, 1);
-        TestEqual(TEXT("Same item identity"), Item->ItemDefinitionId, FName(Row.ItemDefinitionId));
-        TestEqual(TEXT("Same archetype"), Item->WeaponArchetypeId, FName(Row.ArchetypeId));
+        if (Row.ProductionState != TEXT("Active")) continue;
+        ++Active;
+        const FName Id(*Row.ItemDefinitionId);
+        const FName Archetype(*Row.ArchetypeId);
+        TestFalse(TEXT("No duplicate canonical ItemId"), SeenItemIds.Contains(Id));
+        TestFalse(TEXT("No duplicate canonical archetype"), SeenArchetypeIds.Contains(Archetype));
+        SeenItemIds.Add(Id);
+        SeenArchetypeIds.Add(Archetype);
+        FGridResolvedItem Item;
+        if (!TestTrue(*FString::Printf(TEXT("%s N1 resolves canonically"), *Row.ArchetypeId),
+            Canonical.Registry->ResolveItem(Id, 1, Item))) continue;
+        TestTrue(TEXT("N1 is ARM and physically valid"), Item.IsValid() && Item.bIsArmament);
+        TestEqual(TEXT("Exact canonical ItemId"), Item.ItemId, Id);
+        TestEqual(TEXT("Exact canonical archetype"), Item.ArchetypeId, Archetype);
+        TestEqual(TEXT("Exactly the authored visual identity"), Item.VisualId, FName(*Row.VisualId));
+        TestTrue(TEXT("Icon and world mesh are loadable"),
+            Item.ItemIcon.LoadSynchronous() && Item.WorldMesh.LoadSynchronous());
+        TestTrue(TEXT("Manifest references the real icon"),
+            Item.ItemIcon.ToSoftObjectPath() == FSoftObjectPath(Row.IconPath));
+        TestTrue(TEXT("Manifest references the real world mesh"),
+            Item.WorldMesh.ToSoftObjectPath() == FSoftObjectPath(Row.MeshPath));
         if (Row.IsPassive())
         {
-            TestTrue(TEXT("Passive item has no attack identity"), Row.AttackId.IsEmpty() &&
-                Item->CombatActions.IsEmpty());
+            TestTrue(TEXT("Passive ARM has no attacking bindings"), Item.AvailableActions.IsEmpty());
         }
         else
         {
-            TestEqual(TEXT("One authored combat action"), Item->CombatActions.Num(), 1);
-            if (Item->CombatActions.Num() == 1)
-            {
-                TestEqual(*FString::Printf(TEXT("Canonical authored attack ID %s"),
-                    *Row.ArchetypeId), Item->CombatActions[0].ActionId, FName(Row.AttackId));
-            }
+            TestTrue(TEXT("Authored attack id remains bound"),
+                Item.AvailableActions.ContainsByPredicate([&Row](const FGridItemActionBinding& Bound)
+                {
+                    return Bound.ActionId == FName(*Row.AttackId);
+                }));
         }
-        TestTrue(TEXT("Authored item definition remains valid"), Item->IsValidDefinition());
         FString PaletteReason;
         const EGridWeaponPipelinePaletteState PaletteState =
-            FGridWeaponPipelinePalette::Inspect(*Palette, FName(Row.ItemDefinitionId), Canonical.Registry.Get(),
+            FGridWeaponPipelinePalette::Inspect(*Palette, Id, Canonical.Registry.Get(),
                 WeaponPipelineTests::LegacyCategory(Row.ArchetypeId), PaletteReason);
-        TestTrue(*FString::Printf(TEXT("Existing palette entry unchanged %s (%s)"),
+        TestTrue(*FString::Printf(TEXT("Canonical palette entry retained %s (%s)"),
             *Row.ArchetypeId, *PaletteReason),
             PaletteState == EGridWeaponPipelinePaletteState::PresentSame);
-        TestTrue(TEXT("Existing catalogues retained"),
-            Item->bUseWeaponCatalogue && Item->bUseWeaponVisualCatalogue &&
-            Item->WeaponCatalogue.LoadSynchronous() == Rpg &&
-            Item->WeaponVisualCatalogue.LoadSynchronous() == Visuals);
-        TestEqual(TEXT("Exact production visual binding"),
-            Visuals->FindVisualId(FName(Row.ArchetypeId)), FName(Row.VisualId));
-        const FGridWeaponVisualProfile* Look =
-            Visuals->FindProfileForArchetype(FName(Row.ArchetypeId));
-        if (!TestNotNull(TEXT("Real resolved visual"), Look))
-            continue;
-        TestTrue(TEXT("Actual icon and world mesh load"),
-            Look->BaseIcon.LoadSynchronous() != nullptr &&
-            Look->WorldMesh.LoadSynchronous() != nullptr);
-        TestTrue(TEXT("Manifest icon follows existing reference"),
-            Look->BaseIcon.ToSoftObjectPath() == FSoftObjectPath(Row.IconPath));
-        TestTrue(TEXT("Manifest mesh follows existing reference"),
-            Look->WorldMesh.ToSoftObjectPath() == FSoftObjectPath(Row.MeshPath));
-        const FGridWeaponLevelProfile* N1 =
-            Rpg->FindProfile(FName(Row.ArchetypeId), 1);
-        if (TestNotNull(TEXT("N1 profile for authored item"), N1))
-        {
-            TestEqual(TEXT("Item default N1"), Item->DefaultWeaponItemLevel, 1);
-            TestTrue(TEXT("Authored N1 weight matches workbook"),
-                FMath::IsNearlyEqual(Item->Weight, N1->WeightKg, 0.0001f));
-        }
     }
-    TestEqual(TEXT("RPG catalogue never mutated"), Rpg->GetOutermost()->IsDirty(), BeforeRpg);
-    TestEqual(TEXT("Visual catalogue never mutated"),
-        Visuals->GetOutermost()->IsDirty(), BeforeVisuals);
-    TestEqual(TEXT("Palette package never mutated"),
-        Palette->GetOutermost()->IsDirty(), BeforePalette);
-    return true;
+    TestEqual(TEXT("All 22 ARM present"), Active, 22);
+    TestEqual(TEXT("One canonical identity for every ARM"), SeenItemIds.Num(), Active);
+    TestEqual(TEXT("No duplicate archetype"), SeenArchetypeIds.Num(), Active);
+    TestEqual(TEXT("Palette remains read-only"), Palette->GetOutermost()->IsDirty(), bPaletteDirty);
+    return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FWeaponPipelinePalettePlanSafety,
@@ -265,14 +206,14 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
 {
     UGridObjectPaletteAsset* Production =
         LoadObject<UGridObjectPaletteAsset>(nullptr, WeaponPipelineTests::PalettePath);
-    UGridItemDefinitionAsset* Item = LoadObject<UGridItemDefinitionAsset>(
-        nullptr,
-        TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01.DA_Weapon_AssassinDagger_01"));
-    if (!TestNotNull(TEXT("Real production palette"), Production) ||
-        !TestNotNull(TEXT("Real ARM002 definition"), Item))
-        return false;
     WeaponPipelineTests::FCanonicalRegistry Canonical;
-    if (!TestTrue(TEXT("Configured canonical registry"), Canonical.bReady)) return false;
+    if (!TestNotNull(TEXT("Real production palette"), Production) ||
+        !TestTrue(TEXT("Configured canonical registry"), Canonical.bReady))
+        return false;
+    FGridResolvedItem Item;
+    if (!TestTrue(TEXT("ARM002 is a real canonical item"),
+        Canonical.Registry->ResolveItem(TEXT("Weapon_AssassinDagger_01"), 1, Item)))
+        return false;
     const bool bBeforeDirty = Production->GetOutermost()->IsDirty();
     const FName EntryId(TEXT("Weapon_AssassinDagger_01"));
     const int32 OriginalCount = Production->Entries.Num();
@@ -373,12 +314,11 @@ bool FWeaponPipelinePalettePlanSafety::RunTest(const FString&)
                 FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                     EGridWeaponPipelinePaletteState::Conflict);
             TargetEntry->EntryId = EntryId;
-            UGridItemDefinitionAsset* Other = LoadObject<UGridItemDefinitionAsset>(
-                nullptr,
-                TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01.DA_Weapon_Dagger_01"));
-            if (TestNotNull(TEXT("Second real item for collision fixture"), Other))
+            FGridResolvedItem Other;
+            if (TestTrue(TEXT("Canonical dagger is a second real item"),
+                Canonical.Registry->ResolveItem(TEXT("Weapon_Dagger_01"), 1, Other)))
             {
-                TargetEntry->CanonicalItemId = Other->ItemDefinitionId;
+                TargetEntry->CanonicalItemId = Other.ItemId;
                 TestTrue(TEXT("Palette entry pointing to a different item rejected"),
                     FGridWeaponPipelinePalette::Inspect(*Candidate, EntryId, Canonical.Registry.Get(), false, Detail) ==
                         EGridWeaponPipelinePaletteState::Conflict);

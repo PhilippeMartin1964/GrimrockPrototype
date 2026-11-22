@@ -1,88 +1,75 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "GridEditorCanonicalIconFixture.h"
-#include "ARMEMENT/GridArmClean06ProductionAmmoCandidate.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/StrongObjectPtr.h"
+#include "ARMEMENT/GridWeaponPipelineManifest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
+#include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 
+// The old AddExistingArrows candidate was a one-time migration tool.
+// Validate the installed single ItemSystem and actual bow links instead.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062VRealAmmo,
-	"Grimrock.RPG.ARM.CLEAN06_2.Canonical.ProductionAmmoIdentityAndBowLinks",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.ProductionAmmoIdentityAndBowLinks",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FGridClean062VRealAmmo::RunTest(const FString&)
 {
-	TArray<FGridWeaponPipelineRow> Manifest;
-	FString Error;
-	if (!TestTrue(TEXT("Production manifest of exactly 22 ARM"),
-		FGridWeaponPipelineManifest::Load(
-			FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
-	{
-		AddError(Error);
-		return false;
-	}
-	const UGridWeaponCatalogueAsset* N1ToN20 =
-		LoadObject<UGridWeaponCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue.DA_WeaponCatalogue"));
-	const UGridWeaponVisualCatalogueAsset* Visuals =
-		LoadObject<UGridWeaponVisualCatalogueAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponVisualCatalogue.DA_WeaponVisualCatalogue"));
-	TStrongObjectPtr<UGridEquippedWeaponActionIconPalette> Icons(
-		GridEditorCanonicalIconFixture::Create());
-	const UGridItemDefinitionAsset* SourceArrows =
-		LoadObject<UGridItemDefinitionAsset>(nullptr,
-			TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01.DA_Item_Arrows_01"));
-	if (!TestNotNull(TEXT("Source numbers"), N1ToN20) ||
-		!TestNotNull(TEXT("Source visual catalogue"), Visuals) ||
-		!TestNotNull(TEXT("Source action icons"), Icons.Get()) ||
-		!TestNotNull(TEXT("Real Arrow definition"), SourceArrows))
-	{
-		return false;
-	}
-	const bool bArrowsDirty = SourceArrows->GetOutermost()->IsDirty();
-	TStrongObjectPtr<UGridItemSystemAsset> Root(NewObject<UGridItemSystemAsset>(GetTransientPackage()));
-	GridArmClean06FullProductionCandidate::FSummary Full;
-	if (!TestTrue(TEXT("Canonical 22 ARM complete transient preflight"),
-		GridArmClean06FullProductionCandidate::Build(
-			Manifest, *N1ToN20, *Visuals, *Icons, *Root, Full)))
-	{
-		return false;
-	}
-	GridArmClean06ProductionAmmoCandidate::FSummary Ammo;
-	if (!TestTrue(TEXT("Real arrow item and bow ammo joins projected"),
-		GridArmClean06ProductionAmmoCandidate::AddExistingArrows(
-			Manifest, *Root, Full, Ammo)))
-	{
-		return false;
-	}
-	TestEqual(TEXT("One real canonical ammo definition"), Ammo.CanonicalAmmoDefinitions, 1);
-	TestTrue(TEXT("At least one real bow references source arrows"),
-		Ammo.WeaponAmmoReferences > 0);
-	TestEqual(TEXT("23 items: 22 weapons plus one real ammunition"), Root->ItemDefinitions.Num(), 23);
-	TestEqual(TEXT("Existing item ID preserved as canonical ammo kind"),
-		Ammo.ResultAmmoKindId, FName(TEXT("Item_Arrows_01")));
-	TestEqual(TEXT("Original missing ammo joins fully resolved"),
-		Full.UnmappedAmmunition, 0);
-	int32 Count = 0;
-	for (const FGridCanonicalWeaponArchetype& Arm : Root->WeaponCatalogue->Archetypes)
-	{
-		if (Arm.RequiredAmmoKindId == Ammo.ResultAmmoKindId) { ++Count; }
-	}
-	TestEqual(TEXT("Only the original weapons now consume this ammo kind"),
-		Count, Ammo.WeaponAmmoReferences);
-	GridArmClean06ProductionAmmoCandidate::FSummary Second;
-	TestFalse(TEXT("No second pass silently duplicates ammunition"),
-		GridArmClean06ProductionAmmoCandidate::AddExistingArrows(
-			Manifest, *Root, Full, Second));
-	TestFalse(TEXT("Ammo links do not authorize an unfinished cutover"),
-		Full.ReadyForBinaryCutover());
-	TestEqual(TEXT("Real arrows unchanged"),
-		SourceArrows->GetOutermost()->IsDirty(), bArrowsDirty);
-	AddInfo(FString::Printf(TEXT(
-		"ARM 06.2V: one real arrow definition, %d exact weapon links, "
-		"zero unresolved arrows, no binary writes, cutover still prohibited."),
-		Ammo.WeaponAmmoReferences));
-	return Ammo.CanonicalAmmoDefinitions == 1 && Count == Ammo.WeaponAmmoReferences &&
-		SourceArrows->GetOutermost()->IsDirty() == bArrowsDirty;
+    FGridCanonicalRegistryFixture Registry;
+    if (!TestTrue(TEXT("Real production ItemSystem validates"), Registry.bReady))
+        return false;
+    TArray<FName> Ids;
+    Registry.Registry->GetCanonicalItemIds(Ids);
+    TestEqual(TEXT("One 48-item canonical item registry"), Ids.Num(), 48);
+
+    TArray<FGridWeaponPipelineRow> Manifest;
+    FString Error;
+    if (!TestTrue(TEXT("Production manifest parses"),
+        FGridWeaponPipelineManifest::Load(
+            FGridWeaponPipelineManifest::DefaultFile(), Manifest, Error)))
+    {
+        AddError(Error);
+        return false;
+    }
+    FGridResolvedItem Arrows;
+    if (!TestTrue(TEXT("The single real arrow identity resolves as an ammo kind"),
+        Registry.Registry->ResolveAmmoKind(TEXT("Item_Arrows_01"), Arrows)))
+        return false;
+    TestEqual(TEXT("Canonical ammo ItemId"), Arrows.ItemId, FName(TEXT("Item_Arrows_01")));
+    TestEqual(TEXT("Arrow kind is its exact physical source"), Arrows.AmmoKindId, Arrows.ItemId);
+    TestTrue(TEXT("Real arrows are physical N0 and stackable"),
+        Arrows.ItemLevel == 0 && Arrows.MaxStack >= 12 && !Arrows.bIsArmament);
+
+    int32 Arms = 0, ReferencingBows = 0;
+    for (const FGridWeaponPipelineRow& Row : Manifest)
+    {
+        if (Row.ProductionState != TEXT("Active")) continue;
+        ++Arms;
+        FGridResolvedItem Weapon;
+        if (!TestTrue(*FString::Printf(TEXT("ARM %s resolves at N1"), *Row.ArchetypeId),
+            Registry.Resolve(FName(Row.ItemDefinitionId), 1, Weapon))) continue;
+        TestTrue(TEXT("Canonical weapon owns exact archetype"),
+            Weapon.bIsArmament && Weapon.ArchetypeId == FName(Row.ArchetypeId));
+        const bool bRequiresAmmo = !Weapon.Weapon.RequiredAmmoKindId.IsNone();
+        if (!bRequiresAmmo) continue;
+        ++ReferencingBows;
+        TestEqual(TEXT("Bow ammo join is the unique canonical arrow kind"),
+            Weapon.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId);
+        FGridRangedAmmunitionRequirement Requirement =
+            FGridRangedAmmunitionPolicy::ResolveForAttack(
+                Registry.Registry.Get(), Weapon.ItemId, 1, nullptr, true);
+        TestTrue(TEXT("Actual bow preflight rejects historical lookup"),
+            Requirement.bValid && Requirement.bCanonicalSource &&
+            Requirement.bCanonicalAmmunition &&
+            Requirement.AmmunitionItemId == Arrows.ItemId);
+        TestTrue(TEXT("Only ranged rows require an arrow kind"), Row.BuildKind == TEXT("Ranged"));
+    }
+    TestEqual(TEXT("Full production manifest contains 22 ARM"), Arms, 22);
+    TestEqual(TEXT("Both original bows require real arrows"), ReferencingBows, 2);
+    FGridResolvedItem Wrong;
+    TestFalse(TEXT("Non-ARM arrows cannot resolve at physical N1"),
+        Registry.Registry->ResolveItem(Arrows.ItemId, 1, Wrong));
+    TestFalse(TEXT("Unknown ammo kinds do not invent legacy assets"),
+        Registry.Registry->ResolveAmmoKind(TEXT("Unknown_Ammo_Kind"), Wrong));
+    return !HasAnyErrors();
 }
-#endif
+
+#endif // WITH_DEV_AUTOMATION_TESTS
