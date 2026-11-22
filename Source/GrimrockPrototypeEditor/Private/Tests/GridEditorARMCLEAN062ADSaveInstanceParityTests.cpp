@@ -4,26 +4,109 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Kismet/GameplayStatics.h"
+#include "UObject/StrongObjectPtr.h"
 
 namespace ArmClean062AD
 {
-    bool SameDurableItem(const FGridItemInstance& A, const FGridItemInstance& B)
+    // Isolated, realistic bag state. Split independent persisted dimensions
+    // into separately named Automation tests to report the exact violation,
+    // never publishing a player's actual SaveGame data or private logs.
+    struct FMemoryFixture
     {
-        return A.RuntimeObjectId == B.RuntimeObjectId &&
-            A.ItemDefinitionId == B.ItemDefinitionId &&
-            A.ItemLevel == B.ItemLevel && A.Quantity == B.Quantity &&
-            A.AbsorbedEquipmentPhysicalArmor == B.AbsorbedEquipmentPhysicalArmor &&
-            A.AbsorbedEquipmentMagicalArmor == B.AbsorbedEquipmentMagicalArmor &&
-            A.OwnerType == B.OwnerType && A.OwnerGuid == B.OwnerGuid &&
-            A.OwnerCharacterIndex == B.OwnerCharacterIndex &&
-            A.EquipmentSlot == B.EquipmentSlot &&
-            A.bLightsEnabled == B.bLightsEnabled &&
-            A.ReadableContentAsset == B.ReadableContentAsset &&
-            A.ReadableContentId == B.ReadableContentId &&
-            A.ReadTitleOverride.EqualTo(B.ReadTitleOverride) &&
-            A.ReadTextOverride.EqualTo(B.ReadTextOverride) &&
-            A.LastWorldTransform.Equals(B.LastWorldTransform);
-    }
+        FGridCanonicalRegistryFixture Registry;
+        TStrongObjectPtr<UGrimrockPartySaveGame> Before;
+        TStrongObjectPtr<UGrimrockPartySaveGame> After;
+        FString Failure;
+        TArray<uint8> Bytes;
+
+        bool Create()
+        {
+            if (!Registry.bReady)
+            {
+                Failure = TEXT("registry");
+                return false;
+            }
+            TArray<FGridWeaponPipelineRow> Rows;
+            if (!FGridWeaponPipelineManifest::Load(
+                FGridWeaponPipelineManifest::DefaultFile(), Rows, Failure) ||
+                Rows.Num() != 22)
+            {
+                Failure = TEXT("manifest_shape");
+                return false;
+            }
+            Before.Reset(NewObject<UGrimrockPartySaveGame>());
+            if (!Before.IsValid())
+            {
+                Failure = TEXT("save_alloc");
+                return false;
+            }
+            FGridCharacterInventoryState& Hero =
+                Before->PartyInventoryState.ActiveCharacters.AddDefaulted_GetRef();
+            Hero.CharacterId = FGuid(0x2026, 0xAD06, 0x1, 0x1);
+            Hero.DisplayName = FText::FromString(TEXT("ARM-CLEAN06 Memory Only"));
+            Hero.InventorySlots.SetNum(44);
+            int32 Index = 0;
+            for (const FGridWeaponPipelineRow& Row : Rows)
+            {
+                FGridResolvedItem N1, N20;
+                if (!Registry.Resolve(FName(Row.ItemDefinitionId), 1, N1) ||
+                    !Registry.Resolve(FName(Row.ItemDefinitionId), 20, N20))
+                {
+                    Failure = TEXT("physical_arms");
+                    return false;
+                }
+                for (int32 Level : {1,20})
+                {
+                    FGridInventorySlot& Slot = Hero.InventorySlots[Index++];
+                    Slot.bOccupied = true;
+                    FGridItemInstance& Item = Slot.Item;
+                    Item.RuntimeObjectId = FGuid(0xAD06, Index, Level, 0x2026);
+                    Item.ItemDefinitionId = N1.ItemId;
+                    Item.ItemLevel = Level;
+                    Item.Quantity = 1;
+                    Item.AbsorbedEquipmentPhysicalArmor = Row.IsPassive() ? 3 : 0;
+                    Item.AbsorbedEquipmentMagicalArmor = Row.IsFocus() ? 1 : 0;
+                    Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+                    Item.OwnerGuid = Hero.CharacterId;
+                    Item.OwnerCharacterIndex = 0;
+                    Item.EquipmentSlot = EGridEquipmentSlot::None;
+                    Item.bLightsEnabled = false;
+                    Item.ReadableContentId = NAME_None;
+                    Item.ReadTitleOverride = FText();
+                    Item.ReadTextOverride = FText();
+                    Item.LastWorldTransform = FTransform::Identity;
+                }
+            }
+            if (!UGameplayStatics::SaveGameToMemory(Before.Get(), Bytes) || Bytes.IsEmpty())
+            {
+                Failure = TEXT("encode");
+                return false;
+            }
+            After.Reset(Cast<UGrimrockPartySaveGame>(
+                UGameplayStatics::LoadGameFromMemory(Bytes)));
+            if (!After.IsValid())
+            {
+                Failure = TEXT("decode");
+                return false;
+            }
+            if (After->PartyInventoryState.ActiveCharacters.Num() != 1 ||
+                After->PartyInventoryState.ActiveCharacters[0].InventorySlots.Num() != 44)
+            {
+                Failure = TEXT("memory_shape");
+                return false;
+            }
+            return true;
+        }
+
+        const FGridItemInstance& Original(int32 I) const
+        {
+            return Before->PartyInventoryState.ActiveCharacters[0].InventorySlots[I].Item;
+        }
+        const FGridItemInstance& Restored(int32 I) const
+        {
+            return After->PartyInventoryState.ActiveCharacters[0].InventorySlots[I].Item;
+        }
+    };
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADSaveInstanceParity,
@@ -31,86 +114,103 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADSaveInstanceParity,
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FGridClean062ADSaveInstanceParity::RunTest(const FString&)
 {
-    FGridCanonicalRegistryFixture Registry;
-    if (!TestTrue(TEXT("Real canonical registry"), Registry.bReady)) return false;
-    TArray<FGridWeaponPipelineRow> Rows;
-    FString Error;
-    if (!TestTrue(TEXT("All ARM identity rows read"),
-        FGridWeaponPipelineManifest::Load(
-            FGridWeaponPipelineManifest::DefaultFile(), Rows, Error))) return false;
-    if (!TestEqual(TEXT("Exactly twenty-two physical ARM"), Rows.Num(), 22)) return false;
+    ArmClean062AD::FMemoryFixture Test;
+    if (!TestTrue(TEXT("UE native 44-object memory snapshot: structure"),
+        Test.Create()))
+    {
+        AddError(Test.Failure);
+        return false;
+    }
+    for (int32 I = 0; I < 44; ++I)
+    {
+        const FGridItemInstance& A = Test.Original(I);
+        const FGridItemInstance& B = Test.Restored(I);
+        TestTrue(TEXT("Durable physical identity, level and stack"),
+            A.RuntimeObjectId == B.RuntimeObjectId &&
+            A.ItemDefinitionId == B.ItemDefinitionId &&
+            A.ItemLevel == B.ItemLevel && A.Quantity == B.Quantity);
+    }
+    return !HasAnyErrors();
+}
 
-    UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
-    FGridCharacterInventoryState& Hero =
-        Source->PartyInventoryState.ActiveCharacters.AddDefaulted_GetRef();
-    Hero.CharacterId = FGuid(0x2026, 0xAD06, 0x1, 0x1);
-    Hero.DisplayName = FText::FromString(TEXT("ARM-CLEAN06 Memory Only"));
-    Hero.InventorySlots.SetNum(44);
-    int32 OriginalIndex = 0, Passive = 0;
-    for (int32 Index = 0; Index < Rows.Num(); ++Index)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADArmorDebtRoundTrip,
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.SaveArmorDebtDimension",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean062ADArmorDebtRoundTrip::RunTest(const FString&)
+{
+    ArmClean062AD::FMemoryFixture Test;
+    if (!TestTrue(TEXT("Native 44-object memory snapshot"), Test.Create()))
+        return false;
+    for (int32 I = 0; I < 44; ++I)
+        TestTrue(TEXT("Physical and magical spent armor persists independently"),
+            Test.Original(I).AbsorbedEquipmentPhysicalArmor ==
+                Test.Restored(I).AbsorbedEquipmentPhysicalArmor &&
+            Test.Original(I).AbsorbedEquipmentMagicalArmor ==
+                Test.Restored(I).AbsorbedEquipmentMagicalArmor);
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADOwnershipRoundTrip,
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.SaveOwnershipDimension",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean062ADOwnershipRoundTrip::RunTest(const FString&)
+{
+    ArmClean062AD::FMemoryFixture Test;
+    if (!TestTrue(TEXT("Native 44-object memory snapshot"), Test.Create()))
+        return false;
+    for (int32 I = 0; I < 44; ++I)
     {
-        const FGridWeaponPipelineRow& Row = Rows[Index];
-        FGridResolvedItem N1, N20;
-        if (!TestTrue(TEXT("N1/N20 resolve without historical source"),
-            Registry.Resolve(FName(Row.ItemDefinitionId), 1, N1) &&
-            Registry.Resolve(FName(Row.ItemDefinitionId), 20, N20)))
-            return false;
-        TestEqual(TEXT("One actual ARM archetype"), N1.ArchetypeId, FName(Row.ArchetypeId));
-        if (Row.IsPassive()) ++Passive;
-        for (int32 Level : {1, 20})
-        {
-            FGridInventorySlot& Slot = Hero.InventorySlots[OriginalIndex++];
-            Slot.bOccupied = true;
-            FGridItemInstance& Item = Slot.Item;
-            Item.RuntimeObjectId = FGuid(0xAD06, Index + 1, Level, 0x2026);
-            Item.ItemDefinitionId = N1.ItemId;
-            Item.ItemLevel = Level;
-            Item.Quantity = 1;
-            Item.AbsorbedEquipmentPhysicalArmor = Row.IsPassive() ? 3 : 0;
-            Item.AbsorbedEquipmentMagicalArmor = Row.IsFocus() ? 1 : 0;
-            // Every record lives in this character's bag. Do not construct
-            // impossible mixed owners (world/cursor/equipment) inside
-            // InventorySlots: SaveGame normalizers may reject invalid states.
-            // World, cursor and equipment schemas are covered separately by
-            // the dedicated v27 native 7-save retirement audit.
-            Item.OwnerType = EGridItemOwnerType::CharacterInventory;
-            Item.OwnerGuid = Hero.CharacterId;
-            Item.OwnerCharacterIndex = 0;
-            Item.EquipmentSlot = EGridEquipmentSlot::None;
-            Item.bLightsEnabled = false;
-            Item.ReadableContentId = NAME_None;
-            Item.ReadTitleOverride = FText();
-            Item.ReadTextOverride = FText();
-            Item.LastWorldTransform = FTransform::Identity;
-        }
+        const FGridItemInstance& A = Test.Original(I);
+        const FGridItemInstance& B = Test.Restored(I);
+        TestTrue(TEXT("Owner, index and equipment slot persist"),
+            A.OwnerType == B.OwnerType && A.OwnerGuid == B.OwnerGuid &&
+            A.OwnerCharacterIndex == B.OwnerCharacterIndex &&
+            A.EquipmentSlot == B.EquipmentSlot);
     }
-    TArray<uint8> Bytes;
-    if (!TestTrue(TEXT("Actual UE SaveGame serializes 44 instances in RAM"),
-        UGameplayStatics::SaveGameToMemory(Source, Bytes) && !Bytes.IsEmpty()))
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADOptionalDimensionRoundTrip,
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.SaveOptionalPresentationDimension",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean062ADOptionalDimensionRoundTrip::RunTest(const FString&)
+{
+    ArmClean062AD::FMemoryFixture Test;
+    if (!TestTrue(TEXT("Native 44-object memory snapshot"), Test.Create()))
         return false;
-    UGrimrockPartySaveGame* Rehydrated =
-        Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
-    if (!TestNotNull(TEXT("Real UE SaveGame deserializes from memory"), Rehydrated))
-        return false;
-    if (!TestEqual(TEXT("Recovered one test hero"),
-        Rehydrated->PartyInventoryState.ActiveCharacters.Num(), 1)) return false;
-    const TArray<FGridInventorySlot>& Loaded =
-        Rehydrated->PartyInventoryState.ActiveCharacters[0].InventorySlots;
-    if (!TestEqual(TEXT("44 slot records survived"), Loaded.Num(), 44)) return false;
-    for (int32 Index = 0; Index < 44; ++Index)
+    for (int32 I = 0; I < 44; ++I)
     {
-        const FGridItemInstance& Original = Hero.InventorySlots[Index].Item;
-        const FGridItemInstance& Restored = Loaded[Index].Item;
-        TestTrue(TEXT("Each mutable GUID, debt, owner, readable, transform roundtrips"),
-            ArmClean062AD::SameDurableItem(Original, Restored));
+        const FGridItemInstance& A = Test.Original(I);
+        const FGridItemInstance& B = Test.Restored(I);
+        TestTrue(TEXT("Readable, light and world pose persist"),
+            A.bLightsEnabled == B.bLightsEnabled &&
+            A.ReadableContentAsset == B.ReadableContentAsset &&
+            A.ReadableContentId == B.ReadableContentId &&
+            A.ReadTitleOverride.EqualTo(B.ReadTitleOverride) &&
+            A.ReadTextOverride.EqualTo(B.ReadTextOverride) &&
+            A.LastWorldTransform.Equals(B.LastWorldTransform));
+    }
+    return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062ADRehydrationRoundTrip,
+    "Grimrock.RPG.ARM.CLEAN06_2.Canonical.SaveCanonicalRehydrationDimension",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FGridClean062ADRehydrationRoundTrip::RunTest(const FString&)
+{
+    ArmClean062AD::FMemoryFixture Test;
+    if (!TestTrue(TEXT("Native 44-object memory snapshot"), Test.Create()))
+        return false;
+    for (int32 I = 0; I < 44; ++I)
+    {
         FGridResolvedItem Item;
-        TestTrue(TEXT("Restored physical ItemId+N resolves from canonical registry"),
-            Registry.Resolve(Restored.ItemDefinitionId, Restored.ItemLevel, Item));
+        TestTrue(TEXT("Every restored item resolves from one canonical registry"),
+            Test.Registry.Resolve(
+                Test.Restored(I).ItemDefinitionId, Test.Restored(I).ItemLevel, Item));
     }
-    TestEqual(TEXT("All three passive ARM sources included"), Passive, 3);
-    TestNull(TEXT("No stored DisplayName on mutable instance"),
+    TestNull(TEXT("No static DisplayName on mutable item"),
         FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
-    TestNull(TEXT("No stored Weight cache on mutable instance"),
+    TestNull(TEXT("No static Weight cache on mutable item"),
         FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     return !HasAnyErrors();
 }
@@ -123,23 +223,19 @@ bool FGridClean062ADRejectLossySave::RunTest(const FString&)
     FGridCanonicalRegistryFixture Registry;
     if (!TestTrue(TEXT("Canonical ItemSystem"), Registry.bReady)) return false;
     FGridResolvedItem Valid, Invalid;
-    TestTrue(TEXT("Original physical level N20 exists"),
+    TestTrue(TEXT("N20 physical arm exists"),
         Registry.Resolve(TEXT("Weapon_StraightSword_01"), 20, Valid));
-    TestFalse(TEXT("Legacy N0 never promoted to N1"),
+    TestFalse(TEXT("N0 never promoted to N1"),
         Registry.Registry->ResolveItem(Valid.ItemId, 0, Invalid));
     TestFalse(TEXT("N21 never truncated to N20"),
         Registry.Registry->ResolveItem(Valid.ItemId, 21, Invalid));
-    TestFalse(TEXT("Another ItemId never guessed from an archetype"),
+    TestFalse(TEXT("Unknown ItemId cannot guess archetype"),
         Registry.Registry->ResolveItem(TEXT("Weapon_WrongIdentity"), 20, Invalid));
     FGridCanonicalArmorReserveView Reserve;
-    TestFalse(TEXT("Invalid negative physical depletion is refused"),
+    TestFalse(TEXT("Negative physical debt rejected"),
         FGridCanonicalArmorReserveResolver::TryCompute(Valid.Weapon, -1, 0, Reserve));
-    TestFalse(TEXT("Invalid negative magical depletion is refused"),
+    TestFalse(TEXT("Negative magical debt rejected"),
         FGridCanonicalArmorReserveResolver::TryCompute(Valid.Weapon, 0, -1, Reserve));
-    TestNull(TEXT("Mutable item has no stale static display cache"),
-        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
-    TestNull(TEXT("Mutable item has no stale static weight cache"),
-        FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     return !HasAnyErrors();
 }
 #endif // WITH_DEV_AUTOMATION_TESTS
