@@ -4,6 +4,7 @@
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridQuickItemUseReadModel.h"
+#include "GridPhysicalThrowPreflightReadModel.h"
 
 /**
  * ARM-CLEAN06.3AW: context/read/hotbar capabilities of an actual item instance.
@@ -56,13 +57,7 @@ struct FGridItemInteractionReadModel
 			Out.ItemIcon = Canonical.ItemIcon;
 			Out.DefaultReadText = Canonical.ReadText;
 			Out.bCanRead = bHasInstanceText || Canonical.bReadable || !Out.DefaultReadText.IsEmpty();
-			Out.bPhysicalThrowHotbar = Canonical.bIsArmament &&
-				Canonical.Weapon.Projectile.bEnabled &&
-				Canonical.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
-				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand) &&
-				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f &&
-				FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) &&
-				Canonical.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER;
+			Out.bPhysicalThrowHotbar = FGridPhysicalThrowPreflightReadModel::CanBind(Canonical, Item);
 			const FGridQuickItemUseReadView Use =
 				FGridQuickItemUseReadModel::Resolve(Registry, Item);
 			// Only a true direct self-heal may appear as the inline "Consume"

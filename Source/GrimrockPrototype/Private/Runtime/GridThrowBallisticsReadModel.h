@@ -15,6 +15,37 @@ struct FGridThrowBallisticsReadView
 
 struct FGridThrowBallisticsReadModel
 {
+	static FGridThrowBallisticsReadView ReadCanonicalFlight(const FGridResolvedItem& Canonical)
+	{
+		FGridThrowBallisticsReadView Out;
+		Out.bRegisteredIdentity = true;
+		if (!Canonical.bIsArmament)
+		{
+			if (Canonical.ItemLevel != 0 || !FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) ||
+				Canonical.GenericThrow.InitialSpeed <= KINDA_SMALL_NUMBER || !FMath::IsFinite(Canonical.GenericThrow.Arc))
+				return Out;
+			Out.bResolved = true;
+			Out.InitialSpeed = Canonical.GenericThrow.InitialSpeed;
+			Out.Arc = Canonical.GenericThrow.Arc;
+			return Out;
+		}
+		if (Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)
+		{
+			if (!FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) ||
+				Canonical.Weapon.Projectile.InitialSpeed <= KINDA_SMALL_NUMBER ||
+				!FMath::IsFinite(Canonical.Weapon.Projectile.Arc))
+			{
+				return Out;
+			}
+			Out.bResolved = true;
+			Out.bSpecializedProjectile = Canonical.Weapon.Projectile.bEnabled;
+			Out.InitialSpeed = Canonical.Weapon.Projectile.InitialSpeed;
+			Out.Arc = Canonical.Weapon.Projectile.Arc;
+			return Out;
+		}
+		return Out;
+	}
+
 	static FGridThrowBallisticsReadView Resolve(
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance)
@@ -36,33 +67,7 @@ struct FGridThrowBallisticsReadModel
 			{
 				return Out; // No synthetic N1 or old projectile for a known invalid ARM.
 			}
-			if (!Canonical.bIsArmament)
-			{
-				if (Instance.ItemLevel != 0 || !FMath::IsFinite(Canonical.GenericThrow.InitialSpeed) ||
-					Canonical.GenericThrow.InitialSpeed <= KINDA_SMALL_NUMBER || !FMath::IsFinite(Canonical.GenericThrow.Arc))
-					return Out;
-				Out.bResolved = true;
-				Out.InitialSpeed = Canonical.GenericThrow.InitialSpeed;
-				Out.Arc = Canonical.GenericThrow.Arc;
-				return Out;
-			}
-			if (Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)
-			{
-				if (!FMath::IsFinite(Canonical.Weapon.Projectile.InitialSpeed) ||
-					Canonical.Weapon.Projectile.InitialSpeed <= KINDA_SMALL_NUMBER ||
-					!FMath::IsFinite(Canonical.Weapon.Projectile.Arc))
-				{
-					return Out;
-				}
-				Out.bResolved = true;
-				Out.bSpecializedProjectile = Canonical.Weapon.Projectile.bEnabled;
-				Out.InitialSpeed = Canonical.Weapon.Projectile.InitialSpeed;
-				Out.Arc = Canonical.Weapon.Projectile.Arc;
-				return Out;
-			}
-			// 5D.3 materialized the ordinary policies. Missing canonical
-			// flight is a refusal, never a historical fallback.
-			return Out;
+			return ReadCanonicalFlight(Canonical);
 		}
 		// Only active, registry-less Automation fixtures may use old physics.
 #if !WITH_DEV_AUTOMATION_TESTS

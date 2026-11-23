@@ -29,7 +29,7 @@
 #include "../Runtime/GridItemInteractionReadModel.h"
 #include "../Runtime/GridQuickItemUseReadModel.h"
 #include "../Runtime/GridExplorationItemReadModel.h"
-#include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
+#include "../Runtime/GridPhysicalThrowPreflightReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -174,8 +174,8 @@ namespace
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ThrowRequirement"));
 			return Action;
 		}
-		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OldDefinition, Source->Item, Summary.Attributes.Strength);
+		const FGridPhysicalThrowPreflightReadView Gate =
+			FGridPhysicalThrowPreflightReadModel::Resolve(Registry, OldDefinition, Source->Item, Summary.Attributes.Strength);
 		if (!Gate.bCanThrow)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;

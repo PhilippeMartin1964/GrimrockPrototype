@@ -302,22 +302,14 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 
 		const FGridItemInteractionReadView Capabilities =
 			FGridItemInteractionReadModel::Resolve(Canonical, Definition, OwnedItem);
+		const FGridQuickItemUseReadView Use = Capabilities.bRegisteredIdentity
+			? FGridQuickItemUseReadModel::Resolve(Canonical, OwnedItem) : FGridQuickItemUseReadView();
 		FGridCombatActionDefinition InventoryAction;
-		if (Capabilities.bRegisteredIdentity && Capabilities.bPhysicalThrowHotbar)
+		if (Use.bResolved || Capabilities.bPhysicalThrowHotbar)
 		{
-			Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
-			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
-		}
-		else if (Capabilities.bRegisteredIdentity)
-		{
-			const FGridQuickItemUseReadView Use =
-				FGridQuickItemUseReadModel::Resolve(Canonical, OwnedItem);
-			if (!Use.bResolved)
-			{
-				return false; // No fallback to old QuickItem for known IDs.
-			}
-			Binding.ActionId = Use.Action.ActionId;
+			// Explicit consumable actions keep their existing shortcut.
+			Binding.ActionId = Use.bResolved ? Use.Action.ActionId :
+				FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}

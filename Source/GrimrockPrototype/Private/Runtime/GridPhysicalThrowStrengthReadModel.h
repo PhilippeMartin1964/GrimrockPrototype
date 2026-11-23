@@ -17,6 +17,18 @@ struct FGridPhysicalThrowStrengthReadView
 
 struct FGridPhysicalThrowStrengthReadModel
 {
+	static bool IsCanonicalOneHanded(const FGridResolvedItem& Item)
+	{
+		if (!Item.bIsArmament)
+		{
+			return Item.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
+		}
+		const auto& Projectile = Item.Weapon.Projectile;
+		return Projectile.bGenericThrowAuthored ? Projectile.bGenericThrowOneHanded :
+			Item.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
+			Item.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand);
+	}
+
 	static FGridPhysicalThrowStrengthReadView Resolve(
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance, int32 Strength)
@@ -43,12 +55,7 @@ struct FGridPhysicalThrowStrengthReadModel
 			// for each point of effective Strength, independent of old DA.
 			Out.MaxWeightKg = FMath::Max(0, Strength) * 0.25f;
 			Out.bResolved = true;
-			Out.bOneHanded = Canonical.bIsArmament
-				? (Canonical.Weapon.Projectile.bGenericThrowAuthored
-					? Canonical.Weapon.Projectile.bGenericThrowOneHanded
-					: Canonical.Weapon.HandPolicy != EGridHandPolicy::TwoHanded &&
-						Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
-				: Canonical.NonArmHandPolicy == EGridNonArmamentHandPolicy::OneHanded;
+			Out.bOneHanded = IsCanonicalOneHanded(Canonical);
 			Out.UnitWeightKg = Canonical.WeightKg;
 			const float Speed = !Canonical.bIsArmament ? Canonical.GenericThrow.InitialSpeed :
 				(Canonical.Weapon.Projectile.bEnabled || Canonical.Weapon.Projectile.bGenericThrowAuthored)

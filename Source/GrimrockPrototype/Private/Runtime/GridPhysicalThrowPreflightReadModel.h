@@ -18,6 +18,20 @@ struct FGridPhysicalThrowPreflightReadView
 
 struct FGridPhysicalThrowPreflightReadModel
 {
+    // Eligibility for binding is independent of the character's current Strength.
+    // Call only with a physical definition resolved by the active registry.
+    static bool CanBind(const FGridResolvedItem& Item, const FGridItemInstance& Instance)
+    {
+        return Instance.IsValid() && Item.IsValid() &&
+            Item.ItemId == Instance.ItemDefinitionId && Item.ItemLevel == Instance.ItemLevel &&
+            (Item.bIsArmament ? Item.ItemLevel > 0 && Item.Weapon.HandPolicy != EGridHandPolicy::TwoHanded
+                              : Item.ItemLevel == 0) &&
+            Instance.Quantity <= FMath::Max(1, Item.MaxStack) &&
+            FMath::IsFinite(Item.WeightKg) && Item.WeightKg >= 0.0f &&
+            FGridPhysicalThrowStrengthReadModel::IsCanonicalOneHanded(Item) &&
+            FGridThrowBallisticsReadModel::ReadCanonicalFlight(Item).bResolved;
+    }
+
     static FGridPhysicalThrowPreflightReadView Resolve(
         const UGridItemSubsystem* Registry,
         const UGridItemDefinitionAsset* Legacy,

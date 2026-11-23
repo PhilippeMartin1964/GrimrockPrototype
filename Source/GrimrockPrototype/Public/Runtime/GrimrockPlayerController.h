@@ -74,6 +74,7 @@ public:
 
 protected:
 	friend class FGridTD021WorldItemsContractTest;
+	friend class FGridHotbarContext01CanonicalStoneDivergence;
 	friend class FGridUISplit02WorldInteractionPolicyTest;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
