@@ -176,8 +176,8 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     }
     const FGridSpawnedItemRuntimeEntry* NonArmEntry = FindRuntimeEntry(NonArmActor);
     if (!TestNotNull(TEXT("Registered nonARM has a runtime entry"), NonArmEntry) ||
-        !TestNull(TEXT("Registered nonARM runtime entry has no legacy source"),
-            NonArmEntry->ItemDefinitionAsset.Get())) return false;
+        !TestNull(TEXT("World runtime entry schema has no legacy source"),
+            FGridSpawnedItemRuntimeEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinitionAsset")))) return false;
 
     FGridResolvedItem NonArmResolved;
     if (!TestTrue(TEXT("NonARM physical N0 resolves"),
@@ -213,8 +213,6 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     AGridItemActor* ArmActor = PlaceAtOrigin(Arm);
     const FGridSpawnedItemRuntimeEntry* ArmEntry = FindRuntimeEntry(ArmActor);
     if (!TestNotNull(TEXT("Real ARM runtime entry exists"), ArmEntry) ||
-        !TestNull(TEXT("X.40: Real ARM entry discards DA_Weapon source"),
-            ArmEntry->ItemDefinitionAsset.Get()) ||
         !TestEqual(TEXT("X.40: Runtime entry retains authoritative ARM ID"),
             ArmEntry->ItemDefinitionId, Arm.ItemId) ||
         !TestEqual(TEXT("X.40: Runtime entry preserves authored ARM level"),

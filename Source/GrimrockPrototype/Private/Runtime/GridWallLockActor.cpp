@@ -254,8 +254,8 @@ bool AGridWallLockActor::AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, 
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	AGridItemActor* CanonicalVisual = PartyPawn->LevelRuntimeActor->SpawnItemActorForDefinition(
-		nullptr, CursorItem.ItemDefinitionId, this, ItemAttachPoint.Get());
+	AGridItemActor* CanonicalVisual = PartyPawn->LevelRuntimeActor->SpawnItemActorForDefinitionId(
+		CursorItem.ItemDefinitionId, this, ItemAttachPoint.Get());
 	if (!IsValid(CanonicalVisual)) return false;
 	FGridItemInstance PhysicalKey = CursorItem;
 	PhysicalKey.RuntimeObjectId = VisualRuntimeObjectId;

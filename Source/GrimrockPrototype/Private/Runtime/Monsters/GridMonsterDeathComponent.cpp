@@ -383,7 +383,7 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 		}
 
 		const bool bPlaced =
-			RuntimeActor && RuntimeActor->TryDropItemInstanceAtCell(ItemInstance, nullptr, DeathCell.X, DeathCell.Y, EGridEdge::None, LocalOffset);
+			RuntimeActor && RuntimeActor->TryDropItemInstanceAtCell(ItemInstance, DeathCell.X, DeathCell.Y, EGridEdge::None, LocalOffset);
 		if (!bPlaced)
 		{
 			++FailedLootCount;

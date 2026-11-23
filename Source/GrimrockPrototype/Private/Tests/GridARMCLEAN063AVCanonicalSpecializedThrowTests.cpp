@@ -164,10 +164,8 @@ namespace ARMCLEAN063AV
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
     const FVector Velocity(1200.0f, 0.0f, 100.0f);
     Contradictory->ItemDefinitionId = Valid.ItemDefinitionId;
-    UGridItemDefinitionAsset* SuppliedOld = FCString::Strcmp(Scenario, TEXT("Projectile")) == 0
-        ? Contradictory : nullptr;
     AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
-        Valid, SuppliedOld, Start, Velocity, 0, 0);
+        Valid, Start, Velocity, 0, 0);
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
         Projectile)) return false;
     Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
@@ -200,7 +198,7 @@ namespace ARMCLEAN063AV
 
     Test.TestTrue(TEXT("Canonical projectile can land as real world pickup without old asset"),
         F.Runtime->TryDropItemInstanceAtCell(
-            Valid, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
+            Valid, 0, 0, EGridEdge::None, FVector::ZeroVector));
     AGridItemActor* Pickup = nullptr;
     for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
     {
@@ -240,7 +238,7 @@ namespace ARMCLEAN063AV
         Test.TestFalse(TEXT("Invalid ARM has no canonical flight"), Flight.bResolved);
         Test.TestFalse(TEXT("Invalid ARM cannot be thrown"), Gate.bCanThrow);
         Test.TestNull(TEXT("Invalid ARM cannot spawn a projectile"),
-            F.Runtime->SpawnThrownItemProjectile(Bad, Contradictory, Start, Velocity, 0, 0));
+            F.Runtime->SpawnThrownItemProjectile(Bad, Start, Velocity, 0, 0));
     }
 
     // A malformed arrow N1 is rejected at the sole registry and also at
@@ -249,19 +247,12 @@ namespace ARMCLEAN063AV
     FGridResolvedItem N1Family;
     Test.TestFalse(TEXT("Registry rejects former non-ARM N1 family alias"),
         F.Registry->ResolveItem(BadArrow.ItemDefinitionId, BadArrow.ItemLevel, N1Family));
-    UGridItemDefinitionAsset* MatchingLegacyArrow = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    MatchingLegacyArrow->ItemDefinitionId = BadArrow.ItemDefinitionId;
-    MatchingLegacyArrow->HandUsage = EGridItemHandUsage::OneHanded;
-    MatchingLegacyArrow->Weight = 0.25f;
-    MatchingLegacyArrow->ThrowSpeed = 1800.0f;
-    Test.TestTrue(TEXT("Legacy arrow fixture would otherwise be throwable"),
-        MatchingLegacyArrow->IsPhysicallyThrowable());
-    Test.TestNull(TEXT("Registered non-ARM N1 cannot launch via matching old pointer"),
-        F.Runtime->SpawnThrownItemProjectile(BadArrow, MatchingLegacyArrow, Start, Velocity, 0, 0));
+    Test.TestNull(TEXT("Registered non-ARM N1 cannot launch"),
+        F.Runtime->SpawnThrownItemProjectile(BadArrow, Start, Velocity, 0, 0));
 
     const FGridItemInstance Unknown = F.Make(TEXT("ARM063AV_Unknown"), 0);
     Test.TestNull(TEXT("Unknown item without old definition cannot spawn"),
-        F.Runtime->SpawnThrownItemProjectile(Unknown, nullptr, Start, Velocity, 0, 0));
+        F.Runtime->SpawnThrownItemProjectile(Unknown, Start, Velocity, 0, 0));
     Test.TestFalse(TEXT("Unknown item without old definition has no throw gate"),
         FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, nullptr, Unknown, 20).bResolved);
 
@@ -270,12 +261,10 @@ namespace ARMCLEAN063AV
     Legacy->HandUsage = EGridItemHandUsage::OneHanded;
     Legacy->ThrowSpeed = 1800.0f;
     Legacy->Weight = 0.25f;
-    Test.TestNull(TEXT("Matching obsolete asset cannot authorize an unknown projectile"),
-        F.Runtime->SpawnThrownItemProjectile(Unknown, Legacy, Start, Velocity, 0, 0));
     FGridItemInstance Oversized = F.Make(Ids[0], 20);
     Oversized.Quantity = 2;
     Test.TestNull(TEXT("One physical projectile cannot carry two armaments"),
-        F.Runtime->SpawnThrownItemProjectile(Oversized, Contradictory, Start, Velocity, 0, 0));
+        F.Runtime->SpawnThrownItemProjectile(Oversized, Start, Velocity, 0, 0));
     Test.TestFalse(TEXT("Unknown identity cannot resolve Strength with matching old asset"),
         FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Legacy, Unknown, 20).bResolved);
     const auto LegacyGate =
@@ -362,12 +351,12 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
         if (!bOneHand)
         {
             TestFalse(TEXT("No invented hand permission"), Gate.bCanThrow);
-            TestNull(TEXT("No obsolete hand permission at spawn"), F.Runtime->SpawnThrownItemProjectile(Item, Stale, Start, Velocity, 0, 0));
+            TestNull(TEXT("No obsolete hand permission at spawn"), F.Runtime->SpawnThrownItemProjectile(Item, Start, Velocity, 0, 0));
         }
         if (bOneHand && Gate.bCanThrow && Flight.bResolved && !Native->WorldMesh.IsNull())
         {
             ++HandheldCount;
-            auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Item, Stale, Start, Velocity, 0, 0);
+            auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Item, Start, Velocity, 0, 0);
             if (!TestNotNull(TEXT("Registered non-ARM launches without old asset"), Projectile)) return false;
             TestNull(TEXT("Stale definition was discarded"), Projectile->GetItemDefinitionAsset());
             TestTrue(TEXT("Native world mesh in flight"), Projectile->MeshComponent &&
@@ -419,7 +408,7 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
             if (Strength.bCanThrow && Flight.bResolved && !Item.WorldMesh.IsNull())
             {
                 const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
-                auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Instance, Stale, Start, FVector(1200,0,100), 0,0);
+                auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Instance, Start, FVector(1200,0,100), 0,0);
                 if (!TestNotNull(TEXT("Ordinary ARM spawns without old definition"), Projectile)) return false;
                 TestNull(TEXT("Old definition discarded"), Projectile->GetItemDefinitionAsset());
                 TestTrue(TEXT("Complete canonical world presentation"), Projectile->ResolvedWorldPresentation.IsValid());
@@ -501,7 +490,7 @@ bool FGridClean065G59InFlightTravel::RunTest(const FString&)
     Item.ReadTitleOverride = FText::FromString(TEXT("Flight text"));
     Item.bLightsEnabled = false;
     AGridThrownItemActor* Flight = F.Runtime->SpawnThrownItemProjectile(
-        Item, nullptr, F.Runtime->GetCellCenterWorld(0, 0, 100.f), FVector(1200,0,100), 0,0);
+        Item, F.Runtime->GetCellCenterWorld(0, 0, 100.f), FVector(1200,0,100), 0,0);
     if (!TestNotNull(TEXT("Live non-ammo projectile"), Flight)) return false;
     if (!TestTrue(TEXT("Capture includes hand-thrown armament"), F.Runtime->CaptureCurrentLevelRuntimeState())) return false;
     const FGridLevelRuntimeState* Saved = F.Runtime->FindRuntimeStateForCurrentLevel();
@@ -547,7 +536,7 @@ bool FGridClean065G60ImpactRetry::RunTest(const FString&)
     const FGridItemInstance Item = F.Make(TEXT("Weapon_ThrowingKnife_01"), 20);
     const FVector Target = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
     AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
-        Item, nullptr, Target, FVector(1200,0,100), 0,0);
+        Item, Target, FVector(1200,0,100), 0,0);
     if (!TestNotNull(TEXT("Physical projectile"), Projectile)) return false;
     // No usable landing cell, including the source fallback.
     for (FGridLevelCellData& Cell : F.Runtime->LevelAsset->Cells)

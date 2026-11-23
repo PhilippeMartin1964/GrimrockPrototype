@@ -108,15 +108,11 @@ namespace ARMCLEAN063BC
         Test.TestTrue(TEXT("Arrow is stackable canonical ammunition"),
             !Canonical.bIsArmament && !Canonical.AmmoKindId.IsNone() && Canonical.MaxStack > 1);
 
-        UGridItemDefinitionAsset* Contradictory = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-        Contradictory->ItemDefinitionId = Unit.ItemDefinitionId;
-        Contradictory->Weight = 500.0f;
-        Contradictory->bStackable = false;
 
         if (FCString::Strcmp(Scenario, TEXT("Drop")) == 0)
         {
             if (!Test.TestTrue(TEXT("Canonical ammo ignores contradictory legacy item while landing"),
-                F.Runtime->TryDropItemInstanceAtCell(Unit, Contradictory, 1, 1, EGridEdge::None,
+                F.Runtime->TryDropItemInstanceAtCell(Unit, 1, 1, EGridEdge::None,
                     FVector::ZeroVector))) return false;
             int32 Count = 0;
             for (TActorIterator<AGridItemActor> It(F.World); It; ++It)
@@ -145,7 +141,7 @@ namespace ARMCLEAN063BC
         const FVector Start = F.Runtime->GetCellCenterWorld(1, 1, 140.0f);
         const FVector Velocity(0, 1200.f, 0);
         AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
-            Unit, Contradictory, Start, Velocity, 1, 1, true);
+            Unit, Start, Velocity, 1, 1, true);
         if (!Test.TestNotNull(TEXT("Canonical projectile can launch with obsolete metadata"),
             Projectile)) return false;
 
@@ -164,7 +160,6 @@ namespace ARMCLEAN063BC
                 FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
             // The stale input definition is still present in the fixture but
             // cannot influence reconstruction from the physical snapshot.
-            Contradictory->ItemDefinitionId = TEXT("Key_Copper");
             if (!Test.TestTrue(TEXT("Save state restores as pickup"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Pickups = 0;
@@ -223,7 +218,6 @@ namespace ARMCLEAN063BC
                 Saved->EmbeddedMonsterPersistenceId == Monster->PersistentMonsterId);
             Test.TestNull(TEXT("No saved projectile definition field"),
                 FGridRuntimeItemState::StaticStruct()->FindPropertyByName(TEXT("ProjectileDefinitionAsset")));
-            Contradictory->ItemDefinitionId = TEXT("Key_Copper");
             if (!Test.TestTrue(TEXT("Restore embedded arrow after snapshot"),
                 F.Runtime->ApplyCurrentLevelRuntimeState())) return false;
             int32 Embedded = 0;

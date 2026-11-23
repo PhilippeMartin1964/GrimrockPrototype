@@ -6,6 +6,7 @@
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Engine/Blueprint.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -103,6 +104,8 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 
 	const TSet<FName> LegacyFunctionNames = {
 		FName(TEXT("InitializeItem")),
+		FName(TEXT("InitializeFromItemDefinition")),
+		FName(TEXT("GetItemDefinitionAsset")),
 		FName(TEXT("GetItemArchetypeId")),
 		FName(TEXT("SetSelectedObjectItemDefinitionAsset")),
 		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset")),
@@ -237,6 +240,12 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestEqual(TEXT("No native Blueprint directly uses the two serialized world structs"), WorldSaveStructReferences.Num(), 0);
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
 	TestEqual(TEXT("No Blueprint calls retired item identity APIs, historical inventory registry or weight-bearing pawn grant"), LegacyReferences.Num(), 0);
+	TestNull(TEXT("Historic world initializer is native only"),
+		AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeFromItemDefinition")));
+	TestNull(TEXT("Historic world definition getter is native only"),
+		AGridItemActor::StaticClass()->FindFunctionByName(TEXT("GetItemDefinitionAsset")));
+	TestNotNull(TEXT("Persisted actor definition field is retained"),
+		AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));

@@ -19,7 +19,6 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldItemLevelReadModel.h"
 #include "GridItemSpawnReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -1975,13 +1974,12 @@ const UGridWorldObjectDefinitionAsset* AGridLevelRuntimeActor::FindWorldObjectDe
 	return nullptr;
 }
 
-AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
+AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinitionId(FName ItemDefinitionId, AActor* OwnerActor,
 	USceneComponent* AttachParent) const
 {
-	ItemDefinitionId = ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone() ? ItemDefinition->ItemDefinitionId : ItemDefinitionId;
-	if (!ItemDefinition && ItemDefinitionId.IsNone())
+	if (ItemDefinitionId.IsNone())
 	{
-		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item spawn failed: missing ItemDefinition and ItemDefinitionId."));
+		UE_LOG(LogGridLevelRuntime, Warning, TEXT("Grid item spawn failed: missing ItemDefinitionId."));
 		return nullptr;
 	}
 	UWorld* World = GetWorld();
@@ -1989,20 +1987,19 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		return nullptr;
 	}
-	// A real GameInstance owns the authoritative ItemSystem. Historical
-	// UObject definitions are permitted only in isolated, worldless Editor
-	// fixtures; a configured game cannot spawn an unknown or obsolete item.
-	if (UGameInstance* GameInstance = World->GetGameInstance())
+	UGameInstance* GameInstance = World->GetGameInstance();
+	const UGridItemSubsystem* Registry = GameInstance ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
+	bool bRequireRegisteredItem = true;
+#if WITH_DEV_AUTOMATION_TESTS
+	// Isolated restoration fixtures can still allocate an identity-only actor.
+	bRequireRegisteredItem = GameInstance != nullptr || !GIsAutomationTesting;
+#endif
+	if (bRequireRegisteredItem && (!Registry || !Registry->IsConfigured() || !Registry->ContainsItem(ItemDefinitionId)))
 	{
-		const UGridItemSubsystem* Registry = GameInstance->GetSubsystem<UGridItemSubsystem>();
-		if (ItemDefinition || !Registry || !Registry->IsConfigured() ||
-			ItemDefinitionId.IsNone() || !Registry->ContainsItem(ItemDefinitionId))
-		{
-			UE_LOG(LogGridLevelRuntime, Warning,
-				TEXT("Grid item spawn refused without canonical registry identity: %s."),
-				*ItemDefinitionId.ToString());
-			return nullptr;
-		}
+		UE_LOG(LogGridLevelRuntime, Warning,
+			TEXT("Grid item spawn refused without canonical registry identity: %s."),
+			*ItemDefinitionId.ToString());
+		return nullptr;
 	}
 	const FTransform SpawnTransform(AttachParent ? AttachParent->GetComponentRotation() : FRotator::ZeroRotator,
 		AttachParent ? AttachParent->GetComponentLocation() : GetActorLocation(), FVector::OneVector);
@@ -2021,14 +2018,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition(UGridItemDef
 	{
 		return nullptr;
 	}
-	if (ItemDefinition)
-	{
-		ItemActor->InitializeFromItemDefinition(ItemDefinition, FGuid());
-	}
-	else
-	{
-		ItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, FGuid());
-	}
+	ItemActor->InitializeFromItemDefinitionId(ItemDefinitionId, FGuid());
 	if (AttachParent)
 	{
 		ItemActor->ConfigureAsAttachedItem();
@@ -2151,7 +2141,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 		return;
 	}
 	const int32 ResolvedItemLevel = Canonical.ItemLevel;
-	AGridItemActor* ItemActor = SpawnItemActorForDefinition(nullptr, ItemDefinitionId, this, nullptr);
+	AGridItemActor* ItemActor = SpawnItemActorForDefinitionId(ItemDefinitionId, this, nullptr);
 	if (!ItemActor)
 	{
 		UE_LOG(LogGridLevelRuntime, Warning,
@@ -2191,7 +2181,6 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 	Entry.Edge = ObjectData.SurfaceSide;
 	Entry.ItemActor = ItemActor;
 	Entry.ObjectId = ObjectData.InstanceId;
-	Entry.ItemDefinitionAsset = nullptr;
 	Entry.ItemDefinitionId = ItemDefinitionId;
 	Entry.Quantity = ObjectData.Quantity;
 	Entry.ItemLevel = ResolvedItemLevel;

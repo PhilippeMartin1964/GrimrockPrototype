@@ -164,7 +164,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	CursorAdjacentItem.OwnerType = EGridItemOwnerType::Cursor;
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::Solid;
 	TestTrue(TEXT("A cursor item can be placed by hand exactly 200 cm away even when grid movement is blocked"),
-		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, nullptr, 2, 1, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorAdjacentItem, 2, 1, EGridEdge::None, FVector::ZeroVector));
 	TestNotNull(TEXT("The 200 cm hand placement creates its world actor"), FindWorldItemActor(CursorAdjacentItem.RuntimeObjectId));
 	LevelAsset->GetCellMutable(1, 1).EastWall = EGridWallType::None;
 
@@ -172,32 +172,32 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	CursorJustBeyondReach.RuntimeObjectId = FGuid::NewGuid();
 	CursorJustBeyondReach.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A cursor item is not placed by hand at 201 cm"),
-		Runtime->TryDropItemInstanceAtCell(CursorJustBeyondReach, nullptr, 2, 1, EGridEdge::None, FVector(1.0f, 0.0f, 0.0f)));
+		Runtime->TryDropItemInstanceAtCell(CursorJustBeyondReach, 2, 1, EGridEdge::None, FVector(1.0f, 0.0f, 0.0f)));
 	TestNull(TEXT("Rejected 201 cm hand placement creates no world actor"), FindWorldItemActor(CursorJustBeyondReach.RuntimeObjectId));
 
 	FGridItemInstance CursorDiagonalNearCorner = WorldItem;
 	CursorDiagonalNearCorner.RuntimeObjectId = FGuid::NewGuid();
 	CursorDiagonalNearCorner.OwnerType = EGridItemOwnerType::Cursor;
 	TestTrue(TEXT("Physical distance, not cell adjacency, owns hand placement when a diagonal point is within 200 cm"),
-		Runtime->TryDropItemInstanceAtCell(CursorDiagonalNearCorner, nullptr, 2, 2, EGridEdge::None, FVector(-60.0f, -60.0f, 0.0f)));
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalNearCorner, 2, 2, EGridEdge::None, FVector(-60.0f, -60.0f, 0.0f)));
 
 	FGridItemInstance CursorTwoCellsAway = WorldItem;
 	CursorTwoCellsAway.RuntimeObjectId = FGuid::NewGuid();
 	CursorTwoCellsAway.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A cursor item cannot be placed directly two cell centres away"),
-		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, nullptr, 3, 1, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorTwoCellsAway, 3, 1, EGridEdge::None, FVector::ZeroVector));
 	TestNull(TEXT("Rejected two-cell hand placement creates no world actor"), FindWorldItemActor(CursorTwoCellsAway.RuntimeObjectId));
 
 	FGridItemInstance CursorDiagonalItem = WorldItem;
 	CursorDiagonalItem.RuntimeObjectId = FGuid::NewGuid();
 	CursorDiagonalItem.OwnerType = EGridItemOwnerType::Cursor;
 	TestFalse(TEXT("A diagonal cell centre is outside the 200 cm hand reach"),
-		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(CursorDiagonalItem, 2, 2, EGridEdge::None, FVector::ZeroVector));
 
 	FGridItemInstance NearbyFreeItem = WorldItem;
 	NearbyFreeItem.RuntimeObjectId = FGuid::NewGuid();
 	TestTrue(TEXT("A free item can be dropped in the neighbouring cell"),
-		Runtime->TryDropItemInstanceAtCell(NearbyFreeItem, nullptr, 1, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(NearbyFreeItem, 1, 2, EGridEdge::None, FVector::ZeroVector));
 	AGridItemActor* NearbyFreeActor = FindWorldItemActor(NearbyFreeItem.RuntimeObjectId);
 	TestNotNull(TEXT("The neighbouring free pickup actor exists"), NearbyFreeActor);
 	if (!NearbyFreeActor)
@@ -225,7 +225,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	FGridItemInstance DiagonalFreeItem = WorldItem;
 	DiagonalFreeItem.RuntimeObjectId = FGuid::NewGuid();
 	TestTrue(TEXT("A free item can be dropped on a diagonal cell"),
-		Runtime->TryDropItemInstanceAtCell(DiagonalFreeItem, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(DiagonalFreeItem, 2, 2, EGridEdge::None, FVector::ZeroVector));
 	AGridItemActor* DiagonalFreeActor = FindWorldItemActor(DiagonalFreeItem.RuntimeObjectId);
 	TestNotNull(TEXT("The diagonal free pickup actor exists"), DiagonalFreeActor);
 	if (!DiagonalFreeActor)
@@ -237,7 +237,7 @@ bool FGridTD021WorldItemsContractTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Picking up the neighbouring free actor transfers the actor actually clicked"), Runtime->TryPickupItemActor(NearbyFreeActor, Party));
 
 	TestTrue(TEXT("A valid item can be dropped on the edge facing the party"),
-		Runtime->TryDropItemInstanceAtCell(WorldItem, nullptr, 1, 2, EGridEdge::South, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(WorldItem, 1, 2, EGridEdge::South, FVector::ZeroVector));
 	TestEqual(TEXT("Edge items are excluded from the default pressure-plate weight query"), Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
 	TestEqual(TEXT("Edge items contribute their full stack weight when requested"), Runtime->GetWorldItemWeightAtCell(1, 2, true), 5.0f);
 

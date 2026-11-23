@@ -86,7 +86,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
 
-	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
@@ -140,7 +139,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
 	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
 
-	UFUNCTION(BlueprintCallable, Category = "Item")
 	UGridItemDefinitionAsset* GetItemDefinitionAsset() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")

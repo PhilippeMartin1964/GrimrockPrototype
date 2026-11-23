@@ -223,7 +223,7 @@ bool FGridPIT031AnimationRuntimeTest::RunTest(const FString& Parameters)
 	Stone.Quantity = 1;
 
 	TestTrue(TEXT("Stone can rest on closed animated trapdoor"),
-		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(Stone, 2, 2, EGridEdge::None, FVector::ZeroVector));
 	TestEqual(TEXT("Closed trapdoor carries stone weight"), Runtime->GetWorldItemWeightAtCell(2, 2, false), CanonicalStone.WeightKg);
 
 	TestTrue(TEXT("Open command starts animated Pit A"), Runtime->SetPitOpen(PitAId, true, true));

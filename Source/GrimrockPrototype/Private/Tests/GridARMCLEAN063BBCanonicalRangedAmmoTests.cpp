@@ -244,7 +244,7 @@ namespace ARMCLEAN063BB
             const FVector Spawn = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
             const FVector Velocity(Required.AmmunitionLaunchSpeed, 0.0f, 0.0f);
             AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
-                Arrow, nullptr, Spawn, Velocity, 0, 0, true);
+                Arrow, Spawn, Velocity, 0, 0, true);
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
             Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());

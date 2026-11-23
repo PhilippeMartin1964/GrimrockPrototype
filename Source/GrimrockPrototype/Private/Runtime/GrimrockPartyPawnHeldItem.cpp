@@ -75,8 +75,8 @@ bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item
 	USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get() : GetRootComponent();
 	if (LevelRuntimeActor)
 	{
-		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition(
-			nullptr, Item.ItemDefinitionId, this, AttachParent);
+		HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinitionId(
+			Item.ItemDefinitionId, this, AttachParent);
 	}
 	else
 	{

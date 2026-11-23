@@ -6,7 +6,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridProjectileVisuals.h"
 #include "Engine/GameInstance.h"
@@ -105,7 +104,7 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 				CurrentLocation.Z < RuntimeActor->GetCellCenterWorld(CellX, CellY, -20.f).Z && RuntimeActor->FindOpenPitAtCell(CellX, CellY, Pit))
 			{
 				bConversionAttempted = true;
-				if (RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, GetItemDefinitionAsset(), CellX, CellY, LocalOffset))
+				if (RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, CellX, CellY, LocalOffset))
 				{
 					Destroy();
 					return;
@@ -177,7 +176,7 @@ void AGridThrownItemActor::BeginPlay()
 }
 
 void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntimeActor, const FGridItemInstance& InItemInstance,
-	UGridItemDefinitionAsset* InDefinition, const FVector& LaunchVelocity, int32 InSourceCellX, int32 InSourceCellY)
+	const FVector& LaunchVelocity, int32 InSourceCellX, int32 InSourceCellY)
 {
 	RuntimeActor = InRuntimeActor;
 	ThrownItemInstance = InItemInstance;
@@ -187,70 +186,26 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* Registry = GameInstance
 		? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	bool bRequireRegisteredItem = true;
-#if WITH_DEV_AUTOMATION_TESTS
-	bRequireRegisteredItem = !GIsAutomationTesting || GameInstance != nullptr;
-#endif
-	const FGridProjectileVisualView Canonical =
-		FGridProjectileVisuals::Resolve(Registry, InItemInstance);
-	if ((bRequireRegisteredItem || Canonical.bRegisteredIdentity) &&
-		(!InItemInstance.IsValid() || InItemInstance.Quantity != 1 ||
-		 !Canonical.bRegisteredIdentity || !Canonical.bResolved))
+	const FGridProjectileVisualView Canonical = FGridProjectileVisuals::Resolve(Registry, InItemInstance);
+	if (!InItemInstance.IsValid() || InItemInstance.Quantity != 1 ||
+		!Canonical.bRegisteredIdentity || !Canonical.bResolved || !InitializeFromItemInstance(InItemInstance, Registry))
 	{
+		UE_LOG(LogGridThrownItem, Warning,
+			TEXT("Canonical thrown item rejected: ItemId=%s Level=%d"),
+			*InItemInstance.ItemDefinitionId.ToString(), InItemInstance.ItemLevel);
 		Destroy();
 		return;
 	}
-	if (Canonical.bRegisteredIdentity)
-	{
-		InDefinition = nullptr;
-		// Physical flight keeps the saved identity and mutable state only.
-	}
-	ImpactDropOffset = InDefinition ? FMath::Max(0.0f, InDefinition->ThrowImpactDropOffset) : 12.0f;
-	const bool bRegisteredNonArmFlight = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsNonArmament;
-	const bool bRegisteredGenericArm = Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bGenericArmamentFlight;
-	const bool bIdentityOnlyItem = Canonical.bRegisteredIdentity;
-	if (bIdentityOnlyItem)
-	{
-		InDefinition = nullptr;
-		ImpactDropOffset = 12.0f;
-	}
-	if (bRegisteredNonArmFlight)
-	{
-		InDefinition = nullptr; // Never attach an obsolete non-ARM definition.
-		ImpactDropOffset = FMath::Max(0.0f, Canonical.GenericThrow.ImpactDropOffset);
-	}
-	if (bIdentityOnlyItem)
-	{
-		// Complete physical presentation for a registered projectile that no
-		// longer has an old DA_Item/DA_Weapon: world mesh, Niagara and light.
-		// Its actual flight mesh/rotation will be selected below.
-		if (!Canonical.bResolved || !InitializeFromItemInstance(InItemInstance, Registry))
-		{
-			UE_LOG(LogGridThrownItem, Warning,
-				TEXT("Canonical thrown item rejected: ItemId=%s Level=%d"),
-				*InItemInstance.ItemDefinitionId.ToString(), InItemInstance.ItemLevel);
-			Destroy();
-			return; // Never create an incomplete known canonical projectile.
-		}
-	}
-	else if (IsValid(InDefinition))
-	{
-		InitializeFromItemDefinition(InDefinition, InItemInstance.RuntimeObjectId);
-	}
-	else
-	{
-		InitializeFromItemDefinitionId(InItemInstance.ItemDefinitionId, InItemInstance.RuntimeObjectId);
-	}
+
+	const bool bRegisteredNonArmFlight = Canonical.bIsNonArmament;
+	ImpactDropOffset = bRegisteredNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.ImpactDropOffset) : 12.0f;
 	ConfigureAsAttachedItem();
 	SetItemLightsEnabled(InItemInstance.bLightsEnabled);
 
 	// ARM flight reads its N1-N20 profile; arrows are an unlevelled family
 	// and keep their actual ItemLevel=0 without any synthetic weapon level.
-	const bool bRegisteredArmamentProjectile =
-		Canonical.bRegisteredIdentity && Canonical.bResolved &&
-		(Canonical.bHasProjectileVisual || Canonical.bGenericArmamentFlight);
-	const bool bRegisteredAmmoFlight =
-		Canonical.bRegisteredIdentity && Canonical.bResolved && Canonical.bIsAmmunition;
+	const bool bRegisteredArmamentProjectile = Canonical.bHasProjectileVisual || Canonical.bGenericArmamentFlight;
+	const bool bRegisteredAmmoFlight = Canonical.bIsAmmunition;
 	// The same N1-N20 weapon policy owns recoverable landing offset,
 	// lifetime, arc and initial speed; the launcher supplies the velocity.
 	if (bRegisteredArmamentProjectile)
@@ -274,21 +229,16 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		// world/flight mesh, while the historical arrow orientation is unchanged.
 		MeshComponent->SetStaticMesh(Canonical.WorldMesh.LoadSynchronous());
 	}
-	else if (Canonical.bRegisteredIdentity && !Canonical.bResolved && MeshComponent)
-	{
-		// A known invalid item level cannot render an obsolete definition copy.
-		MeshComponent->SetStaticMesh(nullptr);
-	}
 
 	InitialFlightWorldLocation = GetActorLocation();
 	const FRotator VisualRotation = bRegisteredArmamentProjectile
 		? Canonical.Appearance.RelativeRotation
 		: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualRelativeRotation
-		: (InDefinition ? InDefinition->ThrowVisualRelativeRotation : FRotator(-90.0f, 0.0f, 0.0f));
+		: FRotator(-90.0f, 0.0f, 0.0f);
 	FVector VisualScale = bRegisteredArmamentProjectile
 		? Canonical.Appearance.RelativeScale
 		: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualRelativeScale
-		: (InDefinition ? InDefinition->ThrowVisualRelativeScale : FVector(1.5f));
+		: FVector(1.5f);
 	if (VisualScale.ContainsNaN())
 	{
 		VisualScale = FVector(1.5f);
@@ -297,35 +247,32 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	VisualScale.Y = FMath::Clamp(FMath::Abs(VisualScale.Y), 0.01f, 100.0f);
 	VisualScale.Z = FMath::Clamp(FMath::Abs(VisualScale.Z), 0.01f, 100.0f);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
-	const EGridThrowVisualMode VisualMode = bRegisteredArmamentProjectile
-		? (Canonical.Appearance.Mode == EGridProjectileVisualMode::Stable
-			? EGridThrowVisualMode::Stable
-			: Canonical.Appearance.Mode == EGridProjectileVisualMode::Spin
-				? EGridThrowVisualMode::Spin : EGridThrowVisualMode::Tumble)
-		: bRegisteredNonArmFlight
-			? (Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Stable ? EGridThrowVisualMode::Stable
-				: Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Spin ? EGridThrowVisualMode::Spin : EGridThrowVisualMode::Tumble)
-		: (InDefinition ? InDefinition->ThrowVisualMode : EGridThrowVisualMode::Tumble);
+	const EGridProjectileVisualMode VisualMode = bRegisteredArmamentProjectile
+		? Canonical.Appearance.Mode
+		: Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Stable
+			? EGridProjectileVisualMode::Stable
+			: Canonical.GenericThrow.VisualMode == EGridNonArmamentThrowVisualMode::Spin
+				? EGridProjectileVisualMode::Spin : EGridProjectileVisualMode::Tumble;
 	switch (VisualMode)
 	{
-		case EGridThrowVisualMode::Stable:
+		case EGridProjectileVisualMode::Stable:
 			break;
 
-		case EGridThrowVisualMode::Spin:
+		case EGridProjectileVisualMode::Spin:
 			AppliedThrowVisualAngularVelocityDegreesPerSecond =
 				FVector(0.0f, 0.0f, bRegisteredArmamentProjectile
 					? FMath::Max(0.0f, Canonical.Appearance.SpinDegreesPerSecond)
 					: bRegisteredNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualSpinDegreesPerSecond)
-					: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualSpinDegreesPerSecond) : 1080.0f));
+					: 1080.0f);
 			break;
 
-		case EGridThrowVisualMode::Tumble:
+		case EGridProjectileVisualMode::Tumble:
 		default:
 		{
 			FVector TumbleAxis = bRegisteredArmamentProjectile
 				? Canonical.Appearance.TumbleAxis
 				: bRegisteredNonArmFlight ? Canonical.GenericThrow.VisualTumbleAxis
-				: (InDefinition ? InDefinition->ThrowVisualTumbleAxis : FVector(0.65f, 0.35f, 1.0f));
+				: FVector(0.65f, 0.35f, 1.0f);
 			if (TumbleAxis.ContainsNaN() || TumbleAxis.IsNearlyZero())
 			{
 				TumbleAxis = FVector(0.65f, 0.35f, 1.0f);
@@ -334,7 +281,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 			const float TumbleSpeed = bRegisteredArmamentProjectile
 				? FMath::Max(0.0f, Canonical.Appearance.TumbleDegreesPerSecond)
 				: bRegisteredNonArmFlight ? FMath::Max(0.0f, Canonical.GenericThrow.VisualTumbleDegreesPerSecond)
-				: (InDefinition ? FMath::Max(0.0f, InDefinition->ThrowVisualTumbleDegreesPerSecond) : 180.0f);
+				: 180.0f;
 			AppliedThrowVisualAngularVelocityDegreesPerSecond = TumbleAxis * TumbleSpeed;
 			break;
 		}
@@ -347,7 +294,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		MeshComponent->SetHiddenInGame(false, true);
 		MeshComponent->UpdateBounds();
 	}
-	if (VisualMode == EGridThrowVisualMode::Stable)
+	if (VisualMode == EGridProjectileVisualMode::Stable)
 	{
 		AlignMeshForwardToFlight();
 	}
@@ -370,7 +317,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	const float LifeSeconds = bRegisteredArmamentProjectile
 		? FMath::Max(0.01f, Canonical.FlightPolicy.FlightLifetime)
 		: bRegisteredNonArmFlight ? FMath::Max(0.01f, Canonical.GenericThrow.LifeSeconds)
-		: (InDefinition ? FMath::Max(0.01f, InDefinition->ThrowLifeSeconds) : 5.0f);
+		: 5.0f;
 	GetWorldTimerManager().SetTimer(ExpirationTimerHandle, this, &AGridThrownItemActor::HandleProjectileExpired, LifeSeconds, false);
 }
 
@@ -381,7 +328,6 @@ FVector AGridThrownItemActor::ResolveMeshForwardAxis(EGridProjectileForwardAxis 
 
 void AGridThrownItemActor::AlignMeshForwardToFlight()
 {
-	const UGridItemDefinitionAsset* Definition = GetItemDefinitionAsset();
 	if (!MeshComponent)
 	{
 		return;
@@ -389,10 +335,6 @@ void AGridThrownItemActor::AlignMeshForwardToFlight()
 	if (bUseResolvedProjectileForwardAxis)
 	{
 		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(ResolvedProjectileForwardAxis));
-	}
-	else if (Definition)
-	{
-		MeshComponent->SetRelativeRotation(FGridProjectileGeometry::MeshToFlightRotation(Definition->ProjectileMeshForwardAxis));
 	}
 }
 
@@ -725,8 +667,7 @@ void AGridThrownItemActor::ReleaseEmbeddedArrowToPickup()
 	// Suppress a second source during synchronous landing notifications.
 	bConversionAttempted = true;
 	if (IsValid(RuntimeActor) &&
-		RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance,
-			GetItemDefinitionAsset(), LastWorldMeshTransform))
+		RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance, LastWorldMeshTransform))
 	{
 		SetActorTickEnabled(false);
 		GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
@@ -803,7 +744,6 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 	// The projectile already carries the canonical item definition. Reuse it
 	// at conversion instead of asking runtime registries to rediscover an
 	// item that may exist only in a transient level or inventory.
-	UGridItemDefinitionAsset* ImpactItemDefinition = GetItemDefinitionAsset();
 	int32 ImpactCellX = INDEX_NONE;
 	int32 ImpactCellY = INDEX_NONE;
 	FVector ImpactLocalOffset = FVector::ZeroVector;
@@ -815,8 +755,7 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 	{
 		FTransform DropVisual = MeshComponent->GetComponentTransform();
 		DropVisual.SetLocation(ResolvePoint);
-		bDropped = RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance,
-			ImpactItemDefinition, DropVisual);
+		bDropped = RuntimeActor->TryDropItemInstanceAtWorldTransform(ThrownItemInstance, DropVisual);
 	}
 	// On a hit, the arrow is recoverable in the monster's cell, including
 	// after death. Do not teleport a projectile stopped by an earlier wall.
@@ -824,18 +763,18 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		RuntimeActor->IsWalkableCell(PreferredImpactCell.X, PreferredImpactCell.Y))
 	{
 		bDropped = RuntimeActor->TryDropItemInstanceAtCell(
-			ThrownItemInstance, ImpactItemDefinition, PreferredImpactCell.X, PreferredImpactCell.Y, EGridEdge::None, FVector::ZeroVector);
+			ThrownItemInstance, PreferredImpactCell.X, PreferredImpactCell.Y, EGridEdge::None, FVector::ZeroVector);
 	}
 	if (!bDropped)
 	{
 		bDropped = RuntimeActor && RuntimeActor->TryResolveWorldCellFromImpactPoint(ResolvePoint, ImpactCellX, ImpactCellY, ImpactLocalOffset) &&
-			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
+			RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactCellX, ImpactCellY, EGridEdge::None, ImpactLocalOffset);
 	}
 
 	// Prefer the last actual traversed floor cell to teleporting back to the party.
 	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(LastWalkableFlightCell.X, LastWalkableFlightCell.Y))
 	{
-		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition,
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance,
 			LastWalkableFlightCell.X, LastWalkableFlightCell.Y, EGridEdge::None, LastWalkableFlightOffset);
 	}
 	if (!bDropped && RuntimeActor && RuntimeActor->IsWalkableCell(SourceCellX, SourceCellY))
@@ -843,7 +782,7 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		UE_LOG(LogGridThrownItem, Warning, TEXT("[GridProjectile] SourceFallback Item=%s Point=%s Source=(%d,%d) Last=(%d,%d)"),
 			*ThrownItemInstance.ItemDefinitionId.ToString(), *Hit.ImpactPoint.ToCompactString(),
 			SourceCellX, SourceCellY, LastWalkableFlightCell.X, LastWalkableFlightCell.Y);
-		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance, ImpactItemDefinition,
+		bDropped = RuntimeActor->TryDropItemInstanceAtCell(ThrownItemInstance,
 			SourceCellX, SourceCellY, EGridEdge::None, FVector::ZeroVector);
 	}
 

@@ -8,7 +8,6 @@
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class USkeletalMeshComponent;
-class UGridItemDefinitionAsset;
 enum class EGridProjectileForwardAxis : uint8;
 class UProjectileMovementComponent;
 class USphereComponent;
@@ -43,7 +42,7 @@ public:
 	int32 SourceCellY = INDEX_NONE;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
-	void InitializeThrownItem(AGridLevelRuntimeActor* InRuntimeActor, const FGridItemInstance& InItemInstance, UGridItemDefinitionAsset* InDefinition,
+	void InitializeThrownItem(AGridLevelRuntimeActor* InRuntimeActor, const FGridItemInstance& InItemInstance,
 		const FVector& LaunchVelocity, int32 InSourceCellX, int32 InSourceCellY);
 
 	/**

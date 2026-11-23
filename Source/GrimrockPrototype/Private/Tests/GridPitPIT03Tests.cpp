@@ -210,7 +210,7 @@ bool FGridPIT03ControlledStateTest::RunTest(const FString& Parameters)
 	Stone.Quantity = 1;
 
 	TestTrue(TEXT("World Item can rest on a closed trapdoor"),
-		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, FVector(12.0f, 8.0f, 0.0f)));
+		Runtime->TryDropItemInstanceAtCell(Stone, 2, 2, EGridEdge::None, FVector(12.0f, 8.0f, 0.0f)));
 	TestEqual(TEXT("Closed trapdoor keeps item weight on upper level"), Runtime->GetWorldItemWeightAtCell(2, 2, false), CanonicalStone.WeightKg);
 
 	TestTrue(TEXT("Button Activated -> Pit A Open executes"), Runtime->ExecuteLinksFromRuntimeObject(ButtonId, EGridObjectEvent::Activated));

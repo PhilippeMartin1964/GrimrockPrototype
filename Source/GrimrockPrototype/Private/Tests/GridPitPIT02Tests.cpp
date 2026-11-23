@@ -161,7 +161,7 @@ bool FGridPIT02WorldItemsTest::RunTest(const FString& Parameters)
 	const FVector SourceLocalOffset(24.0f, -16.0f, 0.0f);
 	AddExpectedError(TEXT("GridPit ItemTransfer landing fallback"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestTrue(TEXT("Dropping a normal World Item on an open pit routes it away from the source level"),
-		Runtime->TryDropItemInstanceAtCell(Stone, nullptr, 2, 2, EGridEdge::None, SourceLocalOffset));
+		Runtime->TryDropItemInstanceAtCell(Stone, 2, 2, EGridEdge::None, SourceLocalOffset));
 	TestEqual(TEXT("No World Item remains on the upper pit cell"), Runtime->GetWorldItemWeightAtCell(2, 2, false), 0.0f);
 
 	const FGridLevelRuntimeState* LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
@@ -284,10 +284,6 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
     Runtime->LevelAsset = Upper;
     Party->SetGridStart(Runtime, 0, 0, EGridEdge::North);
 
-    // A contradicting legacy definition must never enter a canonical pit snapshot.
-    UGridItemDefinitionAsset* ObsoleteTorch = NewObject<UGridItemDefinitionAsset>(Runtime);
-    ObsoleteTorch->ItemDefinitionId = TEXT("Item_Torch");
-    ObsoleteTorch->Weight = 999.0f;
     FGridItemInstance Torch;
     Torch.RuntimeObjectId = FGuid(11, 22, 33, 44);
     Torch.ItemDefinitionId = TEXT("Item_Torch");
@@ -298,7 +294,7 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
     Torch.bLightsEnabled = true;
 
     if (!TestTrue(TEXT("Canonical lit torch routes through open pit"),
-            Runtime->TryRouteWorldItemThroughOpenPit(Torch, ObsoleteTorch, 1, 1, FVector::ZeroVector)))
+            Runtime->TryRouteWorldItemThroughOpenPit(Torch, 1, 1, FVector::ZeroVector)))
         return false;
     const FGridLevelRuntimeState* LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
     const FGridPendingWorldItemState* Pending = LowerState
@@ -315,19 +311,17 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
     FGridResolvedItem InvalidSword;
     TestFalse(TEXT("Persisted sword N0 is invalid in canonical catalogue"),
         Scope.Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 0, InvalidSword));
-    UGridItemDefinitionAsset* ObsoleteSword = NewObject<UGridItemDefinitionAsset>(Runtime);
-    ObsoleteSword->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
     FGridItemInstance Invalid;
     Invalid.RuntimeObjectId = FGuid(55, 66, 77, 88);
-    Invalid.ItemDefinitionId = ObsoleteSword->ItemDefinitionId;
+    Invalid.ItemDefinitionId = TEXT("Weapon_StraightSword_01");
     Invalid.ItemLevel = 0;
     Invalid.Quantity = 1;
     Invalid.OwnerType = EGridItemOwnerType::World;
     Invalid.OwnerCharacterIndex = INDEX_NONE;
     AddExpectedError(TEXT("GridPit ItemTransfer rejected Item="),
         EAutomationExpectedErrorFlags::Contains, 1);
-    TestFalse(TEXT("Known invalid ARM N0 cannot route by obsolete pointer"),
-        Runtime->TryRouteWorldItemThroughOpenPit(Invalid, ObsoleteSword, 1, 1, FVector::ZeroVector));
+    TestFalse(TEXT("Known invalid ARM N0 cannot route"),
+        Runtime->TryRouteWorldItemThroughOpenPit(Invalid, 1, 1, FVector::ZeroVector));
     LowerState = Runtime->DungeonRuntimeState.LevelStates.Find(LowerId);
     TestTrue(TEXT("Rejected invalid item never entered destination queue"),
         LowerState && LowerState->PendingInboundItems.Num() == 1 &&

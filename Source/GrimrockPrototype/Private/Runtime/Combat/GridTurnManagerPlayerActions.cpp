@@ -819,23 +819,9 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 	if (bResolvedRangedAttack && !AmmoRequirement.AmmunitionItemId.IsNone())
 	{
 		const FName AmmunitionId = AmmoRequirement.AmmunitionItemId;
-		UGridItemDefinitionAsset* AmmunitionDefinition = nullptr;
-		// Canonical launch speed was validated before reserving AP.
-		float LaunchSpeed = AmmoRequirement.bRegisteredAmmunition
-			? AmmoRequirement.AmmunitionLaunchSpeed : 0.0f;
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!AmmoRegistry && GIsAutomationTesting && !AmmoRequirement.bRegisteredAmmunition)
-		{
-			AmmunitionDefinition = Inventory->FindItemDefinition(AmmunitionId);
-			if (IsValid(AmmunitionDefinition) && AmmunitionDefinition->ItemDefinitionId == AmmunitionId &&
-				FMath::IsFinite(AmmunitionDefinition->ThrowSpeed))
-			{
-				LaunchSpeed = FMath::Clamp(AmmunitionDefinition->ThrowSpeed, 400.0f, 4800.0f);
-			}
-		}
-#endif
-		bSourceCommitted = IsValid(RuntimeActor) && FMath::IsFinite(LaunchSpeed) && LaunchSpeed > KINDA_SMALL_NUMBER &&
-			(AmmoRequirement.bRegisteredAmmunition || IsValid(AmmunitionDefinition));
+		const float LaunchSpeed = AmmoRequirement.AmmunitionLaunchSpeed;
+		bSourceCommitted = IsValid(RuntimeActor) && AmmoRequirement.bRegisteredAmmunition &&
+			FMath::IsFinite(LaunchSpeed) && LaunchSpeed > KINDA_SMALL_NUMBER;
 		if (bSourceCommitted)
 		{
 			FGridItemInstance ProjectileItem;
@@ -852,7 +838,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 			const FVector StartLocation = ViewOrigin + InitialDirection * 60.0f - FVector::UpVector * 12.0f;
 			const FVector LaunchDirection = (TargetLocation - StartLocation).GetSafeNormal();
 			PreparedAmmunitionItem = RuntimeActor->SpawnThrownItemProjectile(
-				ProjectileItem, AmmunitionDefinition, StartLocation, LaunchDirection * LaunchSpeed, PartyCell.X, PartyCell.Y, true);
+				ProjectileItem, StartLocation, LaunchDirection * LaunchSpeed, PartyCell.X, PartyCell.Y, true);
 			bSourceCommitted = IsValid(PreparedAmmunitionItem);
 		}
 		if (!bSourceCommitted)

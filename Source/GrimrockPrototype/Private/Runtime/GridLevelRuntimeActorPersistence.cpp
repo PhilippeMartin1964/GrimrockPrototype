@@ -6,7 +6,6 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridWorldPickupIdentityReadModel.h"
 #include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -698,7 +697,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			// Restore the complete world profile for every registered
 			// physical ItemId, including ARM N1-N20 after a PIT transfer.
 			const bool bRegisteredWorld = bRegisteredItem;
-			AGridItemActor* ItemActor = SpawnItemActorForDefinition(nullptr, RuntimeItemDefinitionId, this, nullptr);
+			AGridItemActor* ItemActor = SpawnItemActorForDefinitionId(RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
 				if (bRegisteredWorld &&
@@ -742,7 +741,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 				Entry.Edge = RuntimeEdge;
 				Entry.ItemActor = ItemActor;
 				Entry.ObjectId = Pair.Key;
-				Entry.ItemDefinitionAsset = ItemActor->GetItemDefinitionAsset();
 				Entry.ItemDefinitionId = RuntimeItemDefinitionId;
 				Entry.ItemLevel = ItemState.ItemLevel;
 				Entry.Quantity = FMath::Max(1, ItemState.Quantity);
@@ -781,8 +779,8 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 					*RuntimeItemDefinitionId.ToString(), ItemState.ItemLevel);
 				continue;
 			}
-			AGridItemActor* ItemActor = SpawnItemActorForDefinition(
-				nullptr, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
+			AGridItemActor* ItemActor = SpawnItemActorForDefinitionId(
+				RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get());
 			if (IsValid(ItemActor))
 			{
 				if (!ItemActor->InitializeFromItemInstance(PersistenceMakeVisualItem(ItemState), RestoreRegistry))
@@ -922,7 +920,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			if (Matches->Num() == 1 && IsValid((*Matches)[0]) &&
 				!(*Matches)[0]->IsDead())
 			{
-				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit, nullptr,
+				AGridThrownItemActor* Arrow = SpawnThrownItemProjectile(Unit,
 					SavedMesh.GetLocation(), SavedMesh.GetRotation().GetForwardVector() * 1200.0f,
 					Item.CellX, Item.CellY, true);
 				if (IsValid(Arrow))
@@ -939,7 +937,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 		if (!bSuccess)
 		{
-			bSuccess = TryDropItemInstanceAtWorldTransform(Unit, nullptr, SavedMesh);
+			bSuccess = TryDropItemInstanceAtWorldTransform(Unit, SavedMesh);
 		}
 		UE_LOG(LogGridLevelRuntime, Log,
 			TEXT("[GridProjectile] LoadArrow Id=%s Reattached=%d Success=%d MonsterId=%s"),

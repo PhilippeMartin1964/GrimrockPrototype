@@ -292,7 +292,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 
 	const FVector StartLocation = (Camera ? Camera->GetComponentLocation() : GetActorLocation()) + ThrowDirection * 60.0f;
 	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale;
-	if (!LevelRuntimeActor->SpawnThrownItemProjectile(ThrownItem, nullptr, StartLocation,
+	if (!LevelRuntimeActor->SpawnThrownItemProjectile(ThrownItem, StartLocation,
 		LaunchVelocity, CurrentCellX, CurrentCellY, false, this))
 	{
 		UE_LOG(LogGridItemTransfer, Warning, TEXT("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"), *CursorItem.ItemDefinitionId.ToString(),
@@ -357,7 +357,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	const FVector StartLocation = ViewOrigin + AimDirection * SpawnDistance;
 	const FVector LaunchVelocity = ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale;
 	AGridThrownItemActor* ThrownActor =
-		LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, nullptr, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY);
+		LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, StartLocation, LaunchVelocity, CurrentCellX, CurrentCellY);
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, EGridEquipmentSlot::MainHand, WorldItem);
@@ -462,7 +462,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
 	WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
 
-	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, nullptr, StartLocation,
+	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(WorldItem, StartLocation,
 		ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, CurrentCellX, CurrentCellY);
 	if (!ThrownActor)
 	{
@@ -522,7 +522,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	}
 
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, nullptr, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
+		WorldItem, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
@@ -582,7 +582,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
 	WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, nullptr, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
+		WorldItem, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (ThrownActor)
 	{
 		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"), *WorldItem.ItemDefinitionId.ToString(),

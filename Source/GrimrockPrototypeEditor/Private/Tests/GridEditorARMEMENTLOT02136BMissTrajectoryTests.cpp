@@ -6,7 +6,8 @@
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
 
@@ -76,17 +77,13 @@ bool FARMLOT02136BMissT::RunTest(const FString&)
             Cell.WestWall = EGridWallType::None;
         }
         Runtime->LevelAsset = Level;
-        UGridItemDefinitionAsset* Arrow = NewObject<UGridItemDefinitionAsset>(Runtime);
-        Arrow->ItemDefinitionId = TEXT("Item_TestMissT");
-        Arrow->ItemType = EGridItemType::Misc;
-        Arrow->Weight = 0.04f;
-        Arrow->bStackable = true;
-        Arrow->MaxStackSize = 64;
-        Arrow->ThrowSpeed = 1800.0f;
+        UGameInstance* GameInstance = NewObject<UGameInstance>(GetTransientPackage());
+        GameInstance->Init();
+        World->SetGameInstance(GameInstance);
 
         FGridItemInstance Ammo;
         Ammo.RuntimeObjectId = FGuid::NewGuid();
-        Ammo.ItemDefinitionId = Arrow->ItemDefinitionId;
+        Ammo.ItemDefinitionId = TEXT("Item_Arrows_01");
         Ammo.Quantity = 1;
         Ammo.OwnerType = EGridItemOwnerType::World;
         Ammo.OwnerCharacterIndex = INDEX_NONE;
@@ -94,7 +91,7 @@ bool FARMLOT02136BMissT::RunTest(const FString&)
         const FVector ShotTarget = Runtime->GetCellCenterWorld(1, 2, 140.0f);
         const FVector InitialVelocity(0.0f, 1800.0f, 0.0f);
         AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(
-            Ammo, Arrow, ShotStart, InitialVelocity, 1, 1, true);
+            Ammo, ShotStart, InitialVelocity, 1, 1, true);
         if (TestNotNull(TEXT("Recoverable ranged projectile spawned"), Projectile))
         {
             const FGuid IdBefore = Projectile->ThrownItemInstance.RuntimeObjectId;
@@ -128,6 +125,8 @@ bool FARMLOT02136BMissT::RunTest(const FString&)
                 Legacy->ConfigureRangedMissDeflection(ShotTarget, TargetExtent));
             Legacy->Destroy();
         }
+        World->SetGameInstance(nullptr);
+        GameInstance->Shutdown();
     }
     World->DestroyWorld(false);
     if (GEngine) GEngine->DestroyWorldContext(World);

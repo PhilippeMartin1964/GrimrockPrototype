@@ -18,7 +18,6 @@
 
 class AGridEditorPreviewObjectActor;
 class UMaterialInstanceDynamic;
-class UGridItemDefinitionAsset;
 class AGridRuntimeObjectActor;
 class AGridItemActor;
 class AGridThrownItemActor;
@@ -93,15 +92,12 @@ struct FGridSpawnedItemRuntimeEntry
 	FGuid ObjectId;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
-
-	UPROPERTY(Transient)
 	FName ItemDefinitionId = NAME_None;
 
 	UPROPERTY(Transient)
 	int32 Quantity = 1;
 
-	/** Fixed item level of this physical world instance (0 for Legacy items). */
+	/** Fixed item level of this physical world instance (0 for unlevelled items). */
 	UPROPERTY(Transient)
 	int32 ItemLevel = 0;
 };
@@ -632,16 +628,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|World")
 	bool TryDropItemInstanceAtCell(const FGridItemInstance& ItemInstance, int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset);
 
-	/** MON8 overload: a loot table may provide its definition directly. */
-	bool TryDropItemInstanceAtCell(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY,
-		EGridEdge Edge, const FVector& LocalOffset);
-
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Throw")
 	bool TrySpawnThrownItemProjectile(
 		const FGridItemInstance& ItemInstance, const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY);
 
 	/** C++ path used by combat presentation when the definition is already resolved. */
-	AGridThrownItemActor* SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinition,
+	AGridThrownItemActor* SpawnThrownItemProjectile(const FGridItemInstance& ItemInstance,
 		const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY,
 		bool bRangedAmmunitionProjectile = false, AActor* LaunchSourceActor = nullptr);
 
@@ -653,7 +645,7 @@ public:
 	 * Chaos then owns its fall; never snap it to cell center or reset its yaw.
 	 */
 	bool TryDropItemInstanceAtWorldTransform(const FGridItemInstance& ItemInstance,
-		UGridItemDefinitionAsset* ItemDefinition, const FTransform& WorldMeshTransform);
+		const FTransform& WorldMeshTransform);
 
 	/** Reconcile physics-driven mesh locations with pickup grid registration. */
 	void RefreshWorldItemPhysicsCells();
@@ -983,7 +975,7 @@ public:
 
 	/** PIT02: routes a normal world item through an open pit instead of leaving it on the source level. */
 	bool TryRouteWorldItemThroughOpenPit(
-		const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset, int32 CellX, int32 CellY, const FVector& LocalOffset);
+		const FGridItemInstance& ItemInstance, int32 CellX, int32 CellY, const FVector& LocalOffset);
 
 	/** PIT02: materializes queued arrivals for the current dungeon level. Returns the number successfully spawned. */
 	int32 ApplyPendingInboundItemsForCurrentLevel();
@@ -1013,7 +1005,7 @@ public:
 	}
 
 	const UGridWorldObjectDefinitionAsset* FindWorldObjectDefinition(FName WorldObjectDefinitionId) const;
-	AGridItemActor* SpawnItemActorForDefinition(UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId, AActor* OwnerActor,
+	AGridItemActor* SpawnItemActorForDefinitionId(FName ItemDefinitionId, AActor* OwnerActor,
 		USceneComponent* AttachParent) const;
 
 protected:
@@ -1034,7 +1026,7 @@ protected:
 
 private:
 	/** Materialize an inbound item without pit chaining or notifying links before dequeue. */
-	bool TryDropItemInstanceAtCellInternal(const FGridItemInstance& ItemInstance, UGridItemDefinitionAsset* ItemDefinitionAsset,
+	bool TryDropItemInstanceAtCellInternal(const FGridItemInstance& ItemInstance,
 		int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset, bool bNotifyAndRoute);
 
     /** One topology/discovery pipeline for passive and active scanning. */

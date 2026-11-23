@@ -307,12 +307,12 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	Unknown.Quantity = 1;
 	Unknown.ItemLevel = 0;
 	TestFalse(TEXT("Runtime cannot drop an item through WorldObjectDefinition alone"),
-		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(Unknown, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
 	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemId = Definition->ItemDefinitionId;
 	TestFalse(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"),
-		Runtime->TryDropItemInstanceAtCell(Unknown, nullptr, 0, 0, EGridEdge::None, FVector::ZeroVector));
+		Runtime->TryDropItemInstanceAtCell(Unknown, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	return true;
 }

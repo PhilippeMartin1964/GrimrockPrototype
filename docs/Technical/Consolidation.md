@@ -197,6 +197,24 @@ D08 : 175 → 172 fichiers consommateurs selon le comptage D.3 (61 Runtime, 3 Ed
 
 **Validation.** Development Editor, Shipping et Build/Cook/Stage/Package/Archive réussis. Suite Grimrock : 2 065 réussites, dont 47 avec avertissements en local, zéro échec. Les 2 064 scénarios précédents conservent leurs résultats et avertissements. Le seul ajout vérifie la pile enregistrée, sa restitution et les notifications. Les huit tests B.1 passent. Les 70 Blueprints et les 53 assets déplacés ont été revérifiés. L’archive conserve ses 2 112 chemins, les 53 redirections d’objet et les 50 alias Primary Asset IDs. Les sept copies v27 chargent et passent le round-trip. Les originaux et les deux Readables conservent leurs empreintes. Preuves privées : `D:/GrimrockNativeSnapshots/CLEANUP04D5/`.
 
+### CLEANUP04-D.6 — objets du monde sans définition historique
+
+Référence `a0ccc0a9efec830db383c19cdd8a904dc1531f11`. La création du visuel accepte un `ItemDefinitionId`. Le placement physique en cellule ou à la pose monde, le transfert de fosse, le lancement et la récupération après impact prennent une `FGridItemInstance`. Le registre vérifie l’identité, le niveau exact et la quantité. La restitution conserve le GUID, la pose, la lumière et la lecture. Le lancement de munitions utilise le profil du registre. L’ordre d’activation des plaques et les contrats de rollback sont inchangés.
+
+L’entrée transitoire `FGridSpawnedItemRuntimeEntry` perd son pointeur `ItemDefinitionAsset`. L’audit des Blueprints contrôle l’absence d’appels aux anciennes fonctions réfléchies `InitializeFromItemDefinition` et `GetItemDefinitionAsset`, désormais natives. Le champ réfléchi et sérialisable d’`AGridItemActor` reste en place. Des fixtures l’utilisent encore pour caractériser les anciennes projections de ramassage, de physique et de présentation. Le retirer après conversion de ces fixtures et vérification des imports et des valeurs sérialisées d’acteurs. Un monde de test sans GameInstance peut encore restaurer un acteur de présentation par ID ou exercer le lecteur historique de ramassage. Cette exception ne valide aucun placement physique ni lancement.
+
+Les tests conservent leurs noms. Les fixtures de tir et de déviation emploient désormais les flèches enregistrées. Elles vérifient le comportement balistique, les directions cardinales, l’axe +Y via la géométrie, la collision et la récupération d’une seule flèche avec son GUID et sans définition historique. Les tests de placement et de fosse contrôlent le niveau, le GUID et les refus aux mêmes frontières. Le test de référence Blueprint contrôle également les fonctions et le champ via la réflexion.
+
+| Dépendance | Runtime | Editor | Tests | Total |
+| --- | ---: | ---: | ---: | ---: |
+| D08 | 61 → 56 | 3 | 108 → 104 | 172 → 163 |
+| D09 | 2 | 1 | 0 | 3 |
+| D10 | 2 | 1 | 1 | 4 |
+
+Le décompte reprend les critères de D.3. La carte et les API d’inventaire historiques, les lecteurs de compatibilité restants, les classes en collision, le commandlet de baseline et les redirections restent en place.
+
+**Validation locale.** UHT et Development Editor réussis. Les 83 tests ciblés et les 2 065 scénarios Grimrock passent, dont les huit B.1 sans avertissement. Les 47 tests avec avertissements restent les mêmes qu’en D.5. Le scénario RegisteredLevelGuards émet un message de moins après suppression du paramètre historique. Les 70 Blueprints compilent, l’audit ne relève aucun appel aux fonctions dé-réfléchies et les 53 assets sont validés. Les sept copies v27 passent le chargement et le round-trip. Les empreintes des copies, des originaux et des deux Readables sont identiques. Build/Cook/Stage/Package/Archive Shipping réussis. L’archive contient les mêmes 2 112 chemins, dont les 53 assets courants et les deux Readables, avec 53 redirections d’objet et 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D6/.
+
 ## CLEANUP03 — audit C++ et préparation de CLEANUP04
 
 **Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.

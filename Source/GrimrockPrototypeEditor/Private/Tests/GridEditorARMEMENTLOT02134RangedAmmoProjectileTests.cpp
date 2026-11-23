@@ -8,7 +8,8 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Engine/GameInstance.h"
+#include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
 
@@ -53,19 +54,13 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
         Cell.WestWall = EGridWallType::None;
     }
     Runtime->LevelAsset = Level;
-    UGridItemDefinitionAsset* Arrow = NewObject<UGridItemDefinitionAsset>(Runtime);
-    Arrow->ItemDefinitionId = TEXT("Item_TestRecoverableAmmo");
-    Arrow->ItemType = EGridItemType::Misc;
-    Arrow->Weight = 0.04f;
-    Arrow->bStackable = true;
-    Arrow->MaxStackSize = 64;
-    Arrow->ThrowSpeed = 1800.0f;
-    TestFalse(TEXT("Inventory ammo is not hand-thrown"), Arrow->IsPhysicallyThrowable());
-    TestFalse(TEXT("Ammo is not a combat throwing weapon"), Arrow->IsCombatThrowable());
+    UGameInstance* GameInstance = NewObject<UGameInstance>(GetTransientPackage());
+    GameInstance->Init();
+    World->SetGameInstance(GameInstance);
 
     FGridItemInstance Unit;
     Unit.RuntimeObjectId = FGuid::NewGuid();
-    Unit.ItemDefinitionId = Arrow->ItemDefinitionId;
+    Unit.ItemDefinitionId = TEXT("Item_Arrows_01");
     Unit.Quantity = 1;
     Unit.OwnerType = EGridItemOwnerType::World;
     Unit.OwnerCharacterIndex = INDEX_NONE;
@@ -106,13 +101,17 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
         FGridProjectileGeometry::IsRearBoundaryDoor(28, 22, FVector::ZeroVector,
             28, 22, EGridEdge::South));
 
+    const FVector RemappedTip = FGridProjectileGeometry::MeshToFlightRotation(EGridProjectileForwardAxis::PositiveY)
+        .RotateVector(FVector::YAxisVector);
+    TestTrue(TEXT("Imported +Y axis maps to flight forward"), RemappedTip.Equals(FVector::ForwardVector));
+
     const FVector Start = Runtime->GetCellCenterWorld(1, 1, 140.0f);
     const FVector Target = Runtime->GetCellCenterWorld(1, 2, 140.0f);
     const FVector Velocity = (Target - Start).GetSafeNormal() * 1800.0f;
 
     TestNull(TEXT("Normal throwing path rejects non-handheld ammo"),
-        Runtime->SpawnThrownItemProjectile(Unit, Arrow, Start, Velocity, 1, 1));
-    AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(Unit, Arrow, Start, Velocity, 1, 1, true);
+        Runtime->SpawnThrownItemProjectile(Unit, Start, Velocity, 1, 1));
+    AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(Unit, Start, Velocity, 1, 1, true);
     if (TestNotNull(TEXT("Explicit ranged ammo path spawns a projectile"), Projectile))
     {
         TestTrue(TEXT("Projectile is an ammunition visual"), Projectile->bRangedAmmunitionProjectile);
@@ -122,18 +121,16 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
         TestEqual(TEXT("Ranged arrow has no gravity"), Projectile->ProjectileMovementComponent->ProjectileGravityScale, 0.0f);
         // A +Y imported arrow must always point along velocity regardless
         // of which cardinal grid direction the party is facing.
-        Arrow->ProjectileMeshForwardAxis = EGridProjectileForwardAxis::PositiveY;
         for (const FVector& Direction : { FVector(1,0,0), FVector(-1,0,0), FVector(0,1,0), FVector(0,-1,0) })
         {
             FGridItemInstance Directional = Unit;
             Directional.RuntimeObjectId = FGuid::NewGuid();
             AGridThrownItemActor* FacingProjectile = Runtime->SpawnThrownItemProjectile(
-                Directional, Arrow, Start, Direction * 1800.0f, 1, 1, true);
+                Directional, Start, Direction * 1800.0f, 1, 1, true);
             if (TestNotNull(TEXT("Cardinal projectile spawned"), FacingProjectile))
             {
-                const FVector WorldTip = FacingProjectile->MeshComponent->GetComponentTransform().TransformVectorNoScale(
-                    AGridThrownItemActor::ResolveMeshForwardAxis(Arrow->ProjectileMeshForwardAxis)).GetSafeNormal();
-                TestTrue(TEXT("Imported +Y mesh tip faces velocity in cardinal direction"),
+                const FVector WorldTip = FacingProjectile->MeshComponent->GetComponentTransform().TransformVectorNoScale(FVector::ForwardVector).GetSafeNormal();
+                TestTrue(TEXT("Registered arrow faces velocity in cardinal direction"),
                     FVector::DotProduct(WorldTip, Direction) > 0.999f);
                 FacingProjectile->Destroy();
             }
@@ -150,8 +147,8 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
                 Item->GetRuntimeObjectId() == Unit.RuntimeObjectId)
             {
                 ++PickupCount;
-                TestEqual(TEXT("Recovered item identity"), Item->GetItemDefinitionId(), Arrow->ItemDefinitionId);
-                TestTrue(TEXT("Recovered item keeps original definition pointer"), Item->GetItemDefinitionAsset() == Arrow);
+                TestEqual(TEXT("Recovered item identity"), Item->GetItemDefinitionId(), Unit.ItemDefinitionId);
+                TestNull(TEXT("Recovered item has no historical definition pointer"), Item->GetItemDefinitionAsset());
                 TestEqual(TEXT("Recovered in monster cell X"), Item->RuntimeCellX, 1);
                 TestEqual(TEXT("Recovered in monster cell Y"), Item->RuntimeCellY, 2);
             }
@@ -159,6 +156,8 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
         TestEqual(TEXT("Exactly one recoverable arrow"), PickupCount, 1);
     }
 
+    World->SetGameInstance(nullptr);
+    GameInstance->Shutdown();
     World->DestroyWorld(false);
     if (GEngine) GEngine->DestroyWorldContext(World);
     return true;

@@ -1018,7 +1018,7 @@ int32 AGridReceptacleActor::AddContainedItem(
 	}
 	else if (AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor(GetWorld()))
 	{
-		ItemActor = RuntimeActor->SpawnItemActorForDefinition(nullptr, ItemDefinitionId, this, ItemAttachPoint);
+		ItemActor = RuntimeActor->SpawnItemActorForDefinitionId(ItemDefinitionId, this, ItemAttachPoint);
 	}
 	else if (UWorld* World = GetWorld())
 	{

@@ -511,7 +511,7 @@ bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
 			 Canonical.Weapon.Projectile.bGenericThrowAuthored)))
 		return false;
 	AGridThrownItemActor* Projectile =
-		F.Runtime->SpawnThrownItemProjectile(Item, nullptr, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
+		F.Runtime->SpawnThrownItemProjectile(Item, FVector(5500.f, 4900.f, 140.f), FVector(0.f, 0.f, -250.f), 27, 23);
 	if (!TestNotNull(TEXT("Actual throwing pipeline creates the projectile"), Projectile))
 		return false;
 	Projectile->DispatchBeginPlay(); // The isolated test world has no GameMode.

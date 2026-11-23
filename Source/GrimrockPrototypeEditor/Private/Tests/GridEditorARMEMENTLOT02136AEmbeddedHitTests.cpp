@@ -106,7 +106,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
         // The true world location must not be inferred from local X directly.
         Monster->SkeletalMeshComponent->SetRelativeLocation(FVector(130,0,0));
         AGridThrownItemActor* Projectile = Runtime->SpawnThrownItemProjectile(
-            Unit, nullptr, Start, (Target - Start).GetSafeNormal() * 1800.0f, 1, 1, true);
+            Unit, Start, (Target - Start).GetSafeNormal() * 1800.0f, 1, 1, true);
         if (TestNotNull(TEXT("Physical arrow projectile exists"), Projectile))
         {
             Projectile->ConfigureCombatPresentationTarget(true, Target, 24.0f, Monster->CurrentCell);
@@ -167,7 +167,7 @@ bool FARMLOT02136AEmbeddedHit::RunTest(const FString&)
                     EmbeddedState->WorldMeshTransform.GetLocation().Equals(
                         Projectile->MeshComponent->GetComponentLocation(), 0.1f));
                 AGridThrownItemActor* Restored = Runtime->SpawnThrownItemProjectile(
-                    Unit, nullptr, EmbeddedState->WorldMeshTransform.GetLocation(),
+                    Unit, EmbeddedState->WorldMeshTransform.GetLocation(),
                     FVector(0, 1400, 0), 1, 2, true);
                 if (TestNotNull(TEXT("Embeddable save round-trip projectile"), Restored))
                 {
