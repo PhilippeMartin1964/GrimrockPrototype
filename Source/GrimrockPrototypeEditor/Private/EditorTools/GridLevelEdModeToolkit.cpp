@@ -2,6 +2,7 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/GridEditorActorLookup.h"
 #include "EditorTools/GridEditorWorkspaceTabs.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
@@ -13,7 +14,6 @@
 
 #include "Editor.h"
 #include "EditorModeManager.h"
-#include "EngineUtils.h"
 #include "Framework/Docking/TabManager.h"
 
 #include "Styling/AppStyle.h"
@@ -57,22 +57,7 @@ TSharedPtr<SWidget> FGridLevelEdModeToolkit::GetInlineContent() const
 
 AGridLevelEditorActor* FGridLevelEdModeToolkit::GetEditorActor() const
 {
-	if (!GEditor)
-	{
-		return nullptr;
-	}
-
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<AGridLevelEditorActor> It(World); It; ++It)
-	{
-		return *It;
-	}
-	return nullptr;
+	return GridEditorActorLookup::FindInEditorWorld();
 }
 
 void FGridLevelEdModeToolkit::RefreshPalette()

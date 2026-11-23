@@ -2,13 +2,13 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/GridEditorActorLookup.h"
 #include "Core/GridLevelAsset.h"
 #include "Editor.h"
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/GridLuaAuthoringCompiler.h"
 #include "EditorTools/GridLuaSyntaxHighlighter.h"
-#include "EngineUtils.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Input/SButton.h"
@@ -50,20 +50,7 @@ void SGridEditorLuaScriptsPanel::Construct(const FArguments& InArgs)
 
 AGridLevelEditorActor* SGridEditorLuaScriptsPanel::FindEditorActor() const
 {
-	if (!GEditor)
-	{
-		return nullptr;
-	}
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World)
-	{
-		return nullptr;
-	}
-	for (TActorIterator<AGridLevelEditorActor> It(World); It; ++It)
-	{
-		return *It;
-	}
-	return nullptr;
+	return GridEditorActorLookup::FindInEditorWorld();
 }
 
 UGridLevelAsset* SGridEditorLuaScriptsPanel::GetLevelAsset() const

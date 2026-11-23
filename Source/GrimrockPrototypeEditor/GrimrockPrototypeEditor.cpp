@@ -8,8 +8,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 
+#include "EditorTools/GridEditorActorLookup.h"
 #include "Editor.h"
-#include "EngineUtils.h"
 #include "EditorModeManager.h"
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
@@ -176,23 +176,7 @@ private:
 
 	AGridLevelEditorActor* FindEditorActorForPIEPreparation() const
 	{
-		if (!GEditor)
-		{
-			return nullptr;
-		}
-
-		UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-		if (!EditorWorld)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AGridLevelEditorActor> It(EditorWorld); It; ++It)
-		{
-			return *It;
-		}
-
-		return nullptr;
+		return GridEditorActorLookup::FindInEditorWorld();
 	}
 
 	void HandlePreBeginPIE(bool bIsSimulating)

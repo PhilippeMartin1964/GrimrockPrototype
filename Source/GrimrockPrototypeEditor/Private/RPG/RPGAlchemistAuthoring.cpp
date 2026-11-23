@@ -1,9 +1,8 @@
 #include "RPG/RPGAlchemistAuthoring.h"
 
+#include "RPG/GridEditorAssetSave.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "HAL/FileManager.h"
 #include "Misc/PackageName.h"
-#include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
@@ -12,10 +11,10 @@
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
-#include "UObject/SavePackage.h"
 
 namespace RPGAlchemistAuthoring
 {
+	using GridEditorAssetSave::SaveAuthoredAsset;
 	const FName AlchemistClassId(TEXT("Alchemist"));
 	const FName GrenadierBranchId(TEXT("Grenadier"));
 	const FName ApothecaryBranchId(TEXT("Apothecary"));
@@ -70,7 +69,6 @@ namespace RPGAlchemistAuthoring
 	const FName DefensiveLightningStatus(TEXT("Status_DefensiveElixir_Lightning"));
 	const FName DefensivePoisonStatus(TEXT("Status_DefensiveElixir_Poison"));
 	const FName CorrodedStatus(TEXT("Status_Corroded"));
-
 
 	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
 	{
@@ -214,36 +212,6 @@ namespace RPGAlchemistAuthoring
 		Item.QuickItemActionIdOverride = ActionId;
 		Item.ItemTags = { TEXT("QuickItem.Alchemy") };
 	}
-
-	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
-	{
-		if (!IsValid(Asset))
-		{
-			OutError = TEXT("Cannot save a null authored asset.");
-			return false;
-		}
-		UPackage* Package = Asset->GetOutermost();
-		if (!Package)
-		{
-			OutError = FString::Printf(TEXT("Asset '%s' has no package."), *GetNameSafe(Asset));
-			return false;
-		}
-		Package->MarkPackageDirty();
-		const FString Filename =
-			FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
-		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename), true);
-
-		FSavePackageArgs SaveArgs;
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.SaveFlags = SAVE_NoError;
-		if (!UPackage::SavePackage(Package, Asset, *Filename, SaveArgs))
-		{
-			OutError = FString::Printf(TEXT("Failed to save '%s' to '%s'."), *Asset->GetPathName(), *Filename);
-			return false;
-		}
-		return true;
-	}
-
 
 	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
 	{
@@ -775,7 +743,6 @@ void FRPGAlchemistAuthoring::GetB1StatusIds(TArray<FName>& OutStatusIds)
 	};
 }
 
-
 void FRPGAlchemistAuthoring::GetB2ItemIds(TArray<FName>& OutItemIds)
 {
 	using namespace RPGAlchemistAuthoring;
@@ -825,7 +792,6 @@ bool FRPGAlchemistAuthoring::BuildMajorTransmutationRecipeAction(
 	OutAction.SurfaceConversions.Add(Conversion);
 	return OutAction.IsValid();
 }
-
 
 bool FRPGAlchemistAuthoring::PlanUnregisteredItems(const UGridItemSubsystem& Registry,
     TArray<FName>& OutItemIds, FString& OutError)

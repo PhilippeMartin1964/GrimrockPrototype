@@ -1,5 +1,6 @@
 #include "EditorTools/GridEditorLuaService.h"
 
+#include "EditorTools/GridLuaPersistentCompatibility.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridLevelVariableTypes.h"
@@ -204,28 +205,6 @@ namespace
 		return true;
 	}
 
-	bool ArePersistentDefinitionsCompatible(const FGridLuaPersistentVariableDefinition& A, const FGridLuaPersistentVariableDefinition& B)
-	{
-		if (A.VariableId != B.VariableId || A.Type != B.Type)
-		{
-			return false;
-		}
-		return A.Type == EGridLuaPersistentValueType::Bool ? A.bDefaultBoolValue == B.bDefaultBoolValue : A.DefaultInt32Value == B.DefaultInt32Value;
-	}
-
-	bool DoesLevelVariableMatchPersistent(const FGridLevelVariableDefinition& LevelDefinition, const FGridLuaPersistentVariableDefinition& LuaDefinition)
-	{
-		if (LevelDefinition.VariableId != LuaDefinition.VariableId)
-		{
-			return false;
-		}
-		if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
-		{
-			return LevelDefinition.Type == EGridLevelVariableType::Bool && LevelDefinition.bDefaultBoolValue == LuaDefinition.bDefaultBoolValue;
-		}
-		return LevelDefinition.Type == EGridLevelVariableType::Int32 && LevelDefinition.DefaultInt32Value == LuaDefinition.DefaultInt32Value;
-	}
-
 	FGridLevelVariableDefinition MakeLevelVariableDefinition(const FGridLuaPersistentVariableDefinition& LuaDefinition)
 	{
 		FGridLevelVariableDefinition Result;
@@ -268,7 +247,7 @@ namespace
 			{
 				if (const FGridLuaPersistentVariableDefinition* Existing = Merged.Find(Definition.VariableId))
 				{
-					if (!ArePersistentDefinitionsCompatible(*Existing, Definition))
+					if (!GridLuaPersistentCompatibility::AreDefinitionsCompatible(*Existing, Definition))
 					{
 						OutError = FString::Printf(
 							TEXT("Lua persistent variable '%s' has conflicting declarations across scripts."), *Definition.VariableId.ToString());
@@ -307,7 +286,7 @@ namespace
 		{
 			if (FGridLevelVariableDefinition* Existing = FindVariableDefinition(OutDefinitions, LuaDefinition.VariableId))
 			{
-				if (!DoesLevelVariableMatchPersistent(*Existing, LuaDefinition))
+				if (!GridLuaPersistentCompatibility::MatchesLevelVariable(LuaDefinition, *Existing))
 				{
 					OutError = FString::Printf(
 						TEXT("Lua persistent variable '%s' conflicts with the existing LevelVariable type/default."), *LuaDefinition.VariableId.ToString());
@@ -341,7 +320,7 @@ namespace
 						*LuaDefinition.VariableId.ToString());
 				return false;
 			}
-			if (!DoesLevelVariableMatchPersistent(*Existing, LuaDefinition))
+			if (!GridLuaPersistentCompatibility::MatchesLevelVariable(LuaDefinition, *Existing))
 			{
 				OutError =
 					FString::Printf(TEXT("Lua persistent variable '%s' conflicts with the LevelVariable type/default."), *LuaDefinition.VariableId.ToString());

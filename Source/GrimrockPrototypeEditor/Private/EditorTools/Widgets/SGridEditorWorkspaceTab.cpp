@@ -2,6 +2,7 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/GridEditorActorLookup.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
@@ -15,7 +16,6 @@
 #include "EditorTools/Widgets/SGridEditorValidationPanel.h"
 
 #include "Editor.h"
-#include "EngineUtils.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
@@ -71,23 +71,7 @@ void SGridEditorWorkspaceTab::Tick(const FGeometry& AllottedGeometry, const doub
 
 AGridLevelEditorActor* SGridEditorWorkspaceTab::FindEditorActor() const
 {
-	if (!GEditor)
-	{
-		return nullptr;
-	}
-
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<AGridLevelEditorActor> It(World); It; ++It)
-	{
-		return *It;
-	}
-
-	return nullptr;
+	return GridEditorActorLookup::FindInEditorWorld();
 }
 
 void SGridEditorWorkspaceTab::Rebuild()

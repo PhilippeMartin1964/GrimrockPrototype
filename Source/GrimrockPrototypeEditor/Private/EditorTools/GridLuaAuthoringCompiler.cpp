@@ -1,5 +1,6 @@
 #include "EditorTools/GridLuaAuthoringCompiler.h"
 
+#include "EditorTools/GridLuaPersistentCompatibility.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridLevelVariableTypes.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
@@ -622,28 +623,6 @@ namespace
 		}
 	}
 
-	bool PersistentDefinitionsCompatible(const FGridLuaPersistentVariableDefinition& A, const FGridLuaPersistentVariableDefinition& B)
-	{
-		if (A.VariableId != B.VariableId || A.Type != B.Type)
-		{
-			return false;
-		}
-		return A.Type == EGridLuaPersistentValueType::Bool ? A.bDefaultBoolValue == B.bDefaultBoolValue : A.DefaultInt32Value == B.DefaultInt32Value;
-	}
-
-	bool PersistentMatchesLevelVariable(const FGridLuaPersistentVariableDefinition& LuaDefinition, const FGridLevelVariableDefinition& LevelDefinition)
-	{
-		if (LuaDefinition.VariableId != LevelDefinition.VariableId)
-		{
-			return false;
-		}
-		if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
-		{
-			return LevelDefinition.Type == EGridLevelVariableType::Bool && LuaDefinition.bDefaultBoolValue == LevelDefinition.bDefaultBoolValue;
-		}
-		return LevelDefinition.Type == EGridLevelVariableType::Int32 && LuaDefinition.DefaultInt32Value == LevelDefinition.DefaultInt32Value;
-	}
-
 	bool CompileCandidateInternal(const AGridLevelEditorActor& EditorActor, const TArray<FGridLuaScriptSource>& CandidateScripts,
 		const TArray<FGridObjectLink>& CandidateLinks, FGridLuaCompileResult& Result)
 	{
@@ -685,7 +664,7 @@ namespace
 			{
 				if (const FGridLuaPersistentVariableDefinition* Existing = MergedPersistent.Find(Definition.VariableId))
 				{
-					if (!PersistentDefinitionsCompatible(*Existing, Definition))
+					if (!GridLuaPersistentCompatibility::AreDefinitionsCompatible(*Existing, Definition))
 					{
 						AddDiagnostic(Result, TEXT("E103"), Script.ScriptId, 1, 1,
 							FString::Printf(TEXT("persistent variable '%s' has conflicting declarations across scripts."), *Definition.VariableId.ToString()));
@@ -714,7 +693,8 @@ namespace
 
 		for (const TPair<FName, FGridLuaPersistentVariableDefinition>& Pair : MergedPersistent)
 		{
-			if (const FGridLevelVariableDefinition* Existing = FindLevelVariable(*LevelAsset, Pair.Key); Existing && !PersistentMatchesLevelVariable(Pair.Value, *Existing))
+			if (const FGridLevelVariableDefinition* Existing = FindLevelVariable(*LevelAsset, Pair.Key);
+				Existing && !GridLuaPersistentCompatibility::MatchesLevelVariable(Pair.Value, *Existing))
 			{
 				AddDiagnostic(Result, TEXT("E103"), NAME_None, 1, 1,
 					FString::Printf(TEXT("persistent variable '%s' conflicts with the existing LevelVariable type/default."), *Pair.Key.ToString()));

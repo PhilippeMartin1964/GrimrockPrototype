@@ -2,11 +2,11 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/GridEditorActorLookup.h"
 #include "Editor.h"
 #include "EditorViewportClient.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
-#include "EngineUtils.h"
 #include "SceneManagement.h"
 
 #include "EditorTools/GridLevelEditorActor.h"
@@ -275,23 +275,7 @@ static bool IsRightMouseButtonDown(FViewport* Viewport)
 
 AGridLevelEditorActor* FGridLevelEdMode::FindEditorActor() const
 {
-	if (!GEditor)
-	{
-		return nullptr;
-	}
-
-	UWorld* World = GEditor->GetEditorWorldContext().World();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<AGridLevelEditorActor> It(World); It; ++It)
-	{
-		return *It;
-	}
-
-	return nullptr;
+	return GridEditorActorLookup::FindInEditorWorld();
 }
 
 bool FGridLevelEdMode::UpdateHoverFromMouse(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY) const

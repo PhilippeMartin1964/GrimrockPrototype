@@ -1,17 +1,16 @@
 #include "RPG/RPGMageAuthoring.h"
 
+#include "RPG/GridEditorAssetSave.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "HAL/FileManager.h"
 #include "Misc/PackageName.h"
-#include "Misc/Paths.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionAuthoring.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "UObject/Package.h"
-#include "UObject/SavePackage.h"
 
 namespace RPGMageAuthoring
 {
+	using GridEditorAssetSave::SaveAuthoredAsset;
 	const FName MageClassId(TEXT("Mage"));
 	const FName EvokerBranchId(TEXT("Evoker"));
 	const FName ArcanistBranchId(TEXT("Arcanist"));
@@ -84,7 +83,6 @@ namespace RPGMageAuthoring
 	{
 		return FName(*FString::Printf(TEXT("Talent_Mage_SurfaceWeaver_Imbuement_%s"), Suffix));
 	}
-
 
 	ERPGTalentPresentationType ResolveTalentPresentationType(FName ChoiceId)
 	{
@@ -270,36 +268,6 @@ namespace RPGMageAuthoring
 			Action.OwnerVariants.Add(MakeAffinityActionVariant(Variant, ActionId == CataclysmActionId));
 		}
 		return Action;
-	}
-
-	bool SaveAuthoredAsset(UObject* Asset, FString& OutError)
-	{
-		if (!IsValid(Asset))
-		{
-			OutError = TEXT("Cannot save a null authored asset.");
-			return false;
-		}
-		UPackage* Package = Asset->GetOutermost();
-		if (!Package)
-		{
-			OutError = FString::Printf(TEXT("Asset '%s' has no package."), *GetNameSafe(Asset));
-			return false;
-		}
-
-		Package->MarkPackageDirty();
-		const FString Filename =
-			FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
-		IFileManager::Get().MakeDirectory(*FPaths::GetPath(Filename), true);
-
-		FSavePackageArgs SaveArgs;
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.SaveFlags = SAVE_NoError;
-		if (!UPackage::SavePackage(Package, Asset, *Filename, SaveArgs))
-		{
-			OutError = FString::Printf(TEXT("Failed to save '%s' to '%s'."), *Asset->GetPathName(), *Filename);
-			return false;
-		}
-		return true;
 	}
 
 	UGridStatusEffectDefinitionAsset* FindOrCreateStatus(FName EffectId, FString& OutError)
