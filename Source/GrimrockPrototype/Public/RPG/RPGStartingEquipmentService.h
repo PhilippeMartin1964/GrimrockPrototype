@@ -4,15 +4,13 @@
 #include "Runtime/GridInventoryTypes.h"
 
 class URPGClassAsset;
-class UGridItemDefinitionAsset;
 class UGridItemSubsystem;
 
 /**
  * ARMEMENT01.9.1: build a class kit into uncommitted character/equipment states.
  * No live party or item registry is mutated on failure. No item is duplicated
  * when a two-handed weapon virtually occupies OffHand.
- * A configured ItemSystem is mandatory outside active Automation fixtures.
- * With a registry, unregistered IDs are rejected without historical fallback.
+ * Kits are built only from a configured ItemSystem.
  */
 class GRIMROCKPROTOTYPE_API FRPGStartingEquipmentService
 {
@@ -22,7 +20,6 @@ public:
 		FName KitId,
 		FGridCharacterInventoryState& InOutCharacter,
 		FGridCharacterEquipmentState& InOutEquipment,
-		TArray<UGridItemDefinitionAsset*>& OutDefinitions,
 		FString& OutError,
-		const UGridItemSubsystem* CanonicalRegistry = nullptr);
+		const UGridItemSubsystem* CanonicalRegistry);
 };

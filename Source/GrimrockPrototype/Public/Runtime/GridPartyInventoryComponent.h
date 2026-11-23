@@ -236,11 +236,6 @@ public:
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
 	bool RehydrateOwnedItems(FName& OutMissingDefinitionId);
 
-#if WITH_DEV_AUTOMATION_TESTS
-	// Historical fixture helper; no runtime caller in Shipping.
-	bool RehydrateOwnedItemDefinitions(TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId);
-#endif
-
 	/** Historical native lookup; canonical definitions are resolved through ItemSystem. */
 	UGridItemDefinitionAsset* FindItemDefinition(FName ItemDefinitionId) const;
 

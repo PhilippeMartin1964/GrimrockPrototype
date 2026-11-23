@@ -243,11 +243,10 @@ bool FARMEMENT0192RangerTest::RunTest(const FString&)
     Candidate.CharacterId = FGuid::NewGuid();
     Candidate.InventorySlots.SetNum(40);
     FGridCharacterEquipmentState CandidateEquipment;
-    TArray<UGridItemDefinitionAsset*> Definitions;
+
     if (!TestTrue(TEXT("Alternative kit builds independently"),
         FRPGStartingEquipmentService::TryBuildKit(Preview, Trail->KitId,
-            Candidate, CandidateEquipment, Definitions, Failure, Fixture.Registry.Get()))) return false;
-    TestEqual(TEXT("Native starter returns no obsolete definitions"), Definitions.Num(), 0);
+            Candidate, CandidateEquipment, Failure, Fixture.Registry.Get()))) return false;
     TestEqual(TEXT("Alternative kit records selected ID"), Candidate.StartingEquipmentKitId, Trail->KitId);
     TestTrue(TEXT("Alternative kit leaves OffHand available"), !CandidateEquipment.OffHand.IsValid());
     TestTrue(TEXT("Alternative kit has one-handed weapon"), CandidateEquipment.MainHand.IsValid());

@@ -538,12 +538,12 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	const UGridItemSubsystem* StartingRegistry = ResolvePartyWeightRegistry(this);
 #if WITH_DEV_AUTOMATION_TESTS
 	const UWorld* StartingWorld = GetWorld();
-	const bool bAllowLegacyFixture = GIsAutomationTesting && !StartingRegistry &&
+	const bool bAllowRegistrylessFixture = GIsAutomationTesting && !StartingRegistry &&
 		(!StartingWorld || !StartingWorld->GetGameInstance());
 #else
-	constexpr bool bAllowLegacyFixture = false;
+	constexpr bool bAllowRegistrylessFixture = false;
 #endif
-	if (!bAllowLegacyFixture && (!IsValid(StartingRegistry) || !StartingRegistry->IsConfigured()))
+	if (!bAllowRegistrylessFixture && (!IsValid(StartingRegistry) || !StartingRegistry->IsConfigured()))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("StartingEquipment requires configured ItemSystem."));
 		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.Unavailable"));
@@ -620,53 +620,19 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 
 	// Build the selected class's default kit into the uncommitted party.
 	// Failed or incompatible kits cannot create a partially equipped hero.
-	TArray<UGridItemDefinitionAsset*> StartingDefinitions;
 	FString KitError;
-	if (!FRPGStartingEquipmentService::TryBuildKit(
+	if ((StartingRegistry || !SelectedStartingKitId.IsNone()) && !FRPGStartingEquipmentService::TryBuildKit(
 		StartingKitClass, SelectedStartingKitId,
-		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], StartingDefinitions, KitError,
+		NewPartyState.ActiveCharacters[0], NewPartyState.ActiveEquipment[0], KitError,
 		StartingRegistry))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("StartingEquipment InvalidKit KitId=%s Reason=%s"), *SelectedStartingKitId.ToString(), *KitError);
 		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));
 		return false;
 	}
-	if (!bAllowLegacyFixture && !StartingDefinitions.IsEmpty())
-	{
-		UE_LOG(LogGridInventory, Error, TEXT("Canonical starting kit returned historical definitions."));
-		OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.InvalidKit"));
-		return false;
-	}
-#if WITH_DEV_AUTOMATION_TESTS
-	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
-	{
-		if (UGridItemDefinitionAsset* Existing = FindItemDefinition(Definition->ItemDefinitionId))
-		{
-			if (Existing != Definition)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("StartingEquipment ConflictingDefinition ItemId=%s"), *Definition->ItemDefinitionId.ToString());
-				OutError = FUILocalizationText::Get(TEXT("CharacterCreation.StartingKit.ConflictingDefinition"));
-				return false;
-			}
-		}
-	}
-
-#endif // WITH_DEV_AUTOMATION_TESTS
-
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
 	const TArray<FGuid> PreviousPortraitOrder = PartyPortraitOrder;
 	PartyInventoryState = MoveTemp(NewPartyState);
-#if WITH_DEV_AUTOMATION_TESTS
-	TArray<FName> AddedDefinitionIds;
-	for (UGridItemDefinitionAsset* Definition : StartingDefinitions)
-	{
-		if (!RuntimeItemDefinitionsById.Contains(Definition->ItemDefinitionId))
-		{
-			RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);
-			AddedDefinitionIds.Add(Definition->ItemDefinitionId);
-		}
-	}
-#endif // WITH_DEV_AUTOMATION_TESTS
 	NotifyPartyInventoryChanged(INDEX_NONE);
 
 	FString OwnershipError;
@@ -674,12 +640,6 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	{
 		PartyInventoryState = PreviousPartyState;
 		PartyPortraitOrder = PreviousPortraitOrder;
-#if WITH_DEV_AUTOMATION_TESTS
-		for (const FName DefinitionId : AddedDefinitionIds)
-		{
-			RuntimeItemDefinitionsById.Remove(DefinitionId);
-		}
-#endif // WITH_DEV_AUTOMATION_TESTS
 		NotifyPartyInventoryChanged(INDEX_NONE);
 		OutError = FText::FromString(FString::Printf(TEXT("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
 		return false;
@@ -1724,125 +1684,6 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItems(FName& OutMissingDefiniti
 	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
 }
-
-#if WITH_DEV_AUTOMATION_TESTS
-bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions(
-	TFunctionRef<UGridItemDefinitionAsset*(FName)> Resolver, FName& OutMissingDefinitionId)
-{
-	OutMissingDefinitionId = NAME_None;
-	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	TSet<FName> DefinitionIds;
-
-	// A saved physical identity is immutable. Validate registered items BEFORE
-	// touching the transient definition map. This covers inventory, reserve,
-	// equipped items and cursor without changing SaveGame 27's schema.
-	auto CollectItem = [Registry, &DefinitionIds, &OutMissingDefinitionId](
-		const FGridItemInstance& Item) -> bool
-	{
-		const bool bCanonical = Registry && Registry->ContainsItem(Item.ItemDefinitionId);
-		if (bCanonical)
-		{
-			FGridResolvedItem Canonical;
-			if (!Item.IsValid() ||
-				!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical) ||
-				(!Canonical.bIsArmament && Item.ItemLevel != 0) ||
-				Item.Quantity > FMath::Max(1, Canonical.MaxStack))
-			{
-				OutMissingDefinitionId = Item.ItemDefinitionId;
-				UE_LOG(LogGridInventory, Warning,
-					TEXT("GridInventory SaveRehydrate Rejected Item=%s Level=%d Quantity=%d Reason=InvalidCanonicalSavedInstance"),
-					*Item.ItemDefinitionId.ToString(), Item.ItemLevel, Item.Quantity);
-				return false; // No physical level promotion or non-ARM N1 family alias.
-			}
-		}
-		if (Item.IsValid())
-		{
-			DefinitionIds.Add(Item.ItemDefinitionId);
-		}
-		return true;
-	};
-
-	auto CollectCharacterItems = [&DefinitionIds, &CollectItem](
-		const FGridCharacterInventoryState& Character) -> bool
-	{
-		for (const FGridInventorySlot& Slot : Character.InventorySlots)
-		{
-			// Inspect bOccupied, not IsEmpty(): a known but malformed saved
-			// item must not be silently lost when IsValid() is false.
-			if (Slot.bOccupied && !CollectItem(Slot.Item))
-			{
-				return false;
-			}
-		}
-		for (const FGridCombatHotbarBinding& Binding : Character.CombatHotbarSlots)
-		{
-			const bool bUsesItemDefinition =
-				Binding.SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
-				Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
-			if (!Binding.IsEmpty() && bUsesItemDefinition && !Binding.SourceDefinitionId.IsNone())
-			{
-				// A binding has no ItemLevel; its GUID and hand are checked by
-				// the action resolver when the shortcut is used.
-				DefinitionIds.Add(Binding.SourceDefinitionId);
-			}
-		}
-		return true;
-	};
-
-	for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)
-	{
-		if (!CollectCharacterItems(Character)) return false;
-	}
-	for (const FGridCharacterInventoryState& Character : PartyInventoryState.CharacterPool)
-	{
-		if (!CollectCharacterItems(Character)) return false;
-	}
-	for (const FGridCharacterEquipmentState& Equipment : PartyInventoryState.ActiveEquipment)
-	{
-		bool bValidEquipment = true;
-		GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
-			[&CollectItem, &bValidEquipment](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
-			{
-				(void)Slot;
-				if (bValidEquipment && !CollectItem(Item))
-				{
-					bValidEquipment = false;
-				}
-			});
-		if (!bValidEquipment) return false;
-	}
-	if (PartyInventoryState.bHasCursorItem && !CollectItem(PartyInventoryState.CursorItem))
-	{
-		return false;
-	}
-
-	// Registered identities have already passed the physical-instance
-	// gate above. Never even invoke the historical resolver for them,
-	// including shortcuts whose physical source may no longer exist.
-	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> ReplacementDefinitions;
-	for (const FName DefinitionId : DefinitionIds)
-	{
-		if (Registry && Registry->ContainsItem(DefinitionId))
-		{
-			continue;
-		}
-		UGridItemDefinitionAsset* Definition = Resolver(DefinitionId);
-		if (!IsValid(Definition) || Definition->ItemDefinitionId != DefinitionId)
-		{
-			OutMissingDefinitionId = DefinitionId;
-			return false; // Unknown saved ID still requires exact legacy asset.
-		}
-		ReplacementDefinitions.Add(DefinitionId, Definition);
-	}
-
-	// One atomic map replacement. On failure, no retained definitions,
-	// physical instances or hotbar references are modified.
-	RuntimeItemDefinitionsById = MoveTemp(ReplacementDefinitions);
-	NotifyPartyInventoryChanged(INDEX_NONE);
-	return true;
-}
-
-#endif // WITH_DEV_AUTOMATION_TESTS
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {

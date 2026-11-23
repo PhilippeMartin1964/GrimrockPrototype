@@ -65,17 +65,16 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Character.CharacterId = FGuid::NewGuid();
     Character.InventorySlots.SetNum(6);
     FGridCharacterEquipmentState Equipment;
-    TArray<UGridItemDefinitionAsset*> Definitions;
+
     FString Failure;
     if (!TestTrue(TEXT("Canonical starter creates all three physical items"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
-            Character, Equipment, Definitions, Failure, Registry.Get())))
+            Character, Equipment, Failure, Registry.Get())))
     {
         AddError(Failure);
         return false;
     }
     TestEqual(TEXT("Kit ID is stored after successful grant"), Character.StartingEquipmentKitId, Kit.KitId);
-    TestTrue(TEXT("No historical definition published despite matching supplied pointers"), Definitions.IsEmpty());
     const int32 ExpectedLevels[] = {6, 20, 0};
     const FName ExpectedIds[] = {
         TEXT("Weapon_StraightSword_01"),
@@ -119,17 +118,16 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Rejected.InventorySlots.SetNum(6);
     const FGuid OriginalCharacterId = Rejected.CharacterId;
     FGridCharacterEquipmentState RejectedGear;
-    Definitions.Reset();
+
     Failure.Reset();
     TestFalse(TEXT("Canonical ARM N0 cannot inherit any obsolete default"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
-            Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
+            Rejected, RejectedGear, Failure, Registry.Get()));
     TestFalse(TEXT("Rejection has an explicit diagnostic"), Failure.IsEmpty());
     TestTrue(TEXT("No partial bag grant survives"), Rejected.InventorySlots[0].IsEmpty());
     TestTrue(TEXT("Rejected equipment remains empty"), !RejectedGear.MainHand.IsValid());
     TestTrue(TEXT("Rejected kit ID is not recorded"), Rejected.StartingEquipmentKitId.IsNone());
     TestEqual(TEXT("Character identity is unchanged"), Rejected.CharacterId, OriginalCharacterId);
-    TestTrue(TEXT("Rejected definitions not published"), Definitions.IsEmpty());
 
     // Non-ARM N1 must not be accepted merely because a legacy flag says ARM.
     Bad.ItemDefinition = Arrows.Get();
@@ -138,7 +136,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Failure.Reset();
     TestFalse(TEXT("Canonical ammunition N1 is invalid"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
-            Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
+            Rejected, RejectedGear, Failure, Registry.Get()));
     TestTrue(TEXT("A failed ammo kit still grants nothing"), Rejected.InventorySlots[0].IsEmpty());
 
     // A pointer-only registered entry must no longer promote N0 to the
@@ -148,9 +146,9 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     Bad.ItemLevel = 0;
     TestFalse(TEXT("Pointer-only registered ARM rejected"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
-            Rejected, RejectedGear, Definitions, Failure, Registry.Get()));
+            Rejected, RejectedGear, Failure, Registry.Get()));
     TestTrue(TEXT("Pointer-only refusal leaves kit uncommitted"),
-        Rejected.StartingEquipmentKitId.IsNone() && Rejected.InventorySlots[0].IsEmpty() && Definitions.IsEmpty());
+        Rejected.StartingEquipmentKitId.IsNone() && Rejected.InventorySlots[0].IsEmpty());
     return !HasAnyErrors();
 }
 #endif

@@ -4,7 +4,7 @@
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UObjectGlobals.h"
@@ -32,9 +32,10 @@ namespace
 		return Request;
 	}
 
-	UGridPartyInventoryComponent* CreateCC5PartyWithEquippedTorch(FGuid& OutTorchId)
+	UGridPartyInventoryComponent* CreateCC5PartyWithEquippedTorch(const FGridCanonicalWeightTestWorld& World, FGuid& OutTorchId)
 	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Component = World.MakeInventory();
+		if (!Component) return nullptr;
 		Component->InitializeDefaultPartyIfNeeded();
 
 		FText Error;
@@ -43,19 +44,10 @@ namespace
 			return nullptr;
 		}
 
-		UGridItemDefinitionAsset* TorchDefinition = NewObject<UGridItemDefinitionAsset>();
-		TorchDefinition->ItemDefinitionId = TEXT("Item_Torch");
-		TorchDefinition->DisplayName = FText::FromString(TEXT("Torche"));
-		TorchDefinition->ItemType = EGridItemType::Torch;
-		TorchDefinition->Weight = 1.0f;
-		TorchDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-		TorchDefinition->LightEmitter.bUsePointLight = true;
-		TorchDefinition->LightEmitter.bDefaultEnabled = true;
-		Component->RegisterItemDefinition(TorchDefinition);
-
 		FGridItemInstance Torch;
 		Torch.RuntimeObjectId = FGuid::NewGuid();
-		Torch.ItemDefinitionId = TorchDefinition->ItemDefinitionId;
+		Torch.ItemDefinitionId = TEXT("Item_Torch");
+		Torch.bLightsEnabled = true;
 		Component->ApplyItemDefinitionToInstance(Torch);
 		OutTorchId = Torch.RuntimeObjectId;
 
@@ -73,8 +65,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGPartySaveMemoryRoundTripCC5Test, "Grimrock.
 
 bool FRPGPartySaveMemoryRoundTripCC5Test::RunTest(const FString& Parameters)
 {
+	FGridCanonicalWeightTestWorld SourceWorld({});
 	FGuid TorchId;
-	UGridPartyInventoryComponent* SourceComponent = CreateCC5PartyWithEquippedTorch(TorchId);
+	UGridPartyInventoryComponent* SourceComponent = CreateCC5PartyWithEquippedTorch(SourceWorld, TorchId);
 	TestNotNull(TEXT("The source party is created"), SourceComponent);
 	if (!SourceComponent)
 	{
@@ -120,32 +113,24 @@ bool FRPGPartySaveMemoryRoundTripCC5Test::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("The picked-up world item presence survives serialization"), LoadedPresence);
 	TestTrue(TEXT("The picked-up world item remains removed"), LoadedPresence && LoadedPresence->bRemovedFromInitialPlacement);
 
-	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld RestoreWorld({});
+	UGridPartyInventoryComponent* RestoredComponent = RestoreWorld.MakeInventory();
+	if (!TestNotNull(TEXT("Independent restore inventory with ItemSystem"), RestoredComponent)) return false;
 	RestoredComponent->DefaultInventorySlotCountPerCharacter = 80;
 	FText RestoreError;
 	TestTrue(TEXT("The party snapshot restores atomically"), RestoredComponent->RestorePartyInventoryState(LoadedSave->PartyInventoryState, RestoreError));
 	TestEqual(TEXT("Restore applies the currently configured inventory capacity"),
 		RestoredComponent->PartyInventoryState.ActiveCharacters[0].InventorySlots.Num(), 80);
 
-	TestTrue(TEXT("The transient definition registry is not serialized"), RestoredComponent->FindItemDefinition(TEXT("Item_Torch")) == nullptr);
-
-	UGridItemDefinitionAsset* RestoredTorchDefinition = NewObject<UGridItemDefinitionAsset>();
-	RestoredTorchDefinition->ItemDefinitionId = TEXT("Item_Torch");
-	RestoredTorchDefinition->DisplayName = FText::FromString(TEXT("Torche"));
-	RestoredTorchDefinition->ItemType = EGridItemType::Torch;
-	RestoredTorchDefinition->Weight = 1.0f;
-	RestoredTorchDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-
 	FName MissingDefinitionId = NAME_None;
-	TestTrue(TEXT("Owned item definitions are rehydrated after restore"),
-		RestoredComponent->RehydrateOwnedItemDefinitions(
-			[RestoredTorchDefinition](FName DefinitionId)
-			{
-				return DefinitionId == RestoredTorchDefinition->ItemDefinitionId ? RestoredTorchDefinition : nullptr;
-			},
-			MissingDefinitionId));
-	TestTrue(TEXT("The restored torch definition is registered"), RestoredComponent->FindItemDefinition(TEXT("Item_Torch")) == RestoredTorchDefinition);
-	TestTrue(TEXT("The restored definition keeps its equipment actions"), RestoredTorchDefinition->CanEquipToSlot(EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Owned items resolve in the independent registry after restore"),
+		RestoredComponent->RehydrateOwnedItems(MissingDefinitionId));
+	TestTrue(TEXT("No ID is missing from the restored party"), MissingDefinitionId.IsNone());
+	FGridResolvedItem TorchDefinition;
+	TestTrue(TEXT("Restored torch resolves from the destination registry"),
+		RestoreWorld.Scope.Registry->ResolveItem(TEXT("Item_Torch"), 0, TorchDefinition));
+	TestTrue(TEXT("The restored torch can occupy the main hand"),
+		TorchDefinition.NonArmEquipmentSlots.Contains(EGridEquipmentSlot::MainHand));
 
 	FGridItemInstance EquippedItem;
 	TestTrue(TEXT("The torch remains equipped in the main hand"), RestoredComponent->GetEquippedItem(0, EGridEquipmentSlot::MainHand, EquippedItem));

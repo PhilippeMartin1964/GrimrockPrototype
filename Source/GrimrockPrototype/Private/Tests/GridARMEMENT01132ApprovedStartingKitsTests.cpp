@@ -288,13 +288,7 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
             }
             FName MissingDefinitionId = NAME_None;
             if (!TestTrue(*FString::Printf(TEXT("%s: rehydrate starting item definitions"), *Kit.KitId.ToString()),
-                Continued->RehydrateOwnedItemDefinitions(
-                    [](FName) -> UGridItemDefinitionAsset*
-                    {
-                        // Every saved physical ItemId resolves from the registry;
-                        // requesting a legacy definition would be a regression.
-                        return nullptr;
-                    }, MissingDefinitionId)))
+                Continued->RehydrateOwnedItems(MissingDefinitionId)))
             {
                 AddError(FString::Printf(TEXT("%s: missing saved item %s"),
                     *Kit.KitId.ToString(), *MissingDefinitionId.ToString()));

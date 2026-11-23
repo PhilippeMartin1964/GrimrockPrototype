@@ -40,11 +40,11 @@ namespace ARMCLEAN063AO
 
 	static bool TryGrant(URPGClassAsset* Class, const UGridItemSubsystem* Registry,
 		FGridCharacterInventoryState& Character, FGridCharacterEquipmentState& Equipment,
-		TArray<UGridItemDefinitionAsset*>& Definitions, FString& Error)
+		FString& Error)
 	{
 		return FRPGStartingEquipmentService::TryBuildKit(
 			Class, TEXT("StartingHands_AO"), Character, Equipment,
-			Definitions, Error, Registry);
+			Error, Registry);
 	}
 }
 
@@ -123,10 +123,10 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	ARMCLEAN063AO::Add(BowClass.Get(), Bow.Get(), EGridEquipmentSlot::OffHand);
 	FGridCharacterInventoryState BowCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState BowEquipment;
-	TArray<UGridItemDefinitionAsset*> OutDefinitions;
+
 	FString Error;
 	if (!TestTrue(TEXT("Bow kit grants using canonical hands"),
-		ARMCLEAN063AO::TryGrant(BowClass.Get(), Registry.Get(), BowCharacter, BowEquipment, OutDefinitions, Error)))
+		ARMCLEAN063AO::TryGrant(BowClass.Get(), Registry.Get(), BowCharacter, BowEquipment, Error)))
 	{
 		AddError(Error);
 		return false;
@@ -134,21 +134,19 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestTrue(TEXT("Physical bow stored in MainHand"), BowEquipment.MainHand.IsValid());
 	TestFalse(TEXT("No duplicate object in OffHand"), BowEquipment.OffHand.IsValid());
 	TestEqual(TEXT("Physical bow has real N6 level"), BowEquipment.MainHand.ItemLevel, 6);
-	TestTrue(TEXT("No old bow definition returned"), OutDefinitions.IsEmpty());
 
 	// The second item cannot steal the virtual OffHand of a two-handed bow.
 	ARMCLEAN063AO::Add(BowClass.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);
 	FGridCharacterInventoryState FailedCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState FailedEquipment;
 	const FGuid OriginalCharacterId = FailedCharacter.CharacterId;
-	OutDefinitions.Reset();
+
 	Error.Reset();
 	TestFalse(TEXT("Shield plus two handed bow rejects kit atomically"),
-		ARMCLEAN063AO::TryGrant(BowClass.Get(), Registry.Get(), FailedCharacter, FailedEquipment, OutDefinitions, Error));
+		ARMCLEAN063AO::TryGrant(BowClass.Get(), Registry.Get(), FailedCharacter, FailedEquipment, Error));
 	TestFalse(TEXT("Two-hand conflict reports an error"), Error.IsEmpty());
 	TestFalse(TEXT("Failed kit reserves no physical MainHand"), FailedEquipment.MainHand.IsValid());
 	TestFalse(TEXT("Failed kit reserves no physical OffHand"), FailedEquipment.OffHand.IsValid());
-	TestTrue(TEXT("Failed kit publishes no definitions"), OutDefinitions.IsEmpty());
 	TestTrue(TEXT("Failed kit adds no bag items"), FailedCharacter.InventorySlots[0].IsEmpty());
 	TestEqual(TEXT("Failed kit leaves character GUID intact"), FailedCharacter.CharacterId, OriginalCharacterId);
 	TestTrue(TEXT("Failed kit ID is not recorded"), FailedCharacter.StartingEquipmentKitId.IsNone());
@@ -158,10 +156,10 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TStrongObjectPtr<URPGClassAsset> Reverse(ARMCLEAN063AO::NewClass());
 	ARMCLEAN063AO::Add(Reverse.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);
 	ARMCLEAN063AO::Add(Reverse.Get(), Bow.Get(), EGridEquipmentSlot::MainHand);
-	OutDefinitions.Reset();
+
 	Error.Reset();
 	TestFalse(TEXT("Two-handed bow cannot follow equipped shield"),
-		ARMCLEAN063AO::TryGrant(Reverse.Get(), Registry.Get(), FailedCharacter, FailedEquipment, OutDefinitions, Error));
+		ARMCLEAN063AO::TryGrant(Reverse.Get(), Registry.Get(), FailedCharacter, FailedEquipment, Error));
 	TestTrue(TEXT("Reverse conflict leaves untouched OffHand"), !FailedEquipment.OffHand.IsValid());
 
 	// The obsolete two-handed flag on a shield must not hide the player's
@@ -171,10 +169,10 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	ARMCLEAN063AO::Add(Normal.Get(), Sword.Get(), EGridEquipmentSlot::MainHand);
 	FGridCharacterInventoryState NormalCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState NormalEquipment;
-	OutDefinitions.Reset();
+
 	Error.Reset();
 	if (!TestTrue(TEXT("Canonical sword and shield coexist"),
-		ARMCLEAN063AO::TryGrant(Normal.Get(), Registry.Get(), NormalCharacter, NormalEquipment, OutDefinitions, Error)))
+		ARMCLEAN063AO::TryGrant(Normal.Get(), Registry.Get(), NormalCharacter, NormalEquipment, Error)))
 	{
 		AddError(Error);
 		return false;

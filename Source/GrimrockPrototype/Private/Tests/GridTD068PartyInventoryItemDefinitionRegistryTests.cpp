@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/Class.h"
@@ -10,25 +10,6 @@
 
 namespace
 {
-	UGridPartyInventoryComponent* GridTD068CreateInventory()
-	{
-		UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-		Component->InitializeDefaultPartyIfNeeded();
-		return Component;
-	}
-
-	UGridItemDefinitionAsset* GridTD068CreateDefinition(
-		UObject* Outer, FName ItemDefinitionId, float Weight = 1.0f, bool bStackable = false, int32 MaxStackSize = 1)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromName(ItemDefinitionId);
-		Definition->Weight = Weight;
-		Definition->bStackable = bStackable;
-		Definition->MaxStackSize = MaxStackSize;
-		return Definition;
-	}
-
 	FGridItemInstance GridTD068CreateItem(FName ItemDefinitionId, int32 Quantity = 1)
 	{
 		FGridItemInstance Item;
@@ -71,11 +52,36 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Component = GridTD068CreateInventory();
-	if (!TestNotNull(TEXT("The characterized party inventory component is created"), Component))
+	const FName StackId(TEXT("StackApply_TD068"));
+	const FName SingleId(TEXT("SingleApply_TD068"));
+	const FName ActiveInventoryId(TEXT("ActiveInventory_TD068"));
+	const FName PoolInventoryId(TEXT("PoolInventory_TD068"));
+	const FName EquipmentId(TEXT("Weapon_StraightSword_01"));
+	const FName CursorId(TEXT("Cursor_TD068"));
+	const FName HotbarEquipmentId(TEXT("Weapon_Dagger_01"));
+	const FName HotbarQuickItemId(TEXT("HotbarQuickItem_TD068"));
+	const FName OtherRegisteredId(TEXT("OtherRegistered_TD068"));
+	const FName IgnoredSpellId(TEXT("IgnoredSpell_TD068"));
+	const FName IgnoredAbilityId(TEXT("IgnoredAbility_TD068"));
+	const FText StackName = FText::FromString(TEXT("Registered stack"));
+	FGridCanonicalWeightTestWorld World({
+		{ SingleId, 4.0f }, { ActiveInventoryId, 1.0f }, { PoolInventoryId, 1.0f },
+		{ CursorId, 1.0f }, { HotbarQuickItemId, 1.0f }, { OtherRegisteredId, 1.0f }
+	}, [&](UGridItemSystemAsset& Root)
 	{
-		return false;
-	}
+		auto* Stack = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Stack->ItemId = StackId;
+		Stack->DisplayName = StackName;
+		Stack->WeightKg = 2.5f;
+		Stack->MaxStack = 3;
+		Stack->LightEmitter.bUsePointLight = true;
+		Stack->LightEmitter.bDefaultEnabled = true;
+		Root.ItemDefinitions.Add(Stack);
+	});
+	UGridPartyInventoryComponent* Component = World.MakeInventory();
+	if (!TestNotNull(TEXT("Inventory with isolated registry"), Component)) return false;
+	Component->InitializeDefaultPartyIfNeeded();
+	UGridItemSubsystem* Registry = World.Scope.Registry;
 
 	// ARM-CLEAN06.5G.38: historical registration/lookup are native-only.
 	TestNull(TEXT("RegisterItemDefinition is no longer reflected"), Component->FindFunction(TEXT("RegisterItemDefinition")));
@@ -85,48 +91,45 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	TestTrue(TEXT("ApplyItemDefinitionToInstance remains BlueprintCallable"),
 		Projection && Projection->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 
-	TestFalse(TEXT("RegisterItemDefinition rejects null"), Component->RegisterItemDefinition(nullptr));
-	UGridItemDefinitionAsset* InvalidDefinition = GridTD068CreateDefinition(Component, NAME_None);
-	TestFalse(TEXT("RegisterItemDefinition rejects NAME_None"), Component->RegisterItemDefinition(InvalidDefinition));
+	// Definition registration is atomic for an entire registry. Reject a
+	// colliding root in isolation without touching the working registry.
+	auto* DuplicateRoot = DuplicateObject<UGridItemSystemAsset>(
+		Registry->LoadConfiguredItemSystemForPreview(), GetTransientPackage());
+	auto* Duplicate = NewObject<UGridNonArmamentDefinitionAsset>(DuplicateRoot);
+	Duplicate->ItemId = TEXT("Item_Torch");
+	Duplicate->DisplayName = FText::FromName(Duplicate->ItemId);
+	Duplicate->WeightKg = 99.0f;
+	DuplicateRoot->ItemDefinitions.Add(Duplicate);
+	auto* RejectedRegistry = NewObject<UGridItemSubsystem>(World.Scope.GI.Get());
+	TArray<FString> Errors;
+	TestFalse(TEXT("A different asset cannot claim an already registered ItemId"),
+		RejectedRegistry->RegisterItemSystem(DuplicateRoot, Errors));
+	TestTrue(TEXT("Registry reports invalid or duplicate ItemId"), Errors.ContainsByPredicate(
+		[](const FString& Error) { return Error == TEXT("Item system: invalid or duplicate ItemId"); }));
+	TestFalse(TEXT("The rejected registry exposes no partial entries"), RejectedRegistry->IsConfigured());
+	FGridResolvedItem Torch;
+	TestTrue(TEXT("The working registry retains the original torch"),
+		Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch) && Torch.WeightKg != 99.0f);
+	TestFalse(TEXT("Registry rejects NAME_None"), Registry->ContainsItem(NAME_None));
 
-	UGridItemDefinitionAsset* FirstDuplicateDefinition = GridTD068CreateDefinition(Component, TEXT("Duplicate_TD068"), 1.0f);
-	UGridItemDefinitionAsset* SecondDuplicateDefinition = GridTD068CreateDefinition(Component, TEXT("Duplicate_TD068"), 9.0f);
-	TestTrue(TEXT("The first definition registers"), Component->RegisterItemDefinition(FirstDuplicateDefinition));
-	TestTrue(TEXT("Re-registering the same asset remains idempotent"), Component->RegisterItemDefinition(FirstDuplicateDefinition));
-	AddExpectedError(TEXT("GridInventory ItemDefinition Registration Failed ItemDefinitionId=Duplicate_TD068"),
-		EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("A different asset cannot claim an already registered ItemDefinitionId"),
-		Component->RegisterItemDefinition(SecondDuplicateDefinition));
-	TestTrue(
-		TEXT("Rejected duplicate ID preserves the original authoritative asset"), Component->FindItemDefinition(TEXT("Duplicate_TD068")) == FirstDuplicateDefinition);
-	TestTrue(TEXT("FindItemDefinition rejects NAME_None"), Component->FindItemDefinition(NAME_None) == nullptr);
-
-	UGridItemDefinitionAsset* StackDefinition = GridTD068CreateDefinition(Component, TEXT("StackApply_TD068"), 2.5f, true, 3);
-	StackDefinition->DisplayName = FText::FromString(TEXT("Registered stack"));
-	StackDefinition->LightEmitter.bUsePointLight = true;
-	StackDefinition->LightEmitter.bDefaultEnabled = true;
-	TestTrue(TEXT("The stack definition registers"), Component->RegisterItemDefinition(StackDefinition));
-
-	FGridItemInstance StackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 99);
+	FGridItemInstance StackItem = GridTD068CreateItem(StackId, 99);
 	TestTrue(TEXT("ApplyItemDefinitionToInstance succeeds for a registered definition"), Component->ApplyItemDefinitionToInstance(StackItem));
-	const auto StackMetadata = FGridInventoryItemMetadataReadModel::Resolve(nullptr, StackDefinition, StackItem);
+	const auto StackMetadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, StackItem);
 	TestTrue(TEXT("Isolated definition provides weight without an instance cache"),
 		StackMetadata.bResolved && FMath::IsNearlyEqual(StackMetadata.UnitWeightKg, 2.5f));
 	TestTrue(TEXT("Isolated definition provides name without an instance cache"),
-		StackMetadata.DisplayName.EqualTo(StackDefinition->DisplayName));
+		StackMetadata.DisplayName.EqualTo(StackName));
 	TestEqual(TEXT("Apply clamps a stack to MaxStackSize"), StackItem.Quantity, 3);
 	TestFalse(TEXT("Apply preserves the instance-owned disabled light state"), StackItem.bLightsEnabled);
 
-	FGridItemInstance NamedStackItem = GridTD068CreateItem(StackDefinition->ItemDefinitionId, 0);
+	FGridItemInstance NamedStackItem = GridTD068CreateItem(StackId, 0);
 	TestTrue(TEXT("Apply accepts a zero incoming stack quantity and normalizes it"), Component->ApplyItemDefinitionToInstance(NamedStackItem));
-	TestTrue(TEXT("Historical definition remains readable without an instance name override"),
-		FGridInventoryItemMetadataReadModel::Resolve(nullptr, StackDefinition, NamedStackItem)
-			.DisplayName.EqualTo(StackDefinition->DisplayName));
+	TestTrue(TEXT("Definition name is read from the registry"),
+		FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, NamedStackItem)
+			.DisplayName.EqualTo(StackName));
 	TestEqual(TEXT("Apply clamps a stack quantity to at least one"), NamedStackItem.Quantity, 1);
 
-	UGridItemDefinitionAsset* SingleDefinition = GridTD068CreateDefinition(Component, TEXT("SingleApply_TD068"), 4.0f, false, 1);
-	TestTrue(TEXT("The non-stackable definition registers"), Component->RegisterItemDefinition(SingleDefinition));
-	FGridItemInstance SingleItem = GridTD068CreateItem(SingleDefinition->ItemDefinitionId, 8);
+	FGridItemInstance SingleItem = GridTD068CreateItem(SingleId, 8);
 	TestTrue(TEXT("Apply succeeds for a non-stackable definition"), Component->ApplyItemDefinitionToInstance(SingleItem));
 	TestEqual(TEXT("Apply forces non-stackable quantity to one"), SingleItem.Quantity, 1);
 
@@ -137,21 +140,9 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	TestTrue(TEXT("Missing-definition apply leaves all durable fields unchanged"),
 		FGridItemInstance::StaticStruct()->CompareScriptStruct(&MissingApplyItem, &BeforeMissingApply, 0));
 
-	UGridPartyInventoryComponent* SourcesComponent = GridTD068CreateInventory();
-	if (!TestNotNull(TEXT("The rehydration source component is created"), SourcesComponent))
-	{
-		return false;
-	}
-
-	const FName ActiveInventoryId = TEXT("ActiveInventory_TD068");
-	const FName PoolInventoryId = TEXT("PoolInventory_TD068");
-	const FName EquipmentId = TEXT("Equipment_TD068");
-	const FName CursorId = TEXT("Cursor_TD068");
-	const FName HotbarEquipmentId = TEXT("HotbarEquipment_TD068");
-	const FName HotbarQuickItemId = TEXT("HotbarQuickItem_TD068");
-	const FName IgnoredSpellId = TEXT("IgnoredSpell_TD068");
-	const FName IgnoredAbilityId = TEXT("IgnoredAbility_TD068");
-	const FName StaleRegistryId = TEXT("StaleRegistry_TD068");
+	UGridPartyInventoryComponent* SourcesComponent = World.MakeInventory();
+	if (!TestNotNull(TEXT("Rehydration source inventory"), SourcesComponent)) return false;
+	SourcesComponent->InitializeDefaultPartyIfNeeded();
 
 	GridTD068PlaceInventoryItem(SourcesComponent->PartyInventoryState.ActiveCharacters[0], 0, ActiveInventoryId);
 
@@ -166,6 +157,7 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 		return false;
 	}
 	SourcesComponent->PartyInventoryState.ActiveEquipment[0].MainHand = GridTD068CreateItem(EquipmentId);
+	SourcesComponent->PartyInventoryState.ActiveEquipment[0].MainHand.ItemLevel = 3;
 
 	SourcesComponent->PartyInventoryState.CursorItem = GridTD068CreateItem(CursorId);
 	SourcesComponent->PartyInventoryState.bHasCursorItem = true;
@@ -181,78 +173,30 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	ActiveCharacter.CombatHotbarSlots[2] = GridTD068MakeBinding(2, EGridCombatActionSourcePolicy::Spell, IgnoredSpellId);
 	ActiveCharacter.CombatHotbarSlots[3] = GridTD068MakeBinding(3, EGridCombatActionSourcePolicy::Ability, IgnoredAbilityId);
 
-	UGridItemDefinitionAsset* StaleDefinition = GridTD068CreateDefinition(SourcesComponent, StaleRegistryId);
-	TestTrue(TEXT("A stale registry entry can be seeded before successful rehydration"), SourcesComponent->RegisterItemDefinition(StaleDefinition));
-
-	const FName ExpectedIds[] = { ActiveInventoryId, PoolInventoryId, EquipmentId, CursorId, HotbarEquipmentId, HotbarQuickItemId };
-
-	TMap<FName, UGridItemDefinitionAsset*> ResolverDefinitions;
-	for (const FName ExpectedId : ExpectedIds)
-	{
-		ResolverDefinitions.Add(ExpectedId, GridTD068CreateDefinition(SourcesComponent, ExpectedId));
-	}
-
-	TSet<FName> RequestedIds;
 	FName MissingDefinitionId = NAME_None;
-	TestTrue(TEXT("RehydrateOwnedItemDefinitions resolves every owned item source"),
-		SourcesComponent->RehydrateOwnedItemDefinitions(
-			[&ResolverDefinitions, &RequestedIds](FName DefinitionId) -> UGridItemDefinitionAsset*
-			{
-				RequestedIds.Add(DefinitionId);
-				if (UGridItemDefinitionAsset** Found = ResolverDefinitions.Find(DefinitionId))
-				{
-					return *Found;
-				}
-				return nullptr;
-			},
-			MissingDefinitionId));
+	const FGridPartyInventoryState Before = SourcesComponent->PartyInventoryState;
+	TestTrue(TEXT("All owned sources resolve via the active registry"),
+		SourcesComponent->RehydrateOwnedItems(MissingDefinitionId));
 	TestTrue(TEXT("Successful rehydration reports no missing definition"), MissingDefinitionId.IsNone());
-	TestEqual(TEXT("Rehydration deduplicates owned definition IDs"), RequestedIds.Num(), static_cast<int32>(UE_ARRAY_COUNT(ExpectedIds)));
-	for (const FName ExpectedId : ExpectedIds)
-	{
-		TestTrue(FString::Printf(TEXT("Rehydration requests %s"), *ExpectedId.ToString()), RequestedIds.Contains(ExpectedId));
-		TestTrue(FString::Printf(TEXT("Rehydration registers %s"), *ExpectedId.ToString()),
-			SourcesComponent->FindItemDefinition(ExpectedId) == ResolverDefinitions.FindRef(ExpectedId));
-	}
-	TestFalse(TEXT("Spell hotbar bindings are not item definitions"), RequestedIds.Contains(IgnoredSpellId));
-	TestFalse(TEXT("Ability hotbar bindings are not item definitions"), RequestedIds.Contains(IgnoredAbilityId));
-	TestTrue(TEXT("Successful rehydration replaces stale transient registry entries"), SourcesComponent->FindItemDefinition(StaleRegistryId) == nullptr);
+	TestTrue(TEXT("All physical instances and shortcuts retain their exact fields"),
+		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+			&Before, &SourcesComponent->PartyInventoryState, 0));
+	TestFalse(TEXT("The spell has no item definition"), Registry->ContainsItem(IgnoredSpellId));
+	TestFalse(TEXT("The ability has no item definition"), Registry->ContainsItem(IgnoredAbilityId));
+	TestTrue(TEXT("Rehydration does not prune the shared register"), Registry->ContainsItem(OtherRegisteredId));
 
-	UGridPartyInventoryComponent* FailureComponent = GridTD068CreateInventory();
-	if (!TestNotNull(TEXT("The failure-path component is created"), FailureComponent))
-	{
-		return false;
-	}
-
-	const FName KeepRegistryId = TEXT("KeepRegistry_TD068");
-	const FName MissingOwnedId = TEXT("MissingOwned_TD068");
-	UGridItemDefinitionAsset* KeepDefinition = GridTD068CreateDefinition(FailureComponent, KeepRegistryId);
-	TestTrue(TEXT("The pre-existing registry entry is seeded"), FailureComponent->RegisterItemDefinition(KeepDefinition));
-	GridTD068PlaceInventoryItem(FailureComponent->PartyInventoryState.ActiveCharacters[0], 0, MissingOwnedId);
-
-	MissingDefinitionId = NAME_None;
-	TestFalse(TEXT("Rehydration fails when an owned definition cannot be resolved"),
-		FailureComponent->RehydrateOwnedItemDefinitions(
-			[](FName) -> UGridItemDefinitionAsset*
-			{
-				return nullptr;
-			},
-			MissingDefinitionId));
+	const FName MissingOwnedId(TEXT("MissingOwned_TD068"));
+	GridTD068PlaceInventoryItem(SourcesComponent->PartyInventoryState.ActiveCharacters[0], 0, MissingOwnedId);
+	const FGridPartyInventoryState BeforeFailure = SourcesComponent->PartyInventoryState;
+	AddExpectedError(TEXT("Canonical party rehydrate rejected Item=MissingOwned_TD068"),
+		EAutomationExpectedErrorFlags::Contains, 1);
+	TestFalse(TEXT("Rehydration refuses an unregistered owned ID"),
+		SourcesComponent->RehydrateOwnedItems(MissingDefinitionId));
 	TestEqual(TEXT("Failed rehydration reports the missing owned ID"), MissingDefinitionId, MissingOwnedId);
-	TestTrue(
-		TEXT("Failed rehydration leaves the existing transient registry untouched"), FailureComponent->FindItemDefinition(KeepRegistryId) == KeepDefinition);
-
-	UGridItemDefinitionAsset* MismatchedDefinition = GridTD068CreateDefinition(FailureComponent, TEXT("WrongResolverId_TD068"));
-	MissingDefinitionId = NAME_None;
-	TestFalse(TEXT("Rehydration rejects a resolver asset whose ItemDefinitionId does not match the request"),
-		FailureComponent->RehydrateOwnedItemDefinitions(
-			[MismatchedDefinition](FName) -> UGridItemDefinitionAsset*
-			{
-				return MismatchedDefinition;
-			},
-			MissingDefinitionId));
-	TestEqual(TEXT("Mismatched rehydration reports the originally requested ID"), MissingDefinitionId, MissingOwnedId);
-	TestTrue(TEXT("Mismatched rehydration also preserves the previous registry"), FailureComponent->FindItemDefinition(KeepRegistryId) == KeepDefinition);
+	TestTrue(TEXT("Failure preserves the roster, quantity, ownership and GUID"),
+		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+			&BeforeFailure, &SourcesComponent->PartyInventoryState, 0));
+	TestTrue(TEXT("Failure does not alter the shared registry"), Registry->ContainsItem(OtherRegisteredId));
 
 	return true;
 }

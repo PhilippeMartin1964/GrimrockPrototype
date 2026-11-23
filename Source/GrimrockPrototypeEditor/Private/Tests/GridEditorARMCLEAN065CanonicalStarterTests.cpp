@@ -5,7 +5,6 @@
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGStartingEquipmentService.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN065CanonicalStarterKits,
@@ -54,11 +53,10 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
             Character.CharacterId = FGuid::NewGuid();
             Character.InventorySlots.SetNum(12);
             FGridCharacterEquipmentState Equipment;
-            TArray<UGridItemDefinitionAsset*> Definitions;
+
             if (!TestTrue(TEXT("Build actual canonical kit"), FRPGStartingEquipmentService::TryBuildKit(
-                Canonical.Get(), Kit.KitId, Character, Equipment, Definitions, Error, Registry.Get())))
+                Canonical.Get(), Kit.KitId, Character, Equipment, Error, Registry.Get())))
             { AddError(Error); return false; }
-            TestTrue(TEXT("No legacy definitions returned or needed"), Definitions.IsEmpty());
             for (int32 I = 0; I < Kit.Items.Num(); ++I)
             {
                 const auto& Entry = Kit.Items[I];

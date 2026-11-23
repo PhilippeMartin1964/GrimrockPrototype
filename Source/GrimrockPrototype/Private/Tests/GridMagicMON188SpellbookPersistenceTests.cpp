@@ -9,7 +9,7 @@
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -275,21 +275,17 @@ bool FGridMagicMON188SpellBindingIsNotItemDefinitionTest::RunTest(const FString&
 {
 	(void)Parameters;
 	using namespace GridMON188Tests;
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld World({});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+	if (!TestNotNull(TEXT("Inventory with configured definitions"), Inventory)) return false;
 	Inventory->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 11, 1) });
 	Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[4] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 4);
 
-	int32 ResolverCallCount = 0;
 	FName MissingDefinitionId = NAME_None;
-	TestTrue(TEXT("Rehydration accepts Spell binding without item lookup"),
-		Inventory->RehydrateOwnedItemDefinitions(
-			[&ResolverCallCount](FName) -> UGridItemDefinitionAsset*
-			{
-				++ResolverCallCount;
-				return nullptr;
-			},
-			MissingDefinitionId));
-	TestEqual(TEXT("Spell SourceDefinitionId is never sent to item resolver"), ResolverCallCount, 0);
+	TestFalse(TEXT("The spell ID has no entry in the item registry"),
+		World.Scope.Registry->ContainsItem(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Rehydration accepts a spell binding without an item definition"),
+		Inventory->RehydrateOwnedItems(MissingDefinitionId));
 	TestTrue(TEXT("No missing ItemDefinition is reported for a Spell"), MissingDefinitionId.IsNone());
 	return true;
 }

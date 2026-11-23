@@ -231,10 +231,10 @@ namespace ARMEMENTLOT02
         Character.CharacterId = FGuid::NewGuid();
         Character.InventorySlots.SetNum(24);
         FGridCharacterEquipmentState Equipment;
-        TArray<UGridItemDefinitionAsset*> HistoricalDefinitions;
+
         if (!FRPGStartingEquipmentService::TryBuildKit(
                 TransientClass, Kit.KitId, Character, Equipment,
-                HistoricalDefinitions, Error, Fixture.Registry.Get()))
+                Error, Fixture.Registry.Get()))
         {
             return false;
         }
@@ -268,11 +268,6 @@ namespace ARMEMENTLOT02
              !HasBagItem(Character, Ammunition.ItemId, 12, 0)))
         {
             Error = TEXT("GRANTED_CANONICAL_SUPPORT_OR_AMMO_MISMATCH");
-            return false;
-        }
-        if (!HistoricalDefinitions.IsEmpty())
-        {
-            Error = TEXT("CANONICAL_KIT_RESURRECTED_LEGACY_DEFINITIONS");
             return false;
         }
         return true;

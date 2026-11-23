@@ -78,11 +78,11 @@ bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
         Character.CharacterId = FGuid::NewGuid();
         Character.InventorySlots.SetNum(12);
         FGridCharacterEquipmentState Equipment;
-        TArray<UGridItemDefinitionAsset*> Definitions;
+
         if (!TestTrue(TEXT("Native kit builder uses item identity"),
             FRPGStartingEquipmentService::TryBuildKit(
                 Class, KitIds[I], Character, Equipment,
-                Definitions, Error, Fixture.Registry.Get())))
+                Error, Fixture.Registry.Get())))
         {
             AddError(Error);
             continue;
@@ -98,11 +98,9 @@ bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
             TestEqual(TEXT("N0 level retained"), Slot->Item.ItemLevel, 0);
             TestEqual(TEXT("Correct character owns starter"), Slot->Item.OwnerGuid, Character.CharacterId);
         }
-        TestFalse(TEXT("No historical definition for this canonical consumable"),
-            Definitions.ContainsByPredicate([&](const UGridItemDefinitionAsset* Definition)
-            {
-                return Definition && Definition->ItemDefinitionId == ItemIds[I];
-            }));
+        FGridResolvedItem Consumable;
+        TestTrue(TEXT("Starting consumable has a registered unlevelled definition"),
+            Fixture.Registry->ResolveItem(ItemIds[I], 0, Consumable) && Consumable.IsValid() && !Consumable.bIsArmament);
     }
     TestEqual(TEXT("No production class asset mutation"),
         NativeClass->GetOutermost()->IsDirty(), bClassDirty);

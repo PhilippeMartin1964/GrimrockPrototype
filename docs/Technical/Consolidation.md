@@ -215,6 +215,24 @@ Le décompte reprend les critères de D.3. La carte et les API d’inventaire hi
 
 **Validation locale.** UHT et Development Editor réussis. Les 83 tests ciblés et les 2 065 scénarios Grimrock passent, dont les huit B.1 sans avertissement. Les 47 tests avec avertissements restent les mêmes qu’en D.5. Le scénario RegisteredLevelGuards émet un message de moins après suppression du paramètre historique. Les 70 Blueprints compilent, l’audit ne relève aucun appel aux fonctions dé-réfléchies et les 53 assets sont validés. Les sept copies v27 passent le chargement et le round-trip. Les empreintes des copies, des originaux et des deux Readables sont identiques. Build/Cook/Stage/Package/Archive Shipping réussis. L’archive contient les mêmes 2 112 chemins, dont les 53 assets courants et les deux Readables, avec 53 redirections d’objet et 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D6/.
 
+### CLEANUP04-D.7 — inventaire et kits de départ
+
+Référence dbc1e1cd1bb98e0bcd881349688c109cfa7ff13b. La réhydratation des sauvegardes et des fixtures utilise RehydrateOwnedItems. RehydrateOwnedItemDefinitions, son callback et le remplacement de la carte à partir de pointeurs historiques sont retirés. La validation de la production garde son comportement, dont le refus avant notification des identités, quantités et niveaux invalides. La notification de succès et les protections transactionnelles ne changent pas.
+
+TryBuildKit exige un ItemSystem configuré et les ItemId et niveaux physiques explicites. Les règles d’équipement, de quantité et de lumière proviennent uniquement du registre. Le paramètre de sortie StartingDefinitions disparaît, ainsi que l’insertion et le rollback des pointeurs du kit dans la carte d’inventaire. L’ancien champ réfléchi ItemDefinition d’une entrée de kit reste disponible pour refuser un pointeur contradictoire. Les six classes et leurs dix-huit présélections gardent leurs contenus. Les fixtures sans registre peuvent toujours créer un personnage sans kit.
+
+Les cinq fichiers de tests qui utilisaient le callback passent au parcours réel. Les fixtures de sauvegarde et d’inventaire utilisent des GameInstances isolées, le registre de production et des extensions transitoires explicites. Elles vérifient le refus d’un registre à doublon, le nom, le poids et la borne d’une pile, les raccourcis, les niveaux invalides et l’égalité de tout le roster après rejet. Les tests de kits gardent les contrôles d’identité, d’équipement, de quantité et d’atomicité. Les noms Automation restent inchangés.
+
+| Dépendance | Runtime | Editor | Tests | Total |
+| --- | ---: | ---: | ---: | ---: |
+| D08 | 56 → 55 | 3 | 104 → 96 | 163 → 154 |
+| D09 | 2 | 1 | 0 | 3 |
+| D10 | 2 | 1 | 1 | 4 |
+
+Le décompte reprend les critères de D.3. RuntimeItemDefinitionsById, RegisterItemDefinition, FindItemDefinition et le garde FGridLegacyInventoryRegistrationGate subsistent pour les fixtures de transfert, d’équipement, de combat et d’UI. ApplyItemDefinitionToInstance garde sa signature Blueprint et sa branche de fixture. En Shipping, FindItemDefinition ne renvoie aucun pointeur historique. La carte temporaire reste purgée après une réhydratation canonique réussie. Inventaire, combat et UI doivent encore convertir leurs fixtures avant le retrait de cette compatibilité. Aucun changement de champ réfléchi, de DataAsset, de redirection ou de format SaveGame.
+
+**Validation locale.** Development Editor et Shipping réussis. Les 394 tests ciblés passent. La suite Grimrock passe les mêmes 2 065 scénarios qu’en D.6, dont les huit B.1 sans avertissement. Les résultats et les comptes d’avertissements concordent pour chaque test. Les 70 Blueprints compilent et les 53 assets sont vérifiés. Sept copies SaveGame v27 chargées et round-trippées. Les empreintes des copies, des originaux et des deux Readables restent identiques. Build/Cook/Stage/Package/Archive Shipping réussis. L’archive conserve les 2 112 chemins cuisinés, 53 redirections d’objet et 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D7/.
+
 ## CLEANUP03 — audit C++ et préparation de CLEANUP04
 
 **Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.
