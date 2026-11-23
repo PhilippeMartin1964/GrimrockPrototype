@@ -1292,39 +1292,56 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameter
 	TestTrue(TEXT("The configured shuriken resolves immediately"), Fixture.Hud->View.Actions[6].bResolved);
 	TestTrue(TEXT("The configured shuriken is usable in combat"), Fixture.Hud->View.Actions[6].Action.bEnabled);
 
-	AGridThrownItemActor* PreviewProjectile =
-		Fixture.Party->TryLaunchInventoryItemForAttack(0, ShurikenDefinition->ItemDefinitionId, Fixture.Monster->GetActorLocation(), FIntPoint(1, 1));
-	TestNotNull(TEXT("The inventory throw can create a recoverable projectile"), PreviewProjectile);
-	TestEqual(
-		TEXT("Presentation alone never consumes the source"), Inventory->CountItemDefinitionInCharacterInventory(0, ShurikenDefinition->ItemDefinitionId), 1);
-	if (PreviewProjectile)
+	// Retain the historical shortcut setup as a hostile input: an old action
+	// row cannot authorize a physical attack without a registered projectile.
+	const FVector Target = Fixture.Monster->GetActorLocation();
+	const FIntPoint Cell(1, 1);
+	TestNull(TEXT("An old unregistered definition does not authorize a projectile"),
+		Fixture.Party->TryLaunchInventoryItemForAttack(0, Shuriken.ItemDefinitionId, Target, Cell));
+	TestEqual(TEXT("Unknown source refusal does not consume the bag item"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, Shuriken.ItemDefinitionId), 1);
+
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Registered projectile authority is attached"), Scope.Attach(Fixture.TestWorld.World)))
+		return false;
+
+	const FName KnifeId(TEXT("Weapon_ThrowingKnife_01"));
+	FGridResolvedItem Knife;
+	if (!TestTrue(TEXT("Physical N7 knife resolves a specialized policy"),
+		Scope.Registry->ResolveItem(KnifeId, 7, Knife) && Knife.Weapon.Projectile.bEnabled))
+		return false;
+
+	auto& Source = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item;
+	const FGuid BagGuid = FGuid::NewGuid();
+	Source.ItemDefinitionId = KnifeId;
+	Source.ItemLevel = 7;
+	Source.RuntimeObjectId = BagGuid;
+	Source.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
+	Inventory->PartyInventoryState.ActiveCharacters[0].Attributes.Strength = 20;
+
+	TestNull(TEXT("Invalid source cell refuses the inventory launch"),
+		Fixture.Party->TryLaunchInventoryItemForAttack(0, KnifeId, Target, FIntPoint(-1, -1)));
+	for (const int32 InvalidLevel : {0, 21})
 	{
-		PreviewProjectile->Destroy();
+		Source.ItemLevel = InvalidLevel;
+		TestNull(TEXT("Invalid bag item level refuses the projectile"),
+			Fixture.Party->TryLaunchInventoryItemForAttack(0, KnifeId, Target, Cell));
+		TestEqual(TEXT("Refused launch preserves the bag identity"), Source.RuntimeObjectId, BagGuid);
+		TestEqual(TEXT("Refused launch preserves the bag quantity"), Source.Quantity, 1);
 	}
+	Source.ItemLevel = 7;
 
-	UGridPlayerAttackPresentationComponent* Presentation =
-		NewObject<UGridPlayerAttackPresentationComponent>(Fixture.Runtime, TEXT("MON12_8_7_InventoryThrowPresentation"));
-	Fixture.Runtime->AddInstanceComponent(Presentation);
-	Presentation->RegisterComponent();
-	Presentation->bNativeAudioPlaybackEnabled = false;
-	Presentation->bNativeVFXSpawnEnabled = false;
-	Presentation->bNativeFeedbackEnabled = false;
-	TestTrue(TEXT("The inventory throw presentation is initialized"), Presentation->InitializePresentation(Fixture.TurnManager));
-
-	FGridCombatActionRequestResult Result;
-	TestTrue(TEXT("The shuriken shortcut executes from inventory"), Fixture.Hud->RequestHotbarSlot(6, Result));
-	TestTrue(TEXT("The inventory throw is accepted"), Result.bAccepted);
-	TestEqual(TEXT("The inventory throwable cost is normalized to one"), Result.Action.CurrentSourceItemQuantityCost, 1);
-	TestEqual(TEXT("The attack uses the shuriken offensive profile"), Result.AttackRequest.AttackId, FName(TEXT("Attack_Shuriken_MON1287")));
-	TestEqual(TEXT("The attack has no fake equipment slot"), Result.AttackRequest.OffensiveEquipmentSlot, EGridEquipmentSlot::None);
-	TestEqual(TEXT("The accepted inventory throw requests one launch"), Presentation->ThrownItemLaunchRequestCount, 1);
-	TestEqual(TEXT("The accepted inventory throw starts one projectile"), Presentation->ThrownItemLaunchStartedCount, 1);
-	TestEqual(TEXT("Exactly one shuriken is consumed after acceptance"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, ShurikenDefinition->ItemDefinitionId), 0);
-	FGridCombatHotbarBinding ExhaustedShurikenBinding;
-	TestTrue(TEXT("The exhausted shuriken shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 6, ExhaustedShurikenBinding));
-	TestTrue(TEXT("The last shuriken clears its hotbar slot"), ExhaustedShurikenBinding.IsEmpty());
-	TestFalse(TEXT("The exhausted shuriken disappears from the HUD"), Fixture.Hud->View.Actions[6].bHasBinding);
+	AGridThrownItemActor* Projectile = Fixture.Party->TryLaunchInventoryItemForAttack(0, KnifeId, Target, Cell);
+	if (!TestNotNull(TEXT("Registered bag item prepares a recoverable projectile"), Projectile))
+		return false;
+	TestEqual(TEXT("Projectile uses the source ItemId"), Projectile->ThrownItemInstance.ItemDefinitionId, KnifeId);
+	TestEqual(TEXT("The physical level is retained"), Projectile->ThrownItemInstance.ItemLevel, 7);
+	TestEqual(TEXT("One unit is prepared"), Projectile->ThrownItemInstance.Quantity, 1);
+	TestEqual(TEXT("The prepared unit has world ownership"), Projectile->ThrownItemInstance.OwnerType, EGridItemOwnerType::World);
+	TestNotEqual(TEXT("Prepared projectile identity differs from the bag item"), Projectile->ThrownItemInstance.RuntimeObjectId, BagGuid);
+	TestEqual(TEXT("Preparation alone never consumes the source"), Inventory->CountItemDefinitionInCharacterInventory(0, KnifeId), 1);
+	TestEqual(TEXT("Preparation preserves the bag identity"), Source.RuntimeObjectId, BagGuid);
+	Projectile->Destroy();
 	return true;
 }
 
@@ -1591,24 +1608,19 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	ShurikenDefinition->ItemType = EGridItemType::Weapon;
 	ShurikenDefinition->bStackable = true;
 	ShurikenDefinition->MaxStackSize = 10;
-	ShurikenDefinition->bCombatThrowWeapon = true;
-	ShurikenDefinition->bProvidesAttackPresentation = true;
-	ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle = EGridPlayerAttackMotionStyle::Throw;
-	ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem = true;
 	ShurikenDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
 
 	FGridCombatActionDefinition ShurikenAction;
 	ShurikenAction.ActionId = TEXT("Attack_MON12_Transaction");
 	ShurikenAction.DisplayName = ShurikenDefinition->DisplayName;
-	ShurikenAction.ActionType = EGridCombatActionType::RangedAttack;
+	ShurikenAction.ActionType = EGridCombatActionType::MeleeAttack;
 	ShurikenAction.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
 	ShurikenAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
 	ShurikenAction.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
 	ShurikenAction.ActionPointCost = 1;
 	ShurikenAction.ResourceCosts.ManaCost = 2;
-	// The runtime must normalize a misconfigured equipped throwable to one
-	// consumed unit in both the catalogue and the authoritative transaction.
-	ShurikenAction.ResourceCosts.SourceItemQuantityCost = 0;
+	// A regular equipment action covers AP, mana and cooldown independently of projectile materialization.
+	ShurikenAction.ResourceCosts.SourceItemQuantityCost = 1;
 	ShurikenAction.CooldownRounds = 1;
 	ShurikenAction.RangeCells = 1;
 	ShurikenAction.OffensiveProfile.AttackId = ShurikenAction.ActionId;
@@ -1648,17 +1660,16 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The equipment action is accepted"),
 		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenDefinition->ItemDefinitionId,
 			EGridEquipmentSlot::MainHand, Accepted));
-	TestEqual(TEXT("The catalogue normalizes the throwable source cost"), Accepted.Action.CurrentSourceItemQuantityCost, 1);
+	TestEqual(TEXT("The action commits one equipment unit"), Accepted.Action.CurrentSourceItemQuantityCost, 1);
 	TestTrue(TEXT("The accepted attack is structurally valid"), Accepted.AttackRequest.IsValid());
-	TestNotNull(TEXT("Gameplay prepares a recoverable projectile"), Accepted.AttackRequest.PreparedThrownItemActor.Get());
+	TestNull(TEXT("A non-projectile action does not prepare a world actor"), Accepted.AttackRequest.PreparedThrownItemActor.Get());
 	TestEqual(TEXT("Exactly one equipped source unit is paid"), Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
 	TestEqual(TEXT("The equipment mana cost is paid"), Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana, 6);
 	FGridPlayerCharacterTurnState TurnState;
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	TestEqual(TEXT("The equipment AP cost is paid"), TurnState.RemainingActionPoints, 3);
 	TestEqual(TEXT("Presentation does not perform a second extraction"), Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
-	TestEqual(TEXT("Presentation observes exactly one committed launch"), Presentation->ThrownItemLaunchRequestCount, 1);
-	TestEqual(TEXT("The committed launch does not depend on the visual fallback"), Presentation->ThrownItemLaunchStartedCount, 1);
+	TestEqual(TEXT("Presentation requests no projectile for a regular attack"), Presentation->ThrownItemLaunchRequestCount, 0);
 
 	TArray<FGridAvailableCombatAction> Actions;
 	TurnManager->GetAvailableCombatActions(0, Actions);
@@ -1691,14 +1702,14 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 			return Candidate.Definition.ActionId == ShurikenAction.ActionId;
 		});
 	TestTrue(TEXT("The action returns after one complete round"), CoolingAction && CoolingAction->bEnabled);
-	ShurikenDefinition->ThrowSpeed = 0.0f;
+	Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana = 0;
 	const int32 ManaBeforeRefusal = Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana;
 	const int32 QuantityBeforeRefusal = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity;
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	const int32 ActionPointsBeforeRefusal = TurnState.RemainingActionPoints;
 	const int32 MonsterHealthBeforeRefusal = Fixture.Monster->CurrentHealth;
 	FGridCombatActionRequestResult Rejected;
-	TestFalse(TEXT("An unavailable projectile source is rejected"),
+	TestFalse(TEXT("An action without enough mana is rejected"),
 		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenDefinition->ItemDefinitionId,
 			EGridEquipmentSlot::MainHand, Rejected));
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);

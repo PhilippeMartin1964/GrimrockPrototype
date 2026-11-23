@@ -162,6 +162,57 @@ bool FGridSecureEquipmentTransfer::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridRegisteredEquipmentStackRestore, "Grimrock.Inventory.Equipment.RegisteredStackExtractionAndRestore",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridRegisteredEquipmentStackRestore::RunTest(const FString&)
+{
+	FGridEditorCanonicalStarterTestWorld World;
+	if (!TestTrue(TEXT("Registered test world"), World.Ready()))
+		return false;
+	auto* Inventory = MakeParty(World);
+	if (!TestNotNull(TEXT("Test inventory"), Inventory))
+		return false;
+
+	auto Stack = MakeItem(*Inventory, 0, TEXT("Shuriken"), 2);
+	Stack.OwnerType = EGridItemOwnerType::EquipmentSlot;
+	Stack.EquipmentSlot = EGridEquipmentSlot::MainHand;
+	FGridResolvedItem Resolved;
+	if (!TestTrue(TEXT("Registered N0 shuriken is stackable and can be equipped"),
+		World.Registry->ResolveItem(Stack.ItemDefinitionId, 0, Resolved) && Resolved.MaxStack >= 2 &&
+		Inventory->CanEquipItemToSlot(0, Stack, Stack.EquipmentSlot)))
+		return false;
+	auto& MainHand = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
+	MainHand = Stack;
+	auto* Probe = NewObject<UGridInventoryNotificationProbe>(Inventory);
+	TArray<int32> ObservedQuantities;
+	Probe->Callback = [&](int32 Index)
+	{
+		TestEqual(TEXT("Notification belongs to the source character"), Index, 0);
+		ObservedQuantities.Add(MainHand.Quantity);
+	};
+	Inventory->OnPartyInventoryChanged.AddDynamic(Probe, &UGridInventoryNotificationProbe::Observe);
+	FGridItemInstance Unit;
+	const bool bExtracted = Inventory->TryExtractOneEquippedItemForWorldTransfer(0, Stack.EquipmentSlot, Stack.ItemDefinitionId, Unit);
+	TestTrue(TEXT("One unit is extracted"), bExtracted);
+	TestEqual(TEXT("Source stack retains its GUID"), MainHand.RuntimeObjectId, Stack.RuntimeObjectId);
+	TestEqual(TEXT("One unit remains"), MainHand.Quantity, 1);
+	TestEqual(TEXT("The extracted unit has quantity one"), Unit.Quantity, 1);
+	TestNotEqual(TEXT("The extracted unit gets a separate GUID"), Unit.RuntimeObjectId, Stack.RuntimeObjectId);
+	TestEqual(TEXT("The extracted unit belongs to the world"), Unit.OwnerType, EGridItemOwnerType::World);
+	TestFalse(TEXT("The extracted unit has no character owner"), Unit.OwnerGuid.IsValid());
+	TestTrue(TEXT("Failed spawn restores the unit"), bExtracted &&
+		Inventory->TryRestoreExtractedItemToEquipment(0, Stack.EquipmentSlot, Unit));
+	Inventory->OnPartyInventoryChanged.RemoveDynamic(Probe, &UGridInventoryNotificationProbe::Observe);
+	Probe->Callback = nullptr;
+	TestTrue(TEXT("Notifications occur after debit and restoration in order"), ObservedQuantities == TArray<int32>{1, 2});
+	TestTrue(TEXT("Restored equipment matches original identity, owner and quantity"),
+		FGridItemInstance::StaticStruct()->CompareScriptStruct(&MainHand, &Stack, 0));
+	TestEqual(TEXT("Stack identity has one owner"), CountGuid(*Inventory, Stack.RuntimeObjectId), 1);
+	TestEqual(TEXT("Merged unit has no separate owner"), CountGuid(*Inventory, Unit.RuntimeObjectId), 0);
+	return !HasAnyErrors();
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridSecurePartyTransfer, "Grimrock.Invariants.Reentrance.PartyTransfer", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

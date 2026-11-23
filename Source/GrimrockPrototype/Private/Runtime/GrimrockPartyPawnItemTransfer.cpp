@@ -3,11 +3,9 @@
 #include "Camera/CameraComponent.h"
 #include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowPreflightReadModel.h"
 #include "GridItemWeightReadModel.h"
-#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -21,7 +19,7 @@ namespace
 {
 	bool GridPartyPawnResolveThrowProfile(
 		const AGrimrockPartyPawn* Pawn, const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
-		const UGridItemDefinitionAsset* Definition, const FGridItemInstance& Instance,
+		const FGridItemInstance& Instance,
 		int32& OutStrength, float& OutSpeedScale, FGridThrowBallisticsReadView& OutBallistics)
 	{
 		OutStrength = 0;
@@ -45,30 +43,20 @@ namespace
 		OutStrength = Summary.Attributes.Strength;
 		const FGridPhysicalThrowPreflightReadView ThrowGate =
 			FGridPhysicalThrowPreflightReadModel::Resolve(
-				Registry, Definition, Instance, OutStrength);
+				Registry, nullptr, Instance, OutStrength);
 		OutBallistics = ThrowGate.Ballistics;
 		OutSpeedScale = ThrowGate.Strength.SpeedScale;
 		return ThrowGate.bCanThrow;
 	}
 	float GridPartyPawnThrowUnitWeight(
-		const AGrimrockPartyPawn* Pawn, const UGridItemDefinitionAsset* Legacy,
-		const FGridItemInstance& Item)
+		const AGrimrockPartyPawn* Pawn, const FGridItemInstance& Item)
 	{
 		const UWorld* World = Pawn ? Pawn->GetWorld() : nullptr;
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		float UnitWeight = 0.0f;
-		if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
-		{
-			return FGridItemWeightReadModel::TryResolveUnitWeight(Registry, Item, UnitWeight)
-				? UnitWeight : 0.0f;
-		}
-#if WITH_DEV_AUTOMATION_TESTS
-		if (GIsAutomationTesting && !GI)
-			return IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId
-				? Legacy->Weight : 0.0f;
-#endif
-		return 0.0f;
+		return FGridItemWeightReadModel::TryResolveUnitWeight(Registry, Item, UnitWeight)
+			? UnitWeight : 0.0f;
 	}
 }
 
@@ -278,7 +266,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridThrowBallisticsReadView Ballistics;
-	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, nullptr, CursorItem, Strength, StrengthSpeedScale, Ballistics))
+	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, CursorItem, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
 	}
@@ -296,7 +284,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection)
 		return false;
 	}
 
-	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, nullptr, ThrownItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, ThrownItem);
 	ThrownItem.OwnerType = EGridItemOwnerType::World;
 	ThrownItem.OwnerGuid = FGuid();
 	ThrownItem.OwnerCharacterIndex = INDEX_NONE;
@@ -339,7 +327,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridThrowBallisticsReadView Ballistics;
-	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, nullptr, EquippedItem, Strength, StrengthSpeedScale, Ballistics))
+	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, EquippedItem, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
 	}
@@ -360,7 +348,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterMainHandItem(const FVector& La
 		return false;
 	}
 
-	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, nullptr, WorldItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, WorldItem);
 	// The utility projectile must visually originate at the centre of Cursor_Aim.
 	// LaunchDirection is the camera-to-cursor world ray supplied by the controller, so placing
 	// the spawn point on AimDirection keeps the projectile exactly under that screen-space cursor.
@@ -449,7 +437,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridThrowBallisticsReadView Ballistics;
-	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, nullptr, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics))
+	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics))
 	{
 		return false;
 	}
@@ -468,7 +456,7 @@ bool AGrimrockPartyPawn::TryThrowSelectedCharacterInventoryItem(FName ItemDefini
 	FGridItemInstance WorldItem = SourceSlot->Item;
 	WorldItem.RuntimeObjectId = FGuid::NewGuid();
 	WorldItem.Quantity = 1;
-	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, nullptr, WorldItem);
+	const float ThrowUnitWeight = GridPartyPawnThrowUnitWeight(this, WorldItem);
 	WorldItem.OwnerType = EGridItemOwnerType::World;
 	WorldItem.OwnerGuid = FGuid();
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
@@ -506,14 +494,12 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 		return nullptr;
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = EquippedItem.IsValid()
-		? FGridLegacyItemLookup::Resolve(this, EquippedItem.ItemDefinitionId) : nullptr;
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridThrowBallisticsReadView Ballistics;
 	if (!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
-		ItemDefinition, EquippedItem, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (!Ballistics.bRegisteredIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+		EquippedItem, Strength, StrengthSpeedScale, Ballistics) ||
+		!Ballistics.bSpecializedProjectile)
 	{
 		return nullptr;
 	}
@@ -536,7 +522,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	}
 
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
+		WorldItem, nullptr, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (!ThrownActor)
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
@@ -566,14 +552,13 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 		{
 			return !Candidate.IsEmpty() && Candidate.Item.ItemDefinitionId == ExpectedItemDefinitionId;
 		});
-	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(this, ExpectedItemDefinitionId);
 	int32 Strength = 0;
 	float StrengthSpeedScale = 0.0f;
 	FGridThrowBallisticsReadView Ballistics;
 	if (!SourceSlot ||
 		!GridPartyPawnResolveThrowProfile(this, PartyInventoryComponent, CharacterIndex,
-			ItemDefinition, SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics) ||
-		!(Ballistics.bSpecializedProjectile || (!Ballistics.bRegisteredIdentity && IsValid(ItemDefinition) && ItemDefinition->IsCombatThrowable())))
+			SourceSlot->Item, Strength, StrengthSpeedScale, Ballistics) ||
+		!Ballistics.bSpecializedProjectile)
 	{
 		return nullptr;
 	}
@@ -597,7 +582,7 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchInventoryItemForAttack(
 	WorldItem.OwnerCharacterIndex = INDEX_NONE;
 	WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
 	AGridThrownItemActor* ThrownActor = LevelRuntimeActor->SpawnThrownItemProjectile(
-		WorldItem, ItemDefinition, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
+		WorldItem, nullptr, StartLocation, ThrowDirection * FMath::Max(0.0f, Ballistics.InitialSpeed) * StrengthSpeedScale, SourceCell.X, SourceCell.Y);
 	if (ThrownActor)
 	{
 		UE_LOG(LogGridItemTransfer, Verbose, TEXT("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"), *WorldItem.ItemDefinitionId.ToString(),

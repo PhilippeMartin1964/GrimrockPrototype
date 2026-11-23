@@ -8,6 +8,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
@@ -79,58 +80,6 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("Shuriken");
-	Definition->DisplayName = FText::FromString(TEXT("Shuriken"));
-	Definition->ItemType = EGridItemType::Weapon;
-	Definition->Weight = 0.1f;
-	Definition->bStackable = true;
-	Definition->MaxStackSize = 20;
-	Definition->bCombatThrowWeapon = true;
-	Definition->ThrowSpeed = 1800.0f;
-	Definition->ThrowArc = 0.08f;
-	Definition->ThrowLifeSeconds = 5.0f;
-	Definition->ThrowImpactDropOffset = 12.0f;
-	Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	Definition->bProvidesAttackPresentation = true;
-	Definition->PlayerAttackPresentationProfile.MotionStyle = EGridPlayerAttackMotionStyle::Throw;
-	Definition->PlayerAttackPresentationProfile.bAnimateHeldItem = true;
-
-	UStaticMesh* WorldMesh = NewObject<UStaticMesh>();
-	UStaticMesh* EquippedMesh = NewObject<UStaticMesh>();
-	Definition->WorldMesh = WorldMesh;
-	Definition->EquippedMesh = EquippedMesh;
-	TestEqual(TEXT("EquippedMesh is preferred for the held visual"), Definition->LoadHeldMesh(), EquippedMesh);
-	Definition->EquippedMesh.Reset();
-	TestEqual(TEXT("WorldMesh is the held visual fallback"), Definition->LoadHeldMesh(), WorldMesh);
-	Definition->EquippedMesh = EquippedMesh;
-	TestTrue(TEXT("The default throw rotation faces a flat mesh toward the source"),
-		Definition->ThrowVisualRelativeRotation.Equals(FRotator(-90.0f, 0.0f, 0.0f), KINDA_SMALL_NUMBER));
-	TestTrue(TEXT("The default throw scale is readable"), Definition->ThrowVisualRelativeScale.Equals(FVector(1.5f), KINDA_SMALL_NUMBER));
-	TestEqual(TEXT("The default throw spin is configured"), Definition->ThrowVisualSpinDegreesPerSecond, 1080.0f);
-	TestTrue(TEXT("A throwable Throw presentation is valid"), Definition->HasValidPlayerAttackPresentation());
-	Definition->bCombatThrowWeapon = false;
-	TestFalse(TEXT("A non-throwable Throw presentation is rejected"), Definition->HasValidPlayerAttackPresentation());
-	Definition->bCombatThrowWeapon = true;
-
-	UGridPartyInventoryComponent* TransferInventory = NewObject<UGridPartyInventoryComponent>();
-	FGridCharacterInventoryState TransferCharacter;
-	TransferCharacter.CharacterId = FGuid::NewGuid();
-	TransferInventory->PartyInventoryState.ActiveCharacters = { TransferCharacter };
-	TransferInventory->PartyInventoryState.ActiveEquipment.SetNum(1);
-	TransferInventory->PartyInventoryState.ActiveEquipment[0].MainHand = MakeEquippedShuriken(TransferCharacter.CharacterId, 2);
-	const FGuid StackRuntimeId = TransferInventory->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId;
-
-	FGridItemInstance ExtractedItem;
-	TestTrue(TEXT("One equipped unit can be extracted"),
-		TransferInventory->TryExtractOneEquippedItemForWorldTransfer(0, EGridEquipmentSlot::MainHand, TEXT("Shuriken"), ExtractedItem));
-	TestEqual(TEXT("The equipped stack is decremented"), TransferInventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
-	TestEqual(TEXT("The extracted unit belongs to the world"), ExtractedItem.OwnerType, EGridItemOwnerType::World);
-	TestNotEqual(TEXT("A split unit has its own runtime identity"), ExtractedItem.RuntimeObjectId, StackRuntimeId);
-	TestTrue(TEXT("A failed spawn can restore the extracted unit"),
-		TransferInventory->TryRestoreExtractedItemToEquipment(0, EGridEquipmentSlot::MainHand, ExtractedItem));
-	TestEqual(TEXT("Rollback restores the original stack quantity"), TransferInventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 2);
-
 	FGridMON1141TestWorld TestWorld;
 	TestNotNull(TEXT("The transient world is created"), TestWorld.World);
 	if (!TestWorld.World)
@@ -156,25 +105,41 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Party->CurrentCellY = 1;
 	Party->Facing = EGridEdge::North;
 	Party->SetActorLocation(Runtime->GetCellCenterWorld(Party->CurrentCellX, Party->CurrentCellY, Party->EyeHeight));
-	Party->PartyInventoryComponent->RegisterItemDefinition(Definition);
+	auto* Inventory = Party->PartyInventoryComponent.Get();
+	FGridCanonicalLootTestScope RegistryScope;
+	if (!TestTrue(TEXT("Real ItemSystem attaches"), RegistryScope.Attach(TestWorld.World))) return false;
+	const FName KnifeId(TEXT("Weapon_ThrowingKnife_01"));
+	FGridResolvedItem Knife, Shuriken;
+	if (!TestTrue(TEXT("N7 knife has a specialized projectile"),
+		RegistryScope.Registry->ResolveItem(KnifeId, 7, Knife) && Knife.Weapon.Projectile.bEnabled) ||
+		!TestTrue(TEXT("Registered shuriken is stackable and uses generic throw"),
+			RegistryScope.Registry->ResolveItem(TEXT("Shuriken"), 0, Shuriken) &&
+			!Shuriken.bIsArmament && Shuriken.MaxStack >= 2 && Shuriken.GenericThrow.InitialSpeed > 0.f)) return false;
 
 	FGridCharacterInventoryState Character;
 	Character.CharacterId = FGuid::NewGuid();
 	Character.DisplayName = FText::FromString(TEXT("Mina"));
-	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
-	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(1);
-	Party->PartyInventoryComponent->PartyInventoryState.SelectedCharacterIndex = 0;
-	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = MakeEquippedShuriken(Character.CharacterId, 2);
+	Character.Attributes.Strength = 20;
+	Character.InventorySlots.SetNum(2);
+	Inventory->PartyInventoryState.ActiveCharacters = { Character };
+	Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
+	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
+	auto& MainHand = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand;
+	MainHand = MakeEquippedShuriken(Character.CharacterId, 2);
+	const FVector StackTarget = Runtime->GetCellCenterWorld(1, 2, 100.f);
+	TestNull(TEXT("Generic equipped shuriken cannot launch as a specialized attack"),
+		Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, Shuriken.ItemId, StackTarget, FIntPoint(1, 1)));
+	TestEqual(TEXT("Refused wrong route leaves both units equipped"), MainHand.Quantity, 2);
 
+	FGridItemInstance EquippedKnife = MakeEquippedShuriken(Character.CharacterId, 1);
+	EquippedKnife.ItemDefinitionId = KnifeId;
+	EquippedKnife.ItemLevel = 7;
+	MainHand = EquippedKnife;
 	Party->SyncHeldVisualFromSelectedCharacterEquipment();
 	TestNull(TEXT("A non-light weapon has no permanent held visual"), Party->HeldItemActor.Get());
 
-	// Only the held-light portion of this historical combat fixture uses
-	// the real registry; the subsequent synthetic shuriken test stays isolated.
-	FGridCanonicalLootTestScope TorchRegistryScope;
-	if (!TestTrue(TEXT("Torch registry attaches"), TorchRegistryScope.Attach(TestWorld.World))) return false;
 	FGridResolvedItem Torch;
-	if (!TestTrue(TEXT("Real canonical torch resolves"), TorchRegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
+	if (!TestTrue(TEXT("Real canonical torch resolves"), RegistryScope.Registry->ResolveItem(TEXT("Item_Torch"), 0, Torch))) return false;
 	UStaticMesh* TorchMesh = Torch.EquippedMesh.LoadSynchronous();
 
 	FGridItemInstance EquippedTorch;
@@ -195,7 +160,6 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 	Party->SyncHeldVisualFromSelectedCharacterEquipment();
 	TestNull(TEXT("Removing the light does not reveal the equipped weapon"), Party->HeldItemActor.Get());
-	TorchRegistryScope.Detach();
 
 	AGridMonsterActor* TargetMonster = TestWorld.World->SpawnActor<AGridMonsterActor>();
 	TargetMonster->PersistentMonsterId = FGuid::NewGuid();
@@ -229,43 +193,53 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	Request.TargetCell = FIntPoint(1, 2);
 	Request.PartyFacing = EGridEdge::North;
 	Request.RangeCells = 3;
-	Request.AttackId = TEXT("Attack_Shuriken");
-	Request.OffensiveItemDefinitionId = TEXT("Shuriken");
+	Request.AttackId = TEXT("Attack_ThrowingKnife");
+	Request.OffensiveItemDefinitionId = KnifeId;
 	Request.OffensiveEquipmentSlot = EGridEquipmentSlot::MainHand;
+	const FVector Target = TargetMonster->GetActorLocation();
+	for (const int32 InvalidLevel : {0, 21})
+	{
+		MainHand.ItemLevel = InvalidLevel;
+		TestNull(TEXT("An invalid physical level refuses specialized launch"),
+			Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, KnifeId, Target, Request.PartyCell));
+		TestEqual(TEXT("Level refusal preserves the source GUID"), MainHand.RuntimeObjectId, EquippedKnife.RuntimeObjectId);
+	}
+	MainHand = EquippedKnife;
+	AddExpectedError(TEXT("GridPlayerAttack Throw Failed"), EAutomationExpectedErrorFlags::Contains, 1);
+	TestNull(TEXT("An invalid launch cell triggers rollback after extraction"),
+		Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, KnifeId, Target, FIntPoint(-1, -1)));
+	TestTrue(TEXT("Spawn rollback restores all equipped fields"),
+		FGridItemInstance::StaticStruct()->CompareScriptStruct(&MainHand, &EquippedKnife, 0));
+	TestFalse(TEXT("Rejected launches create no projectile"), bool(TActorIterator<AGridThrownItemActor>(TestWorld.World)));
 	Request.PreparedThrownItemActor =
-		Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, TEXT("Shuriken"), TargetMonster->GetActorLocation(), Request.PartyCell);
-	TestNotNull(TEXT("Gameplay commits the recoverable projectile before presentation"), Request.PreparedThrownItemActor.Get());
+		Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, KnifeId, Target, Request.PartyCell);
+	if (!TestNotNull(TEXT("Gameplay commits a recoverable projectile"), Request.PreparedThrownItemActor.Get())) return false;
 
 	TurnManager->OnPlayerAttackRequested.Broadcast(Request);
 	TestEqual(TEXT("Exactly one thrown launch is requested"), Presentation->ThrownItemLaunchRequestCount, 1);
 	TestEqual(TEXT("Exactly one thrown launch starts"), Presentation->ThrownItemLaunchStartedCount, 1);
 	TestTrue(TEXT("The throw never starts boomerang held motion"), !Presentation->bHeldItemMotionStarted && !Presentation->IsHeldItemMotionActive());
-	TestEqual(TEXT("One equipped shuriken remains"), Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
+	TestFalse(TEXT("The committed attack clears the equipped source"), Inventory->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
 
-	AGridThrownItemActor* ThrownItem = nullptr;
-	for (TActorIterator<AGridThrownItemActor> It(TestWorld.World); It; ++It)
-	{
-		ThrownItem = *It;
-		break;
-	}
-	TestNotNull(TEXT("A recoverable thrown item actor exists"), ThrownItem);
-	if (!ThrownItem)
-	{
-		return false;
-	}
-	TestEqual(TEXT("The projectile carries exactly one shuriken"), ThrownItem->ThrownItemInstance.Quantity, 1);
-	TestEqual(TEXT("The projectile uses the world mesh"), ThrownItem->MeshComponent ? ThrownItem->MeshComponent->GetStaticMesh().Get() : nullptr, WorldMesh);
+	AGridThrownItemActor* ThrownItem = Request.PreparedThrownItemActor.Get();
+	const auto& Physical = ThrownItem->ThrownItemInstance;
+	TestEqual(TEXT("Specialized projectile carries one item"), Physical.Quantity, 1);
+	TestEqual(TEXT("Specialized projectile preserves ItemId"), Physical.ItemDefinitionId, KnifeId);
+	TestEqual(TEXT("Specialized projectile keeps physical level"), Physical.ItemLevel, 7);
+	TestEqual(TEXT("Specialized projectile preserves its source GUID"), Physical.RuntimeObjectId, EquippedKnife.RuntimeObjectId);
+	TestEqual(TEXT("Projectile has world ownership"), Physical.OwnerType, EGridItemOwnerType::World);
+	UStaticMesh* ExpectedProjectileMesh = Knife.ProjectileMesh.LoadSynchronous();
+	TestNotNull(TEXT("Registered projectile mesh loads"), ExpectedProjectileMesh);
+	TestEqual(TEXT("Projectile uses the dedicated mesh"),
+		ThrownItem->MeshComponent ? ThrownItem->MeshComponent->GetStaticMesh().Get() : nullptr, ExpectedProjectileMesh);
 	TestTrue(TEXT("The projectile mesh is visible"), ThrownItem->MeshComponent && ThrownItem->MeshComponent->IsVisible() && !ThrownItem->IsHidden());
-	TestTrue(TEXT("The projectile uses its readable visual scale"),
-		ThrownItem->MeshComponent && ThrownItem->MeshComponent->GetRelativeScale3D().Equals(Definition->ThrowVisualRelativeScale, KINDA_SMALL_NUMBER));
-	TestTrue(TEXT("The projectile turns the flat mesh toward the source"),
-		ThrownItem->MeshComponent &&
-			ThrownItem->MeshComponent->GetRelativeTransform().GetRotation().Equals(Definition->ThrowVisualRelativeRotation.Quaternion(), KINDA_SMALL_NUMBER));
-	const FQuat RotationBeforeSpin = ThrownItem->MeshComponent ? ThrownItem->MeshComponent->GetRelativeRotation().Quaternion() : FQuat::Identity;
-	ThrownItem->Tick(1.0f / 60.0f);
-	TestFalse(TEXT("The projectile mesh spins while flying"),
-		ThrownItem->MeshComponent && ThrownItem->MeshComponent->GetRelativeRotation().Quaternion().Equals(RotationBeforeSpin, KINDA_SMALL_NUMBER));
-	const FGuid ThrownRuntimeId = ThrownItem->ThrownItemInstance.RuntimeObjectId;
+	TestTrue(TEXT("Projectile uses the authored presentation scale"),
+		ThrownItem->MeshComponent && ThrownItem->MeshComponent->GetRelativeScale3D().Equals(Knife.ProjectileAppearance.RelativeScale, KINDA_SMALL_NUMBER));
+	TestTrue(TEXT("Launch velocity follows the specialized policy"),
+		ThrownItem->ProjectileMovementComponent &&
+		FMath::IsNearlyEqual(ThrownItem->ProjectileMovementComponent->Velocity.Size(),
+			Knife.Weapon.Projectile.InitialSpeed * FMath::Sqrt(2.0) * (1.0 - 0.35 * Knife.WeightKg / 5.0), 1.0));
+	const FGuid ThrownRuntimeId = Physical.RuntimeObjectId;
 
 	FGridAttackResult HitResult;
 	HitResult.bHit = true;
@@ -280,8 +254,6 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	ThrownItem->SetActorLocation(TargetLocation + TravelDirection * 50.0f);
 	ThrownItem->Tick(1.0f / 60.0f);
 	TestTrue(TEXT("Crossing the hit target converts the projectile"), ThrownItem->HasCompletedImpactConversion());
-	TestEqual(TEXT("Registry-less historical projectile cannot invent canonical pressure-plate mass"),
-		Runtime->GetWorldItemWeightAtCell(1, 2), 0.0f);
 	AGridItemActor* DroppedPickup = nullptr;
 	for (TActorIterator<AGridItemActor> It(TestWorld.World); It; ++It)
 	{
@@ -294,24 +266,17 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest(const FString& Parameters)
 	}
 	TestNotNull(TEXT("The impact creates one recoverable pickup"), DroppedPickup);
 	TestTrue(TEXT("The recoverable pickup keeps a visible world mesh"),
-		DroppedPickup && DroppedPickup->MeshComponent && DroppedPickup->MeshComponent->GetStaticMesh().Get() == WorldMesh &&
+		DroppedPickup && DroppedPickup->MeshComponent && DroppedPickup->MeshComponent->GetStaticMesh().Get() == Knife.WorldMesh.LoadSynchronous() &&
 			DroppedPickup->MeshComponent->IsVisible() && !DroppedPickup->IsHidden());
 
 	TurnManager->OnPlayerAttackRejected.Broadcast(0, EGridPlayerAttackRejectReason::PassageBlocked);
-	TestEqual(TEXT("A rejected attack does not consume the remaining shuriken"),
-		Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
 	TestEqual(TEXT("A rejected attack creates no additional projectile"), Presentation->ThrownItemLaunchStartedCount, 1);
 	TestFalse(TEXT("Rejected diagnostics report no new launch"), Presentation->bThrownItemLaunchStarted);
-
-	AGridThrownItemActor* LastThrownItem =
-		Party->TryLaunchEquippedItemForAttack(0, EGridEquipmentSlot::MainHand, TEXT("Shuriken"), TargetLocation, FIntPoint(1, 1));
-	TestNotNull(TEXT("The final equipped shuriken can be launched"), LastThrownItem);
-	TestFalse(TEXT("The final shuriken clears MainHand"), Party->PartyInventoryComponent->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::MainHand));
-	TestNull(TEXT("The held visual disappears with the final shuriken"), Party->HeldItemActor.Get());
-	if (LastThrownItem)
-	{
-		LastThrownItem->Destroy();
-	}
+	if (!TestNotNull(TEXT("Pickup preserves the projectile GUID"), DroppedPickup)) return false;
+	TestEqual(TEXT("Pickup preserves the knife level"), DroppedPickup->WorldItemLevel, 7);
+	TestTrue(TEXT("The physical pickup can be recovered"), Runtime->TryPickupItemActor(DroppedPickup, Party));
+	TestEqual(TEXT("Exactly one knife is recovered"), Inventory->CountItemDefinitionInCharacterInventory(0, KnifeId), 1);
+	TestNull(TEXT("No permanent weapon visual remains"), Party->HeldItemActor.Get());
 
 	return true;
 }

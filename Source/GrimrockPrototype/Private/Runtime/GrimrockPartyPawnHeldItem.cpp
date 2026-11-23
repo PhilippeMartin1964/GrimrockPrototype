@@ -4,7 +4,6 @@
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemMeshResolver.h"
-#include "GridLegacyItemLookup.h"
 #include "Engine/World.h"
 #include "GridEquipmentSlotUtils.h"
 #include "Kismet/GameplayStatics.h"
