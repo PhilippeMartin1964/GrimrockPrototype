@@ -21,7 +21,8 @@ enum class EGridItemTransferResult : uint8
 	DestinationRejectsItem,
 	DestinationInsertFailed,
 	InventoryFull,
-	RollbackFailed
+	RollbackFailed,
+	TransactionConflict
 };
 
 USTRUCT(BlueprintType)

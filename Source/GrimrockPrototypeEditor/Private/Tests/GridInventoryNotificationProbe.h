@@ -4,6 +4,8 @@
 #include "UObject/Object.h"
 #include "GridInventoryNotificationProbe.generated.h"
 
+class AActor;
+
 // Editor-only observer for synchronous transaction characterization. No authored asset uses this type.
 UCLASS(Transient)
 class UGridInventoryNotificationProbe : public UObject
@@ -17,5 +19,13 @@ public:
 	{
 		if (Callback)
 			Callback(CharacterIndex);
+	}
+
+	UFUNCTION()
+	void ObserveDestroyed(AActor* Actor)
+	{
+		(void)Actor;
+		if (Callback)
+			Callback(INDEX_NONE);
 	}
 };

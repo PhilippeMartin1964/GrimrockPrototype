@@ -51,6 +51,8 @@ namespace
 
 bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterIndex, EGridEquipmentSlot SourceSlot)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
@@ -113,6 +115,8 @@ bool UGridPartyInventoryComponent::TryTakeSelectedCharacterEquipmentSlotToCursor
 
 bool UGridPartyInventoryComponent::SetCursorItem(const FGridItemInstance& Item)
 {
+	if (IsItemMutationReserved(Item.RuntimeObjectId))
+		return false;
 	if (!CanAcceptSingleInventoryItem(Item))
 	{
 		return false;
@@ -156,6 +160,8 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor(int32 CharacterI
 
 bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 CharacterIndex, int32 InventorySlotIndex, int32 Quantity)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (HasCursorItem())
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=CursorOccupied"), CharacterIndex, InventorySlotIndex);
@@ -221,6 +227,8 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 
 bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(int32 CharacterIndex, int32 TargetSlotIndex)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!HasCursorItem())
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=NoCursorItem"), CharacterIndex,
@@ -317,6 +325,8 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 
 bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 CharacterIndex, int32 SourceSlotIndex, int32 TargetSlotIndex)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidCharacter"), CharacterIndex,
@@ -424,6 +434,8 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 
 bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 CharacterIndex)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!HasCursorItem())
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory Cursor Place Failed Character=%d Reason=NoCursorItem"), CharacterIndex);
@@ -499,6 +511,8 @@ bool UGridPartyInventoryComponent::CanEquipCursorItemToCharacterSlot(int32 Chara
 
 bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 CharacterIndex, EGridEquipmentSlot TargetSlot)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!CanEquipCursorItemToCharacterSlot(CharacterIndex, TargetSlot) ||
 		!PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))

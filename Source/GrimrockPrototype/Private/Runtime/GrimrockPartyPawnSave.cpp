@@ -32,6 +32,13 @@ bool AGrimrockPartyPawn::HasCurrentSave() const
 bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 {
 	OutError = FText::GetEmpty();
+	if (PartyInventoryComponent && PartyInventoryComponent->HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGrimrockPartySave, Warning, TEXT("PartySave TransactionRejected Operation=Save Reason=TransactionConflict"));
+		OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+		return false;
+	}
+
 
 	if (PartySaveSlotName.IsEmpty())
 	{
@@ -124,6 +131,13 @@ bool AGrimrockPartyPawn::RehydrateLoadedItemDefinitions(FText& OutError)
 bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeonState)
 {
 	OutError = FText::GetEmpty();
+	if (PartyInventoryComponent && PartyInventoryComponent->HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGrimrockPartySave, Warning, TEXT("PartySave TransactionRejected Operation=Load Reason=TransactionConflict"));
+		OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+		return false;
+	}
+
 
 	if (!HasCurrentSave())
 	{
@@ -290,6 +304,13 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 bool AGrimrockPartyPawn::StartNewGame(FText& OutError)
 {
 	OutError = FText::GetEmpty();
+	if (PartyInventoryComponent && PartyInventoryComponent->HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGrimrockPartySave, Warning, TEXT("PartySave TransactionRejected Operation=NewGame Reason=TransactionConflict"));
+		OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+		return false;
+	}
+
 
 	if (HasCurrentSave() && !UGameplayStatics::DeleteGameInSlot(PartySaveSlotName, PartySaveUserIndex))
 	{

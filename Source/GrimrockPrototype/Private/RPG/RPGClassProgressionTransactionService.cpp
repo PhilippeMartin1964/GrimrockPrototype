@@ -4,6 +4,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridPartyTransactionScope.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridClassProgression, Log, All);
 
@@ -299,6 +300,13 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 		return false;
 	}
 
+	FGridPartyTransactionScope Transaction(PartyInventoryComponent, { CharacterIndex });
+	if (!Transaction.IsAcquired())
+	{
+		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::TransactionConflict;
+		return false;
+	}
+
 	FGridCharacterInventoryState* Character = nullptr;
 	URPGClassAsset* ClassDefinition = nullptr;
 	if (!ResolveCharacter(PartyInventoryComponent, CharacterIndex, Character, ClassDefinition))
@@ -380,12 +388,26 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 	OutResult.RemainingPoints = RemainingAfter;
 	OutResult.CommittedChoiceIds = ChoiceIdsToCommit;
 
+	// Nothing referencing an element or the caller-owned result crosses a callback.
+	const FGuid CommittedCharacterId = Character->CharacterId;
+	const int32 CommittedLevel = Character->Level;
+	const FRPGClassProgressionCommitResult CommittedResult = OutResult;
 	PartyInventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
-	OnClassProgressionCommitted().Broadcast(PartyInventoryComponent, CharacterIndex, OutResult.CommittedChoiceIds, OutResult.RemainingPoints);
-
+	const int32 EventCharacterIndex = Transaction.ResolveIndex();
+	if (EventCharacterIndex != INDEX_NONE)
+	{
+		OnClassProgressionCommitted().Broadcast(
+			PartyInventoryComponent, EventCharacterIndex, CommittedResult.CommittedChoiceIds, CommittedResult.RemainingPoints);
+	}
+	else
+	{
+		UE_LOG(LogGridClassProgression, Error, TEXT("[GridClassProgression] Committed character identity was removed or duplicated by a callback: %s"),
+			*CommittedCharacterId.ToString(EGuidFormats::Digits));
+	}
+	OutResult = CommittedResult;
 	UE_LOG(LogGridClassProgression, Log, TEXT("[GridClassProgression] Character=%d CharacterId=%s Level=%d Committed=%d Granted=%d Spent=%d Remaining=%d"),
-		CharacterIndex, *Character->CharacterId.ToString(EGuidFormats::Digits), Character->Level, OutResult.CommittedChoiceIds.Num(), OutResult.GrantedPoints,
-		OutResult.SpentPointsAfter, OutResult.RemainingPoints);
+		EventCharacterIndex, *CommittedCharacterId.ToString(EGuidFormats::Digits), CommittedLevel, CommittedResult.CommittedChoiceIds.Num(),
+		CommittedResult.GrantedPoints, CommittedResult.SpentPointsAfter, CommittedResult.RemainingPoints);
 	return true;
 }
 

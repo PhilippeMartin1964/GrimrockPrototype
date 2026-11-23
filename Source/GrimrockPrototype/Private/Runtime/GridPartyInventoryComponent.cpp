@@ -326,6 +326,11 @@ void UGridPartyInventoryComponent::NotifyPartyInventoryChanged(int32 CharacterIn
 
 void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded()
 {
+	if (HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory RosterMutationRejected Reason=TransactionConflict"));
+		return;
+	}
 	PartyInventoryState.MaxActiveCharacters = FMath::Max(1, DefaultMaxActiveCharacters);
 
 	if (PartyInventoryState.ActiveCharacters.Num() == 0)
@@ -362,6 +367,11 @@ bool UGridPartyInventoryComponent::HasCompletedInitialCharacterCreation() const
 
 void UGridPartyInventoryComponent::ResetPartyForNewGame()
 {
+	if (HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory RosterMutationRejected Reason=TransactionConflict"));
+		return;
+	}
 	PartyPortraitOrder.Reset();
 	PartyInventoryState = FGridPartyInventoryState();
 	InitializeDefaultPartyIfNeeded();
@@ -369,6 +379,12 @@ void UGridPartyInventoryComponent::ResetPartyForNewGame()
 
 bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyInventoryState& SavedState, FText& OutError)
 {
+	if (HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory RosterMutationRejected Reason=TransactionConflict"));
+		OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+		return false;
+	}
 	OutError = FText::GetEmpty();
 
 	if (!SavedState.bInitialCharacterCreationCompleted)
@@ -476,6 +492,12 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 
 bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCreationRequest& Request, FText& OutError)
 {
+	if (HasActiveCharacterTransactions())
+	{
+		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory RosterMutationRejected Reason=TransactionConflict"));
+		OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+		return false;
+	}
 	OutError = FText::GetEmpty();
 
 	if (HasCompletedInitialCharacterCreation())
@@ -1135,7 +1157,23 @@ bool UGridPartyInventoryComponent::CanAddItemToSelectedCharacterInventory(const 
 	return CanAddItemToCharacterInventory(PartyInventoryState.SelectedCharacterIndex, Item);
 }
 
+bool UGridPartyInventoryComponent::IsCharacterMutationReserved(int32 CharacterIndex) const
+{
+	const bool bReserved =
+		IsValidCharacterIndex(CharacterIndex) && ReservedTransactionCharacters.Contains(PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId);
+	if (bReserved)
+		UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory MutationRejected Reason=TransactionConflict Character=%d"), CharacterIndex);
+	return bReserved;
+}
+
 bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIndex, const FGridItemInstance& Item)
+{
+	if (IsCharacterMutationReserved(CharacterIndex) || IsItemMutationReserved(Item.RuntimeObjectId))
+		return false;
+	return AddItemToCharacterInventoryInternal(CharacterIndex, Item);
+}
+
+bool UGridPartyInventoryComponent::AddItemToCharacterInventoryInternal(int32 CharacterIndex, const FGridItemInstance& Item)
 {
 	FGridItemInstance ItemToAdd = Item;
 	const int32 InitialQuantity = ItemToAdd.Quantity;
@@ -1230,6 +1268,8 @@ bool UGridPartyInventoryComponent::AddItemToSelectedCharacterInventory(const FGr
 
 bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 CharacterIndex, int32 SourceSlotIndex)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Reason=InvalidCharacter"), CharacterIndex, SourceSlotIndex);
@@ -1296,6 +1336,8 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId(int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem)
 {
 	OutRemovedItem = FGridItemInstance();
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!IsValidCharacterIndex(CharacterIndex) || !RuntimeObjectId.IsValid())
 	{
 		return false;
@@ -1322,6 +1364,8 @@ bool UGridPartyInventoryComponent::RemoveFirstItemFromCharacterInventoryByDefini
 	int32 CharacterIndex, FName ItemDefinitionId, FGridItemInstance& OutRemovedItem)
 {
 	OutRemovedItem = FGridItemInstance();
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone())
 	{
 		return false;
@@ -1385,6 +1429,8 @@ int32 UGridPartyInventoryComponent::CountItemDefinitionInSelectedCharacterInvent
 
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone() || Quantity <= 0)
 	{
 		return false;
@@ -1445,6 +1491,12 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
     int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError)
 {
     OutError = FText::GetEmpty();
+    if (IsCharacterMutationReserved(CharacterIndex))
+    {
+        OutError = NSLOCTEXT("GridItemActions", "ConsumeInvalidSource", "Objet ou personnage indisponible.");
+        return false;
+    }
+
 
     if (!IsValidCharacterIndex(CharacterIndex) || !SourceRuntimeObjectId.IsValid())
     {

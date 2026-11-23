@@ -22,6 +22,8 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, FGridItemInstance& OutWorldItem)
 {
 	OutWorldItem = FGridItemInstance();
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) ||
 		!GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone())
@@ -70,6 +72,8 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 
 bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(int32 CharacterIndex, EGridEquipmentSlot TargetSlot, const FGridItemInstance& WorldItem)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!CanAcceptSingleInventoryItem(WorldItem) || WorldItem.Quantity != 1 ||
 		WorldItem.OwnerType != EGridItemOwnerType::World || !IsValidCharacterIndex(CharacterIndex) ||

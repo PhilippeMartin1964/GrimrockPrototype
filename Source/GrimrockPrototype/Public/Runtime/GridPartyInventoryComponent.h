@@ -169,6 +169,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Party")
 	bool IsValidCharacterIndex(int32 Index) const;
 
+	/** Native transaction reservations: no serialized field, reads/selection remain available. */
+	bool IsCharacterMutationReserved(int32 CharacterIndex) const;
+	bool IsItemMutationReserved(const FGuid& RuntimeId) const
+	{
+		return ReservedTransactionItems.Contains(RuntimeId);
+	}
+	bool HasActiveCharacterTransactions() const
+	{
+		return !ReservedTransactionCharacters.IsEmpty();
+	}
+
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool CanAddItemToCharacterInventory(int32 CharacterIndex, const FGridItemInstance& Item) const;
 
@@ -401,6 +412,11 @@ public:
 	bool ValidateInventoryOwnership(UPARAM(ref) FString& OutError) const;
 
 private:
+	friend class FGridPartyTransactionScope;
+	friend class UGridItemTransferService;
+	TSet<FGuid> ReservedTransactionCharacters;
+	TSet<FGuid> ReservedTransactionItems;
+	bool AddItemToCharacterInventoryInternal(int32 CharacterIndex, const FGridItemInstance& Item);
 	/** Preflight a single physical cursor/slot transfer without changing its quantity. */
 	bool CanAcceptSingleInventoryItem(const FGridItemInstance& Item) const;
 

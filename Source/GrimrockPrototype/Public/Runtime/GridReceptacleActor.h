@@ -365,6 +365,8 @@ protected:
 	bool WasInitialItemRemoved(FName ItemDefinitionId) const;
 
 private:
+	friend class FGridPartyTransactionScope;
+	bool bItemTransferInProgress = false;
 	friend class UGridItemTransferService;
 	void ExecuteRemovalLinksWithItemEvent(const FText& RemovedItemName);
 

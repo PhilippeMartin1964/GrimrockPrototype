@@ -180,6 +180,8 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot(int32 CharacterIndex, cons
 
 bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
 	{
@@ -279,6 +281,8 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 
 bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, EGridEquipmentSlot SourceSlot)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
@@ -360,6 +364,8 @@ bool UGridPartyInventoryComponent::IsEquipmentSlotOccupied(int32 CharacterIndex,
 bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FGuid& ExpectedRuntimeObjectId, int32 Quantity)
 {
+	if (IsCharacterMutationReserved(CharacterIndex))
+		return false;
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) ||
 		!GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() || Quantity <= 0)

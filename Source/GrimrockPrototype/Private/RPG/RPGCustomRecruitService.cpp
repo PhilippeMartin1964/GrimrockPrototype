@@ -98,6 +98,13 @@ bool FRPGCustomRecruitService::TryCreateAndRecruit(
 		return false;
 	}
 
+	if (PartyInventoryComponent->HasActiveCharacterTransactions())
+	{
+		OutResult.RejectReason = ERPGCustomRecruitRejectReason::InvalidInventory;
+		OutResult.Error = TEXT("TransactionConflict: roster mutation is reserved.");
+		return false;
+	}
+
 	FGridPartyInventoryState& State = PartyInventoryComponent->PartyInventoryState;
 	OutResult.ActiveCountBefore = State.ActiveCharacters.Num();
 	OutResult.ActiveCountAfter = OutResult.ActiveCountBefore;
