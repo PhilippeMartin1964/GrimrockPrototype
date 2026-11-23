@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridWeaponProgressionTypes.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"

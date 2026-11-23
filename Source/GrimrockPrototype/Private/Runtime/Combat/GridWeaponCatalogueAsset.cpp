@@ -1,48 +1,5 @@
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 
-bool FGridWeaponLevelProfile::IsValidProfile() const
-{
-	if (ArchetypeId.IsNone() || ItemLevel < 1 || ItemLevel > 20 ||
-		DisplayName.IsEmpty() || Family.IsEmpty() || HandUsage.IsEmpty() ||
-		PhysicalArmor < 0 || MagicalArmor < 0 || ActionPointCost < 0 || ActionPointCost > 32 ||
-		RangeCells < 0 || RangeCells > 32 || !FMath::IsFinite(WeightKg) || WeightKg < 0.0f)
-	{
-		return false;
-	}
-
-	if (DamageDice.bEnabled)
-	{
-		if (!DamageDice.IsValid() || ActionPointCost < 1 || RangeCells < 1)
-		{
-			return false;
-		}
-		FGridAttackDefinition Attack;
-		return TryBuildAttackDefinition(Attack);
-	}
-
-	// Passive shields and passive magical focuses never roll an artificial 0d0.
-	return DamageDice.DiceCount == 0 && DamageDice.DiceSides == 0 &&
-		DamageDice.FlatBonus == 0 && ActionPointCost == 0 && RangeCells == 0;
-}
-
-bool FGridWeaponLevelProfile::TryBuildAttackDefinition(FGridAttackDefinition& OutAttack) const
-{
-	OutAttack = FGridAttackDefinition();
-	if (!DamageDice.bEnabled || !DamageDice.IsValid() || ActionPointCost < 1 ||
-		RangeCells < 1 || RangeCells > 32 ||
-		(DamageType != EGridDamageType::Physical && PhysicalSubtype != EGridPhysicalDamageSubtype::None))
-	{
-		return false;
-	}
-	OutAttack.DamageType = DamageType;
-	OutAttack.PhysicalSubtype = PhysicalSubtype;
-	OutAttack.AccuracyBonus = AccuracyBonus;
-	OutAttack.DamageDice = DamageDice;
-	OutAttack.MinDamage = DamageDice.GetMinimumDamage();
-	OutAttack.MaxDamage = DamageDice.GetMaximumDamage();
-	return OutAttack.IsValid();
-}
-
 bool UGridWeaponCatalogueAsset::IsValidCatalogue() const
 {
 	// Refuse dual authorities, and validate the same exact 1,640 expanded

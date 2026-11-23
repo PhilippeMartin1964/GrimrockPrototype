@@ -78,7 +78,7 @@ L'instance conserve quantité, propriétaire, emplacement, réserves de protecti
 
 `UGrimrockPartySaveGame.CurrentSaveVersion = 27` exige la version exacte et valide les états au chargement. Il contient inventaire, donjon, quêtes, ordre des portraits, position du groupe et horloge logique. Le niveau RPG et des projections de personnage sont reconstruits ; les vues résolues d'objet et les catalogues ne sont pas des données persistées dans les instances.
 
-**Exception de lecture à préserver :** `ReadableContentAsset` et `ReadableContentId`, plus les overrides d'instance, restent distincts du `ReadText` par défaut. Les assets `DA_BookPage_Test` et `DA_Scroll_Test` sont encore nommés dans les sauvegardes privées v27 ; leur ancienneté ne justifie pas leur suppression. L'audit antérieur de sept sauvegardes est positif ; deux fichiers live ont changé depuis ce reçu. La compatibilité de ces deux versions récentes et une recette Save/Continue après retrait ne sont pas démontrées dans ce lot.
+**Exception de lecture à préserver :** `ReadableContentAsset` et `ReadableContentId`, plus les overrides d'instance, restent distincts du `ReadText` par défaut. Les assets `DA_BookPage_Test` et `DA_Scroll_Test` sont encore nommés dans les sauvegardes privées v27 ; leur ancienneté ne justifie pas leur suppression. La recette finale ARM-CLEAN06 a validé les sept sauvegardes v27, dont les deux versions plus récentes, ainsi que Save/Continue en PIE et Shipping. Le contrôle ultérieur CLEANUP04-B.1 a confirmé le chargement, la reconstruction et les round-trips sur sept copies isolées. Les originaux ont été préservés.
 
 ## Cardinalités entre panneaux
 
@@ -128,7 +128,7 @@ Les chemins suivants sont relatifs à la racine du dépôt :
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridItemCatalogues.h` et son `.cpp` privé : catalogues, structures, validations et jointures.
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridItemSubsystem.h` et son `.cpp` privé : configuration, niveaux, projection et actions détaillées.
 - `Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h` : instance, possession, résistances, bonus et 18 slots.
-- `Source/GrimrockPrototype/Public/Runtime/Combat/GridWeaponCatalogueAsset.h` : structures de croissance encore réutilisées par le modèle actuel.
+- `Source/GrimrockPrototype/Public/Runtime/Combat/GridWeaponProgressionTypes.h` : règles de croissance partagées et profil de niveau, détachés de la classe de catalogue historique.
 - `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h`, `GridLevelPlacementTypes.h`, `Runtime/GridDungeonRuntimeState.h` : placements et snapshots.
 - `Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h` et son `.cpp` privé : version et contrôles de chargement.
 - `Source/GrimrockPrototype/Public/RPG/StatusEffects/GridStatusEffectDefinitionAsset.h` : identité `EffectId` et payloads de statut.

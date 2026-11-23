@@ -1,15 +1,8 @@
 #include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridWeaponProgressionMath.h"
 
 namespace
 {
-	int32 CalculateGrowthValue(const int32 Base, const int32 Level,
-		const int32 Every, const int32 Amount)
-	{
-		const int64 Delta = static_cast<int64>((Level - 1) / Every) * Amount;
-		return static_cast<int32>(FMath::Clamp<int64>(static_cast<int64>(Base) + Delta,
-			static_cast<int64>(MIN_int32), static_cast<int64>(MAX_int32)));
-	}
-
 	FGridWeaponIntegerGrowthRule FitExactGrowth(const TArray<int32>& Values)
 	{
 		// The candidate set includes every slope that explains at least one
@@ -38,7 +31,7 @@ namespace
 				int32 MismatchCount = 0;
 				for (int32 Level = 2; Level <= 20; ++Level)
 				{
-					MismatchCount += CalculateGrowthValue(Values[0], Level, Every, Amount) != Values[Level - 1] ? 1 : 0;
+					MismatchCount += GridWeaponProgressionMath::CalculateGrowthValue(Values[0], Level, Every, Amount) != Values[Level - 1] ? 1 : 0;
 				}
 				const bool bBetter = !bFound || MismatchCount < BestExceptions ||
 					(MismatchCount == BestExceptions &&
@@ -55,7 +48,7 @@ namespace
 		}
 		for (int32 Level = 2; Level <= 20; ++Level)
 		{
-			if (CalculateGrowthValue(Values[0], Level, Best.StepEveryLevels, Best.StepAmount) != Values[Level - 1])
+			if (GridWeaponProgressionMath::CalculateGrowthValue(Values[0], Level, Best.StepEveryLevels, Best.StepAmount) != Values[Level - 1])
 			{
 				FGridWeaponGrowthException& Exception = Best.Exceptions.AddDefaulted_GetRef();
 				Exception.ItemLevel = Level;
@@ -81,36 +74,6 @@ namespace
 			default: return Profile.MagicalArmor;
 		}
 	}
-}
-
-bool FGridWeaponIntegerGrowthRule::IsValid() const
-{
-	if (StepEveryLevels < 1 || StepEveryLevels > 20) return false;
-	TSet<int32> SeenLevels;
-	for (const FGridWeaponGrowthException& Exception : Exceptions)
-	{
-		if (Exception.ItemLevel < 2 || Exception.ItemLevel > 20 ||
-			SeenLevels.Contains(Exception.ItemLevel))
-		{
-			return false;
-		}
-		SeenLevels.Add(Exception.ItemLevel);
-	}
-	return true;
-}
-
-int32 FGridWeaponIntegerGrowthRule::Resolve(int32 ItemLevel, int32 N1Value) const
-{
-	int32 Value = CalculateGrowthValue(N1Value, ItemLevel, FMath::Max(1, StepEveryLevels), StepAmount);
-	for (const FGridWeaponGrowthException& Exception : Exceptions)
-	{
-		if (Exception.ItemLevel == ItemLevel)
-		{
-			Value = Exception.Value;
-			break;
-		}
-	}
-	return Value;
 }
 
 bool FGridWeaponArchetypeProgression::TryBuildProfile(int32 ItemLevel, FGridWeaponLevelProfile& OutProfile) const
