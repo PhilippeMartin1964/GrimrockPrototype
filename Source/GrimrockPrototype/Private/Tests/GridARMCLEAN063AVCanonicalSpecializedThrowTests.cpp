@@ -17,7 +17,6 @@
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "../Runtime/GridLegacyItemLookup.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -442,10 +441,6 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     if (!TestTrue(TEXT("Real registry and runtime"), F.Ready())) return false;
     const FName Known(TEXT("Weapon_StraightSword_01"));
     const FName Unknown(TEXT("ARM065E4D_Unregistered"));
-    auto* OldKnown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    OldKnown->ItemDefinitionId = Known;
-    auto* OldUnknown = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    OldUnknown->ItemDefinitionId = Unknown;
     FGridLooseItemInstance KnownPlacement;
     KnownPlacement.ItemId = Known;
     KnownPlacement.ItemLevel = 1;
@@ -456,29 +451,15 @@ bool FGridClean065E4DLegacyLookup::RunTest(const FString&)
     FGridResolvedItem Resolved;
     TestTrue(TEXT("Known ID resolves independently of level placement"), F.Registry->ResolveItem(Known, 1, Resolved));
     TestFalse(TEXT("Unregistered authored ItemId is not a definition catalogue"), F.Registry->ResolveItem(Unknown, 0, Resolved));
-    auto* Party = F.World->SpawnActor<AGrimrockPartyPawn>();
-    if (!TestNotNull(TEXT("Party"), Party)) return false;
-    Party->LevelRuntimeActor = F.Runtime;
-    auto* Inventory = Party->PartyInventoryComponent.Get();
-    if (!TestNotNull(TEXT("Inventory"), Inventory)) return false;
-    Inventory->InitializeDefaultPartyIfNeeded();
-    TestTrue(TEXT("Known registration is already satisfied by ItemSystem"), Inventory->RegisterItemDefinition(OldKnown));
-    TestNull(TEXT("Registered ID cannot enter the obsolete map"), Inventory->FindItemDefinition(Known));
-    TestNull(TEXT("Canonical transfer ignores old inventory entry"), FGridLegacyItemLookup::Resolve(Party, Known));
-    TestNull(TEXT("Unknown transfer cannot use an old level entry"), FGridLegacyItemLookup::Resolve(Party, Unknown));
-    TestTrue(TEXT("Unknown entry registered for historical fixture"), Inventory->RegisterItemDefinition(OldUnknown));
-    TestNull(TEXT("Configured canonical world refuses unknown legacy inventory lookup"),
-        FGridLegacyItemLookup::Resolve(Party, Unknown));
-    // Isolated Automation without a GameInstance may still characterize
-    // old authoring assets, but cannot leak that authority into real games.
-    F.World->SetGameInstance(nullptr);
-    TestEqual(TEXT("Worldless Automation fixture reads only its explicit old map"),
-        FGridLegacyItemLookup::Resolve(Party, Unknown), OldUnknown);
-    F.World->SetGameInstance(F.GI);
-    TestNull(TEXT("Restored configured world rejects the same old fixture"),
-        FGridLegacyItemLookup::Resolve(Party, Unknown));
-    TestFalse(TEXT("Explicit inventory map cannot alter ItemSystem"),
-        F.Registry->ResolveItem(Unknown, 0, Resolved));
+    FGridItemInstance UnknownInstance;
+    UnknownInstance.RuntimeObjectId = FGuid::NewGuid();
+    UnknownInstance.ItemDefinitionId = Unknown;
+    UnknownInstance.Quantity = 1;
+    UnknownInstance.OwnerType = EGridItemOwnerType::World;
+    AddExpectedError(TEXT("GridInventory WorldDrop rejected canonical"), EAutomationExpectedErrorFlags::Contains, 1);
+    TestFalse(TEXT("Unknown placement does not authorize a physical world drop"),
+        F.Runtime->TryDropItemInstanceAtCell(UnknownInstance, 1, 1, EGridEdge::None, FVector::ZeroVector));
+    TestFalse(TEXT("Rejected unknown identity was not registered"), F.Registry->ContainsItem(Unknown));
     return !HasAnyErrors();
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065G59InFlightTravel,

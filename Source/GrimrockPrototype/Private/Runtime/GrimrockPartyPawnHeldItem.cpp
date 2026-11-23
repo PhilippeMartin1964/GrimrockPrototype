@@ -145,16 +145,6 @@ bool AGrimrockPartyPawn::IsHoldingItem(FName ItemDefinitionId) const
 	return !ItemDefinitionId.IsNone() && GetHeldItemDefinitionId() == ItemDefinitionId;
 }
 
-UGridItemDefinitionAsset* AGrimrockPartyPawn::ResolveEquippedItemDefinition(const FGridItemInstance& Item) const
-{
-	if (!Item.IsValid())
-	{
-		return nullptr;
-	}
-
-	return FGridLegacyItemLookup::Resolve(this, Item.ItemDefinitionId);
-}
-
 bool AGrimrockPartyPawn::DoesEquippedItemEmitLight(const FGridItemInstance& Item) const
 {
 	if (!Item.IsValid() || !Item.bLightsEnabled)

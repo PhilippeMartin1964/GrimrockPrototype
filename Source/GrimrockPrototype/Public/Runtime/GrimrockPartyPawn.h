@@ -689,7 +689,6 @@ private:
 	UFUNCTION()
 	void HandlePartyInventoryChanged(int32 CharacterIndex);
 
-	UGridItemDefinitionAsset* ResolveEquippedItemDefinition(const FGridItemInstance& Item) const;
 	bool DoesEquippedItemEmitLight(const FGridItemInstance& Item) const;
 
 	enum class EBufferedCommandType : uint8

@@ -19,7 +19,6 @@
 #include "GridItemWeightReadModel.h"
 #include "GridWorldItemLevelReadModel.h"
 #include "GridWorldPickupIdentityReadModel.h"
-#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -974,13 +973,7 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtWorldTransform(
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
 	const FGridItemInstance& ItemInstance, int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset)
 {
-	// Inventory-origin convenience path: preserve the explicit source
-	// inventory's definition for genuinely unregistered synthetic items.
-	// Registered identities always pass nullptr and resolve via ItemSystem.
-	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
-	UGridItemDefinitionAsset* Definition = FGridLegacyItemLookup::Resolve(
-		Party, ItemInstance.ItemDefinitionId);
-	return TryDropItemInstanceAtCell(ItemInstance, Definition, CellX, CellY, Edge, LocalOffset);
+	return TryDropItemInstanceAtCell(ItemInstance, nullptr, CellX, CellY, Edge, LocalOffset);
 }
 
 bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell(
@@ -1171,8 +1164,7 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile(
 	const FGridItemInstance& ItemInstance, const FVector& StartWorldLocation, const FVector& LaunchVelocity, int32 SourceCellX, int32 SourceCellY)
 {
 	const AGrimrockPartyPawn* Party = ResolveWorldItemInteractionParty(this);
-	UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(Party, ItemInstance.ItemDefinitionId);
-	return SpawnThrownItemProjectile(ItemInstance, ItemDefinition, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY,
+	return SpawnThrownItemProjectile(ItemInstance, nullptr, StartWorldLocation, LaunchVelocity, SourceCellX, SourceCellY,
 		false, const_cast<AGrimrockPartyPawn*>(Party)) != nullptr;
 }
 

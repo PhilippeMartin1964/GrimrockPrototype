@@ -16,10 +16,8 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridEventFeedPublisher.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridPhysicalThrowStrengthReadModel.h"
-#include "GridLegacyItemLookup.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -82,8 +80,7 @@ namespace
 	}
 
 	bool CanSelectedCharacterPhysicallyThrow(
-		const AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& Item,
-		const UGridItemDefinitionAsset* Definition)
+		const AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& Item)
 	{
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !Item.IsValid())
 		{
@@ -98,14 +95,13 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		return FGridPhysicalThrowStrengthReadModel::Resolve(
-			Registry, Definition, Item, Summary.Attributes.Strength).bCanThrow;
+			Registry, nullptr, Item, Summary.Attributes.Strength).bCanThrow;
 	}
 
 	bool ResolvePhysicalThrowEquippedMainHand(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, const FGuid& ExpectedRuntimeId,
-		FGridItemInstance& OutItem, UGridItemDefinitionAsset*& OutDefinition, FText& OutReason)
+		FGridItemInstance& OutItem, FText& OutReason)
 	{
 		OutItem = FGridItemInstance();
-		OutDefinition = nullptr;
 		OutReason = FText::GetEmpty();
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor)
 		{
@@ -130,7 +126,6 @@ namespace
 			return false;
 		}
 
-		OutDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, OutItem.ItemDefinitionId);
 		FGridInventoryCharacterSummary Summary;
 		if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
@@ -140,7 +135,7 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OutDefinition, OutItem, Summary.Attributes.Strength);
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, nullptr, OutItem, Summary.Attributes.Strength);
 		if (!Gate.bResolved)
 		{
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
@@ -164,9 +159,8 @@ namespace
 	}
 
 	bool ResolvePhysicalThrowInventoryItem(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, FName ItemDefinitionId,
-		UGridItemDefinitionAsset*& OutDefinition, FText& OutReason)
+		FText& OutReason)
 	{
-		OutDefinition = nullptr;
 		OutReason = FText::GetEmpty();
 		if (!PartyPawn || !PartyPawn->PartyInventoryComponent || !PartyPawn->LevelRuntimeActor || ItemDefinitionId.IsNone())
 		{
@@ -184,7 +178,6 @@ namespace
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.ItemMissingInventory"));
 			return false;
 		}
-		OutDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, ItemDefinitionId);
 		FGridInventoryCharacterSummary Summary;
 		if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
 		{
@@ -211,7 +204,7 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OutDefinition, ItemSlot->Item, Summary.Attributes.Strength);
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, nullptr, ItemSlot->Item, Summary.Attributes.Strength);
 		if (!Gate.bResolved)
 		{
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
@@ -432,9 +425,8 @@ bool AGrimrockPlayerController::BeginPhysicalThrowAiming()
 	}
 
 	FGridItemInstance MainHandItem;
-	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	if (!ResolvePhysicalThrowEquippedMainHand(PartyPawn, INDEX_NONE, FGuid(), MainHandItem, Definition, Reason))
+	if (!ResolvePhysicalThrowEquippedMainHand(PartyPawn, INDEX_NONE, FGuid(), MainHandItem, Reason))
 	{
 		if (!Reason.IsEmpty())
 		{
@@ -464,9 +456,8 @@ bool AGrimrockPlayerController::BeginPhysicalInventoryThrowAiming(FName ItemDefi
 		return false;
 	}
 
-	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
-	if (!ResolvePhysicalThrowInventoryItem(PartyPawn, INDEX_NONE, ItemDefinitionId, Definition, Reason))
+	if (!ResolvePhysicalThrowInventoryItem(PartyPawn, INDEX_NONE, ItemDefinitionId, Reason))
 	{
 		if (!Reason.IsEmpty())
 		{
@@ -509,13 +500,12 @@ bool AGrimrockPlayerController::UpdatePhysicalThrowAiming()
 
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance MainHandItem;
-	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
 	const bool bSourceValid = PartyPawn && !bInventoryUiOpen && !PartyPawn->IsCharacterCreationModalActive() && !PartyPawn->IsPitFalling() &&
 		(!IsValid(PartyPawn->LevelRuntimeActor) || !PartyPawn->LevelRuntimeActor->HasActiveReadableMessage()) &&
 		(PhysicalThrowInventoryDefinitionId.IsNone()
-			? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
-			: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason));
+			? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Reason)
+			: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Reason));
 	if (!bSourceValid)
 	{
 		CancelPhysicalThrowAiming();
@@ -583,11 +573,10 @@ bool AGrimrockPlayerController::HandlePhysicalThrowAimingHit(const FHitResult& H
 
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetPawn());
 	FGridItemInstance MainHandItem;
-	UGridItemDefinitionAsset* Definition = nullptr;
 	FText Reason;
 	const bool bSourceValid = PhysicalThrowInventoryDefinitionId.IsNone()
-		? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Definition, Reason)
-		: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Definition, Reason);
+		? ResolvePhysicalThrowEquippedMainHand(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowSourceRuntimeId, MainHandItem, Reason)
+		: ResolvePhysicalThrowInventoryItem(PartyPawn, PhysicalThrowCharacterIndex, PhysicalThrowInventoryDefinitionId, Reason);
 	if (!bSourceValid)
 	{
 		if (!Reason.IsEmpty())
@@ -1185,8 +1174,6 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 						*GetNameSafe(WallLockActor));
 					if (bWasUnlocked || !bAcceptedKey)
 					{
-						UGridItemDefinitionAsset* CursorItemDefinition =
-							FGridLegacyItemLookup::Resolve(PartyPawn, CursorItem.ItemDefinitionId);
 						const UWorld* PartyWorld = PartyPawn->GetWorld();
 						UGameInstance* PartyGame = PartyWorld ? PartyWorld->GetGameInstance() : nullptr;
 						const UGridItemSubsystem* ItemRegistry = PartyGame ? PartyGame->GetSubsystem<UGridItemSubsystem>() : nullptr;
@@ -1194,7 +1181,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 						const TCHAR* RejectReason = bWasUnlocked
 							? TEXT("AlreadyUnlocked")
 							: (bRegistered ? TEXT("RejectedCanonicalKeyIdentity")
-								: (CursorItemDefinition && CursorItemDefinition->ItemType != EGridItemType::Key ? TEXT("NonKeyItem") : TEXT("IncompatibleKey")));
+								: TEXT("IncompatibleKey"));
 						UE_LOG(LogGridMouse, Log,
 							TEXT("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
 							*CursorItem.ItemDefinitionId.ToString(), *GetNameSafe(WallLockActor), RejectReason);
@@ -1305,10 +1292,9 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 			return;
 		}
 
-		UGridItemDefinitionAsset* ItemDefinition = FGridLegacyItemLookup::Resolve(PartyPawn, CursorItem.ItemDefinitionId);
 		UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Throwable=%s"), *CursorItem.ItemDefinitionId.ToString(),
-			CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem, ItemDefinition) ? TEXT("true") : TEXT("false"));
-		if (!CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem, ItemDefinition))
+			CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem) ? TEXT("true") : TEXT("false"));
+		if (!CanSelectedCharacterPhysicallyThrow(PartyPawn, CursorItem))
 		{
 			UE_LOG(LogGridMouse, Log, TEXT("GridMouse Click Priority=CursorItem Branch=ThrowAttempt Item=%s Result=NotThrowable"),
 				*CursorItem.ItemDefinitionId.ToString());
@@ -1535,13 +1521,11 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor(
 		case EGridMouseInteractionIntent::CursorItemThrow:
 		{
 			const AGrimrockPartyPawn* PartyPawn = MouseResolution.PartyPawn;
-			const UGridItemDefinitionAsset* ItemDefinition =
-				FGridLegacyItemLookup::Resolve(PartyPawn, MouseResolution.CursorItem.ItemDefinitionId);
 			const FVector ThrowStartLocation =
 				PartyPawn && PartyPawn->Camera ? PartyPawn->Camera->GetComponentLocation() : (PartyPawn ? PartyPawn->GetActorLocation() : FVector::ZeroVector);
 			const FVector TargetOffset = MouseResolution.HitResult.ImpactPoint - ThrowStartLocation;
 			const float TargetDistance = TargetOffset.Size();
-			const bool bCanAimThrow = MouseResolution.bHasWorldHit && CanSelectedCharacterPhysicallyThrow(PartyPawn, MouseResolution.CursorItem, ItemDefinition) && !TargetOffset.IsNearlyZero() &&
+			const bool bCanAimThrow = MouseResolution.bHasWorldHit && CanSelectedCharacterPhysicallyThrow(PartyPawn, MouseResolution.CursorItem) && !TargetOffset.IsNearlyZero() &&
 				(MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
 
 			OutCursor = bCanAimThrow ? EGridInteractionCursor::AimThrow : EGridInteractionCursor::CannotPlaceItem;

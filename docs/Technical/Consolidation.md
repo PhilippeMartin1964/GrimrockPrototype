@@ -164,6 +164,24 @@ Référence `42b31dc764f189628affca55ef056a039e028446`. Retrait de D11 et D12, d
 
 **Validation du lot.** Development Editor et Shipping compilés. Suite Grimrock : 2 064 réussites (47 avec avertissements), zéro échec, résultats et nombres d’avertissements identiques par test. Les six tests visuels et les huit tests B.1 réussissent sans avertissement. Les 70 Blueprints ont compilé et les 53 assets déplacés, leurs anciens chemins et leurs champs ont été revérifiés. Sept copies v27 chargées et round-trippées, originaux et deux Readables confirmés par SHA-256. Build/Cook/Stage/Package/Archive réussis. Le listing IoStore conserve les 2 112 chemins, les 53 redirections d’objet et les 50 alias Primary IDs dans l’archive. Le tooltip cuisiné importe le présentateur natif. Preuves privées : `D:/GrimrockNativeSnapshots/CLEANUP04D3/`.
 
+### CLEANUP04-D.4 — placement et lancer par instance
+
+Référence `496f648b67d6adfed7a3669fa4de5ec9c668a908`. Les chemins de dépôt au sol et de lancement par instance de `AGridLevelRuntimeActor` et les transferts ordinaires du pawn utilisent les lecteurs du registre. Le contrôleur a perdu le paramètre de définition historique dans les trois helpers de validation du lancer. Le helper natif `ResolveEquippedItemDefinition` a été retiré. Les signatures réfléchies des points d'entrée restent identiques. Les validations avant mutation et les retours de rollback restent aux mêmes emplacements. Le diagnostic de serrure conserve `ContainsItem` pour les identités enregistrées. Aucun nouveau modèle de données.
+
+**D13 : 12 → 2 sites Runtime et 6 → 0 appels dans les tests.** Les deux appels restants se trouvent dans `TryLaunchEquippedItemForAttack` et `TryLaunchInventoryItemForAttack`. Les fixtures de cycle de vie du projectile et de HUD combat font lancer une unité d'un shuriken synthétique empilable comme projectile d'attaque spécialisé. Le shuriken actuel relève du lancer générique. Un projectile spécialisé ARM fixe ne reproduit pas à lui seul l'extraction d'une unité d'une pile et sa restitution. Ces appels restent derrière le garde Automation de D13 et `Resolve` renvoie toujours nullptr en Shipping. Pour les retirer, porter les assertions d'extraction/restauration vers l'équipement empilable actuel, puis vérifier séparément l'impact et le rollback de lancement avec un ARM spécialisé dans un registre isolé. Conserver les assertions de GUID, de quantité et de propriétaire et les refus d'identité inconnue.
+
+**Deux scénarios adaptés, noms Automation conservés.** `PhysicalTransferLegacyLookup` vérifie le refus d'un dépôt physique pour un ItemId inconnu même quand le niveau contient une entrée du même ID. Il vérifie aussi que le registre n'a pas indexé l'identité. Le scénario de serrure utilise sa clé physique sans interroger l'ancien lookup. Il continue de vérifier l'ouverture, la quantité, le GUID et l'absence de définition historique sur l'acteur.
+
+| Type historique | Runtime avant → après | Editor | Tests | Total avant → après |
+| --- | ---: | ---: | ---: | ---: |
+| D08 · `UGridItemDefinitionAsset` | 66 → 63 | 3 | 109 | 178 → 175 |
+| D09 · `UGridWeaponCatalogueAsset` | 2 → 2 | 1 | 0 | 3 → 3 |
+| D10 · `UGridWeaponVisualCatalogueAsset` | 2 → 2 | 1 | 1 | 4 → 4 |
+
+Même comptage de fichiers consommateurs qu'en D.3. Les deux tests modifiés restent comptés pour les autres scénarios du fichier. Il reste pour D08 des paramètres et champs réfléchis de monde, inventaire et Editor ainsi que des fixtures utilisant la carte historique. Traiter ces familles par responsabilité, puis supprimer le helper D13 une fois les deux lanceurs libérés. D09 dépend toujours du soft pointer de D08 et de `GridArmClean06Baseline`. D10 dépend du soft pointer et de la validation D08, du test d'opt-in et du validateur Editor `GridWeaponPipelineManifest`. Le commandlet et la capture indépendante restent disponibles. Les classes et leurs redirects pourront basculer ensemble une fois ces dépendances retirées et les imports contrôlés.
+
+**Validation.** Development Editor, Shipping et Build/Cook/Stage/Package/Archive réussis. Suite Grimrock finale : 2 064 réussites, 47 avec avertissements, zéro échec. Résultats et avertissements locaux identiques au lot D.3. Les huit tests B.1 réussissent. Les 70 Blueprints compilent et les 53 assets déplacés, leurs anciens chemins et leurs valeurs ont été revérifiés. L'archive conserve ses 2 112 chemins et les 53 redirections d'objet et 50 alias Primary Asset IDs. Les sept copies v27 ont chargé et passé le round-trip, empreintes des originaux et des deux Readables identiques. Preuves privées sous `D:/GrimrockNativeSnapshots/CLEANUP04D4/`.
+
 ## CLEANUP03 — audit C++ et préparation de CLEANUP04
 
 **Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.
