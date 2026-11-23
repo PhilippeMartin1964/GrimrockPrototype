@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Components/SphereComponent.h"
 #include "Engine/Engine.h"
@@ -173,6 +174,24 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	const FName LightStoneId(TEXT("Stone_TD027"));
+	const FName HeavyStoneId(TEXT("HeavyStone_TD027"));
+	FGridCanonicalLootTestScope Registry;
+	if (!TestTrue(TEXT("Register light and heavy stone definitions"), Registry.AttachWithWeights(
+		TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+		{
+			for (const auto& Pair : TMap<FName, float>{{LightStoneId, 1.0f}, {HeavyStoneId, 3.0f}})
+			{
+				auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+				Stone->ItemId = Pair.Key;
+				Stone->DisplayName = FText::FromName(Pair.Key);
+				Stone->WeightKg = Pair.Value;
+				Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+				Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+				Root.ItemDefinitions.Add(Stone);
+			}
+		}))) return false;
+
 	AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
 	if (!TestNotNull(TEXT("The party is spawned"), Party) || !Party->PartyInventoryComponent)
 	{
@@ -188,11 +207,10 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex].Attributes.Strength = 10;
-	TestTrue(TEXT("Stone definition is registered"), Inventory->RegisterItemDefinition(StoneDefinition));
 
 	FGridItemInstance EquippedStone;
 	EquippedStone.RuntimeObjectId = FGuid::NewGuid();
-	EquippedStone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	EquippedStone.ItemDefinitionId = LightStoneId;
 	EquippedStone.Quantity = 1;
 	EquippedStone.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedStone.OwnerCharacterIndex = CharacterIndex;
@@ -201,7 +219,6 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 	FGridItemActionContext Context;
 	Context.PartyPawn = Party;
 	Context.Item = EquippedStone;
-	Context.ItemDefinition = StoneDefinition;
 	Context.CharacterIndex = CharacterIndex;
 	Context.EquipmentSlot = EGridEquipmentSlot::MainHand;
 
@@ -219,7 +236,7 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 	}
 	TestTrue(TEXT("The 1 kg stone throw is enabled for Strength 10"), ThrowAction->bEnabled);
 
-	StoneDefinition->Weight = 3.0f;
+	Context.Item.ItemDefinitionId = HeavyStoneId;
 	Actions.Reset();
 	TestTrue(TEXT("Heavy MainHand context actions still build"), UGridItemContextActionLibrary::BuildItemContextActions(Context, FacingTarget, Actions));
 	ThrowAction = Actions.FindByPredicate(

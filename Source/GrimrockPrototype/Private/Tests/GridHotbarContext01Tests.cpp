@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "../Runtime/GridPhysicalThrowPreflightReadModel.h"
 
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -206,6 +208,60 @@ bool FGridHotbarContext01InventoryActionTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("An item with no quick action and no physical throw support does not expose AddToHotbar"), FindAddToHotbarAction(Actions));
 
 	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridHotbarContext01CanonicalStoneDivergence,
+	"Grimrock.Hotbar.HOTBAR_CONTEXT01.CanonicalStoneDivergence",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridHotbarContext01CanonicalStoneDivergence::RunTest(const FString&)
+{
+	const FName StoneId(TEXT("Stone_HOTBAR_CONTEXT01"));
+	FGridCanonicalWeightTestWorld World({}, [StoneId](UGridItemSystemAsset& Root)
+	{
+		auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Stone->ItemId = StoneId;
+		Stone->DisplayName = FText::FromName(StoneId);
+		Stone->WeightKg = 1.0f;
+		Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+		Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Stone->MaxStack = 10;
+		Stone->GenericThrow.InitialSpeed = 800.0f;
+		Root.ItemDefinitions.Add(Stone);
+	});
+	if (!TestNotNull(TEXT("Canonical stone registry"), World.Scope.Registry)) return false;
+	auto* Party = World.World->SpawnActor<AGrimrockPartyPawn>();
+	if (!TestNotNull(TEXT("Party pawn"), Party)) return false;
+	auto* Inventory = Party->PartyInventoryComponent.Get();
+	if (!TestNotNull(TEXT("Party inventory"), Inventory)) return false;
+	Inventory->InitializeDefaultPartyIfNeeded();
+	auto* Widget = CreateWidget<UGridInventoryWidget>(World.World, UGridInventoryWidget::StaticClass());
+	if (!TestNotNull(TEXT("Inventory widget"), Widget)) return false;
+	Widget->InitializeInventoryWidget(Party);
+
+	FGridItemInstance Stone;
+	Stone.RuntimeObjectId = FGuid::NewGuid();
+	Stone.ItemDefinitionId = StoneId;
+	Stone.Quantity = 4;
+	if (!TestTrue(TEXT("The canonical stack enters inventory"), Inventory->AddItemToCharacterInventory(0, Stone))) return false;
+	const FGridPhysicalThrowPreflightReadView Preflight =
+		FGridPhysicalThrowPreflightReadModel::Resolve(World.Scope.Registry, nullptr, Stone, 10);
+	TestTrue(TEXT("The registered non-armament stone passes the generic physical throw preflight"),
+		Preflight.bRegisteredIdentity && Preflight.bCanThrow);
+	TestEqual(TEXT("The generic launch speed is authored independently"), Preflight.Ballistics.InitialSpeed, 800.0f);
+
+	const FGridPartyInventoryState Before = Inventory->PartyInventoryState;
+	TArray<FGridItemContextAction> Actions;
+	FGridFacingTargetContext FacingTarget;
+	TestTrue(TEXT("The stone context actions build"), Widget->BuildContextActionsForSlot(
+		EGridInventoryUiSlotType::Inventory, 0, FacingTarget, Actions));
+	TestNull(TEXT("The current canonical context omits AddToHotbar"), FindAddToHotbarAction(Actions));
+	TestFalse(TEXT("The canonical inventory also refuses direct binding"),
+		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 4, Stone, EGridEquipmentSlot::None));
+	TestTrue(TEXT("The bind refusal preserves the stack, ownership and every shortcut"),
+		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(&Before, &Inventory->PartyInventoryState, 0));
+	return !HasAnyErrors();
 }
 
 #endif

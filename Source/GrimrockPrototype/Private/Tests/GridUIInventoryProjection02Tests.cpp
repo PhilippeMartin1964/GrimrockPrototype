@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
 
 #include "Components/UniformGridPanel.h"
 #include "Engine/Engine.h"
@@ -15,46 +17,6 @@
 
 namespace GridUIInventoryProjection02Private
 {
-	struct FInventoryProjectionTestWorld
-	{
-		UWorld* World = nullptr;
-
-		FInventoryProjectionTestWorld()
-		{
-			const UWorld::InitializationValues Values = UWorld::InitializationValues()
-				.AllowAudioPlayback(false)
-				.RequiresHitProxies(false)
-				.CreatePhysicsScene(false)
-				.CreateNavigation(false)
-				.CreateAISystem(false)
-				.ShouldSimulatePhysics(false)
-				.SetTransactional(false);
-
-			World = UWorld::CreateWorld(EWorldType::Game, false,
-				FName(*FString::Printf(TEXT("InventoryProjection02_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits))), nullptr, true,
-				ERHIFeatureLevel::Num, &Values);
-			if (World && GEngine)
-			{
-				FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
-				Context.SetCurrentWorld(World);
-			}
-		}
-
-		~FInventoryProjectionTestWorld()
-		{
-			if (!World)
-			{
-				return;
-			}
-
-			World->DestroyWorld(false);
-			if (GEngine)
-			{
-				GEngine->DestroyWorldContext(World);
-			}
-		}
-	};
-
 	void ExpectProjection(FAutomationTestBase& Test, UGridInventoryWidget* Widget, const TArray<int32>& Expected, const TCHAR* Label)
 	{
 		TArray<int32> Actual;
@@ -175,7 +137,17 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	const FName PotionId(TEXT("FixedCapacityPotion"));
+	FGridCanonicalWeightTestWorld World({}, [PotionId](UGridItemSystemAsset& Root)
+	{
+		auto* Potion = NewObject<UGridConsumableDefinitionAsset>(&Root);
+		Potion->ItemId = PotionId;
+		Potion->DisplayName = FText::FromString(TEXT("Potion"));
+		Potion->Tags.Add(GridInventoryCategoryTags::Potion());
+		Potion->WeightKg = 0.5f;
+		Root.ItemDefinitions.Add(Potion);
+	});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
 	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
 	if (!TestNotNull(TEXT("Party inventory exists"), Inventory) || !TestNotNull(TEXT("Inventory widget exists"), Widget))
 	{
@@ -187,16 +159,9 @@ bool FGridUIInventory021FixedCapacityTest::RunTest(const FString& Parameters)
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.InventorySlots.SetNum(40);
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-	Definition->ItemDefinitionId = TEXT("FixedCapacityPotion");
-	Definition->DisplayName = FText::FromString(TEXT("Potion"));
-	Definition->ItemType = EGridItemType::Potion;
-	Definition->Weight = 0.5f;
-	Inventory->RegisterItemDefinition(Definition);
-
 	Character.InventorySlots[17].bOccupied = true;
 	Character.InventorySlots[17].Item.RuntimeObjectId = FGuid::NewGuid();
-	Character.InventorySlots[17].Item.ItemDefinitionId = Definition->ItemDefinitionId;
+	Character.InventorySlots[17].Item.ItemDefinitionId = PotionId;
 	Character.InventorySlots[17].Item.Quantity = 1;
 
 	Widget->InventoryComponent = Inventory;
@@ -225,31 +190,24 @@ bool FGridUIInventory029InPlaceProjectionTest::RunTest(const FString& Parameters
 	(void)Parameters;
 	using namespace GridUIInventoryProjection02Private;
 
-	FInventoryProjectionTestWorld TestWorld;
-	if (!TestNotNull(TEXT("Transient world exists"), TestWorld.World))
+	FGridCanonicalWeightTestWorld TestWorld({}, [](UGridItemSystemAsset& Root)
 	{
-		return false;
-	}
-
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>(TestWorld.World);
+		for (const TCHAR* Name : {TEXT("Alpha"), TEXT("Zulu")})
+		{
+			auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			Definition->ItemId = FName(*FString::Printf(TEXT("Projection%s"), Name));
+			Definition->DisplayName = FText::FromString(Name);
+			Definition->WeightKg = 1.0f;
+			Root.ItemDefinitions.Add(Definition);
+		}
+	});
+	UGridPartyInventoryComponent* Inventory = TestWorld.MakeInventory();
+	if (!TestNotNull(TEXT("Inventory with registered entries"), Inventory)) return false;
 	Inventory->InventoryColumnCount = 4;
 	Inventory->PartyInventoryState.ActiveCharacters.SetNum(1);
 	Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.InventorySlots.SetNum(8);
-
-	auto RegisterDefinition = [Inventory](FName Id, const TCHAR* DisplayName)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromString(DisplayName);
-		Definition->ItemType = EGridItemType::Misc;
-		Definition->Weight = 1.0f;
-		Inventory->RegisterItemDefinition(Definition);
-	};
-
-	RegisterDefinition(TEXT("ProjectionAlpha"), TEXT("Alpha"));
-	RegisterDefinition(TEXT("ProjectionZulu"), TEXT("Zulu"));
 
 	Character.InventorySlots[1].bOccupied = true;
 	Character.InventorySlots[1].Item.RuntimeObjectId = FGuid::NewGuid();

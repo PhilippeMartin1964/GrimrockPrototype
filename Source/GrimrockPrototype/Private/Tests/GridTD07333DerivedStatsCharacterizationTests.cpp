@@ -6,14 +6,15 @@
 #include "Misc/Paths.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace GridTD07333Characterization
 {
-	UGridPartyInventoryComponent* MakeParty()
+	UGridPartyInventoryComponent* MakeParty(const FGridCanonicalWeightTestWorld& World)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+		if (!Inventory) return nullptr;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = 6;
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
@@ -50,31 +51,35 @@ namespace GridTD07333Characterization
 		return Inventory;
 	}
 
-	UGridItemDefinitionAsset* EquipProjectionItem(UGridPartyInventoryComponent* Inventory)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = TEXT("TD07333_ProjectionAmulet");
-		Definition->DisplayName = FText::FromString(TEXT("Projection Amulet"));
-		Definition->ItemType = EGridItemType::Jewelry;
-		Definition->Weight = 1.0f;
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Amulet);
-		Definition->EquipmentStatBonus.DexterityBonus = 4;
-		Definition->EquipmentStatBonus.MaxHealthBonus = 10;
-		Definition->EquipmentStatBonus.MaxManaBonus = 6;
-		Definition->EquipmentStatBonus.ArmorBonus = 5;
-		Inventory->RegisterItemDefinition(Definition);
+	const FName ProjectionItemId(TEXT("TD07333_ProjectionAmulet"));
 
+	void DefineProjectionItem(UGridItemSystemAsset& Root, int32 MagicalArmor)
+	{
+		auto* Definition = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Definition->ItemId = ProjectionItemId;
+		Definition->DisplayName = FText::FromString(TEXT("Projection Amulet"));
+		Definition->WeightKg = 1.0f;
+		Definition->EquipmentSlots.Add(EGridEquipmentSlot::Amulet);
+		Definition->Bonuses.DexterityBonus = 4;
+		Definition->Bonuses.MaxHealthBonus = 10;
+		Definition->Bonuses.MaxManaBonus = 6;
+		Definition->Bonuses.ArmorBonus = 5;
+		Definition->Bonuses.MagicalArmorBonus = MagicalArmor;
+		Root.ItemDefinitions.Add(Definition);
+	}
+
+	void EquipProjectionItem(UGridPartyInventoryComponent* Inventory)
+	{
 		FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid(7, 3, 3, 32);
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = ProjectionItemId;
 		Item.Quantity = 1;
 		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 		Item.OwnerGuid = Character.CharacterId;
 		Item.OwnerCharacterIndex = 0;
 		Item.EquipmentSlot = EGridEquipmentSlot::Amulet;
 		Inventory->PartyInventoryState.ActiveEquipment[0].Amulet = Item;
-		return Definition;
 	}
 
 	bool LoadProjectSource(const TCHAR* RelativePath, FString& OutText)
@@ -91,7 +96,9 @@ bool FGridTD07333EquipmentProjectionContractTest::RunTest(const FString& Paramet
 	(void)Parameters;
 	using namespace GridTD07333Characterization;
 
-	UGridPartyInventoryComponent* Inventory = MakeParty();
+	FGridCanonicalWeightTestWorld World({}, [](UGridItemSystemAsset& Root) { DefineProjectionItem(Root, 0); });
+	UGridPartyInventoryComponent* Inventory = MakeParty(World);
+	if (!TestNotNull(TEXT("Inventory with registered amulet"), Inventory)) return false;
 	EquipProjectionItem(Inventory);
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 
@@ -128,7 +135,9 @@ bool FGridTD07333ResourceRemovalProjectionTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	using namespace GridTD07333Characterization;
 
-	UGridPartyInventoryComponent* Inventory = MakeParty();
+	FGridCanonicalWeightTestWorld World({}, [](UGridItemSystemAsset& Root) { DefineProjectionItem(Root, 0); });
+	UGridPartyInventoryComponent* Inventory = MakeParty(World);
+	if (!TestNotNull(TEXT("Inventory with registered amulet"), Inventory)) return false;
 	EquipProjectionItem(Inventory);
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 
@@ -190,9 +199,10 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 
 	// Behavioral regression: source formatting and method signatures may evolve,
 	// but equipment reserves must remain independent of base resources.
-	UGridPartyInventoryComponent* Inventory = MakeParty();
-	UGridItemDefinitionAsset* Equipped = EquipProjectionItem(Inventory);
-	Equipped->EquipmentStatBonus.MagicalArmorBonus = 4;
+	FGridCanonicalWeightTestWorld World({}, [](UGridItemSystemAsset& Root) { DefineProjectionItem(Root, 4); });
+	UGridPartyInventoryComponent* Inventory = MakeParty(World);
+	if (!TestNotNull(TEXT("Inventory with registered amulet"), Inventory)) return false;
+	EquipProjectionItem(Inventory);
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	FGridItemInstance& Amulet = Inventory->PartyInventoryState.ActiveEquipment[0].Amulet;
 	TestEqual(TEXT("Magic pool includes base one plus equipped four"),

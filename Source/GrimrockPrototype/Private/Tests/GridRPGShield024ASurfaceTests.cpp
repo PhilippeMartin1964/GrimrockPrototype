@@ -10,7 +10,7 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -263,20 +263,22 @@ bool FGridShield024AMagicalEquipmentSurfaceTest::RunTest(const FString&)
 	if (!TestTrue(TEXT("Surface runtime with no physical shield"), Fixture.Initialize(2, 3, false)))
 		return false;
 
-	UGridItemDefinitionAsset* Focus = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
-	Focus->ItemDefinitionId = TEXT("SHIELD024A_TestMagicFocus");
-	Focus->DisplayName = FText::FromString(TEXT("Magic Focus"));
-	Focus->ItemType = EGridItemType::Weapon;
-	Focus->HandUsage = EGridItemHandUsage::NotHandHeld;
-	Focus->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::OffHand);
-	Focus->EquipmentStatBonus.MagicalArmorBonus = 5;
+	const FName FocusId(TEXT("SHIELD024A_TestMagicFocus"));
+	FGridCanonicalLootTestScope Registry;
 	if (!TestTrue(TEXT("Register independent magic focus definition"),
-		Fixture.Inventory->RegisterItemDefinition(Focus)))
-		return false;
+		Registry.AttachWithWeights(Fixture.TestWorld.World, {}, [FocusId](UGridItemSystemAsset& Root)
+		{
+			auto* Focus = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Focus->ItemId = FocusId;
+			Focus->DisplayName = FText::FromString(TEXT("Magic Focus"));
+			Focus->EquipmentSlots.Add(EGridEquipmentSlot::OffHand);
+			Focus->Bonuses.MagicalArmorBonus = 5;
+			Root.ItemDefinitions.Add(Focus);
+		}))) return false;
 
 	FGridItemInstance FocusItem;
 	FocusItem.RuntimeObjectId = FGuid::NewGuid();
-	FocusItem.ItemDefinitionId = Focus->ItemDefinitionId;
+	FocusItem.ItemDefinitionId = FocusId;
 	FocusItem.Quantity = 1;
 	FocusItem.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	FocusItem.OwnerCharacterIndex = 0;

@@ -111,6 +111,24 @@ namespace
 		return Entry;
 	}
 
+	bool AttachDetailedQuickItem(FGridCanonicalLootTestScope& Registry, UWorld* World,
+		FName ItemId, const FGridCombatActionDefinition& Definition)
+	{
+		return Registry.AttachWithWeights(World, {}, [&](UGridItemSystemAsset& Root)
+		{
+			Root.ActionCatalogue = DuplicateObject<UGridActionCatalogueAsset>(Root.ActionCatalogue, &Root);
+			Root.ActionCatalogue->DetailedActions.AddDefaulted_GetRef().Definition = Definition;
+			auto* Item = NewObject<UGridConsumableDefinitionAsset>(&Root);
+			Item->ItemId = ItemId;
+			Item->DisplayName = Definition.DisplayName;
+			Item->MaxStack = 10;
+			FGridItemActionBinding& Binding = Item->UseActions.AddDefaulted_GetRef();
+			Binding.ActionId = Definition.ActionId;
+			Binding.PresentationId = Root.ActionPresentationCatalogue->Presentations[0].PresentationId;
+			Root.ItemDefinitions.Add(Item);
+		});
+	}
+
 	FGridCombatActionDefinition MakeMON1285DirectSpell()
 	{
 		FGridCombatActionDefinition Spell;
@@ -757,27 +775,25 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	Character.Resources.CurrentHealth = 5;
 	Character.Resources.CurrentMana = 4;
 
-	UGridItemDefinitionAsset* PotionDefinition = NewObject<UGridItemDefinitionAsset>(Fixture.Party);
-	PotionDefinition->ItemDefinitionId = TEXT("Potion_MON1284_Health");
-	PotionDefinition->DisplayName = FText::FromString(TEXT("Potion de soins MON12.8.4"));
-	PotionDefinition->ItemType = EGridItemType::Potion;
-	PotionDefinition->bStackable = true;
-	PotionDefinition->MaxStackSize = 10;
-	PotionDefinition->bProvidesQuickItemCombatAction = true;
-	PotionDefinition->QuickItemCombatAction.ActionType = EGridCombatActionType::Ability;
-	PotionDefinition->QuickItemCombatAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
-	PotionDefinition->QuickItemCombatAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-	PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
-	PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 7;
-	PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreMana = 3;
-	if (!TestTrue(TEXT("The combat potion definition is registered"), Inventory->RegisterItemDefinition(PotionDefinition)))
-	{
-		return false;
-	}
+	const FName PotionId(TEXT("Potion_MON1284_Health"));
+	FGridCombatActionDefinition PotionAction;
+	PotionAction.ActionId = TEXT("Use_Potion_MON1284_Health");
+	PotionAction.DisplayName = FText::FromString(TEXT("Potion de soins MON12.8.4"));
+	PotionAction.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+	PotionAction.ResourceCosts.SourceItemQuantityCost = 1;
+	PotionAction.ActionType = EGridCombatActionType::Ability;
+	PotionAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+	PotionAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
+	PotionAction.ActionPointCost = 1;
+	PotionAction.EffectProfile.RestoreHealth = 7;
+	PotionAction.EffectProfile.RestoreMana = 3;
+	FGridCanonicalLootTestScope Registry;
+	if (!TestTrue(TEXT("Detailed combat potion registers in the isolated ItemSystem"),
+		AttachDetailedQuickItem(Registry, Fixture.TestWorld.World, PotionId, PotionAction))) return false;
 
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid(12, 8, 4, 1);
-	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+	Potion.ItemDefinitionId = PotionId;
 	Potion.Quantity = 2;
 	TestTrue(TEXT("Two potion units enter the inventory"), Inventory->AddItemToCharacterInventory(0, Potion));
 	TestTrue(TEXT("The potion configures shortcut two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
@@ -792,7 +808,7 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The potion restores seven health"), Character.Resources.CurrentHealth, 12);
 	TestEqual(TEXT("The same potion restores three mana"), Character.Resources.CurrentMana, 7);
 	TestEqual(TEXT("The potion spends one action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
-	TestEqual(TEXT("Exactly one potion remains"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
+	TestEqual(TEXT("Exactly one potion remains"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionId), 1);
 	TestEqual(TEXT("The result records the consumed unit"), FirstUse.QuickItemResult.SourceQuantityAfter, 1);
 	FGridCombatHotbarBinding RemainingPotionBinding;
 	TestTrue(TEXT("The partially consumed shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, RemainingPotionBinding));
@@ -808,14 +824,14 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 		EGridCombatActionAvailabilityReason::NoApplicableEffect);
 	FGridCombatActionRequestResult RefusedUse;
 	TestFalse(TEXT("The useless potion request is rejected"), Fixture.Hud->RequestHotbarSlot(1, RefusedUse));
-	TestEqual(TEXT("A refused potion consumes no unit"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
+	TestEqual(TEXT("A refused potion consumes no unit"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionId), 1);
 	TestEqual(TEXT("A refused potion consumes no action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	TestTrue(TEXT("A refused potion keeps its shortcut"), Fixture.Hud->View.Actions[1].bHasBinding);
 
 	Character.Resources.CurrentHealth = 10;
 	FGridCombatActionRequestResult LastUse;
 	TestTrue(TEXT("The last potion unit can be consumed"), Fixture.Hud->RequestHotbarSlot(1, LastUse));
-	TestEqual(TEXT("The inventory quantity reaches zero"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 0);
+	TestEqual(TEXT("The inventory quantity reaches zero"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionId), 0);
 	FGridCombatHotbarBinding PersistentBinding;
 	TestTrue(TEXT("The exhausted shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, PersistentBinding));
 	TestTrue(TEXT("The last potion clears its shortcut"), PersistentBinding.IsEmpty());
@@ -1304,6 +1320,25 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameter
 	FGridCanonicalLootTestScope Scope;
 	if (!TestTrue(TEXT("Registered projectile authority is attached"), Scope.Attach(Fixture.TestWorld.World)))
 		return false;
+
+
+	// A saved physical row and the historical binding can survive a reload,
+	// but neither makes an unknown item a registered action source.
+	TestFalse(TEXT("The physical row's ID is absent from the canonical registry"),
+		Scope.Registry->ContainsItem(Shuriken.ItemDefinitionId));
+	FGridPlayerCharacterTurnState BeforeRefusal;
+	if (!TestTrue(TEXT("Turn state before refusal"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, BeforeRefusal))) return false;
+	const FGridPartyInventoryState BeforeUnknown = Inventory->PartyInventoryState;
+	TestFalse(TEXT("Unknown source cannot bind through the canonical inventory"),
+		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 7, Shuriken, EGridEquipmentSlot::None));
+	TestNull(TEXT("Unknown source cannot launch in a game with a configured registry"),
+		Fixture.Party->TryLaunchInventoryItemForAttack(0, Shuriken.ItemDefinitionId, Target, Cell));
+	TestTrue(TEXT("Refusal preserves quantities, GUIDs, ownership and bindings"),
+		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+			&BeforeUnknown, &Inventory->PartyInventoryState, 0));
+	FGridPlayerCharacterTurnState AfterRefusal;
+	TestTrue(TEXT("Turn state after refusal"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, AfterRefusal));
+	TestEqual(TEXT("Canonical refusal consumes no AP"), AfterRefusal.RemainingActionPoints, BeforeRefusal.RemainingActionPoints);
 
 	const FName KnifeId(TEXT("Weapon_ThrowingKnife_01"));
 	FGridResolvedItem Knife;

@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
 
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -10,9 +11,10 @@
 
 namespace
 {
-	UGridPartyInventoryComponent* MakeInventory()
+	UGridPartyInventoryComponent* MakeInventory(const FGridCanonicalWeightTestWorld* World = nullptr)
 	{
-		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+		UGridPartyInventoryComponent* Inventory = World ? World->MakeInventory() : NewObject<UGridPartyInventoryComponent>();
+		if (!Inventory) return nullptr;
 
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
@@ -36,6 +38,17 @@ namespace
 		Definition->Weight = 1.5f;
 		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Belt);
 		return Definition;
+	}
+
+	UGridOtherEquipmentDefinitionAsset* DefineBelt(UGridItemSystemAsset& Root, FName Id, const TCHAR* Name)
+	{
+		auto* Belt = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Belt->ItemId = Id;
+		Belt->DisplayName = FText::FromString(Name);
+		Belt->WeightKg = 1.5f;
+		Belt->EquipmentSlots.Add(EGridEquipmentSlot::Belt);
+		Root.ItemDefinitions.Add(Belt);
+		return Belt;
 	}
 
 	const FGridItemTooltipStatLine* FindLine(const TArray<FGridItemTooltipStatLine>& Lines, FName StatId)
@@ -135,11 +148,14 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
-
-	UGridItemDefinitionAsset* CandidateDefinition = MakeBeltDefinition(TEXT("Item_EmptyCompareBelt"), TEXT("Ceinture sans référence"));
-	CandidateDefinition->EquipmentStatBonus.StrengthBonus = 2;
-	TestTrue(TEXT("Candidate definition registers"), Inventory->RegisterItemDefinition(CandidateDefinition));
+	const FName CandidateDefinitionId(TEXT("Item_EmptyCompareBelt"));
+	FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+	{
+		auto* CandidateDefinition = DefineBelt(Root, CandidateDefinitionId, TEXT("Ceinture sans référence"));
+		CandidateDefinition->Bonuses.StrengthBonus = 2;
+	});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(&World);
+	if (!TestNotNull(TEXT("Inventory with registered belts"), Inventory)) return false;
 
 	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
 	OwnerWidget->InventoryComponent = Inventory;
@@ -150,7 +166,7 @@ bool FGridUIItem01EmptyEquipmentComparisonTest::RunTest(const FString& Parameter
 
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
-	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
+	Candidate.ItemDefinitionId = CandidateDefinitionId;
 	Candidate.Quantity = 1;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
@@ -189,23 +205,25 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
-
-	UGridItemDefinitionAsset* EquippedDefinition = MakeBeltDefinition(TEXT("Item_OldBelt"), TEXT("Ancienne ceinture"));
-	EquippedDefinition->EquipmentStatBonus.StrengthBonus = 1;
-	EquippedDefinition->EquipmentStatBonus.ArmorBonus = 2;
-	EquippedDefinition->EquipmentResistanceBonus.FireResistance = 5;
-	TestTrue(TEXT("Equipped definition registers"), Inventory->RegisterItemDefinition(EquippedDefinition));
-
-	UGridItemDefinitionAsset* CandidateDefinition = MakeBeltDefinition(TEXT("Item_NewBelt"), TEXT("Nouvelle ceinture"));
-	CandidateDefinition->EquipmentStatBonus.StrengthBonus = 3;
-	CandidateDefinition->EquipmentStatBonus.ArmorBonus = 1;
-	CandidateDefinition->EquipmentResistanceBonus.FireResistance = 8;
-	TestTrue(TEXT("Candidate definition registers"), Inventory->RegisterItemDefinition(CandidateDefinition));
+	const FName EquippedDefinitionId(TEXT("Item_OldBelt"));
+	const FName CandidateDefinitionId(TEXT("Item_NewBelt"));
+	FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+	{
+		auto* EquippedDefinition = DefineBelt(Root, EquippedDefinitionId, TEXT("Ancienne ceinture"));
+		auto* CandidateDefinition = DefineBelt(Root, CandidateDefinitionId, TEXT("Nouvelle ceinture"));
+		EquippedDefinition->Bonuses.StrengthBonus = 1;
+		EquippedDefinition->Bonuses.ArmorBonus = 2;
+		EquippedDefinition->Resistances.FireResistance = 5;
+		CandidateDefinition->Bonuses.StrengthBonus = 3;
+		CandidateDefinition->Bonuses.ArmorBonus = 1;
+		CandidateDefinition->Resistances.FireResistance = 8;
+	});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(&World);
+	if (!TestNotNull(TEXT("Inventory with registered belts"), Inventory)) return false;
 
 	FGridItemInstance Equipped;
 	Equipped.RuntimeObjectId = FGuid::NewGuid();
-	Equipped.ItemDefinitionId = EquippedDefinition->ItemDefinitionId;
+	Equipped.ItemDefinitionId = EquippedDefinitionId;
 	Equipped.Quantity = 1;
 	Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Equipped.OwnerCharacterIndex = 0;
@@ -221,7 +239,7 @@ bool FGridUIItem01EquipmentComparisonTest::RunTest(const FString& Parameters)
 
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
-	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
+	Candidate.ItemDefinitionId = CandidateDefinitionId;
 	Candidate.Quantity = 1;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Candidate.OwnerCharacterIndex = 0;
@@ -272,27 +290,33 @@ bool FGridUIItem01Icon01StatIdentifiersTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
-	UGridItemDefinitionAsset* Definition = MakeBeltDefinition(TEXT("Item_AllTooltipStats"), TEXT("All stats belt"));
-	Definition->EquipmentStatBonus.StrengthBonus = 1;
-	Definition->EquipmentStatBonus.DexterityBonus = 2;
-	Definition->EquipmentStatBonus.ConstitutionBonus = 3;
-	Definition->EquipmentStatBonus.IntelligenceBonus = 4;
-	Definition->EquipmentStatBonus.WisdomBonus = 5;
-	Definition->EquipmentStatBonus.CharismaBonus = 6;
-	Definition->EquipmentStatBonus.MaxHealthBonus = 7;
-	Definition->EquipmentStatBonus.MaxManaBonus = 8;
-	Definition->EquipmentStatBonus.CarryWeightBonus = 9.5f;
-	Definition->EquipmentStatBonus.ArmorBonus = 10;
-	Definition->EquipmentResistanceBonus.PhysicalResistance = 11;
-	Definition->EquipmentResistanceBonus.FireResistance = 12;
-	Definition->EquipmentResistanceBonus.IceResistance = 13;
-	Definition->EquipmentResistanceBonus.LightningResistance = 14;
-	Definition->EquipmentResistanceBonus.PoisonResistance = 15;
-	Definition->EquipmentResistanceBonus.HolyResistance = 16;
-	Definition->EquipmentResistanceBonus.NecroticResistance = 17;
-	Definition->EquipmentResistanceBonus.ArcaneResistance = 18;
-	TestTrue(TEXT("All-stats definition registers"), Inventory->RegisterItemDefinition(Definition));
+	const FName DefinitionId(TEXT("Item_AllTooltipStats"));
+	const FName PlainDefinitionId(TEXT("Item_PlainTooltipBelt"));
+	FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+	{
+		auto* Definition = DefineBelt(Root, DefinitionId, TEXT("All stats belt"));
+		DefineBelt(Root, PlainDefinitionId, TEXT("Plain belt"));
+		Definition->Bonuses.StrengthBonus = 1;
+		Definition->Bonuses.DexterityBonus = 2;
+		Definition->Bonuses.ConstitutionBonus = 3;
+		Definition->Bonuses.IntelligenceBonus = 4;
+		Definition->Bonuses.WisdomBonus = 5;
+		Definition->Bonuses.CharismaBonus = 6;
+		Definition->Bonuses.MaxHealthBonus = 7;
+		Definition->Bonuses.MaxManaBonus = 8;
+		Definition->Bonuses.CarryWeightBonus = 9.5f;
+		Definition->Bonuses.ArmorBonus = 10;
+		Definition->Resistances.PhysicalResistance = 11;
+		Definition->Resistances.FireResistance = 12;
+		Definition->Resistances.IceResistance = 13;
+		Definition->Resistances.LightningResistance = 14;
+		Definition->Resistances.PoisonResistance = 15;
+		Definition->Resistances.HolyResistance = 16;
+		Definition->Resistances.NecroticResistance = 17;
+		Definition->Resistances.ArcaneResistance = 18;
+	});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(&World);
+	if (!TestNotNull(TEXT("Inventory with registered belts"), Inventory)) return false;
 
 	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
 	OwnerWidget->InventoryComponent = Inventory;
@@ -302,7 +326,7 @@ bool FGridUIItem01Icon01StatIdentifiersTest::RunTest(const FString& Parameters)
 
 	FGridItemInstance Item;
 	Item.RuntimeObjectId = FGuid::NewGuid();
-	Item.ItemDefinitionId = Definition->ItemDefinitionId;
+	Item.ItemDefinitionId = DefinitionId;
 	Item.Quantity = 1;
 	Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Item.OwnerCharacterIndex = 0;
@@ -343,11 +367,9 @@ bool FGridUIItem01Icon01StatIdentifiersTest::RunTest(const FString& Parameters)
 	Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Item.EquipmentSlot = EGridEquipmentSlot::Belt;
 	Inventory->PartyInventoryState.ActiveEquipment[0].Belt = Item;
-	UGridItemDefinitionAsset* PlainDefinition = MakeBeltDefinition(TEXT("Item_PlainTooltipBelt"), TEXT("Plain belt"));
-	TestTrue(TEXT("Plain definition registers"), Inventory->RegisterItemDefinition(PlainDefinition));
 	FGridItemInstance PlainItem = Item;
 	PlainItem.RuntimeObjectId = FGuid::NewGuid();
-	PlainItem.ItemDefinitionId = PlainDefinition->ItemDefinitionId;
+	PlainItem.ItemDefinitionId = PlainDefinitionId;
 	PlainItem.OwnerType = EGridItemOwnerType::CharacterInventory;
 	PlainItem.EquipmentSlot = EGridEquipmentSlot::None;
 	SlotWidget->SetItem(PlainItem);

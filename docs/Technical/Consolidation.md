@@ -249,6 +249,35 @@ D08 passe de 154 à 146 fichiers consommateurs selon le comptage D.3, dont 55 Ru
 
 **Validation locale.** Development Editor et Shipping réussis. Les 236 tests ciblés et les 2 065 scénarios Grimrock passent, dont les huit B.1. Aucun résultat ni compte d’avertissements ne diffère de D.7. Les 70 Blueprints compilent, les 53 assets et leurs chemins sont vérifiés, les sept copies v27 chargent et passent le round-trip. Empreintes SHA-256 des copies, originaux et deux Readables inchangées. Build/Cook/Stage/Package/Archive réussis. L’archive conserve les 2 112 chemins cuisinés, 53 redirections d’objet et 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D8/.
 
+### CLEANUP04-D.9 — fixtures d’inventaire et divergence HOTBAR_CONTEXT01
+
+Référence ed65ad97799d61fa8e9c9e5e40bc56ccb7f45049. Quinze scénarios existants migrent vers le registre. Le test MON12 du projectile inconnu reçoit des assertions canoniques supplémentaires et un nouveau scénario caractérise la pierre canonique. Aucun scénario précédent n’est retiré. Les conversions préservent les valeurs indépendantes de lumière et de poids, les bonus et résistances, l’ordre des comparaisons, les capacités du sac, les GUID et les règles de raccourci. La potion MON12 utilise un catalogue transitoire d’actions détaillées avec +7 PV, +3 mana, 1 PA et une unité consommée. Les tests MON12.8.9 et MON12.8.2 utilisent l’épée N1 et la potion de production pour les contrats de liaison et d’épuisement.
+
+RegisterItemDefinition passe de 29 à 14 appels et de 13 à 8 fichiers de tests. La carte RuntimeItemDefinitionsById, la lecture FindItemDefinition, l’enregistrement et leur garde restent requis dans les fixtures sans GameInstance. ApplyItemDefinitionToInstance reste BlueprintCallable, avec les restrictions D.8. Trois collisions de classes inchangées. D08 passe de 146 à 142 fichiers (55 Runtime, 3 Editor, 84 tests). D09 reste à 3 et D10 à 4.
+
+| Fichier de tests | Appels restants | Couverture maintenue |
+| --- | ---: | --- |
+| GridHotbarContext01Tests.cpp | 2 | HOTBAR_CONTEXT01.InventoryContextAction : affectation, doublons, barre pleine et clé incompatible |
+| GridTD062PartyInventoryHotbarTests.cpp | 1 | PartyInventoryHotbar.Contract : lancer générique, liaison et épuisement |
+| GridMonsterMON11EquipmentTests.cpp | 1 | Fixture Equip partagée par EquippedWeaponMapping, HandPriorityAndFallback, RangedWeaponTargeting et ElementalOffensiveEquipment |
+| GridMonsterMON12CombatActionPanelTests.cpp | 2 | Fixture partagée par CombatActionPanel et ActionCatalog, shuriken offensif et torche témoin |
+| GridMonsterMON12CombatHudTests.cpp | 4 | Épée de la fixture HUD, ScrollAttackConsumption, InventoryThrowable, transactions d’action |
+| GridUIFilter01Tests.cpp | 1 | Filter01.GridProjection : catégorie Book et regroupement |
+| GridUIInventoryProjection02Tests.cpp | 1 | Inventory02.SortingProjection : ordre historique Torch, Weapon, Potion et Book |
+| GridUIItem01Tests.cpp | 2 | Item01.TooltipProjection : type Bijou, lecture et projection historique |
+
+MON12 distingue la ligne physique, l’action ancienne et le projectile. Le scénario InventoryThrowable maintient la résolution du raccourci historique, puis vérifie sous GameInstance que le registre ne connaît pas l’ID, que l’affectation et le lancement sont refusés, et que le roster, ses bindings et les PA restent intacts. La partie couteau N7 continue de vérifier la source enregistrée. La tentative de migration de ScrollAttackConsumption a atteint le rejet InvalidOffensiveEquipment dans le chemin d’attaque canonique, sans coût ni consommation. Le scénario de succès du parchemin conserve ses assertions et sa fixture. Les cas MON11 et les fixtures partagées MON12 nécessitent des profils offensifs isolés reproduisant leurs contrats avant remplacement. Les catégories historiques de tri et le libellé Bijou nécessitent une projection canonique équivalente pour préserver les assertions restantes.
+
+#### Contrat de raccourci d’une pierre
+
+HOTBAR_CONTEXT01 et HOTBAR01 s’accordent sur un lancer utilitaire de type QuickItem, nommé ThrowItem_<ItemDefinitionId>, avec compteur agrégé et retrait du raccourci à épuisement. Le nouveau test CanonicalStoneDivergence prouve qu’une pierre N0 de 1 kg, à 800 cm/s et Force 10, passe FGridPhysicalThrowPreflightReadModel, mais que le menu omet Ajouter à la barre et que le binding direct échoue sans mutation de l’inventaire. Le test historique maintient les assertions d’affectation des quatre unités, de doublon, de barre pleine et de clé incompatible.
+
+- FGridItemInteractionReadModel donne bPhysicalThrowHotbar aux armements dont la politique spécialisée et la main sont compatibles. Une pierre enregistrée sans action d’usage échoue aussi au lecteur QuickItem. GridItemContextActionLibrary et l’exécution du menu s’appuient sur bCanAddToHotbar. GridPartyInventoryComponentHotbar.cpp répète la décision au moment de créer le binding depuis l’instance détenue.
+- Un binding existant est projeté par BuildPhysicalThrowInventoryAction dans GridCombatHudWidget.cpp. Le HUD agrège les quantités par ItemId, affiche le compteur et réapplique le filtre spécialisé avant le contrôle de Force. RequestHotbarSlot ouvre la visée via BeginSelectedCharacterInventoryItemThrowAiming. Le contrôleur confirme via TryThrowSelectedCharacterInventoryItem, qui relit l’instance, utilise le préflight générique et débite une unité après le spawn. En cas d’échec du débit, le projectile créé est détruit.
+- Restauration proposée, à décider séparément. Définir une éligibilité canonique partagée au lancer utilitaire, indépendante de l’attaque spécialisée et de la Force courante. Réutiliser le préflight générique pour l’activation et la confirmation de la visée. Appliquer la même éligibilité au menu, au binding direct et au HUD. Conserver le préfixe, les identités et le compteur du binding. Valider annulation, refus sans coût, pile 4 → 3 → 2 → 1, épuisement, clé, Force insuffisante, refus de spawn et compatibilité des armes spécialisées. Aucun correctif de gameplay dans ce lot.
+
+**Validation locale.** Development Editor et Shipping réussis, ainsi que les familles ciblées HOTBAR, MON12, équipement, lumière, UI, transfert et RPG. La suite Grimrock passe 2 066 scénarios, dont les huit B.1. Les 2 065 scénarios de D.8 gardent leurs résultats et comptes d’avertissements. Le nouveau test de la pierre passe sans avertissement. Les 70 Blueprints compilent, les 53 assets sont vérifiés et les sept copies SaveGame v27 passent le chargement et le round-trip. Les empreintes des originaux, des copies et des deux Readables sont inchangées. Build/Cook/Stage/Package/Archive réussis. L’archive conserve 2 112 chemins, 53 redirections d’objet et 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D9/.
+
 ## CLEANUP03 — audit C++ et préparation de CLEANUP04
 
 **Référence :** `176bb664116181ba91078f1067feddba94358f60`, `master`, 22 novembre 2026. CLEANUP01/02 et ARM-CLEAN06 sont clos. Audit uniquement ; CLEANUP04 n’est pas engagé. Les inventaires historiques plus bas restent datés et ne remplacent pas les chiffres suivants.

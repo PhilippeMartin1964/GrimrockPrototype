@@ -5,7 +5,7 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridCombatHudWidget.h"
@@ -323,29 +323,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON128QuickItemDropTest, "Grimrock.Monster
 bool FGridMON128QuickItemDropTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Component = CreateMON128Inventory();
+	FGridCanonicalWeightTestWorld World({});
+	UGridPartyInventoryComponent* Component = World.MakeInventory();
 	if (!Component)
 	{
 		return false;
 	}
 
-	UGridItemDefinitionAsset* PotionDefinition = NewObject<UGridItemDefinitionAsset>(Component);
-	PotionDefinition->ItemDefinitionId = TEXT("Potion_MON1282");
-	PotionDefinition->DisplayName = FText::FromString(TEXT("Potion de test"));
-	PotionDefinition->ItemType = EGridItemType::Potion;
-	PotionDefinition->bStackable = true;
-	PotionDefinition->MaxStackSize = 10;
-	PotionDefinition->bProvidesQuickItemCombatAction = true;
-	PotionDefinition->QuickItemCombatAction.ActionType = EGridCombatActionType::Ability;
-	PotionDefinition->QuickItemCombatAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
-	PotionDefinition->QuickItemCombatAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-	PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
-	PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 1;
-	TestTrue(TEXT("The potion definition is registered"), Component->RegisterItemDefinition(PotionDefinition));
+	Component->InitializeDefaultPartyIfNeeded();
+	const FName PotionId(TEXT("Item_Potion_Healing_01"));
 
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid::NewGuid();
-	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+	Potion.ItemDefinitionId = PotionId;
 	Potion.Quantity = 3;
 	Potion.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Potion.OwnerCharacterIndex = 0;
@@ -357,9 +347,9 @@ bool FGridMON128QuickItemDropTest::RunTest(const FString& Parameters)
 		TEXT("Dropping a potion creates a type-based shortcut"), Component->SetCharacterCombatHotbarBindingFromItem(0, 4, Potion, EGridEquipmentSlot::None));
 	FGridCombatHotbarBinding Binding;
 	Component->GetCharacterCombatHotbarBinding(0, 4, Binding);
-	TestEqual(TEXT("The quick-item action id is stable"), Binding.ActionId, FName(TEXT("Use_Potion_MON1282")));
+	TestEqual(TEXT("The quick-item action id is stable"), Binding.ActionId, FName(TEXT("Use_Item_Potion_Healing_01")));
 	TestTrue(TEXT("The binding uses quick-item policy"), Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem);
-	TestEqual(TEXT("The item definition identifies future stacks"), Binding.SourceDefinitionId, PotionDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The item definition identifies future stacks"), Binding.SourceDefinitionId, PotionId);
 	TestFalse(TEXT("A stack runtime id is deliberately not persisted"), Binding.PreferredSourceRuntimeId.IsValid());
 	TestTrue(TEXT("Creating the shortcut does not move the potion"), !InventorySlot.IsEmpty() && InventorySlot.Item.Quantity == 3);
 	return true;
@@ -405,40 +395,22 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289UniqueEquipmentBindingTest, "Grimro
 bool FGridMON1289UniqueEquipmentBindingTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Component = CreateMON128Inventory();
+	FGridCanonicalWeightTestWorld World({});
+	UGridPartyInventoryComponent* Component = World.MakeInventory();
 	if (!TestNotNull(TEXT("The inventory component is created"), Component))
 	{
 		return false;
 	}
 
-	UGridItemDefinitionAsset* WeaponDefinition = NewObject<UGridItemDefinitionAsset>(Component);
-	WeaponDefinition->ItemDefinitionId = TEXT("Sword_MON1289");
-	WeaponDefinition->DisplayName = FText::FromString(TEXT("Épée MON12.8.9"));
-	WeaponDefinition->ItemType = EGridItemType::Weapon;
-	WeaponDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	FGridCombatActionDefinition WeaponAction;
-	WeaponAction.ActionId = TEXT("Attack_Sword_MON1289");
-	WeaponAction.DisplayName = WeaponDefinition->DisplayName;
-	WeaponAction.ActionType = EGridCombatActionType::MeleeAttack;
-	WeaponAction.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-	WeaponAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-	WeaponAction.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-	WeaponAction.ActionPointCost = 2;
-	WeaponAction.RangeCells = 1;
-	WeaponAction.PresentationProfileId = WeaponAction.ActionId;
-	WeaponAction.OffensiveProfile.AttackId = WeaponAction.ActionId;
-	WeaponAction.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-	WeaponAction.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Slashing;
-	WeaponAction.OffensiveProfile.AttackDefinition.MinDamage = 1;
-	WeaponAction.OffensiveProfile.AttackDefinition.MaxDamage = 2;
-	WeaponAction.OffensiveProfile.RangeCells = 1;
-	WeaponDefinition->CombatActions.Add(WeaponAction);
-	TestTrue(TEXT("The weapon definition is registered"), Component->RegisterItemDefinition(WeaponDefinition));
+	Component->InitializeDefaultPartyIfNeeded();
+	const FName WeaponId(TEXT("Weapon_StraightSword_01"));
 
 	FGridItemInstance Weapon;
 	Weapon.RuntimeObjectId = FGuid::NewGuid();
-	Weapon.ItemDefinitionId = WeaponDefinition->ItemDefinitionId;
+	Weapon.ItemDefinitionId = WeaponId;
 	Weapon.Quantity = 1;
+	Weapon.ItemLevel = 1;
+	Weapon.OwnerGuid = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	Weapon.OwnerCharacterIndex = 0;
 	Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
@@ -471,29 +443,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON1289QuickItemBindingLifetimeTest, "Grim
 bool FGridMON1289QuickItemBindingLifetimeTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Component = CreateMON128Inventory();
+	FGridCanonicalWeightTestWorld World({});
+	UGridPartyInventoryComponent* Component = World.MakeInventory();
 	if (!TestNotNull(TEXT("The inventory component is created"), Component))
 	{
 		return false;
 	}
 
-	UGridItemDefinitionAsset* PotionDefinition = NewObject<UGridItemDefinitionAsset>(Component);
-	PotionDefinition->ItemDefinitionId = TEXT("Potion_MON1289");
-	PotionDefinition->DisplayName = FText::FromString(TEXT("Potion MON12.8.9"));
-	PotionDefinition->ItemType = EGridItemType::Potion;
-	PotionDefinition->bStackable = true;
-	PotionDefinition->MaxStackSize = 10;
-	PotionDefinition->bProvidesQuickItemCombatAction = true;
-	PotionDefinition->QuickItemCombatAction.ActionType = EGridCombatActionType::Ability;
-	PotionDefinition->QuickItemCombatAction.TargetingPolicy = EGridCombatTargetingPolicy::Self;
-	PotionDefinition->QuickItemCombatAction.ResolutionProfile = EGridCombatActionResolutionProfile::Effect;
-	PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
-	PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 1;
-	TestTrue(TEXT("The potion definition is registered"), Component->RegisterItemDefinition(PotionDefinition));
+	Component->InitializeDefaultPartyIfNeeded();
+	const FName PotionId(TEXT("Item_Potion_Healing_01"));
 
 	FGridItemInstance Potion;
 	Potion.RuntimeObjectId = FGuid::NewGuid();
-	Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+	Potion.ItemDefinitionId = PotionId;
 	Potion.Quantity = 2;
 	TestTrue(TEXT("Two potion units enter the inventory"), Component->AddItemToCharacterInventory(0, Potion));
 	TestTrue(TEXT("The potion configures slot two"), Component->SetCharacterCombatHotbarBindingFromItem(0, 1, Potion, EGridEquipmentSlot::None));
