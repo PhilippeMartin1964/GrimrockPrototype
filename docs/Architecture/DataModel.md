@@ -64,6 +64,8 @@ L'action compacte possède `Kind`, `Targeting`, les flags de portée/ligne de vu
 
 `DA_ActionPresentationCatalogue` possède également `Presentations` et `DetailedPresentations`. Le profil compact porte mouvement, temporisations, offsets, dix groupes audio et cinq groupes VFX ; le détaillé contient `FGridPlayerAttackPresentationProfile` avec `PresentationId`. Ces données décrivent les événements réels ; elles n'accordent ni dégâts, ni PA, ni capacités. Sorts, talents et statuts conservent leurs autorités spécialisées ; ils ne deviennent pas des définitions d'objets.
 
+Le tooltip d'inventaire délègue depuis `WBP_ItemTooltip.InitFromInventorySlot` à `UGridItemTooltipWidget::PresentFromInventorySlot`. La vue du slot fournit les textes, poids, caractéristiques et comparaisons à partir du registre actif et de l'instance. Le Designer conserve la mise en forme.
+
 ## E — Instances, possession et persistance
 
 La clé d'une instance est `FGridItemInstance.RuntimeObjectId` (`FGuid`). Sa référence de définition s'appelle **`ItemDefinitionId`**, jointe à `ItemId`. `ItemLevel` appartient à l'objet physique ; il est distinct du niveau RPG du personnage. La résolution exige ARM N1..N20 et non ARM N0, même si `FGridItemInstance::IsValid` n'effectue qu'un contrôle structurel N0..N20.

@@ -4,6 +4,8 @@
 #include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
 namespace ARMEMENT0161
@@ -43,6 +45,29 @@ namespace ARMEMENT0161
 		Catalogue->ArchetypeBindings.Add(MakeBinding(TEXT("ARM075"), TEXT("VIS_Shield_A")));
 		return Catalogue;
 	}
+	TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> MakeActivePilot()
+	{
+		TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> Catalogue(NewObject<UGridCanonicalWeaponVisualCatalogueAsset>());
+		for (const FName Id : { FName(TEXT("VIS_Dagger_A")), FName(TEXT("VIS_Bow_A")), FName(TEXT("VIS_Shield_A")) })
+		{
+			FGridWeaponVisual& Profile = Catalogue->VisualProfiles.AddDefaulted_GetRef();
+			Profile.VisualId = Id;
+			Profile.ItemIcon = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Game/Fixture/T_Icon.T_Icon")));
+			Profile.WorldMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Fixture/SM_World.SM_World")));
+			Profile.EquippedMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Fixture/SM_Equipped.SM_Equipped")));
+			Profile.WorldTransform.SetTranslation(FVector(3.0, -7.0, 11.0));
+		}
+		for (const auto& Row : { TPair<FName, FName>{ TEXT("ARM001"), TEXT("VIS_Dagger_A") },
+			{ TEXT("ARM002"), TEXT("VIS_Dagger_A") }, { TEXT("ARM045"), TEXT("VIS_Bow_A") },
+			{ TEXT("ARM075"), TEXT("VIS_Shield_A") } })
+		{
+			FGridWeaponVisualBinding& Binding = Catalogue->ArchetypeBindings.AddDefaulted_GetRef();
+			Binding.ArchetypeId = Row.Key;
+			Binding.VisualId = Row.Value;
+		}
+		return Catalogue;
+	}
+
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161SchemaTest,
@@ -51,19 +76,23 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161SchemaTest,
 
 bool FARMEMENT0161SchemaTest::RunTest(const FString&)
 {
-	UGridWeaponVisualCatalogueAsset* Catalogue = ARMEMENT0161::MakePilot();
-	TestTrue(TEXT("Partially mapped pilot catalogue is structurally valid"), Catalogue->IsValidCatalogue());
-	TestEqual(TEXT("Four bindings cover three reusable silhouettes"), Catalogue->ArchetypeBindings.Num(), 4);
-	TestEqual(TEXT("Only three visual profiles are authored"), Catalogue->VisualProfiles.Num(), 3);
-	TestEqual(TEXT("ARM001 maps to dagger"), Catalogue->FindVisualId(TEXT("ARM001")), FName(TEXT("VIS_Dagger_A")));
-	TestEqual(TEXT("ARM002 shares the same dagger visual"), Catalogue->FindVisualId(TEXT("ARM002")), FName(TEXT("VIS_Dagger_A")));
-	TestEqual(TEXT("ARM075 maps to passive shield visual"), Catalogue->FindVisualId(TEXT("ARM075")), FName(TEXT("VIS_Shield_A")));
-	TestTrue(TEXT("Unmapped archetypes do not inherit another silhouette"), Catalogue->FindVisualId(TEXT("ARM003")).IsNone());
-	TestNull(TEXT("Unmapped archetype returns no profile"), Catalogue->FindProfileForArchetype(TEXT("ARM003")));
-	const FGridWeaponVisualProfile* First = Catalogue->FindProfileForArchetype(TEXT("ARM001"));
-	const FGridWeaponVisualProfile* Shared = Catalogue->FindProfileForArchetype(TEXT("ARM002"));
-	TestNotNull(TEXT("Shared source profile is available"), First);
-	TestTrue(TEXT("Both archetypes share exactly one visual record"), First != nullptr && First == Shared);
+	const auto Catalogue = ARMEMENT0161::MakeActivePilot();
+	TArray<FString> Errors;
+	TestTrue(TEXT("Partial visual catalogue is structurally valid"), Catalogue->Validate(Errors));
+	TestEqual(TEXT("Four bindings cover three silhouettes"), Catalogue->ArchetypeBindings.Num(), 4);
+	TestEqual(TEXT("Three authored visual records"), Catalogue->VisualProfiles.Num(), 3);
+	const FGridWeaponVisual* First = Catalogue->FindForArchetype(TEXT("ARM001"));
+	const FGridWeaponVisual* Shield = Catalogue->FindForArchetype(TEXT("ARM075"));
+	if (!TestNotNull(TEXT("Dagger visual"), First) || !TestNotNull(TEXT("Shield visual"), Shield))
+		return false;
+	TestEqual(TEXT("ARM001 maps to dagger"), First->VisualId, FName(TEXT("VIS_Dagger_A")));
+	TestEqual(TEXT("ARM075 maps to shield"), Shield->VisualId, FName(TEXT("VIS_Shield_A")));
+	TestTrue(TEXT("Two archetypes share one authored profile"), First == Catalogue->FindForArchetype(TEXT("ARM002")));
+	TestNull(TEXT("Unmapped identity receives no other silhouette"), Catalogue->FindForArchetype(TEXT("ARM003")));
+	TestEqual(TEXT("Independent icon path"), First->ItemIcon.ToSoftObjectPath().ToString(), FString(TEXT("/Game/Fixture/T_Icon.T_Icon")));
+	TestEqual(TEXT("Independent world mesh path"), First->WorldMesh.ToSoftObjectPath().ToString(), FString(TEXT("/Game/Fixture/SM_World.SM_World")));
+	TestEqual(TEXT("Independent equipped mesh path"), First->EquippedMesh.ToSoftObjectPath().ToString(), FString(TEXT("/Game/Fixture/SM_Equipped.SM_Equipped")));
+	TestEqual(TEXT("Independent authored offset"), First->WorldTransform.GetTranslation(), FVector(3.0, -7.0, 11.0));
 	return true;
 }
 
@@ -73,25 +102,36 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161DuplicateTest,
 
 bool FARMEMENT0161DuplicateTest::RunTest(const FString&)
 {
-	UGridWeaponVisualCatalogueAsset* Catalogue = ARMEMENT0161::MakePilot();
-	Catalogue->ArchetypeBindings.Add(ARMEMENT0161::MakeBinding(TEXT("ARM001"), TEXT("VIS_Bow_A")));
-	TestFalse(TEXT("Duplicate archetype with conflicting visual rejected"), Catalogue->IsValidCatalogue());
+	const auto CheckInvalid = [this](const TCHAR* Label, const UGridCanonicalWeaponVisualCatalogueAsset& Catalogue, const TCHAR* Diagnostic)
+	{
+		TArray<FString> Errors;
+		TestFalse(Label, Catalogue.Validate(Errors));
+		TestTrue(TEXT("Specific validation diagnostic"), Errors.Contains(Diagnostic));
+	};
 
-	Catalogue = ARMEMENT0161::MakePilot();
-	Catalogue->ArchetypeBindings.Add(ARMEMENT0161::MakeBinding(TEXT("ARM001"), TEXT("VIS_Dagger_A")));
-	TestFalse(TEXT("Even identical duplicate archetype rejected"), Catalogue->IsValidCatalogue());
+	auto Catalogue = ARMEMENT0161::MakeActivePilot();
+	FGridWeaponVisualBinding Duplicate = Catalogue->ArchetypeBindings[0];
+	Duplicate.VisualId = TEXT("VIS_Bow_A");
+	Catalogue->ArchetypeBindings.Add(Duplicate);
+	CheckInvalid(TEXT("Conflicting duplicate rejected"), *Catalogue, TEXT("Visual binding invalid: ARM001"));
 
-	Catalogue = ARMEMENT0161::MakePilot();
-	Catalogue->VisualProfiles.Add(ARMEMENT0161::MakeProfile(TEXT("VIS_Dagger_A"), TEXT("Light")));
-	TestFalse(TEXT("Duplicate visual identity rejected"), Catalogue->IsValidCatalogue());
+	Duplicate.VisualId = TEXT("VIS_Dagger_A");
+	Catalogue->ArchetypeBindings.Last() = Duplicate;
+	CheckInvalid(TEXT("Identical duplicate rejected"), *Catalogue, TEXT("Visual binding invalid: ARM001"));
 
-	Catalogue = ARMEMENT0161::MakePilot();
+	Catalogue = ARMEMENT0161::MakeActivePilot();
+	const FGridWeaponVisual DuplicateVisual = Catalogue->VisualProfiles[0];
+	Catalogue->VisualProfiles.Add(DuplicateVisual);
+	CheckInvalid(TEXT("Duplicate visual identity rejected"), *Catalogue, TEXT("Visual catalogue: missing/duplicate VisualId"));
+
+	Catalogue = ARMEMENT0161::MakeActivePilot();
 	Catalogue->ArchetypeBindings[0].VisualId = TEXT("VIS_Unknown");
-	TestFalse(TEXT("Binding pointing to unknown silhouette rejected"), Catalogue->IsValidCatalogue());
+	CheckInvalid(TEXT("Unknown visual binding rejected"), *Catalogue, TEXT("Visual binding invalid: ARM001"));
+	TestNull(TEXT("Invalid binding cannot borrow any visual"), Catalogue->FindForArchetype(TEXT("ARM001")));
 
-	Catalogue = ARMEMENT0161::MakePilot();
 	Catalogue->ArchetypeBindings.RemoveAt(0);
-	TestTrue(TEXT("Pilot catalogue may be only partially mapped"), Catalogue->IsValidCatalogue());
+	TArray<FString> Errors;
+	TestTrue(TEXT("Remaining partial mapping is valid"), Catalogue->Validate(Errors));
 	return true;
 }
 

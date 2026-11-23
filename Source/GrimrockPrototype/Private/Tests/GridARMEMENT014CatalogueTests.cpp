@@ -1,7 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridWeaponProgressionTypes.h"
+#include "Runtime/Items/GridItemCatalogues.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 
 namespace ARMEMENT014
@@ -29,16 +31,34 @@ namespace ARMEMENT014
 		return P;
 	}
 
-	UGridWeaponCatalogueAsset* MakeFullCatalogue()
+	TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> MakeCatalogue()
 	{
-		UGridWeaponCatalogueAsset* Catalogue = NewObject<UGridWeaponCatalogueAsset>();
-		for (int32 Id = 1; Id <= 82; ++Id)
+		TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> Catalogue(NewObject<UGridCanonicalWeaponCatalogueAsset>());
+		for (int32 Ordinal = 1; Ordinal <= 82; ++Ordinal)
 		{
-			const FName Archetype(*FString::Printf(TEXT("ARM%03d"), Id));
-			for (int32 Level = 1; Level <= 20; ++Level)
+			FGridWeaponArchetype& Weapon = Catalogue->Archetypes.AddDefaulted_GetRef();
+			Weapon.ArchetypeId = FName(*FString::Printf(TEXT("ARM%03d"), Ordinal));
+			Weapon.bHandAndKindProven = true;
+			if (Ordinal >= 70)
 			{
-				Catalogue->Profiles.Add(MakeProfile(Archetype, Level, Id >= 70));
+				Weapon.Kind = EGridArmamentKind::Shield;
+				Weapon.PhysicalArmorN1 = 2;
+				Weapon.DamageDiceN1.DiceCount = 0;
+				Weapon.DamageDiceN1.DiceSides = 0;
+				continue;
 			}
+			Weapon.Kind = EGridArmamentKind::Weapon;
+			Weapon.ActionPointCost = 2;
+			Weapon.RangeCells = 1;
+			Weapon.AccuracyBonus = 1;
+			Weapon.DamageDiceN1.bEnabled = true;
+			Weapon.DamageDiceN1.DiceCount = 2;
+			Weapon.DamageDiceN1.DiceSides = 8;
+			Weapon.DamageDiceN1.FlatBonus = 1;
+			Weapon.FlatBonusGrowth.StepAmount = 1;
+			FGridWeaponGrowthException& Exception = Weapon.FlatBonusGrowth.Exceptions.AddDefaulted_GetRef();
+			Exception.ItemLevel = 8;
+			Exception.Value = 11;
 		}
 		return Catalogue;
 	}
@@ -94,22 +114,46 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT014CatalogueTest,
 
 bool FGridARMEMENT014CatalogueTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT014::MakeFullCatalogue();
-	TestEqual(TEXT("1640 entries"), Catalogue->Profiles.Num(), 1640);
-	TestTrue(TEXT("82 archetypes x 20 levels pass strict validation"), Catalogue->IsValidCatalogue());
-	const FGridWeaponLevelProfile* First = Catalogue->FindProfile(TEXT("ARM001"), 1);
-	const FGridWeaponLevelProfile* Last = Catalogue->FindProfile(TEXT("ARM082"), 20);
-	TestNotNull(TEXT("First profile"), First);
-	TestNotNull(TEXT("Last profile"), Last);
-	TestTrue(TEXT("No invalid level"), Catalogue->FindProfile(TEXT("ARM001"), 21) == nullptr);
-	TestTrue(TEXT("No unknown item"), Catalogue->FindProfile(TEXT("ARM099"), 1) == nullptr);
+	const auto Catalogue = ARMEMENT014::MakeCatalogue();
+	TArray<FString> Errors;
+	if (!TestTrue(TEXT("82 archetypes define all physical levels"), Catalogue->Validate(Errors)))
+	{
+		for (const FString& Error : Errors)
+			AddError(Error);
+		return false;
+	}
 
-	FGridAttackDefinition Attack;
-	TestTrue(TEXT("A level-4 dagger generates attack dice"), Catalogue->TryBuildAttack(TEXT("ARM001"), 4, Attack));
-	TestEqual(TEXT("2d8+4 min"), Attack.MinDamage, 6);
-	TestEqual(TEXT("2d8+4 max"), Attack.MaxDamage, 20);
-	TestFalse(TEXT("Shield cannot generate damage"), Catalogue->TryBuildAttack(TEXT("ARM082"), 20, Attack));
-	TestFalse(TEXT("Failed passive query clears previous attack"), Attack.DamageDice.bEnabled);
+	int32 NumProfiles = 0;
+	for (int32 Ordinal = 1; Ordinal <= 82; ++Ordinal)
+	{
+		const FName Id(*FString::Printf(TEXT("ARM%03d"), Ordinal));
+		const FGridWeaponArchetype* Archetype = Catalogue->Find(Id);
+		if (!TestNotNull(TEXT("Every expected archetype exists"), Archetype))
+			return false;
+		const bool bAttack = Ordinal < 70;
+		for (int32 Level = 1; Level <= 20; ++Level)
+		{
+			FGridResolvedWeapon Profile;
+			if (!TestTrue(TEXT("Every physical level resolves"), Archetype->TryResolve(Level, Profile)))
+				return false;
+			++NumProfiles;
+			TestEqual(TEXT("Attack role"), Profile.DamageDice.bEnabled, bAttack);
+			TestEqual(TEXT("Physical protection"), Profile.PhysicalArmor, bAttack ? 0 : 2);
+			TestEqual(TEXT("Number of dice"), Profile.DamageDice.DiceCount, bAttack ? 2 : 0);
+			TestEqual(TEXT("Die size"), Profile.DamageDice.DiceSides, bAttack ? 8 : 0);
+			const int32 ExpectedBonus = bAttack ? (Level == 8 ? 11 : Level) : 0;
+			TestEqual(TEXT("Flat bonus, including absolute level-eight exception"), Profile.DamageDice.FlatBonus, ExpectedBonus);
+			TestEqual(TEXT("Minimum damage"), Profile.DamageDice.GetMinimumDamage(), bAttack ? 2 + ExpectedBonus : 0);
+			TestEqual(TEXT("Maximum damage"), Profile.DamageDice.GetMaximumDamage(), bAttack ? 16 + ExpectedBonus : 0);
+			TestEqual(TEXT("Action point cost"), Profile.ActionPointCost, bAttack ? 2 : 0);
+			TestEqual(TEXT("Accuracy"), Profile.AccuracyBonus, bAttack ? 1 : 0);
+		}
+		FGridResolvedWeapon Invalid;
+		TestFalse(TEXT("No N0 weapon profile"), Archetype->TryResolve(0, Invalid));
+		TestFalse(TEXT("No N21 weapon profile"), Archetype->TryResolve(21, Invalid));
+	}
+	TestEqual(TEXT("1640 resolved profiles"), NumProfiles, 1640);
+	TestNull(TEXT("Unknown identity is refused"), Catalogue->Find(TEXT("ARM099")));
 	return true;
 }
 
@@ -119,18 +163,32 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT014InvalidCatalogueTest,
 
 bool FGridARMEMENT014InvalidCatalogueTest::RunTest(const FString&)
 {
-	UGridWeaponCatalogueAsset* Catalogue = ARMEMENT014::MakeFullCatalogue();
-	Catalogue->Profiles[1].ItemLevel = 1;
-	TestFalse(TEXT("Duplicate level rejected"), Catalogue->IsValidCatalogue());
-	Catalogue = ARMEMENT014::MakeFullCatalogue();
-	Catalogue->Profiles.RemoveAt(0);
-	TestFalse(TEXT("Missing level rejected"), Catalogue->IsValidCatalogue());
-	Catalogue = ARMEMENT014::MakeFullCatalogue();
-	Catalogue->Profiles[0].DamageDice.FlatBonus = -1;
-	TestFalse(TEXT("Invalid dice rejected in full catalogue"), Catalogue->IsValidCatalogue());
-	Catalogue = ARMEMENT014::MakeFullCatalogue();
-	Catalogue->Profiles[19].AccuracyBonus++;
-	TestFalse(TEXT("Archetype accuracy must remain constant across levels"), Catalogue->IsValidCatalogue());
+	const auto CheckInvalid = [this](const TCHAR* Label, const UGridCanonicalWeaponCatalogueAsset& Catalogue)
+	{
+		TArray<FString> Errors;
+		TestFalse(Label, Catalogue.Validate(Errors));
+		TestFalse(TEXT("Invalid input has a diagnostic"), Errors.IsEmpty());
+	};
+	auto Catalogue = ARMEMENT014::MakeCatalogue();
+	Catalogue->Archetypes[1].ArchetypeId = TEXT("ARM001");
+	CheckInvalid(TEXT("Duplicate archetype rejected"), *Catalogue);
+	Catalogue = ARMEMENT014::MakeCatalogue();
+	Catalogue->Archetypes.RemoveAt(0);
+	CheckInvalid(TEXT("Missing archetype rejected"), *Catalogue);
+	Catalogue = ARMEMENT014::MakeCatalogue();
+	Catalogue->Archetypes[0].DamageDiceN1.DiceSides = 5;
+	CheckInvalid(TEXT("Invalid die rejected"), *Catalogue);
+	Catalogue = ARMEMENT014::MakeCatalogue();
+	auto& Exceptions = Catalogue->Archetypes[0].FlatBonusGrowth.Exceptions;
+	const FGridWeaponGrowthException Duplicate = Exceptions[0];
+	Exceptions.Add(Duplicate);
+	CheckInvalid(TEXT("Duplicate level exception rejected"), *Catalogue);
+	Catalogue = ARMEMENT014::MakeCatalogue();
+	Catalogue->Archetypes[0].FlatBonusGrowth.Exceptions[0].ItemLevel = 21;
+	CheckInvalid(TEXT("Out-of-range level exception rejected"), *Catalogue);
+	Catalogue = ARMEMENT014::MakeCatalogue();
+	Catalogue->Archetypes[0].FlatBonusGrowth.StepEveryLevels = 0;
+	CheckInvalid(TEXT("Invalid level-growth interval rejected"), *Catalogue);
 	return true;
 }
 
