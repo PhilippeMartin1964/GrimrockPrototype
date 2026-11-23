@@ -7656,3 +7656,20 @@ rg --files --hidden --no-ignore -g "!.git/**" -g "*.ps1" -g "*.psm1" -g "*.psd1"
 ```
 
 La comparaison du manifeste est faite sur les chemins complets, sans interpréter les guillemets d’un affichage Git non NUL. Les lignes C++ utilisent `splitlines()` UTF-8, commentaires et blancs inclus ; elles ne mesurent pas la complexité. Les assets sont comptés comme packages, pas comme exports Unreal. Les quatre scripts ignorés ne sont pas comptés dans les 4 299 entrées Git.
+
+### CLEANUP04-D.10 — dernières fixtures d’inventaire
+
+Deux inscriptions historiques supprimées, de 12 appels dans sept fichiers à 10 dans six. TD06.2 utilise une pierre N0 transitoire enregistrée (1 kg, 800 cm/s) et vérifie le binding stable, l’absence de débit à l’affectation et l’effacement à épuisement. La projection d’infobulle vérifie la lecture et le texte d’un livre enregistré séparément. Filter01 vérifie les types issus du registre avec un poignard N1, une potion N0 portant le tag de présentation Potion, un livre lisible et une ceinture N0. Le livre et la ceinture se projettent en Misc même lorsque leurs capacités de lecture ou d’équipement sont renseignées.
+
+| Consommateurs restants | Appels | Invariant couvert |
+|---|---:|---|
+| MON11 Equipment | 1 | Fixture partagée de sélection de la main, portée et profils. ElementalOffensiveEquipment exige un focus non ARM N0 infligeant des dégâts de feu avec un bonus fixe de +2. Le parcours d’attaque directe sélectionne les profils ARM du registre. |
+| MON12 CombatActionPanel | 2 | Shuriken équipé en pile de trois avec attaque historique et torche témoin non offensive dans le même inventaire. Un ARM est non empilable dans le registre. |
+| MON12 CombatHud | 4 | Épée partagée dont Lifecycle passe le coût de 2 à 3 PA en cours de test, ScrollAttackConsumption, InventoryThrowableHotbar et ActionTransactions. |
+| UIFilter01, UIInventoryProjection02, UIItem01 | 3 | Livre dans BooksAndKeys, ordre de tri Torch/Weapon/Potion/Book et libellé Bijou. Ces catégories historiques n’ont pas d’équivalent dans la projection enregistrée pour les objets concernés. |
+
+La tentative canonique de D.9 pour ScrollAttackConsumption a résolu l’action détaillée mais l’attaque a retourné InvalidOffensiveEquipment, avec deux parchemins et quatre PA conservés. Une décision fonctionnelle est nécessaire pour autoriser ce profil d’attaque depuis un consommable ou réviser ce contrat de succès. InventoryThrowableHotbar conserve le raccourci historique comme entrée hostile, son refus sans mutation sous registre et le lancement du couteau enregistré N7. ActionTransactions conserve le débit d’une unité sur deux pour une attaque de mêlée sans projectile, les coûts de PA et de mana et le cooldown. Le préflight canonique des sources consommées exige un ARM et un ARM ne fournit pas la pile équipée du scénario.
+
+La carte RuntimeItemDefinitionsById, RegisterItemDefinition, FindItemDefinition et FGridLegacyInventoryRegistrationGate restent nécessaires à ces fixtures Automation sans GameInstance. ApplyItemDefinitionToInstance conserve sa signature Blueprint. La matrice ciblée compte 141 → 140 fichiers consommateurs de D08 (55 Runtime, 3 Editor et 82 tests après le lot), trois pour D09 et quatre pour D10. Aucun changement de code de production, d’asset ou de texte joueur dans la chaîne UI.csv → ST_UI → WBP → Game/fr/en.
+
+**Validation locale.** UHT Editor et Shipping, Development Editor et Build/Cook/Stage/Package/Archive Shipping réussis. Les 96 tests ciblés passent, dont 21 MON11, 49 MON12 et huit B.1. La suite complète retrouve les 2 066 scénarios de référence, avec les mêmes résultats et avertissements (47) et zéro échec. Les 70 Blueprints compilent et les 53 assets passent les contrôles. Les sept copies SaveGame v27 se chargent et passent le round-trip. Les SHA-256 des sept originaux, des copies et des deux Readables correspondent aux références. Le conteneur Shipping conserve les 2 112 chemins, les 53 redirections d’objets et les 50 alias Primary Asset IDs. Preuves privées sous D:/GrimrockNativeSnapshots/CLEANUP04D10/.

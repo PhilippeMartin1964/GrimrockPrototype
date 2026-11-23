@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalWeightTestWorld.h"
+#include "../UI/GridInventoryItemTypeReadModel.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryBagWidget.h"
@@ -46,6 +48,49 @@ bool FGridUIFilter01CategoryMappingTest::RunTest(const FString& Parameters)
 		DoesGridItemTypeMatchInventoryFilter(EGridItemType::Potion, EGridInventoryFilterCategory::Equipment));
 	TestFalse(TEXT("Book does not match Magic"),
 		DoesGridItemTypeMatchInventoryFilter(EGridItemType::Book, EGridInventoryFilterCategory::Magic));
+
+
+	// Registered items follow the active category projection, independently of readability or slots.
+	const FName BookId(TEXT("FilterCanonicalBook"));
+	const FName BeltId(TEXT("FilterCanonicalBelt"));
+	const FName PotionId(TEXT("FilterCanonicalPotion"));
+	FGridCanonicalWeightTestWorld World({}, [BookId, BeltId, PotionId](UGridItemSystemAsset& Root)
+	{
+		auto* Book = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+		Book->ItemId = BookId;
+		Book->DisplayName = FText::FromName(BookId);
+		Book->bReadable = true;
+		Root.ItemDefinitions.Add(Book);
+
+		auto* Belt = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Belt->ItemId = BeltId;
+		Belt->DisplayName = FText::FromName(BeltId);
+		Belt->EquipmentSlots.Add(EGridEquipmentSlot::Belt);
+		Root.ItemDefinitions.Add(Belt);
+
+		auto* Potion = NewObject<UGridConsumableDefinitionAsset>(&Root);
+		Potion->ItemId = PotionId;
+		Potion->DisplayName = FText::FromName(PotionId);
+		Potion->Tags.Add(GridInventoryCategoryTags::Potion());
+		Root.ItemDefinitions.Add(Potion);
+	});
+	if (!TestNotNull(TEXT("The category fixtures use the registered item system"), World.Scope.Registry)) return false;
+
+	const auto ExpectRegisteredType = [this, &World](FName Id, int32 Level, EGridItemType ExpectedType)
+	{
+		FGridItemInstance Item;
+		Item.RuntimeObjectId = FGuid::NewGuid();
+		Item.ItemDefinitionId = Id;
+		Item.ItemLevel = Level;
+		Item.Quantity = 1;
+		const auto Type = FGridInventoryItemTypeReadModel::Resolve(World.Scope.Registry, nullptr, Item);
+		TestTrue(FString::Printf(TEXT("%s resolves at its physical level"), *Id.ToString()), Type.bResolved);
+		TestEqual(FString::Printf(TEXT("%s projects its current inventory type"), *Id.ToString()), Type.ItemType, ExpectedType);
+	};
+	ExpectRegisteredType(TEXT("Weapon_Dagger_01"), 1, EGridItemType::Weapon);
+	ExpectRegisteredType(PotionId, 0, EGridItemType::Potion);
+	ExpectRegisteredType(BookId, 0, EGridItemType::Misc);
+	ExpectRegisteredType(BeltId, 0, EGridItemType::Misc);
 
 	return true;
 }

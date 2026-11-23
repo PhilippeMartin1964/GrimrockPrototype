@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/Class.h"
 #include "UObject/UObjectGlobals.h"
@@ -51,11 +51,25 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Component = GridTD062CreateInventory();
+	const FName StoneId(TEXT("Stone_TD062"));
+	FGridCanonicalWeightTestWorld World({}, [StoneId](UGridItemSystemAsset& Root)
+	{
+		auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Stone->ItemId = StoneId;
+		Stone->DisplayName = FText::FromString(TEXT("Pierre TD06.2"));
+		Stone->WeightKg = 1.0f;
+		Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+		Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Stone->GenericThrow.InitialSpeed = 800.0f;
+		Root.ItemDefinitions.Add(Stone);
+	});
+	UGridPartyInventoryComponent* Component = World.MakeInventory();
 	if (!TestNotNull(TEXT("The characterized party inventory component is created"), Component))
 	{
 		return false;
 	}
+
+	Component->InitializeDefaultPartyIfNeeded();
 
 	const FName ReflectedFunctions[] = { TEXT("GetCombatHotbarSlotCount"), TEXT("GetCharacterCombatHotbarBinding"), TEXT("SetCharacterCombatHotbarBinding"),
 		TEXT("ClearCharacterCombatHotbarBinding"), TEXT("SetCharacterCombatHotbarBindingFromItem"), TEXT("MoveOrSwapCharacterCombatHotbarBinding") };
@@ -124,7 +138,7 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 
 	FGridItemInstance QuickItem;
 	QuickItem.RuntimeObjectId = FGuid::NewGuid();
-	QuickItem.ItemDefinitionId = TEXT("Potion_TD062");
+	QuickItem.ItemDefinitionId = TEXT("Item_Potion_Healing_01");
 	QuickItem.Quantity = 2;
 	TestTrue(TEXT("The quick-item source enters the authoritative inventory"), Component->AddItemToCharacterInventory(0, QuickItem));
 
@@ -163,18 +177,10 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	TestEqual(TEXT("The empty target receives the moved action"), MovedSlotNine.ActionId, FName(TEXT("Attack_Unarmed")));
 	TestEqual(TEXT("The moved shortcut is normalized to the target index"), MovedSlotNine.SlotIndex, 9);
 
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>(Component);
-	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD062");
-	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre TD06.2"));
-	StoneDefinition->ItemType = EGridItemType::Misc;
-	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
-	StoneDefinition->Weight = 1.0f;
-	StoneDefinition->ThrowSpeed = 800.0f;
-	TestTrue(TEXT("The physical throw definition is registered"), Component->RegisterItemDefinition(StoneDefinition));
-
 	FGridItemInstance Stone;
 	Stone.RuntimeObjectId = FGuid::NewGuid();
-	Stone.ItemDefinitionId = StoneDefinition->ItemDefinitionId;
+	Stone.ItemDefinitionId = StoneId;
+	Stone.ItemLevel = 0;
 	Stone.Quantity = 1;
 	TestTrue(TEXT("The stone enters inventory"), Component->AddItemToCharacterInventory(0, Stone));
 	TestTrue(TEXT("A physical throwable can be assigned directly from inventory"),
@@ -182,6 +188,10 @@ bool FGridTD062PartyInventoryHotbarContractTest::RunTest(const FString& Paramete
 	FGridCombatHotbarBinding StoneBinding;
 	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
 	TestTrue(TEXT("The stone shortcut uses the physical-throw identity while stock exists"), StoneBinding.IsPhysicalThrowItemBinding());
+	TestEqual(TEXT("The action key is stable"), StoneBinding.ActionId, FName(TEXT("ThrowItem_Stone_TD062")));
+	TestEqual(TEXT("The stone shortcut uses QuickItem"), StoneBinding.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+	TestEqual(TEXT("The stone shortcut keeps its source identity"), StoneBinding.SourceDefinitionId, StoneId);
+	TestEqual(TEXT("Assigning the shortcut does not consume the stone"), Component->CountItemDefinitionInCharacterInventory(0, StoneId), 1);
 	TestTrue(TEXT("Consuming the last stone succeeds"), Component->RemoveItemDefinitionFromCharacterInventory(0, Stone.ItemDefinitionId, 1));
 	Component->GetCharacterCombatHotbarBinding(0, 6, StoneBinding);
 	TestTrue(TEXT("The exhausted physical-throw shortcut is removed"), StoneBinding.IsEmpty());

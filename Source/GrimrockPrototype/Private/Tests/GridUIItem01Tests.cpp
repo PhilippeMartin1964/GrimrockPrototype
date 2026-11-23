@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalWeightTestWorld.h"
 
-#include "Runtime/GridItemContextActionLibrary.h"
+#include "../Runtime/GridItemInteractionReadModel.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
@@ -119,24 +119,35 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Strength value is three"), FMath::IsNearlyEqual(Strength->ItemValue, 3.0f));
 	}
 
-	UGridItemDefinitionAsset* BookDefinition = NewObject<UGridItemDefinitionAsset>();
-	BookDefinition->ItemDefinitionId = TEXT("Item_ReadableBook");
-	BookDefinition->DisplayName = FText::FromString(TEXT("Livre lisible"));
-	BookDefinition->ItemType = EGridItemType::Book;
-	BookDefinition->ReadText = FText::FromString(TEXT("Texte du livre"));
-	TestTrue(TEXT("Book definition registers"), Inventory->RegisterItemDefinition(BookDefinition));
+	const FName BookId(TEXT("Item_ReadableBook"));
+	FGridCanonicalWeightTestWorld BookWorld({}, [BookId](UGridItemSystemAsset& Root)
+	{
+		auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+		Definition->ItemId = BookId;
+		Definition->DisplayName = FText::FromString(TEXT("Livre lisible"));
+		Definition->bReadable = true;
+		Definition->ReadText = FText::FromString(TEXT("Texte du livre"));
+		Root.ItemDefinitions.Add(Definition);
+	});
+	UGridPartyInventoryComponent* BookInventory = MakeInventory(&BookWorld);
+	if (!TestNotNull(TEXT("The registered book has an isolated inventory"), BookInventory)) return false;
+	OwnerWidget->InventoryComponent = BookInventory;
 
 	FGridItemInstance Book;
 	Book.RuntimeObjectId = FGuid::NewGuid();
-	Book.ItemDefinitionId = BookDefinition->ItemDefinitionId;
+	Book.ItemDefinitionId = BookId;
+	Book.ItemLevel = 0;
 	Book.Quantity = 1;
 	Book.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Book.OwnerCharacterIndex = 0;
-	TestTrue(TEXT("Shared readable capability recognizes the book"), UGridItemContextActionLibrary::IsItemReadable(Book, BookDefinition));
+	const FGridItemInteractionReadView BookInteraction = FGridItemInteractionReadModel::Resolve(BookWorld.Scope.Registry, nullptr, Book);
+	TestTrue(TEXT("Shared readable capability recognizes the registered book"), BookInteraction.bCanRead);
+	TestEqual(TEXT("The book keeps its authored readable text"), BookInteraction.DefaultReadText.ToString(), FString(TEXT("Texte du livre")));
 
 	SlotWidget->SetItem(Book);
 	const FGridItemTooltipView BookView = SlotWidget->GetTooltipView();
 	TestTrue(TEXT("Readable state reaches tooltip view"), BookView.bReadable);
+	TestEqual(TEXT("The tooltip keeps the registered book name"), BookView.DisplayName.ToString(), FString(TEXT("Livre lisible")));
 
 	return true;
 }
