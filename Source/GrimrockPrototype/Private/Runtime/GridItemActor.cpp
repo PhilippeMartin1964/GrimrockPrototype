@@ -13,7 +13,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #if WITH_DEV_AUTOMATION_TESTS
-#include "Runtime/Combat/GridWorldItemVisualResolver.h"
+#include "Engine/StaticMesh.h"
 #endif
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
@@ -106,9 +106,11 @@ void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDe
 
 	if (MeshComponent)
 	{
-		const FGridResolvedWorldItemMesh Visual = FGridWorldItemVisualResolver::Resolve(*InDefinition);
-		MeshComponent->SetStaticMesh(Visual.Mesh);
-		MeshComponent->SetRelativeTransform(Visual.RelativeTransform);
+		// Direct mesh of a non-catalogue Automation fixture. Historical
+		// weapon catalogues are no longer read by actor materialization.
+		MeshComponent->SetStaticMesh(InDefinition->bUseWeaponVisualCatalogue
+			? nullptr : InDefinition->WorldMesh.LoadSynchronous());
+		MeshComponent->SetRelativeTransform(FTransform::Identity);
 	}
 	if (LightEmitterComponent)
 	{

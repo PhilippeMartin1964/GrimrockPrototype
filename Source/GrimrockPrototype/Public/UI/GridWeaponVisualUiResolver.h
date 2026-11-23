@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
 
 class UGridItemDefinitionAsset;
 class UGridItemSubsystem;
@@ -25,13 +24,4 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisualUiResolver
 	static FGridResolvedInventoryItemIcon ResolveInventoryItemIcon(
 		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Item);
-
-#if WITH_DEV_AUTOMATION_TESTS
-	/** Historical preview for worldless Automation fixtures only; absent in Shipping. */
-	static FGridResolvedWeaponVisual Resolve(const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Item);
-
-	/** Historical action-icon preview for worldless Automation fixtures only. */
-	static void ApplyCatalogueIcon(const UGridItemDefinitionAsset* Definition, const FGridItemInstance* Item,
-		TSoftObjectPtr<UTexture2D>& InOutActionIcon);
-#endif
 };

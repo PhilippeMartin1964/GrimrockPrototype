@@ -68,9 +68,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	FGridItemInstance GetCachedItem() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
-	const UGridItemDefinitionAsset* GetItemDefinition() const;
-
 	/** Slot presentation helpers used by WBP_InventorySlot::RefreshSlotVisual. */
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Slot")
 	FString GetDisplayNameText() const;
@@ -103,6 +100,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory|Slot")
 	void RefreshSlotVisual();
+
+private:
+	const UGridItemDefinitionAsset* GetItemDefinition() const;
 
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;

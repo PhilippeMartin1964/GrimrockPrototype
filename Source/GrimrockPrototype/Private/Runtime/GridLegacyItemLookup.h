@@ -10,14 +10,6 @@
 /** Temporary explicit inventory source only. Never loads recipes or scans the level. */
 struct FGridLegacyItemLookup
 {
-	static bool IsRegistered(const AGrimrockPartyPawn* Party, FName ItemId)
-	{
-		const UWorld* World = Party ? Party->GetWorld() : nullptr;
-		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		return Registry && Registry->ContainsItem(ItemId);
-	}
-
 	static UGridItemDefinitionAsset* Resolve(const AGrimrockPartyPawn* Party, FName ItemId)
 	{
 #if WITH_DEV_AUTOMATION_TESTS

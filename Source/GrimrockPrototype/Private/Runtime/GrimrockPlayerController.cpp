@@ -1187,7 +1187,10 @@ void AGrimrockPlayerController::HandleLeftMousePressed()
 					{
 						UGridItemDefinitionAsset* CursorItemDefinition =
 							FGridLegacyItemLookup::Resolve(PartyPawn, CursorItem.ItemDefinitionId);
-						const bool bRegistered = FGridLegacyItemLookup::IsRegistered(PartyPawn, CursorItem.ItemDefinitionId);
+						const UWorld* PartyWorld = PartyPawn->GetWorld();
+						UGameInstance* PartyGame = PartyWorld ? PartyWorld->GetGameInstance() : nullptr;
+						const UGridItemSubsystem* ItemRegistry = PartyGame ? PartyGame->GetSubsystem<UGridItemSubsystem>() : nullptr;
+						const bool bRegistered = ItemRegistry && ItemRegistry->ContainsItem(CursorItem.ItemDefinitionId);
 						const TCHAR* RejectReason = bWasUnlocked
 							? TEXT("AlreadyUnlocked")
 							: (bRegistered ? TEXT("RejectedCanonicalKeyIdentity")

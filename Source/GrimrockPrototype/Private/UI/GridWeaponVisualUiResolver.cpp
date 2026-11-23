@@ -1,6 +1,5 @@
 #include "UI/GridWeaponVisualUiResolver.h"
 
-#include "Runtime/Combat/GridWeaponVisualResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
@@ -28,52 +27,12 @@ FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItem
 	// historical item. Worldless Automation alone may characterize that old UI.
 #if WITH_DEV_AUTOMATION_TESTS
 	if (!Registry && GIsAutomationTesting && IsValid(LegacyDefinition) &&
-		LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId)
+		LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId && !LegacyDefinition->bUseWeaponVisualCatalogue)
 	{
-		const FGridResolvedWeaponVisual Legacy = Resolve(*LegacyDefinition, &Item);
-		Result.VisualId = Legacy.VisualId;
-		Result.Icon = Legacy.Icon;
+		Result.Icon = LegacyDefinition->Icon;
 	}
 #else
 	(void)LegacyDefinition;
 #endif
 	return Result;
 }
-
-#if WITH_DEV_AUTOMATION_TESTS
-FGridResolvedWeaponVisual FGridWeaponVisualUiResolver::Resolve(
-	const UGridItemDefinitionAsset& Definition, const FGridItemInstance* Item)
-{
-	// The core resolver deliberately never synchronously loads assets.
-	// UI loads only at an inventory / hotbar refresh event, not on Tick.
-	if (Definition.bUseWeaponVisualCatalogue && !Definition.WeaponVisualCatalogue.IsNull() &&
-		!Definition.WeaponVisualCatalogue.IsValid())
-	{
-		Definition.WeaponVisualCatalogue.LoadSynchronous();
-	}
-
-	FGridResolvedWeaponVisual Visual;
-	EGridWeaponVisualResolutionError Error = EGridWeaponVisualResolutionError::None;
-	FGridWeaponVisualResolver::TryResolve(Definition, Item, Visual, Error);
-	return Visual;
-}
-
-void FGridWeaponVisualUiResolver::ApplyCatalogueIcon(
-	const UGridItemDefinitionAsset* Definition, const FGridItemInstance* Item,
-	TSoftObjectPtr<UTexture2D>& InOutActionIcon)
-{
-	if (!IsValid(Definition) || !Definition->bUseWeaponVisualCatalogue)
-	{
-		return;
-	}
-
-	const FGridResolvedWeaponVisual Visual = Resolve(*Definition, Item);
-	// Preserve ability/spell/Legacy action-specific icons on every failure.
-	if (Visual.bResolved && !Visual.VisualId.IsNone() && !Visual.bLegacyFallback &&
-		Visual.Error == EGridWeaponVisualResolutionError::None && !Visual.Icon.IsNull())
-	{
-		InOutActionIcon = Visual.Icon;
-	}
-}
-
-#endif // WITH_DEV_AUTOMATION_TESTS: historical UI fixtures only

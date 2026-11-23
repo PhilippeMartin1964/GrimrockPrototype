@@ -38,7 +38,6 @@
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
-#include "UI/GridWeaponVisualUiResolver.h"
 #include "UI/GridQuickItemSurfaceTooltipText.h"
 #include "UI/GridPersistentHudWidget.h"
 #include "UI/UILocalizationText.h"
@@ -1765,12 +1764,6 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 				if (ActionView.Action.Definition.Icon.IsNull())
 				{
 					ActionView.Action.Definition.Icon = ItemDefinition->Icon;
-				}
-				if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment ||
-					SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
-				{
-					FGridWeaponVisualUiResolver::ApplyCatalogueIcon(
-						ItemDefinition, SourceItem, ActionView.Action.Definition.Icon);
 				}
 			}
 		}

@@ -14,6 +14,7 @@
 #include "K2Node_CallFunction.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Modules/ModuleManager.h"
+#include "UI/GridInventorySlotWidget.h"
 #include "UObject/UnrealType.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
@@ -107,6 +108,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		FName(TEXT("SyncSelectedItemDefinitionIdFromAsset")),
 		FName(TEXT("RegisterItemDefinition")),
 		FName(TEXT("FindItemDefinition")),
+		FName(TEXT("GetItemDefinition")),
 		FName(TEXT("TryInsertItem")),
 		FName(TEXT("AddRuntimeItemToSelectedCharacterInventory"))
 	};
@@ -238,6 +240,8 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));
+	TestNull(TEXT("Historical slot getter is no longer reflected"),
+		UGridInventorySlotWidget::StaticClass()->FindFunctionByName(TEXT("GetItemDefinition")));
 	TestNull(TEXT("Historical inventory lookup is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("FindItemDefinition")));
 	TestNull(TEXT("Obsolete weight-bearing pawn grant is no longer reflected"),
 		AGrimrockPartyPawn::StaticClass()->FindFunctionByName(TEXT("AddRuntimeItemToSelectedCharacterInventory")));
