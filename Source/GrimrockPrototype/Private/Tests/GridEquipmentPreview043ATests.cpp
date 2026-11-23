@@ -2,36 +2,28 @@
 
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridEquipmentPreviewTypes.h"
 
 namespace EquipmentPreview043A
 {
-    UGridPartyInventoryComponent* MakeInventory()
+    UGridOtherEquipmentDefinitionAsset* Definition(UGridItemSystemAsset& Root,
+        FName Id, EGridNonArmamentHandPolicy Hands, EGridEquipmentSlot Slot)
     {
-        UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-        Inventory->InitializeDefaultPartyIfNeeded();
-        return Inventory;
-    }
-
-    UGridItemDefinitionAsset* Definition(UGridPartyInventoryComponent* Inventory,
-        FName Id, EGridItemHandUsage Hands, EGridEquipmentSlot Slot)
-    {
-        UGridItemDefinitionAsset* Def = NewObject<UGridItemDefinitionAsset>(Inventory);
-        Def->ItemDefinitionId = Id;
+        auto* Def = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+        Def->ItemId = Id;
         Def->DisplayName = FText::FromName(Id);
-        Def->ItemType = EGridItemType::Weapon;
-        Def->Weight = 1.f;
-        Def->HandUsage = Hands;
-        Def->CompatibleEquipmentSlots.Add(Slot);
-        return Inventory->RegisterItemDefinition(Def) ? Def : nullptr;
+        Def->WeightKg = 1.f;
+        Def->HandPolicy = Hands;
+        Def->EquipmentSlots.Add(Slot);
+        Root.ItemDefinitions.Add(Def);
+        return Def;
     }
 
-    FGridItemInstance Item(const UGridItemDefinitionAsset* Def)
+    FGridItemInstance Item(FName Id)
     {
         FGridItemInstance Instance;
-        Instance.ItemDefinitionId = Def->ItemDefinitionId;
+        Instance.ItemDefinitionId = Id;
         Instance.RuntimeObjectId = FGuid::NewGuid();
         Instance.Quantity = 1;
         return Instance;
@@ -76,24 +68,25 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEquipmentPreview043ATwoHandTest,
 bool FEquipmentPreview043ATwoHandTest::RunTest(const FString&)
 {
     using namespace EquipmentPreview043A;
-    UGridPartyInventoryComponent* Inventory = MakeInventory();
-    UGridItemDefinitionAsset* Sword = Definition(Inventory, TEXT("PreviewSword"),
-        EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-    UGridItemDefinitionAsset* Shield = Definition(Inventory, TEXT("PreviewShield"),
-        EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
-    UGridItemDefinitionAsset* GreatAxe = Definition(Inventory, TEXT("PreviewGreatAxe"),
-        EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
-    if (!TestNotNull(TEXT("Sword registered"), Sword) ||
-        !TestNotNull(TEXT("Shield registered"), Shield) ||
-        !TestNotNull(TEXT("Great axe registered"), GreatAxe)) return false;
-
-    Sword->EquipmentStatBonus.StrengthBonus = 2;
-    Shield->EquipmentStatBonus.ArmorBonus = 5;
-    Shield->EquipmentResistanceBonus.FireResistance = 3;
-    GreatAxe->EquipmentStatBonus.StrengthBonus = 7;
-    const FGridItemInstance SwordItem = Item(Sword);
-    const FGridItemInstance ShieldItem = Item(Shield);
-    const FGridItemInstance AxeItem = Item(GreatAxe);
+    const FName SwordId(TEXT("PreviewSword"));
+    const FName ShieldId(TEXT("PreviewShield"));
+    const FName GreatAxeId(TEXT("PreviewGreatAxe"));
+    FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+    {
+        auto* Sword = Definition(Root, SwordId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::MainHand);
+        auto* Shield = Definition(Root, ShieldId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::OffHand);
+        auto* GreatAxe = Definition(Root, GreatAxeId, EGridNonArmamentHandPolicy::TwoHanded, EGridEquipmentSlot::MainHand);
+        Sword->Bonuses.StrengthBonus = 2;
+        Shield->Bonuses.ArmorBonus = 5;
+        Shield->Resistances.FireResistance = 3;
+        GreatAxe->Bonuses.StrengthBonus = 7;
+    });
+    UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+    if (!TestNotNull(TEXT("Inventory with registered equipment"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    const FGridItemInstance SwordItem = Item(SwordId);
+    const FGridItemInstance ShieldItem = Item(ShieldId);
+    const FGridItemInstance AxeItem = Item(GreatAxeId);
     if (!TestTrue(TEXT("Equip initial sword"), Install(Inventory, SwordItem, EGridEquipmentSlot::MainHand)) ||
         !TestTrue(TEXT("Equip initial shield"), Install(Inventory, ShieldItem, EGridEquipmentSlot::OffHand)) ||
         !TestTrue(TEXT("Put great axe in bag"), Inventory->AddItemToCharacterInventory(0, AxeItem)))
@@ -164,14 +157,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEquipmentPreview043ACapacityTest,
 bool FEquipmentPreview043ACapacityTest::RunTest(const FString&)
 {
     using namespace EquipmentPreview043A;
-    UGridPartyInventoryComponent* Inventory = MakeInventory();
-    auto* Sword = Definition(Inventory, TEXT("FullSword"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-    auto* Shield = Definition(Inventory, TEXT("FullShield"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
-    auto* Axe = Definition(Inventory, TEXT("FullAxe"), EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
-    if (!Sword || !Shield || !Axe) return false;
-    const auto SwordItem = Item(Sword);
-    const auto ShieldItem = Item(Shield);
-    const auto AxeItem = Item(Axe);
+    const FName SwordId(TEXT("FullSword"));
+    const FName ShieldId(TEXT("FullShield"));
+    const FName AxeId(TEXT("FullAxe"));
+    FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+    {
+        Definition(Root, SwordId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::MainHand);
+        Definition(Root, ShieldId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::OffHand);
+        Definition(Root, AxeId, EGridNonArmamentHandPolicy::TwoHanded, EGridEquipmentSlot::MainHand);
+    });
+    UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+    if (!TestNotNull(TEXT("Inventory with registered equipment"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    const auto SwordItem = Item(SwordId);
+    const auto ShieldItem = Item(ShieldId);
+    const auto AxeItem = Item(AxeId);
     if (!Install(Inventory, SwordItem, EGridEquipmentSlot::MainHand) ||
         !Install(Inventory, ShieldItem, EGridEquipmentSlot::OffHand)) return false;
     auto& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
@@ -204,16 +204,24 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FEquipmentPreview043AHandRulesTest,
 bool FEquipmentPreview043AHandRulesTest::RunTest(const FString&)
 {
     using namespace EquipmentPreview043A;
-    UGridPartyInventoryComponent* Inventory = MakeInventory();
-    auto* Sword = Definition(Inventory, TEXT("HandSword"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-    auto* Shield = Definition(Inventory, TEXT("HandShield"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
-    auto* Pick = Definition(Inventory, TEXT("HandPick"), EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-    auto* Axe = Definition(Inventory, TEXT("HandAxe"), EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
-    if (!Sword || !Shield || !Pick || !Axe) return false;
-    Shield->EquipmentStatBonus.ArmorBonus = 5;
-    if (!Install(Inventory, Item(Sword), EGridEquipmentSlot::MainHand) ||
-        !Install(Inventory, Item(Shield), EGridEquipmentSlot::OffHand)) return false;
-    const FGridItemInstance PickItem = Item(Pick);
+    const FName SwordId(TEXT("HandSword"));
+    const FName ShieldId(TEXT("HandShield"));
+    const FName PickId(TEXT("HandPick"));
+    const FName AxeId(TEXT("HandAxe"));
+    FGridCanonicalWeightTestWorld World({}, [&](UGridItemSystemAsset& Root)
+    {
+        Definition(Root, SwordId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::MainHand);
+        auto* Shield = Definition(Root, ShieldId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::OffHand);
+        Definition(Root, PickId, EGridNonArmamentHandPolicy::OneHanded, EGridEquipmentSlot::MainHand);
+        Definition(Root, AxeId, EGridNonArmamentHandPolicy::TwoHanded, EGridEquipmentSlot::MainHand);
+        Shield->Bonuses.ArmorBonus = 5;
+    });
+    UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+    if (!TestNotNull(TEXT("Inventory with registered equipment"), Inventory)) return false;
+    Inventory->InitializeDefaultPartyIfNeeded();
+    if (!Install(Inventory, Item(SwordId), EGridEquipmentSlot::MainHand) ||
+        !Install(Inventory, Item(ShieldId), EGridEquipmentSlot::OffHand)) return false;
+    const FGridItemInstance PickItem = Item(PickId);
     if (!Inventory->AddItemToCharacterInventory(0, PickItem)) return false;
     FGridEquipmentPreviewResult OffhandPreview;
     if (!TestTrue(TEXT("One-hand pick may replace offhand shield per CanEquipToSlot"),
@@ -226,7 +234,7 @@ bool FEquipmentPreview043AHandRulesTest::RunTest(const FString&)
         OffhandPreview.EffectivePhysicalArmorAfter - OffhandPreview.EffectivePhysicalArmorBefore, -5);
 
     // Now switch to a two-handed candidate, then preview a one-hander from OffHand:
-    const FGridItemInstance AxeItem = Item(Axe);
+    const FGridItemInstance AxeItem = Item(AxeId);
     if (!Inventory->AddItemToCharacterInventory(0, AxeItem) ||
         !Inventory->EquipItemFromInventorySlot(0, FindSlot(Inventory, AxeItem.RuntimeObjectId),
             EGridEquipmentSlot::MainHand)) return false;

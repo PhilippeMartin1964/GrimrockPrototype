@@ -228,8 +228,6 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
 		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::OffHand) &&
 		IsolatedFixtureSlots.AllowedSlots.Contains(EGridEquipmentSlot::Head));
-	if (!TestTrue(TEXT("Unknown legacy definition fixture registered for executor parity"),
-		Fixture.Inventory->RegisterItemDefinition(Legacy))) return false;
 	TestFalse(TEXT("Executor also refuses unknown main-hand equipment in canonical world"),
 		Fixture.Inventory->CanEquipItemToSlot(0, LegacyItem, EGridEquipmentSlot::MainHand));
 	TestFalse(TEXT("Executor refuses unknown obsolete Head slot in canonical world"),
@@ -285,8 +283,6 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	TestTrue(TEXT("The existing two-hands translation is materialized"),
 		!FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands")).IsEmpty());
 	if (Stage == TEXT("TooltipModel")) return !HasAnyErrors();
-	if (!TestTrue(TEXT("Register contradictory axe as a legacy-compatible UI lookup"),
-			Fixture.Inventory->RegisterItemDefinition(Axe))) return false;
 	UGridInventoryWidget* ParentWidget =
 		CreateWidget<UGridInventoryWidget>(Fixture.World, UGridInventoryWidget::StaticClass());
 	UGridInventorySlotWidget* SlotWidget =

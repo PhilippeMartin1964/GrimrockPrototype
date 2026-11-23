@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -11,16 +11,13 @@
 
 namespace
 {
-	UGridItemDefinitionAsset* MakeDefinition(UGridPartyInventoryComponent* Inventory, FName Id, bool bStackable, int32 MaxStackSize)
+	void AddStackDefinition(UGridItemSystemAsset& Root, FName Id)
 	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = Id;
+		auto* Definition = NewObject<UGridGenericStackableDefinitionAsset>(&Root);
+		Definition->ItemId = Id;
 		Definition->DisplayName = FText::FromName(Id);
-		Definition->ItemType = EGridItemType::Misc;
-		Definition->bStackable = bStackable;
-		Definition->MaxStackSize = MaxStackSize;
-		Inventory->RegisterItemDefinition(Definition);
-		return Definition;
+		Definition->MaxStack = 10;
+		Root.ItemDefinitions.Add(Definition);
 	}
 
 	void PrepareTwoCharacters(UGridPartyInventoryComponent* Inventory, int32 SourceSlots = 4, int32 TargetSlots = 4)
@@ -41,11 +38,11 @@ namespace
 	}
 
 	FGridItemInstance MakeOwnedItem(
-		const UGridItemDefinitionAsset* Definition, const FGridCharacterInventoryState& Owner, int32 CharacterIndex, int32 Quantity)
+		FName ItemId, const FGridCharacterInventoryState& Owner, int32 CharacterIndex, int32 Quantity)
 	{
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
-		Item.ItemDefinitionId = Definition->ItemDefinitionId;
+		Item.ItemDefinitionId = ItemId;
 		Item.Quantity = Quantity;
 		Item.OwnerType = EGridItemOwnerType::CharacterInventory;
 		Item.OwnerGuid = Owner.CharacterId;
@@ -54,9 +51,9 @@ namespace
 		return Item;
 	}
 
-	void PutItem(FGridCharacterInventoryState& Character, int32 CharacterIndex, int32 SlotIndex, const UGridItemDefinitionAsset* Definition, int32 Quantity)
+	void PutItem(FGridCharacterInventoryState& Character, int32 CharacterIndex, int32 SlotIndex, FName ItemId, int32 Quantity)
 	{
-		FGridItemInstance Item = MakeOwnedItem(Definition, Character, CharacterIndex, Quantity);
+		FGridItemInstance Item = MakeOwnedItem(ItemId, Character, CharacterIndex, Quantity);
 		Character.InventorySlots[SlotIndex].bOccupied = true;
 		Character.InventorySlots[SlotIndex].Item = Item;
 	}
@@ -69,7 +66,13 @@ bool FGridUIInventory02PartyTransferServiceTest::RunTest(const FString& Paramete
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	const FName StackId(TEXT("UIINV02_Stack"));
+	const FName OtherId(TEXT("UIINV02_Other"));
+	FGridCanonicalWeightTestWorld World({{OtherId, 1.0f}}, [StackId](UGridItemSystemAsset& Root)
+	{
+		AddStackDefinition(Root, StackId);
+	});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
 	TestNotNull(TEXT("Party inventory exists"), Inventory);
 	if (!Inventory)
 	{
@@ -77,13 +80,11 @@ bool FGridUIInventory02PartyTransferServiceTest::RunTest(const FString& Paramete
 	}
 
 	PrepareTwoCharacters(Inventory);
-	UGridItemDefinitionAsset* StackDefinition = MakeDefinition(Inventory, TEXT("UIINV02_Stack"), true, 10);
-	UGridItemDefinitionAsset* OtherDefinition = MakeDefinition(Inventory, TEXT("UIINV02_Other"), false, 1);
 
 	FGridCharacterInventoryState& Source = Inventory->PartyInventoryState.ActiveCharacters[0];
 	FGridCharacterInventoryState& Target = Inventory->PartyInventoryState.ActiveCharacters[1];
 
-	PutItem(Source, 0, 0, StackDefinition, 3);
+	PutItem(Source, 0, 0, StackId, 3);
 	const FGuid WholeSourceId = Source.InventorySlots[0].Item.RuntimeObjectId;
 	const FGridItemTransferResult WholeResult = UGridItemTransferService::TransferInventorySlotToCharacter(Inventory, 0, 0, 1, 0);
 	TestTrue(TEXT("Whole stack transfer succeeds"), WholeResult.bSuccess);
@@ -97,7 +98,7 @@ bool FGridUIInventory02PartyTransferServiceTest::RunTest(const FString& Paramete
 	for (FGridInventorySlot& Slot : Source.InventorySlots) Slot = FGridInventorySlot();
 	for (FGridInventorySlot& Slot : Target.InventorySlots) Slot = FGridInventorySlot();
 
-	PutItem(Source, 0, 0, StackDefinition, 3);
+	PutItem(Source, 0, 0, StackId, 3);
 	const FGuid SplitSourceId = Source.InventorySlots[0].Item.RuntimeObjectId;
 	const FGridItemTransferResult SplitResult = UGridItemTransferService::TransferInventorySlotToCharacter(Inventory, 0, 0, 1, 1);
 	TestTrue(TEXT("Split transfer succeeds"), SplitResult.bSuccess);
@@ -110,8 +111,8 @@ bool FGridUIInventory02PartyTransferServiceTest::RunTest(const FString& Paramete
 	for (FGridInventorySlot& Slot : Source.InventorySlots) Slot = FGridInventorySlot();
 	Target.InventorySlots.SetNum(1);
 	Target.InventorySlots[0] = FGridInventorySlot();
-	PutItem(Source, 0, 0, OtherDefinition, 1);
-	PutItem(Target, 1, 0, OtherDefinition, 1);
+	PutItem(Source, 0, 0, OtherId, 1);
+	PutItem(Target, 1, 0, OtherId, 1);
 	const FGuid RejectedSourceId = Source.InventorySlots[0].Item.RuntimeObjectId;
 	const FGridItemTransferResult RejectResult = UGridItemTransferService::TransferInventorySlotToCharacter(Inventory, 0, 0, 1, 0);
 	TestFalse(TEXT("Full target rejects transfer"), RejectResult.bSuccess);
@@ -131,7 +132,12 @@ bool FGridUIInventory02PortraitDropRoutingTest::RunTest(const FString& Parameter
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	const FName DragId(TEXT("UIINV02_Drag"));
+	FGridCanonicalWeightTestWorld World({}, [DragId](UGridItemSystemAsset& Root)
+	{
+		AddStackDefinition(Root, DragId);
+	});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
 	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
 	TestNotNull(TEXT("Party inventory exists"), Inventory);
 	TestNotNull(TEXT("Inventory widget exists"), Widget);
@@ -141,10 +147,9 @@ bool FGridUIInventory02PortraitDropRoutingTest::RunTest(const FString& Parameter
 	}
 
 	PrepareTwoCharacters(Inventory);
-	UGridItemDefinitionAsset* Definition = MakeDefinition(Inventory, TEXT("UIINV02_Drag"), true, 10);
 	FGridCharacterInventoryState& Source = Inventory->PartyInventoryState.ActiveCharacters[0];
 	FGridCharacterInventoryState& Target = Inventory->PartyInventoryState.ActiveCharacters[1];
-	PutItem(Source, 0, 0, Definition, 2);
+	PutItem(Source, 0, 0, DragId, 2);
 
 	Widget->InventoryComponent = Inventory;
 
@@ -165,7 +170,7 @@ bool FGridUIInventory02PortraitDropRoutingTest::RunTest(const FString& Parameter
 	TestTrue(TEXT("Portrait drop clears the source stack"), Source.InventorySlots[0].IsEmpty());
 	TestEqual(TEXT("Portrait drop moves both items to target"), Target.InventorySlots[0].Item.Quantity, 2);
 
-	PutItem(Source, 0, 0, Definition, 1);
+	PutItem(Source, 0, 0, DragId, 1);
 	UGridInventoryDragDropOperation* StaleOperation = NewObject<UGridInventoryDragDropOperation>();
 	FGridItemInstance StaleItem = Source.InventorySlots[0].Item;
 	StaleOperation->InitializeFromSlot(EGridInventoryUiSlotType::Inventory, 0, StaleItem);

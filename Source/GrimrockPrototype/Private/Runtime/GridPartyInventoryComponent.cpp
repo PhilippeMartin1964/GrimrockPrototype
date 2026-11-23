@@ -1574,19 +1574,11 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
 #if WITH_DEV_AUTOMATION_TESTS
 bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)
 {
+	const UWorld* World = GetWorld();
 	if (!Definition || Definition->ItemDefinitionId.IsNone() ||
-		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting))
+		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting, World && World->GetGameInstance()))
 	{
 		return false;
-	}
-
-	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	if (Registry && Registry->ContainsItem(Definition->ItemDefinitionId))
-	{
-		// The canonical authority already owns this ID. Compatibility
-		// callers receive success but no old pointer is retained.
-		RuntimeItemDefinitionsById.Remove(Definition->ItemDefinitionId);
-		return true;
 	}
 
 	if (const TObjectPtr<UGridItemDefinitionAsset>* ExistingDefinition = RuntimeItemDefinitionsById.Find(Definition->ItemDefinitionId))
@@ -1688,11 +1680,11 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItems(FName& OutMissingDefiniti
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
 {
 #if WITH_DEV_AUTOMATION_TESTS
-	if (!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting)) return nullptr;
-	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	if (ItemDefinitionId.IsNone() || (Registry && Registry->ContainsItem(ItemDefinitionId)))
+	const UWorld* World = GetWorld();
+	if (ItemDefinitionId.IsNone() ||
+		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting, World && World->GetGameInstance()))
 	{
-		return nullptr; // Historical lookup only, including stale map entries.
+		return nullptr;
 	}
 
 	if (const TObjectPtr<UGridItemDefinitionAsset>* Definition = RuntimeItemDefinitionsById.Find(ItemDefinitionId))
@@ -1706,9 +1698,15 @@ UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName
 
 bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstance& ItemInstance) const
 {
-    const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
     const bool bCanonical = Registry && Registry->ContainsItem(ItemInstance.ItemDefinitionId);
+    const UGridItemDefinitionAsset* Definition = nullptr;
+#if WITH_DEV_AUTOMATION_TESTS
+    if (!Registry)
+    {
+        Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
+    }
+#endif
     if (!bCanonical && !Definition)
     {
         UE_LOG(LogGridInventory, Verbose,

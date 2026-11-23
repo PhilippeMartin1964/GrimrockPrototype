@@ -338,16 +338,6 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
         return false;
     }
     const bool bArmEmitsLight = CanonicalArm.LightEmitter.HasEmitter();
-    UGridItemDefinitionAsset* StaleArm = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    StaleArm->ItemDefinitionId = ArmId;
-    StaleArm->LightEmitter.bUsePointLight = !bArmEmitsLight;
-    StaleArm->LightEmitter.LightIntensity = 12345.f;
-    StaleArm->LightEmitter.LightRadius = 9999.f;
-    if (!TestTrue(TEXT("Conflicting same-ID source registered in old inventory"),
-            F.Inventory->RegisterItemDefinition(StaleArm)))
-    {
-        return false;
-    }
 
     UGridPartyIlluminationComponent* PartyLight =
         NewObject<UGridPartyIlluminationComponent>(F.Pawn, TEXT("X41PartyLight"));
@@ -429,18 +419,8 @@ bool FGridClean064X41CanonicalEquippedLight::RunTest(const FString&)
         return false;
     }
 
-    // After cutover an explicitly seeded historical emitter must remain inert.
+    // A lit instance without a registered definition must remain inert.
     const FName LegacyId(TEXT("Legacy_X41_Light"));
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    Legacy->ItemDefinitionId = LegacyId;
-    Legacy->LightEmitter.bUsePointLight = true;
-    Legacy->LightEmitter.LightIntensity = 1200.f;
-    Legacy->LightEmitter.LightRadius = 500.f;
-    if (!TestTrue(TEXT("Unregistered legacy item source registered"),
-            F.Inventory->RegisterItemDefinition(Legacy)))
-    {
-        return false;
-    }
     FGridItemInstance LegacyItem = ARMCLEAN064X17::MakeItem(
         LegacyId, 0, CharacterId, true);
     LegacyItem.OwnerType = EGridItemOwnerType::EquipmentSlot;
@@ -559,14 +539,7 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
     }
 
     // Unregistered items no longer have a held-visual fallback.
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
     const FName LegacyId(TEXT("Legacy_X42_Held"));
-    Legacy->ItemDefinitionId = LegacyId;
-    if (!TestTrue(TEXT("Historical definition registers"),
-            F.Inventory->RegisterItemDefinition(Legacy)))
-    {
-        return false;
-    }
     FGridItemInstance LegacyItem = ARMCLEAN064X17::MakeItem(
         LegacyId, 0, CharacterId);
     AGridItemActor* PreviousHeld = F.Pawn->HeldItemActor.Get();

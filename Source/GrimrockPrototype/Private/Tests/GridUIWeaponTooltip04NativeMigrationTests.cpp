@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "UObject/UnrealType.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -12,11 +12,11 @@
 
 namespace
 {
-    FGridItemInstance MakeInventoryItem(const UGridItemDefinitionAsset* Definition, int32 Level)
+    FGridItemInstance MakeInventoryItem(FName ItemId, int32 Level)
     {
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Definition->ItemDefinitionId;
+        Item.ItemDefinitionId = ItemId;
         Item.ItemLevel = Level;
         Item.Quantity = 1;
         Item.OwnerType = EGridItemOwnerType::CharacterInventory;
@@ -47,7 +47,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridWeaponTooltip04NativeLegacyTest,
 
 bool FGridWeaponTooltip04NativeLegacyTest::RunTest(const FString&)
 {
-    UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+    const FName BeltId(TEXT("INDUS04_2B_LegacyBelt"));
+    FGridCanonicalWeightTestWorld World({}, [BeltId](UGridItemSystemAsset& Root)
+    {
+        auto* Belt = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+        Belt->ItemId = BeltId;
+        Belt->DisplayName = FText::FromString(TEXT("Legacy Belt"));
+        Belt->EquipmentSlots.Add(EGridEquipmentSlot::Belt);
+        Belt->Bonuses.StrengthBonus = 3;
+        Belt->Resistances.FireResistance = 7;
+        Root.ItemDefinitions.Add(Belt);
+    });
+    UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+    if (!TestNotNull(TEXT("Inventory with registered belt"), Inventory)) return false;
     FGridCharacterInventoryState Character;
     Character.CharacterId = FGuid::NewGuid();
     Character.DisplayName = FText::FromString(TEXT("Native tooltip test"));
@@ -57,27 +69,16 @@ bool FGridWeaponTooltip04NativeLegacyTest::RunTest(const FString&)
     Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
     Inventory->PartyInventoryState.MaxActiveCharacters = 6;
 
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>();
-    Legacy->ItemDefinitionId = TEXT("INDUS04_2B_LegacyBelt");
-    Legacy->DisplayName = FText::FromString(TEXT("Legacy Belt"));
-    Legacy->ItemType = EGridItemType::Jewelry;
-    Legacy->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Belt);
-    Legacy->EquipmentStatBonus.StrengthBonus = 3;
-    Legacy->EquipmentResistanceBonus.FireResistance = 7;
-    if (!TestTrue(TEXT("Legacy definition registered"),
-        Inventory->RegisterItemDefinition(Legacy)))
-        return false;
-
     UGridInventoryWidget* Owner = NewObject<UGridInventoryWidget>();
     Owner->InventoryComponent = Inventory;
     UGridInventorySlotWidget* Slot = NewObject<UGridInventorySlotWidget>();
     Slot->SetOwnerInventoryWidget(Owner);
     Slot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, 0);
-    Slot->SetItem(MakeInventoryItem(Legacy, 0));
+    Slot->SetItem(MakeInventoryItem(BeltId, 0));
 
     const FGridItemTooltipView View = Slot->GetTooltipView();
     TestTrue(TEXT("Existing tooltip view is valid"), View.bValid);
-    TestFalse(TEXT("Legacy does not invent a weapon profile"), View.WeaponProfile.bHasProfile);
+    TestFalse(TEXT("Non-armament belt has no weapon profile"), View.WeaponProfile.bHasProfile);
     const auto* Strength = View.StatLines.FindByPredicate(
         [](const FGridItemTooltipStatLine& F) { return F.StatId == TEXT("Strength"); });
     const auto* Fire = View.StatLines.FindByPredicate(

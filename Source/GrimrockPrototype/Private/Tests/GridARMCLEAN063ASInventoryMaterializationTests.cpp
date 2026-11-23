@@ -190,8 +190,6 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     WrongOld->Weight = 1234.0f;
     WrongOld->bStackable = false;
     WrongOld->MaxStackSize = 1;
-    if (!TestTrue(TEXT("Contradictory legacy registered as transitional asset"),
-        Fixture.Inventory->RegisterItemDefinition(WrongOld))) return false;
     FGridItemInstance Conflict = ARMCLEAN063AS::MakeItem(AmmoId, 0, 7);
     TestTrue(TEXT("Canonical materialization ignores old unstackable flag"),
         Fixture.Inventory->ApplyItemDefinitionToInstance(Conflict));
@@ -302,8 +300,6 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     Legacy->bStackable = true;
     Legacy->MaxStackSize = 10;
     Legacy->Weight = 1.5f;
-    if (!TestTrue(TEXT("Legacy item definition registered"),
-        Fixture.Inventory->RegisterItemDefinition(Legacy))) return false;
     FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(Legacy->ItemDefinitionId, 0, 13);
     const auto RefusedPolicy =
         FGridInventoryStackReadModel::Resolve(Fixture.Registry, Legacy, OldStack);

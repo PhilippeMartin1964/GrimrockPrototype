@@ -88,13 +88,12 @@ namespace ARMCLEAN063AU
             Item.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
             return Item;
         }
-        UGridItemDefinitionAsset* RegisterWrong(FName Id, EGridItemType Type) const
+        UGridItemDefinitionAsset* MakeContradictoryDefinition(FName Id, EGridItemType Type) const
         {
             UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
             Definition->ItemDefinitionId = Id;
             Definition->ItemType = Type;
             Definition->DisplayName = FText::FromString(TEXT("WRONG HISTORICAL CATEGORY"));
-            Inventory->RegisterItemDefinition(Definition);
             return Definition;
         }
         void Put(int32 Slot, const FGridItemInstance& Item) const
@@ -126,13 +125,13 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
     const FGridItemInstance Arrows = Fixture.Make(AmmoId, 0);
     const FGridItemInstance Potion = Fixture.Make(PotionId, 0);
     UGridItemDefinitionAsset* WrongSword =
-        Fixture.RegisterWrong(SwordId, EGridItemType::Potion);
+        Fixture.MakeContradictoryDefinition(SwordId, EGridItemType::Potion);
     UGridItemDefinitionAsset* WrongShield =
-        Fixture.RegisterWrong(ShieldId, EGridItemType::Book);
+        Fixture.MakeContradictoryDefinition(ShieldId, EGridItemType::Book);
     UGridItemDefinitionAsset* WrongArrows =
-        Fixture.RegisterWrong(AmmoId, EGridItemType::Weapon);
+        Fixture.MakeContradictoryDefinition(AmmoId, EGridItemType::Weapon);
     UGridItemDefinitionAsset* RealLegacy =
-        Fixture.RegisterWrong(PotionId, EGridItemType::Potion);
+        Fixture.MakeContradictoryDefinition(PotionId, EGridItemType::Potion);
 
     for (const int32 Level : {1, 20})
     {
@@ -435,7 +434,7 @@ bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
             !Comparison->WeaponFacts.IsEmpty());
     TestEqual(TEXT("Preview leaves equipped GUID alone"), F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId,
         Equipped.RuntimeObjectId);
-    auto* Stale = F.RegisterWrong(SwordId, EGridItemType::Book);
+    auto* Stale = F.MakeContradictoryDefinition(SwordId, EGridItemType::Book);
     Stale->ReadText = FText::FromString(TEXT("Stale readable text"));
     Stale->EquipmentStatBonus.StrengthBonus = 999;
     Slot->SetItem(Candidate);
@@ -486,7 +485,7 @@ bool FGridClean065E4ContextEquip::RunTest(const FString&)
     F.Put(0, Sword);
     F.Put(1, Shield);
     TestNull(TEXT("Sword needs no historical definition"), F.Inventory->FindItemDefinition(Sword.ItemDefinitionId));
-    auto* WrongShield = F.RegisterWrong(Shield.ItemDefinitionId, EGridItemType::Book);
+    auto* WrongShield = F.MakeContradictoryDefinition(Shield.ItemDefinitionId, EGridItemType::Book);
     WrongShield->CompatibleEquipmentSlots.Reset();
     const auto EquipViaMenu = [&](int32 SlotIndex, EGridEquipmentSlot Hand)
     {

@@ -10,11 +10,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean065H10RegistrationGate,
 bool FGridClean065H10RegistrationGate::RunTest(const FString&)
 {
     TestFalse(TEXT("Ordinary Editor runtime cannot register old definitions"),
-        FGridLegacyInventoryRegistrationGate::Allows(false));
-    TestTrue(TEXT("Actual Automation may characterize the historical registry"),
-        FGridLegacyInventoryRegistrationGate::Allows(true));
-    // Integration of the old native map remains covered by TD06.8 tests.
-    // Game-world use of that map remains refused by canonical resolver gates.
+        FGridLegacyInventoryRegistrationGate::Allows(false, false));
+    TestTrue(TEXT("Isolated Automation without a GameInstance may still use the historical map"),
+        FGridLegacyInventoryRegistrationGate::Allows(true, false));
+    TestFalse(TEXT("GameInstance-backed Automation cannot use the historical registry"),
+        FGridLegacyInventoryRegistrationGate::Allows(true, true));
     return !HasAnyErrors();
 }
 

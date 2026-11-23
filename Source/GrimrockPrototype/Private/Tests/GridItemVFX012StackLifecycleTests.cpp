@@ -6,7 +6,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -50,12 +50,12 @@ namespace GridItemVFX012StackTests
         }
     };
 
-    FGridItemInstance MakePotion(const UGridItemDefinitionAsset& Definition,
+    FGridItemInstance MakePotion(FName ItemId,
         int32 Quantity, bool bLightsEnabled)
     {
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Definition.ItemDefinitionId;
+        Item.ItemDefinitionId = ItemId;
         Item.Quantity = Quantity;
         Item.OwnerType = EGridItemOwnerType::World;
         Item.bLightsEnabled = bLightsEnabled;
@@ -99,6 +99,22 @@ bool FGridItemVFX012StackLifecycleTest::RunTest(const FString& Parameters)
         return false;
     }
 
+    const FName PotionId(TEXT("ITEM_VFX012_Potion"));
+    FGridCanonicalLootTestScope RegistryScope;
+    if (!TestTrue(TEXT("Potion definition registers in an isolated ItemSystem"),
+        RegistryScope.AttachWithWeights(TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+        {
+            auto* Potion = NewObject<UGridConsumableDefinitionAsset>(&Root);
+            Potion->ItemId = PotionId;
+            Potion->DisplayName = FText::FromString(TEXT("Permanent bubbling potion"));
+            Potion->MaxStack = 10;
+            FGridItemNiagaraEffectConfig& Effect = Potion->VisualEffects.Effects.AddDefaulted_GetRef();
+            Effect.EffectId = TEXT("LiquidSparkle");
+            Effect.NiagaraSystem = Sparkle;
+            Effect.ActivationMode = EGridItemVfxActivationMode::Always;
+            Root.ItemDefinitions.Add(Potion);
+        }))) return false;
+
     AGrimrockPartyPawn* Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
     if (!TestNotNull(TEXT("Party exists"), Party) ||
         !TestNotNull(TEXT("Party inventory exists"), Party ? Party->PartyInventoryComponent.Get() : nullptr))
@@ -110,40 +126,25 @@ bool FGridItemVFX012StackLifecycleTest::RunTest(const FString& Parameters)
     Inventory->InitializeDefaultPartyIfNeeded();
     const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex();
 
-    UGridItemDefinitionAsset* Potion = NewObject<UGridItemDefinitionAsset>(Inventory);
-    Potion->ItemDefinitionId = TEXT("ITEM_VFX012_Potion");
-    Potion->DisplayName = FText::FromString(TEXT("Permanent bubbling potion"));
-    Potion->ItemType = EGridItemType::Potion;
-    Potion->bStackable = true;
-    Potion->MaxStackSize = 10;
-
-    FGridItemNiagaraEffectConfig Effect;
-    Effect.EffectId = TEXT("LiquidSparkle");
-    Effect.NiagaraSystem = Sparkle;
-    Effect.ActivationMode = EGridItemVfxActivationMode::Always;
-    Potion->VisualEffects.Effects.Add(Effect);
-
+    FGridResolvedItem Potion;
     TestTrue(TEXT("Potion has valid VFX but no emitter"),
-        Potion->IsValidDefinition() && !Potion->HasLightEmitter());
-    if (!TestTrue(TEXT("Potion definition registers"), Inventory->RegisterItemDefinition(Potion)))
-    {
-        return false;
-    }
+        RegistryScope.Registry->ResolveItem(PotionId, 0, Potion) &&
+        Potion.VisualEffects.Effects.Num() == 1 && !Potion.LightEmitter.HasEmitter());
 
     // Old bug: an incoming lit source merges into an unlit target. The target
     // light flag remains false; permanent visual effects must still survive.
     if (!TestTrue(TEXT("Insert target potion stack"),
         Inventory->AddItemToCharacterInventory(
-            CharacterIndex, GridItemVFX012StackTests::MakePotion(*Potion, 2, false))) ||
+            CharacterIndex, GridItemVFX012StackTests::MakePotion(PotionId, 2, false))) ||
         !TestTrue(TEXT("Merge incoming stack with a different light state"),
         Inventory->AddItemToCharacterInventory(
-            CharacterIndex, GridItemVFX012StackTests::MakePotion(*Potion, 3, true))))
+            CharacterIndex, GridItemVFX012StackTests::MakePotion(PotionId, 3, true))))
     {
         return false;
     }
 
     const FGridItemInstance* Combined =
-        GridItemVFX012StackTests::FindPotion(*Inventory, CharacterIndex, Potion->ItemDefinitionId);
+        GridItemVFX012StackTests::FindPotion(*Inventory, CharacterIndex, PotionId);
     if (!TestNotNull(TEXT("Merged stack survives"), Combined))
     {
         return false;
@@ -157,7 +158,8 @@ bool FGridItemVFX012StackLifecycleTest::RunTest(const FString& Parameters)
     {
         return false;
     }
-    Dropped->InitializeFromItemDefinition(Potion, MergeGuid);
+    if (!TestTrue(TEXT("Dropped initializes from its registered instance"),
+        Dropped->InitializeFromItemInstance(*Combined, RegistryScope.Registry))) return false;
     Dropped->SetItemLightsEnabled(Combined->bLightsEnabled);
     UNiagaraComponent* Bubble = Dropped->VisualEffectsComponent->GetEffectComponent(0);
     TestNotNull(TEXT("Dropped unlit potion creates permanent Niagara"), Bubble);
@@ -202,7 +204,8 @@ bool FGridItemVFX012StackLifecycleTest::RunTest(const FString& Parameters)
     {
         return false;
     }
-    SplitDrop->InitializeFromItemDefinition(Potion, Split.RuntimeObjectId);
+    if (!TestTrue(TEXT("SplitDrop initializes from its registered instance"),
+        SplitDrop->InitializeFromItemInstance(Split, RegistryScope.Registry))) return false;
     SplitDrop->SetItemLightsEnabled(Split.bLightsEnabled);
     UNiagaraComponent* SplitBubble = SplitDrop->VisualEffectsComponent->GetEffectComponent(0);
     TestTrue(TEXT("Split and dropped unlit potion still bubbles"),
@@ -214,7 +217,8 @@ bool FGridItemVFX012StackLifecycleTest::RunTest(const FString& Parameters)
     {
         return false;
     }
-    Restored->InitializeFromItemDefinition(Potion, Snapshot.RuntimeObjectId);
+    if (!TestTrue(TEXT("Restored initializes from its registered instance"),
+        Restored->InitializeFromItemInstance(Snapshot, RegistryScope.Registry))) return false;
     Restored->OnPlacedInWorld();
     Restored->SetItemLightsEnabled(Snapshot.bLightsEnabled);
     TestTrue(TEXT("Re-created saved instance derives permanent VFX from item definition"),

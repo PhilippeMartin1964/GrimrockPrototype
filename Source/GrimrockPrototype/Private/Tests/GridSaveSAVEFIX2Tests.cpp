@@ -9,7 +9,7 @@
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockGameInstance.h"
@@ -88,7 +88,8 @@ namespace
 
 	bool BuildSAVEFIX2LoadablePartyState(FGridPartyInventoryState& OutState, FGuid& OutCharacterId)
 	{
-		UGridPartyInventoryComponent* Source = NewObject<UGridPartyInventoryComponent>();
+		FGridCanonicalWeightTestWorld World({{SAVEFIX2MissingItemId, 1.0f}});
+		UGridPartyInventoryComponent* Source = World.MakeInventory();
 		if (!Source)
 		{
 			return false;
@@ -117,19 +118,6 @@ namespace
 
 		FText CreationError;
 		if (!Source->CreateInitialCharacter(Request, CreationError) || Source->PartyInventoryState.ActiveCharacters.IsEmpty())
-		{
-			return false;
-		}
-
-		UGridItemDefinitionAsset* MissingDefinition = NewObject<UGridItemDefinitionAsset>(Source);
-		if (!MissingDefinition)
-		{
-			return false;
-		}
-		MissingDefinition->ItemDefinitionId = SAVEFIX2MissingItemId;
-		MissingDefinition->DisplayName = FText::FromString(TEXT("SAVEFIX2 missing item"));
-		MissingDefinition->Weight = 1.0f;
-		if (!Source->RegisterItemDefinition(MissingDefinition))
 		{
 			return false;
 		}

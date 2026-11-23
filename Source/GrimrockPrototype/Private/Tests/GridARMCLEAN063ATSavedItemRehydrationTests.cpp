@@ -5,7 +5,6 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Combat/GridCombatTraceTypes.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -91,15 +90,6 @@ namespace ARMCLEAN063AT
 		}
 	};
 
-	UGridItemDefinitionAsset* MakeLegacy(UObject* Outer, FName Id)
-	{
-		UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Outer);
-		Legacy->ItemDefinitionId = Id;
-		Legacy->DisplayName = FText::FromName(Id);
-		Legacy->Weight = 13.0f;
-		Legacy->MaxStackSize = 1;
-		return Legacy;
-	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean063ATSavedRehydration,
@@ -265,13 +255,14 @@ bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
 	TestTrue(TEXT("Valid canonical party rehydrates"),
 		F.Inventory->RehydrateOwnedItems(Missing));
 	const FGuid StableGuid = F.Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0].Item.RuntimeObjectId;
-	UGridItemDefinitionAsset* Old = ARMCLEAN063AT::MakeLegacy(F.Inventory, Unknown);
-	TestTrue(TEXT("Seed historical map for rollback test"), F.Inventory->RegisterItemDefinition(Old));
 	F.Put(1, F.Make(Unknown, 0, 1));
-	TestFalse(TEXT("Old definition cannot authorize unknown saved identity"),
+	const FGridPartyInventoryState BeforeUnknown = F.Inventory->PartyInventoryState;
+	TestFalse(TEXT("Unregistered saved identity is refused"),
 		F.Inventory->RehydrateOwnedItems(Missing));
 	TestEqual(TEXT("Unknown identity reported"), Missing, Unknown);
-	TestEqual(TEXT("Failed validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
+	TestTrue(TEXT("Failed restore leaves the draft roster unchanged"),
+		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+			&BeforeUnknown, &F.Inventory->PartyInventoryState, 0));
 	F.Put(1, F.Make(Unknown, 0, 0));
 	TestFalse(TEXT("Malformed occupied unknown object cannot be skipped"),
 		F.Inventory->RehydrateOwnedItems(Missing));
@@ -299,14 +290,12 @@ bool FGridClean063ATStrictPartyRehydration::RunTest(const FString&)
 	Shortcut.PreferredSourceRuntimeId = FGuid::NewGuid();
 	Shortcut.PreferredEquipmentSlot = EGridEquipmentSlot::MainHand;
 	Hotbar[1] = Shortcut;
-	TestFalse(TEXT("Unknown shortcut cannot authorize legacy definition"),
+	TestFalse(TEXT("Unregistered shortcut identity is refused"),
 		F.Inventory->RehydrateOwnedItems(Missing));
 	TestEqual(TEXT("Unknown shortcut reports exact identity"), Missing, Unknown);
-	TestEqual(TEXT("Failed shortcut validation preserves prior map"), F.Inventory->FindItemDefinition(Unknown), Old);
 	Hotbar[1].SourceDefinitionId = TEXT("Weapon_Dagger_01");
 	TestTrue(TEXT("Canonical-only state succeeds once corrected"),
 		F.Inventory->RehydrateOwnedItems(Missing));
-	TestNull(TEXT("Successful canonical restore removes old map"), F.Inventory->FindItemDefinition(Unknown));
 	TestTrue(TEXT("Shortcut-only identity does not fabricate a physical source"), Missing.IsNone());
 	TestEqual(TEXT("Shortcut source GUID preserved"), Hotbar[1].PreferredSourceRuntimeId, Shortcut.PreferredSourceRuntimeId);
 	TestEqual(TEXT("Canonical item identity remains stable"),

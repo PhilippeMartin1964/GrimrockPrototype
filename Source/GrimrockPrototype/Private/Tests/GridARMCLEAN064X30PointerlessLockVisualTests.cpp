@@ -143,9 +143,6 @@ bool FGridClean064X30PointerlessLockVisual::RunTest(const FString&)
 	// Even an explicitly accepted stale ID is not a physical key.
 	const FName UnknownId(TEXT("CLEAN06_5G47_UnknownKey"));
 	UGridPartyInventoryComponent* Inventory = Party->PartyInventoryComponent;
-	UGridItemDefinitionAsset* Old = NewObject<UGridItemDefinitionAsset>(Inventory);
-	Old->ItemDefinitionId = UnknownId;
-	bOk &= TestTrue(TEXT("Contradictory historical fixture registers"), Inventory->RegisterItemDefinition(Old));
 	AGridWallLockActor* UnknownLock = World->SpawnActor<AGridWallLockActor>(
 		AGridWallLockActor::StaticClass(), FTransform::Identity, Params);
 	if (TestNotNull(TEXT("Unknown-ID lock"), UnknownLock))
