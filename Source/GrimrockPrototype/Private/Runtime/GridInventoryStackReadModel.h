@@ -36,9 +36,19 @@ struct FGridInventoryStackReadModel
             {
                 return View; // Registered invalid level must never use old MaxStackSize.
             }
+            return Project(&Resolved, true);
+        }
+        return View;
+    }
+
+    static FGridInventoryStackReadView Project(const FGridResolvedItem* Item, bool bRegisteredIdentity)
+    {
+        FGridInventoryStackReadView View;
+        View.bRegisteredIdentity = bRegisteredIdentity;
+        if (Item)
+        {
             View.bResolved = true;
-            View.MaxStackSize = FMath::Max(1, Resolved.MaxStack);
-            return View;
+            View.MaxStackSize = FMath::Max(1, Item->MaxStack);
         }
         return View;
     }

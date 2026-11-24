@@ -197,24 +197,27 @@ struct FGridQuickItemUseReadModel
         FGridQuickItemUseReadView Out;
         Out.bRegisteredIdentity = Registry &&
             Registry->ContainsItem(Instance.ItemDefinitionId);
-        if (!Out.bRegisteredIdentity || !Instance.IsValid())
+        FGridResolvedItem Item;
+        const bool bResolved = Out.bRegisteredIdentity && Registry->ResolvePhysicalItem(Instance, Item);
+        return Project(Registry, bResolved ? &Item : nullptr, Out.bRegisteredIdentity);
+    }
+
+    static FGridQuickItemUseReadView Project(const UGridItemSubsystem* Registry,
+        const FGridResolvedItem* Resolved, bool bRegisteredIdentity)
+    {
+        FGridQuickItemUseReadView Out;
+        Out.bRegisteredIdentity = bRegisteredIdentity;
+        if (!Registry || !Resolved || Resolved->AvailableActions.Num() != 1)
         {
             return Out;
         }
-
-        FGridResolvedItem Item;
-        if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Item) ||
-            Item.AvailableActions.Num() != 1)
-        {
-            return Out; // Registered invalid N0/N21 must fail closed.
-        }
+        const FGridResolvedItem& Item = *Resolved;
 
         // Directly consume the authored, lossless combat definition from the
         // one canonical action catalogue. No synthetic PA, target, status,
         // effect, cooldown, icon or source tags, and NO legacy fallback.
         FGridCombatActionDefinition Detailed;
-        if (Registry->ResolveDetailedNonArmAction(Instance.ItemDefinitionId,
-                Instance.ItemLevel, Item.AvailableActions[0].ActionId, Detailed))
+        if (Registry->ResolveDetailedNonArmAction(Item, Item.AvailableActions[0].ActionId, Detailed))
         {
             if (Detailed.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
                 Detailed.ActionId != Item.AvailableActions[0].ActionId ||
@@ -240,8 +243,7 @@ struct FGridQuickItemUseReadModel
         {
             FGridResolvedBoundAction Bound;
             FGridCombatActionDefinition Candidate;
-            if (!Registry->ResolveBoundAction(Instance.ItemDefinitionId,
-                    Instance.ItemLevel, Binding.ActionId, Bound) ||
+            if (!Registry->ResolveBoundAction(Item, Binding.ActionId, Bound) ||
                 (!TryProjectSingleHeal(Item, Bound, Candidate) &&
                     !TryProjectSingleStatusRemoval(Item, Bound, Candidate) &&
                     !TryProjectSingleStatusApplication(Item, Bound, Candidate)))

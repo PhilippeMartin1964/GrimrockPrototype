@@ -227,6 +227,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
 
+	/** Resolve the exact level of a valid physical instance for a local read. */
+	bool ResolvePhysicalItem(const FGridItemInstance& Instance, FGridResolvedItem& OutItem) const;
+
 	/** The validated registry owns a UNIQUE AmmoKindId -> concrete ItemId join.
 	 * Never guess a weapon's ammunition from a legacy arrow asset or name. */
 	bool ResolveAmmoKind(FName AmmoKindId, FGridResolvedItem& OutAmmo) const;
@@ -241,16 +244,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System|Armor")
 	bool ResolveArmorReserveForInstance(const FGridItemInstance& Instance,
 		FGridArmorReserveView& OutReserve) const;
+	static bool ProjectArmorReserve(const FGridItemInstance& Instance,
+		const FGridResolvedItem& Resolved, FGridArmorReserveView& OutReserve);
 
 	/** Resolve ONLY an authored ItemActionBinding via the four global catalogues. */
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveBoundAction(FName ItemId, int32 ItemLevel, FName ActionId,
+		FGridResolvedBoundAction& OutAction) const;
+	bool ResolveBoundAction(const FGridResolvedItem& Item, FName ActionId,
 		FGridResolvedBoundAction& OutAction) const;
 
 	/** Full authored non-arm action, looked up ONLY in the single global
 	 * action catalogue and an explicit binding on this item's concrete asset.
 	 * No legacy definition, compact re-synthesis or fallback. */
 	bool ResolveDetailedNonArmAction(FName ItemId, int32 ItemLevel,
+		FName ActionId, FGridCombatActionDefinition& OutAction) const;
+	bool ResolveDetailedNonArmAction(const FGridResolvedItem& Item,
 		FName ActionId, FGridCombatActionDefinition& OutAction) const;
 
 	/** A native non-ARM equipped action requires an ACTUAL physical source

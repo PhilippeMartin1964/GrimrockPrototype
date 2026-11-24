@@ -18,50 +18,46 @@ struct FGridEquipmentSlotsView
 
 struct FGridEquipmentSlots
 {
-	static FGridEquipmentSlotsView Resolve(
-		const UGridItemSubsystem* Registry,
-		const FGridItemInstance& Item)
+	static FGridEquipmentSlotsView Project(const FGridResolvedItem* Item, bool bRegisteredIdentity)
 	{
 		FGridEquipmentSlotsView View;
-		if (!Item.IsValid() || Item.ItemDefinitionId.IsNone())
+		View.bRegisteredIdentity = bRegisteredIdentity;
+		if (!Item)
 		{
 			return View;
 		}
 
-		if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
+		View.bResolved = true;
+		if (!Item->bIsArmament)
 		{
-			View.bRegisteredIdentity = true;
-			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
-			{
-				return View; // Persisted N0/invalid N21: no legacy slot fallback.
-			}
-			View.bResolved = true;
-			if (!Canonical.bIsArmament)
-			{
-				// Only genuine canonical equipment carries explicit slots.
-				// Ammo, potions and generic stacks have none, regardless
-				// of obsolete legacy hand flags. Physical non-ARM is N0.
-				if (Item.ItemLevel != 0) { View.bResolved = false; return View; }
-				View.bTwoHanded = Canonical.bNonArmTwoHanded;
-				View.AllowedSlots = Canonical.NonArmEquipmentSlots;
-				return View;
-			}
-
-			View.bTwoHanded =
-				Canonical.Weapon.HandPolicy == EGridHandPolicy::TwoHanded;
-			if (Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
-			{
-				View.AllowedSlots.Add(EGridEquipmentSlot::MainHand);
-			}
-			if (!View.bTwoHanded &&
-				Canonical.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand))
-			{
-				View.AllowedSlots.Add(EGridEquipmentSlot::OffHand);
-			}
+			// Only genuine canonical equipment carries explicit slots.
+			// Ammo, potions and generic stacks have none, regardless
+			// of obsolete legacy hand flags. Physical non-ARM is N0.
+			View.bTwoHanded = Item->bNonArmTwoHanded;
+			View.AllowedSlots = Item->NonArmEquipmentSlots;
 			return View;
 		}
 
+		View.bTwoHanded =
+			Item->Weapon.HandPolicy == EGridHandPolicy::TwoHanded;
+		if (Item->Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand))
+		{
+			View.AllowedSlots.Add(EGridEquipmentSlot::MainHand);
+		}
+		if (!View.bTwoHanded &&
+			Item->Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand))
+		{
+			View.AllowedSlots.Add(EGridEquipmentSlot::OffHand);
+		}
 		return View;
+	}
+
+	static FGridEquipmentSlotsView Resolve(
+		const UGridItemSubsystem* Registry, const FGridItemInstance& Item)
+	{
+		FGridResolvedItem Resolved;
+		const bool bResolved = Registry && Registry->ResolvePhysicalItem(Item, Resolved);
+		return Project(bResolved ? &Resolved : nullptr,
+			Item.IsValid() && Registry && Registry->ContainsItem(Item.ItemDefinitionId));
 	}
 };

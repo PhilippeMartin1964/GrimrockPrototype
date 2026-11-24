@@ -9,6 +9,7 @@
 #include "CoreGlobals.h"
 #include "GridPhysicalThrowPreflightReadModel.h"
 #include "GridEquipmentSlots.h"
+#include "GridItemActionDiagnostics.h"
 #include "GridInventoryStackReadModel.h"
 #include "GridItemInteractionReadModel.h"
 #include "GridQuickItemUseReadModel.h"
@@ -29,47 +30,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridItemActions, Log, All);
 
 namespace
 {
-	const TCHAR* ToActionTypeText(EGridItemActionType ActionType)
-	{
-		switch (ActionType)
-		{
-			case EGridItemActionType::Equip:
-				return TEXT("Equip");
-			case EGridItemActionType::Unequip:
-				return TEXT("Unequip");
-			case EGridItemActionType::Consume:
-				return TEXT("Consume");
-			case EGridItemActionType::Read:
-				return TEXT("Read");
-			case EGridItemActionType::Examine:
-				return TEXT("Examine");
-			case EGridItemActionType::Use:
-				return TEXT("Use");
-			case EGridItemActionType::UseOnTarget:
-				return TEXT("UseOnTarget");
-			case EGridItemActionType::InsertIntoTarget:
-				return TEXT("InsertIntoTarget");
-			case EGridItemActionType::PlaceOnTarget:
-				return TEXT("PlaceOnTarget");
-			case EGridItemActionType::DropToGround:
-				return TEXT("DropToGround");
-			case EGridItemActionType::Throw:
-				return TEXT("Throw");
-			case EGridItemActionType::Combine:
-				return TEXT("Combine");
-			case EGridItemActionType::SplitStack:
-				return TEXT("SplitStack");
-			case EGridItemActionType::ToggleLight:
-				return TEXT("ToggleLight");
-			case EGridItemActionType::AddToHotbar:
-				return TEXT("AddToHotbar");
-			case EGridItemActionType::DisarmTrap:
-				return TEXT("DisarmTrap");
-			case EGridItemActionType::None:
-			default:
-				return TEXT("None");
-		}
-	}
+	bool ResolveFacingTargetForItem(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& Item,
+		bool bDisarmTool, FGridFacingTargetContext& OutFacingTarget, float TraceDistance);
 
 	const TCHAR* ToTargetTypeText(EGridFacingTargetType TargetType)
 	{
@@ -232,10 +194,15 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	const UWorld* ItemWorld = ItemContext.PartyPawn->GetWorld();
 	UGameInstance* ItemGI = ItemWorld ? ItemWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* ItemRegistry = ItemGI ? ItemGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	const FGridItemInteractionReadView Capabilities =
-		FGridItemInteractionReadModel::Resolve(ItemRegistry, ItemContext.Item);
+	FGridResolvedItem Resolved;
+	const bool bResolved = ItemRegistry && ItemRegistry->ResolvePhysicalItem(ItemContext.Item, Resolved);
+	const FGridResolvedItem* Definition = bResolved ? &Resolved : nullptr;
+	const bool bRegistered = bResolved || (ItemRegistry && ItemRegistry->ContainsItem(ItemContext.Item.ItemDefinitionId));
+	const FGridQuickItemUseReadView CanonicalUse = FGridQuickItemUseReadModel::Project(ItemRegistry, Definition, bRegistered);
+	const FGridItemInteractionReadView Capabilities = FGridItemInteractionReadModel::Project(ItemContext.Item, Definition, CanonicalUse);
+	const bool bDisarmTool = FGridExplorationItemReadModel::IsDisarmTool(ItemContext.Item, Definition, TEXT("Tool.Disarm"));
 
-	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, OutFacingTarget);
+	ResolveFacingTargetForItem(ItemContext.PartyPawn, ItemContext.Item, bDisarmTool, OutFacingTarget, 300.f);
 
 	AddAction(OutActions, EGridItemActionType::Examine, NSLOCTEXT("GridItemActions", "Examine", "Examiner"));
 
@@ -248,13 +215,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	}
 	else
 	{
-		const UWorld* World = ItemContext.PartyPawn->GetWorld();
-		UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GameInstance
-			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridEquipmentSlotsView Slots =
-			FGridEquipmentSlots::Resolve(
-				Registry, ItemContext.Item);
+		const FGridEquipmentSlotsView Slots = FGridEquipmentSlots::Project(Definition, bRegistered);
 
 		if (Slots.bTwoHanded && Slots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand))
 		{
@@ -280,14 +241,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	if (Capabilities.bCanConsumeItem)
 	{
-		FGridCombatActionDefinition QuickItemAction;
-		const FGridQuickItemUseReadView CanonicalUse =
-			FGridQuickItemUseReadModel::Resolve(ItemRegistry, ItemContext.Item);
-		bool bActionResolved = Capabilities.bCanConsumeItem && CanonicalUse.bResolved;
-		if (bActionResolved)
-		{
-			QuickItemAction = CanonicalUse.Action;
-		}
+		const FGridCombatActionDefinition& QuickItemAction = CanonicalUse.Action;
+		const bool bActionResolved = CanonicalUse.bResolved;
 		const bool bSelfRestoration =
 			ItemContext.InventorySlotIndex != INDEX_NONE && bActionResolved &&
 			QuickItemAction.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
@@ -336,7 +291,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	const bool bIsInventorySlotSource = ItemContext.InventorySlotIndex != INDEX_NONE && ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
     if (bIsInventorySlotSource &&
-        IsContextDisarmTool(ItemContext.PartyPawn, ItemContext.Item) &&
+        bDisarmTool &&
         OutFacingTarget.bIsValid &&
         OutFacingTarget.TargetType == EGridFacingTargetType::DungeonTrap &&
         OutFacingTarget.bAcceptsCurrentItem &&
@@ -414,11 +369,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	if (bIsInventorySlotSource && ItemContext.Item.Quantity >= 2)
 	{
-		const UWorld* World = ItemContext.PartyPawn->GetWorld();
-		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridInventoryStackReadView StackPolicy =
-			FGridInventoryStackReadModel::Resolve(Registry, ItemContext.Item);
+		const FGridInventoryStackReadView StackPolicy = FGridInventoryStackReadModel::Project(Definition, bRegistered);
 		if (StackPolicy.IsStackable())
 		{
 			AddAction(OutActions, EGridItemActionType::SplitStack,
@@ -432,13 +383,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		const bool bHasSummary = ItemContext.PartyPawn->PartyInventoryComponent &&
 			ItemContext.PartyPawn->PartyInventoryComponent->GetCharacterSummary(ItemContext.CharacterIndex, CharacterSummary);
 		const int32 Strength = bHasSummary ? CharacterSummary.Attributes.Strength : 0;
-		UGameInstance* GameInstance = ItemContext.PartyPawn->GetWorld()
-			? ItemContext.PartyPawn->GetWorld()->GetGameInstance() : nullptr;
-		const UGridItemSubsystem* Registry = GameInstance
-			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const FGridPhysicalThrowPreflightReadView Gate =
-			FGridPhysicalThrowPreflightReadModel::Resolve(
-				Registry, ItemContext.Item, Strength);
+		const FGridPhysicalThrowPreflightReadView Gate = FGridPhysicalThrowPreflightReadModel::Project(
+			ItemContext.Item, Definition, bRegistered, Strength);
 		const bool bCanThrow = bHasSummary && Gate.bCanThrow;
 
 		FText DisabledReason;
@@ -475,7 +421,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		OutFacingTarget.bIsValid ? *GetNameSafe(OutFacingTarget.TargetActor) : TEXT("None"));
 	for (const FGridItemContextAction& Action : OutActions)
 	{
-		UE_LOG(LogGridItemActions, Log, TEXT("GridItemActions Action=%s Enabled=%s Reason=%s"), ToActionTypeText(Action.ActionType),
+		UE_LOG(LogGridItemActions, Log, TEXT("GridItemActions Action=%s Enabled=%s Reason=%s"), GetGridItemActionDiagnosticName(Action.ActionType),
 			Action.bEnabled ? TEXT("true") : TEXT("false"), Action.DisabledReason.IsEmpty() ? TEXT("None") : *Action.DisabledReason.ToString());
 	}
 
@@ -484,6 +430,15 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem,
 	FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
+{
+	return ResolveFacingTargetForItem(PartyPawn, CurrentItem,
+		IsContextDisarmTool(PartyPawn, CurrentItem), OutFacingTarget, TraceDistance);
+}
+
+namespace
+{
+bool ResolveFacingTargetForItem(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem,
+	bool bDisarmTool, FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
 {
 	OutFacingTarget = FGridFacingTargetContext();
 	if (!PartyPawn || !PartyPawn->GetWorld())
@@ -494,7 +449,7 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
     // Authored dungeon Triggers are data-only: unlike doors/locks they need
     // not own a spawned mesh/actor, so a camera trace cannot select them.
     // Resolve the single adjacent candidate through the grid authority first.
-    if (IsContextDisarmTool(PartyPawn, CurrentItem) &&
+    if (bDisarmTool &&
         IsValid(PartyPawn->LevelRuntimeActor))
     {
         FGuid TrapId;
@@ -611,4 +566,5 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
 	UE_LOG(LogGridItemActions, Log, TEXT("GridFacingTarget TargetActor=%s ObjectId=%s Type=%s"), *GetNameSafe(OutFacingTarget.TargetActor),
 		OutFacingTarget.TargetObjectId.IsValid() ? *OutFacingTarget.TargetObjectId.ToString() : TEXT("None"), ToTargetTypeText(OutFacingTarget.TargetType));
 	return true;
+}
 }

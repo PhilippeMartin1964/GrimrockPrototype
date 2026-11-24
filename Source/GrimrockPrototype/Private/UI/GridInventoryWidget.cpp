@@ -9,6 +9,8 @@
 #include "Components/UniformGridSlot.h"
 #include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/GridItemContextActionLibrary.h"
+#include "../Runtime/GridEquipmentSlotUtils.h"
+#include "../Runtime/GridItemActionDiagnostics.h"
 #include "RPG/RPGSkillAsset.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -127,48 +129,6 @@ namespace
 			TEXT("Maximum"), FText::AsNumber(FMath::Max(0.0f, MaximumWeight), &NumberOptions));
 	}
 
-	const TCHAR* GetContextActionName(EGridItemActionType ActionType)
-	{
-		switch (ActionType)
-		{
-			case EGridItemActionType::Equip:
-				return TEXT("Equip");
-			case EGridItemActionType::Unequip:
-				return TEXT("Unequip");
-			case EGridItemActionType::Consume:
-				return TEXT("Consume");
-			case EGridItemActionType::Read:
-				return TEXT("Read");
-			case EGridItemActionType::Examine:
-				return TEXT("Examine");
-			case EGridItemActionType::Use:
-				return TEXT("Use");
-			case EGridItemActionType::UseOnTarget:
-				return TEXT("UseOnTarget");
-			case EGridItemActionType::InsertIntoTarget:
-				return TEXT("InsertIntoTarget");
-			case EGridItemActionType::PlaceOnTarget:
-				return TEXT("PlaceOnTarget");
-			case EGridItemActionType::DropToGround:
-				return TEXT("DropToGround");
-			case EGridItemActionType::Throw:
-				return TEXT("Throw");
-			case EGridItemActionType::Combine:
-				return TEXT("Combine");
-			case EGridItemActionType::SplitStack:
-				return TEXT("SplitStack");
-			case EGridItemActionType::ToggleLight:
-				return TEXT("ToggleLight");
-			case EGridItemActionType::AddToHotbar:
-				return TEXT("AddToHotbar");
-			case EGridItemActionType::DisarmTrap:
-				return TEXT("DisarmTrap");
-			case EGridItemActionType::None:
-			default:
-				return TEXT("None");
-		}
-	}
-
 	const TCHAR* GetContextTargetTypeName(EGridFacingTargetType TargetType)
 	{
 		switch (TargetType)
@@ -193,93 +153,20 @@ namespace
 
 	const TCHAR* GetContextEquipmentSlotName(EGridEquipmentSlot EquipmentSlot)
 	{
-		switch (EquipmentSlot)
-		{
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
-			case EGridEquipmentSlot::Shirt:
-				return TEXT("Chemise");
-			case EGridEquipmentSlot::Bracers:
-				return TEXT("Brassards");
-			case EGridEquipmentSlot::None:
-			default:
-				return TEXT("None");
-		}
+		return static_cast<uint8>(EquipmentSlot) <= GridEquipmentSlotUtils::LastSlotValue
+			? GridEquipmentSlotUtils::GetLogName(EquipmentSlot) : TEXT("None");
 	}
 
 	const TCHAR* GetPaperDollEquipmentSlotName(EGridEquipmentSlot EquipmentSlot)
 	{
 		switch (EquipmentSlot)
 		{
-			case EGridEquipmentSlot::MainHand:
-				return TEXT("MainHand");
-			case EGridEquipmentSlot::OffHand:
-				return TEXT("OffHand");
-			case EGridEquipmentSlot::Head:
-				return TEXT("Head");
-			case EGridEquipmentSlot::Chest:
-				return TEXT("Chest");
-			case EGridEquipmentSlot::Legs:
-				return TEXT("Legs");
-			case EGridEquipmentSlot::Feet:
-				return TEXT("Feet");
-			case EGridEquipmentSlot::Amulet:
-				return TEXT("Amulet");
-			case EGridEquipmentSlot::Ring1:
-				return TEXT("Ring1");
-			case EGridEquipmentSlot::Ring2:
-				return TEXT("Ring2");
-			case EGridEquipmentSlot::Shoulders:
-				return TEXT("Shoulders");
-			case EGridEquipmentSlot::Gloves:
-				return TEXT("Gloves");
-			case EGridEquipmentSlot::Belt:
-				return TEXT("Belt");
-			case EGridEquipmentSlot::Cloak:
-				return TEXT("Cloak");
-			case EGridEquipmentSlot::Talisman:
-				return TEXT("Talisman");
-			case EGridEquipmentSlot::QuickSlot1:
-				return TEXT("QuickSlot1");
-			case EGridEquipmentSlot::QuickSlot2:
-				return TEXT("QuickSlot2");
 			case EGridEquipmentSlot::Shirt:
 				return TEXT("Shirt");
 			case EGridEquipmentSlot::Bracers:
 				return TEXT("Bracers");
-			case EGridEquipmentSlot::None:
 			default:
-				return TEXT("None");
+				return GetContextEquipmentSlotName(EquipmentSlot);
 		}
 	}
 
@@ -1024,16 +911,18 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 				}
 
 				const FGridItemInstance& Item = InventorySlot.Item;
+				FGridResolvedItem Resolved;
+				const bool bResolved = Registry && Registry->ResolvePhysicalItem(Item, Resolved);
+				const FGridResolvedItem* Definition = bResolved ? &Resolved : nullptr;
 				const EGridItemType ItemType =
-					FGridInventoryItemTypeReadModel::Resolve(
-						Registry, Item).ItemType;
+					FGridInventoryItemTypeReadModel::Project(Definition, bResolved).ItemType;
 				if (!DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 				{
 					continue;
 				}
 
-				const FGridInventorySortReadView SortSource =
-					FGridInventorySortReadModel::Resolve(Registry, Item);
+				const FGridInventorySortReadView SortSource = FGridInventorySortReadModel::Project(
+					Item, FGridInventoryItemMetadataReadModel::Project(Item, Definition, bResolved));
 				FGridInventoryProjectionEntry& Entry = Entries.AddDefaulted_GetRef();
 				Entry.SourceSlotIndex = SlotIndex;
 				Entry.DisplayName = SortSource.DisplayName;
@@ -1500,7 +1389,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 	TArray<FGridItemContextAction> AvailableActions;
 	if (!BuildContextActionsForSlot(SourceSlotType, SourceSlotIndex, FacingTarget, AvailableActions))
 	{
-		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=InvalidSource"), GetContextActionName(ActionType));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=InvalidSource"), GetGridItemActionDiagnosticName(ActionType));
 		return false;
 	}
 
@@ -1513,7 +1402,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 										  .Num();
 	if (MatchingActionCount > 1)
 	{
-		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"), GetContextActionName(ActionType));
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"), GetGridItemActionDiagnosticName(ActionType));
 		return false;
 	}
 
@@ -1524,7 +1413,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType Act
 		});
 	if (!SelectedAction || !SelectedAction->bEnabled)
 	{
-		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"), GetContextActionName(ActionType),
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"), GetGridItemActionDiagnosticName(ActionType),
 			*LastContextItem.ItemDefinitionId.ToString(), SelectedAction ? TEXT("ActionDisabled") : TEXT("ActionUnavailable"));
 		return false;
 	}
@@ -1552,13 +1441,13 @@ bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex(EGridInventoryUi
 
 	const FGridItemContextAction& SelectedAction = AvailableActions[ActionIndex];
 	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
-		GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType),
+		GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetGridItemActionDiagnosticName(SelectedAction.ActionType),
 		*SelectedAction.Label.ToString(), GetContextEquipmentSlotName(SelectedAction.EquipmentSlot), GetContextTargetTypeName(FacingTarget.TargetType));
 
 	if (!SelectedAction.bEnabled)
 	{
 		UE_LOG(LogGridInventoryUI, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
-			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType));
+			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetGridItemActionDiagnosticName(SelectedAction.ActionType));
 		return false;
 	}
 
@@ -2074,7 +1963,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			break;
 
 		default:
-			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute NotImplemented Action=%s Item=%s"), GetContextActionName(Action.ActionType),
+			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute NotImplemented Action=%s Item=%s"), GetGridItemActionDiagnosticName(Action.ActionType),
 				*LastContextItem.ItemDefinitionId.ToString());
 			break;
 	}

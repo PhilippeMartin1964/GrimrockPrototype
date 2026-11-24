@@ -14,60 +14,50 @@ struct FGridInventoryItemTypeReadView
 
 struct FGridInventoryItemTypeReadModel
 {
-    static FGridInventoryItemTypeReadView Resolve(
-        const UGridItemSubsystem* Registry,
-        const FGridItemInstance& Item)
+    static FGridInventoryItemTypeReadView Project(
+        const FGridResolvedItem* Item, bool bRegisteredIdentity)
     {
         FGridInventoryItemTypeReadView View;
-        if (Item.ItemDefinitionId.IsNone()) return View;
-
-        if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
+        View.bRegisteredIdentity = bRegisteredIdentity;
+        if (!Item)
         {
-            // Recognize membership before IsValid(): that method rejects
-            // N21 itself, but an invalid known ID must NEVER borrow a
-            // legacy category, even in diagnostic/tooltip projections.
-            View.bRegisteredIdentity = true;
-            if (!Item.IsValid()) return View;
-            FGridResolvedItem Resolved;
-            if (!Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Resolved) ||
-                !Resolved.IsValid() || Resolved.ItemId != Item.ItemDefinitionId ||
-                Resolved.ItemLevel != Item.ItemLevel ||
-                (Resolved.bIsArmament ? Item.ItemLevel < 1 : Item.ItemLevel != 0))
-            {
-                return View; // Never read an old ItemType for an invalid ARM N0.
-            }
-            View.bResolved = true;
-            if (Resolved.bIsArmament)
-            {
-                // Passive shields have their own category. Focus and
-                // offensive weapons occupy the existing Weapon equipment type.
-                View.ItemType = Resolved.Weapon.Kind == EGridArmamentKind::Shield
-                    ? EGridItemType::Shield : EGridItemType::Weapon;
-            }
-            else
-            {
-                // Presentation only: retain the explicitly authored category
-                // without inferring combat/equip/use permissions from it.
-                using namespace GridInventoryCategoryTags;
-                if (Count(Resolved.Tags) > 1)
-                {
-                    View.bResolved = false;
-                    return View;
-                }
-                View.ItemType = Resolved.Tags.Contains(Weapon()) ? EGridItemType::Weapon :
-                    Resolved.Tags.Contains(Food()) ? EGridItemType::Food :
-                    Resolved.Tags.Contains(Component()) ? EGridItemType::Component :
-                    Resolved.Tags.Contains(Potion()) ? EGridItemType::Potion :
-                    Resolved.Tags.Contains(Torch()) ? EGridItemType::Torch :
-                    Resolved.Tags.Contains(Book()) ? EGridItemType::Book :
-                    Resolved.Tags.Contains(Jewelry()) ? EGridItemType::Jewelry : EGridItemType::Misc;
-            }
             return View;
         }
-
-        if (!Item.IsValid()) return View;
-
-        // A diagnostic unknown ID has no category. Historical fixtures only.
+        View.bResolved = true;
+        if (Item->bIsArmament)
+        {
+            // Passive shields have their own category. Focus and
+            // offensive weapons occupy the existing Weapon equipment type.
+            View.ItemType = Item->Weapon.Kind == EGridArmamentKind::Shield
+                ? EGridItemType::Shield : EGridItemType::Weapon;
+        }
+        else
+        {
+            // Presentation only: retain the explicitly authored category
+            // without inferring combat/equip/use permissions from it.
+            using namespace GridInventoryCategoryTags;
+            if (Count(Item->Tags) > 1)
+            {
+                View.bResolved = false;
+                return View;
+            }
+            View.ItemType = Item->Tags.Contains(Weapon()) ? EGridItemType::Weapon :
+                Item->Tags.Contains(Food()) ? EGridItemType::Food :
+                Item->Tags.Contains(Component()) ? EGridItemType::Component :
+                Item->Tags.Contains(Potion()) ? EGridItemType::Potion :
+                Item->Tags.Contains(Torch()) ? EGridItemType::Torch :
+                Item->Tags.Contains(Book()) ? EGridItemType::Book :
+                Item->Tags.Contains(Jewelry()) ? EGridItemType::Jewelry : EGridItemType::Misc;
+        }
         return View;
+    }
+
+    static FGridInventoryItemTypeReadView Resolve(
+        const UGridItemSubsystem* Registry, const FGridItemInstance& Item)
+    {
+        FGridResolvedItem Resolved;
+        const bool bResolved = Registry && Registry->ResolvePhysicalItem(Item, Resolved);
+        return Project(bResolved ? &Resolved : nullptr,
+            Registry && Registry->ContainsItem(Item.ItemDefinitionId));
     }
 };

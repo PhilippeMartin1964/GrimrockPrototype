@@ -145,6 +145,15 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Slot 4 identity unchanged"), Character.InventorySlots[4].Item.RuntimeObjectId, Slot4Id);
 	TestEqual(TEXT("Slot 5 identity unchanged"), Character.InventorySlots[5].Item.RuntimeObjectId, Slot5Id);
 
+	PutItem(1, TEXT("SortTorch"), 1);
+	const FGuid TiedSlotId = Character.InventorySlots[1].Item.RuntimeObjectId;
+	Widget->SetInventoryFilterCategory(EGridInventoryFilterCategory::Equipment);
+	Widget->SetInventorySortMode(EGridInventorySortMode::WeightAscending);
+	ExpectProjection(*this, Widget, { 0, 1, 4, INDEX_NONE, INDEX_NONE, INDEX_NONE },
+		TEXT("Equal weight, name and type are ordered by physical source slot"));
+	TestEqual(TEXT("Both tied items retain their physical identity"), Character.InventorySlots[0].Item.RuntimeObjectId, Slot0Id);
+	TestEqual(TEXT("The second tied item remains in its source slot"), Character.InventorySlots[1].Item.RuntimeObjectId, TiedSlotId);
+
 	return true;
 }
 

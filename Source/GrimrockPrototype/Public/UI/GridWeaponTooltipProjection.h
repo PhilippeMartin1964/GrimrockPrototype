@@ -5,9 +5,9 @@
 
 class UGridItemSubsystem;
 struct FGridItemInstance;
+struct FGridResolvedItem;
 
-/** Read-only presentation: ItemSystem owns registered N1-N20 items; old
- * definitions remain temporarily for unregistered identities until 06.4. */
+/** Read-only presentation for the registered physical levels N1–N20. */
 class GRIMROCKPROTOTYPE_API FGridWeaponTooltipProjection
 {
 public:
@@ -23,4 +23,8 @@ public:
         const FGridItemInstance& Equipped,
         TArray<FGridWeaponTooltipComparisonFact>& OutFacts,
         const UGridItemSubsystem* CanonicalRegistry = nullptr);
+    static bool Project(const FGridItemInstance& Instance, const FGridResolvedItem& Item,
+        FGridWeaponTooltipPresentation& Out);
+    static bool Compare(const FGridResolvedItem& Candidate, const FGridResolvedItem& Equipped,
+        TArray<FGridWeaponTooltipComparisonFact>& OutFacts);
 };

@@ -11,16 +11,16 @@ FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItem
 	{
 		return Result;
 	}
-	if (Registry && Registry->ContainsItem(Item.ItemDefinitionId))
+	FGridResolvedItem Resolved;
+	if (Registry && Registry->ResolvePhysicalItem(Item, Resolved))
 	{
 		Result.bRegisteredIdentity = true;
-		FGridResolvedItem Canonical;
-		if (Registry->ResolveItem(Item.ItemDefinitionId, Item.ItemLevel, Canonical))
-		{
-			Result.VisualId = Canonical.VisualId;
-			Result.Icon = Canonical.ItemIcon;
-		}
-		return Result; // Never use a copied legacy icon for an invalid canonical item.
+		Result.VisualId = Resolved.VisualId;
+		Result.Icon = Resolved.ItemIcon;
+	}
+	else
+	{
+		Result.bRegisteredIdentity = Registry && Registry->ContainsItem(Item.ItemDefinitionId);
 	}
 	return Result;
 }

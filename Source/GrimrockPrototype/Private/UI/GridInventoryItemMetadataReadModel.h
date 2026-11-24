@@ -14,35 +14,31 @@ struct FGridInventoryItemMetadata
 
 struct FGridInventoryItemMetadataReadModel
 {
-	static FGridInventoryItemMetadata Resolve(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
+	static FGridInventoryItemMetadata Project(const FGridItemInstance& Instance,
+		const FGridResolvedItem* Item, bool bRegisteredIdentity)
 	{
 		FGridInventoryItemMetadata Result;
 		if (!Instance.IsValid())
 		{
 			return Result;
 		}
-		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
-		{
-			Result.bRegisteredIdentity = true;
-			// Never display historical text or weight for a registered invalid N0.
-			Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
-			FGridResolvedItem Canonical;
-			if (Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) &&
-				Canonical.IsValid() && Canonical.ItemId == Instance.ItemDefinitionId &&
-				Canonical.ItemLevel == Instance.ItemLevel &&
-				(Canonical.bIsArmament ? Instance.ItemLevel >= 1 : Instance.ItemLevel == 0) &&
-				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg >= 0.0f)
-			{
-				Result.bResolved = true;
-				if (!Canonical.DisplayName.IsEmpty()) Result.DisplayName = Canonical.DisplayName;
-				Result.Description = Canonical.Description;
-				Result.UnitWeightKg = Canonical.WeightKg;
-			}
-			return Result;
-		}
-		// Unknown identities expose only their technical ID, not a cached label
-		// or mass. Historical fixture data is isolated from the production UI.
+		Result.bRegisteredIdentity = bRegisteredIdentity;
 		Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
+		if (Item && FMath::IsFinite(Item->WeightKg) && Item->WeightKg >= 0.0f)
+		{
+			Result.bResolved = true;
+			if (!Item->DisplayName.IsEmpty()) Result.DisplayName = Item->DisplayName;
+			Result.Description = Item->Description;
+			Result.UnitWeightKg = Item->WeightKg;
+		}
 		return Result;
+	}
+
+	static FGridInventoryItemMetadata Resolve(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
+	{
+		FGridResolvedItem Item;
+		const bool bResolved = Registry && Registry->ResolvePhysicalItem(Instance, Item);
+		return Project(Instance, bResolved ? &Item : nullptr,
+			Registry && Registry->ContainsItem(Instance.ItemDefinitionId));
 	}
 };

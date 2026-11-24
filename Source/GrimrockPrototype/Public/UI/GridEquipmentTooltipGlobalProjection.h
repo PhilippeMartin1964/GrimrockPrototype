@@ -5,6 +5,7 @@
 
 class UGridPartyInventoryComponent;
 class UGridItemSubsystem;
+struct FGridResolvedItem;
 
 /**
  * ARMEMENT-INDUS04.3B: bridges 04.3A's non-mutating equipment transaction
@@ -18,6 +19,7 @@ struct GRIMROCKPROTOTYPE_API FGridEquipmentTooltipGlobalProjection
         int32 InventorySlotIndex,
         EGridEquipmentSlot RequestedSlot,
         const FGridItemInstance& Candidate,
+        const FGridResolvedItem& ResolvedCandidate, const UGridItemSubsystem* CandidateRegistry,
         FGridItemTooltipEquipmentComparison& OutScenario);
 
     /** Real ItemInstance level and canonical registry decide all shown slots. */

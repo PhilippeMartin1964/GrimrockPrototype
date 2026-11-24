@@ -49,25 +49,21 @@ struct FGridThrowBallisticsReadModel
 		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
+		FGridResolvedItem Item;
+		const bool bResolved = Registry && Registry->ResolvePhysicalItem(Instance, Item);
+		const bool bRegistered = bResolved || (Registry && Registry->ContainsItem(Instance.ItemDefinitionId));
+		return Project(Instance, bResolved ? &Item : nullptr, bRegistered);
+	}
+
+	static FGridThrowBallisticsReadView Project(const FGridItemInstance& Instance,
+		const FGridResolvedItem* Item, bool bRegisteredIdentity)
+	{
+		if (Item && Instance.Quantity <= FMath::Max(1, Item->MaxStack))
+		{
+			return ReadCanonicalFlight(*Item);
+		}
 		FGridThrowBallisticsReadView Out;
-		// Membership must be recognized BEFORE IsValid(): an invalid
-		// registered N21 is not an unknown legacy identity.
-		Out.bRegisteredIdentity = Registry && Registry->ContainsItem(Instance.ItemDefinitionId);
-		if (!Instance.IsValid())
-		{
-			return Out;
-		}
-		if (Out.bRegisteredIdentity)
-		{
-			FGridResolvedItem Canonical;
-			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical) ||
-				!Canonical.IsValid() || Canonical.ItemId != Instance.ItemDefinitionId ||
-				Canonical.ItemLevel != Instance.ItemLevel || Instance.Quantity > FMath::Max(1, Canonical.MaxStack))
-			{
-				return Out; // No synthetic N1 or old projectile for a known invalid ARM.
-			}
-			return ReadCanonicalFlight(Canonical);
-		}
+		Out.bRegisteredIdentity = bRegisteredIdentity;
 		return Out;
 	}
 };

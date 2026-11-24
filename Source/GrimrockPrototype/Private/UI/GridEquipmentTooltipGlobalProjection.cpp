@@ -165,6 +165,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     int32 CharacterIndex, int32 InventorySlotIndex,
     EGridEquipmentSlot RequestedSlot,
     const FGridItemInstance& Candidate,
+    const FGridResolvedItem& ResolvedCandidate, const UGridItemSubsystem* CandidateRegistry,
     FGridItemTooltipEquipmentComparison& OutScenario)
 {
     OutScenario = FGridItemTooltipEquipmentComparison();
@@ -176,8 +177,17 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
     const UGridItemSubsystem* Registry = GameInstance
         ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-    const auto Slots = FGridEquipmentSlots::Resolve(
-        Registry, Candidate);
+    FGridResolvedItem InventoryCandidate;
+    const FGridResolvedItem* Definition = &ResolvedCandidate;
+    if (Registry != CandidateRegistry)
+    {
+        if (!Registry || !Registry->ResolvePhysicalItem(Candidate, InventoryCandidate))
+        {
+            return false;
+        }
+        Definition = &InventoryCandidate;
+    }
+    const auto Slots = FGridEquipmentSlots::Project(Definition, true);
     if (!Slots.bResolved || !Slots.AllowedSlots.Contains(RequestedSlot))
     {
         return false;
@@ -249,8 +259,11 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
         Preview.ActualTargetSlot, EquippedItem) &&
         EquippedItem.RuntimeObjectId != Candidate.RuntimeObjectId)
     {
-        FGridWeaponTooltipProjection::BuildComparison( Candidate, EquippedItem,
-            OutScenario.WeaponFacts, Registry);
+        FGridResolvedItem EquippedDefinition;
+        if (Definition->bIsArmament && Registry && Registry->ResolvePhysicalItem(EquippedItem, EquippedDefinition))
+        {
+            FGridWeaponTooltipProjection::Compare(*Definition, EquippedDefinition, OutScenario.WeaponFacts);
+        }
     }
     return true;
 }

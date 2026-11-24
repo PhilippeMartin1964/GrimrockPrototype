@@ -36,13 +36,19 @@ struct FGridPhysicalThrowPreflightReadModel
         const UGridItemSubsystem* Registry,
         const FGridItemInstance& Instance, int32 Strength)
     {
+        FGridResolvedItem Item;
+        const bool bResolved = Registry && Registry->ResolvePhysicalItem(Instance, Item);
+        const bool bRegistered = bResolved || (Registry && Registry->ContainsItem(Instance.ItemDefinitionId));
+        return Project(Instance, bResolved ? &Item : nullptr, bRegistered, Strength);
+    }
+
+    static FGridPhysicalThrowPreflightReadView Project(const FGridItemInstance& Instance,
+        const FGridResolvedItem* Item, bool bRegisteredIdentity, int32 Strength)
+    {
         FGridPhysicalThrowPreflightReadView Out;
-        Out.Ballistics =
-            FGridThrowBallisticsReadModel::Resolve(Registry, Instance);
-        Out.Strength =
-            FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Instance, Strength);
-        Out.bRegisteredIdentity =
-            Out.Ballistics.bRegisteredIdentity || Out.Strength.bRegisteredIdentity;
+        Out.Ballistics = FGridThrowBallisticsReadModel::Project(Instance, Item, bRegisteredIdentity);
+        Out.Strength = FGridPhysicalThrowStrengthReadModel::Project(Instance, Item, bRegisteredIdentity, Strength);
+        Out.bRegisteredIdentity = bRegisteredIdentity;
         Out.bResolved = Out.Strength.bResolved && Out.Ballistics.bResolved;
         Out.bCanThrow = Out.bResolved && Out.Strength.bCanThrow &&
             FMath::IsFinite(Out.Ballistics.InitialSpeed) &&

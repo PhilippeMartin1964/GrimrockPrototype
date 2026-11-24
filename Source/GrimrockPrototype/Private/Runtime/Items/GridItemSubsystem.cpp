@@ -55,6 +55,18 @@ bool UGridItemSubsystem::RegisterItemSystem(UGridItemSystemAsset* System, TArray
 	return true;
 }
 
+bool UGridItemSubsystem::ResolvePhysicalItem(
+	const FGridItemInstance& Instance, FGridResolvedItem& OutItem) const
+{
+	if (!Instance.IsValid())
+	{
+		OutItem = FGridResolvedItem();
+		return false;
+	}
+	return ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, OutItem) &&
+		OutItem.ItemId == Instance.ItemDefinitionId && OutItem.ItemLevel == Instance.ItemLevel;
+}
+
 bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const
 {
 	OutItem = FGridResolvedItem();
@@ -293,6 +305,19 @@ bool UGridItemSubsystem::ResolveArmorReserveForInstance(
 	{
 		return false;
 	}
+	return ProjectArmorReserve(Instance, Resolved, OutReserve);
+}
+
+bool UGridItemSubsystem::ProjectArmorReserve(const FGridItemInstance& Instance,
+	const FGridResolvedItem& Resolved, FGridArmorReserveView& OutReserve)
+{
+	OutReserve = FGridArmorReserveView();
+	if (!Instance.IsValid() || !Resolved.IsValid() ||
+		Resolved.ItemId != Instance.ItemDefinitionId || Resolved.ItemLevel != Instance.ItemLevel ||
+		Instance.AbsorbedEquipmentPhysicalArmor < 0 || Instance.AbsorbedEquipmentMagicalArmor < 0)
+	{
+		return false;
+	}
 	if (!Resolved.bIsArmament)
 	{
 		if (Instance.ItemLevel != 0 || Resolved.NonArmEquipmentSlots.IsEmpty())
@@ -342,6 +367,24 @@ bool UGridItemSubsystem::ResolveBoundAction(
 		return false;
 	}
 
+	return ResolveBoundAction(Item, ActionId, OutAction);
+}
+
+bool UGridItemSubsystem::ResolveBoundAction(
+	const FGridResolvedItem& Item, FName ActionId, FGridResolvedBoundAction& OutAction) const
+{
+	OutAction = FGridResolvedBoundAction();
+	if (!RootRegistry)
+	{
+		OutAction.Error = EGridBoundActionError::RegistryNotConfigured;
+		return false;
+	}
+	if (!Item.IsValid())
+	{
+		OutAction.Error = EGridBoundActionError::ItemResolutionFailed;
+		OutAction.ItemError = Item.Error;
+		return false;
+	}
 	const FGridItemActionBinding* Binding = Item.AvailableActions.FindByPredicate(
 		[ActionId](const FGridItemActionBinding& Entry)
 		{
@@ -391,8 +434,21 @@ bool UGridItemSubsystem::ResolveDetailedNonArmAction(
 		return false;
 	}
 	FGridResolvedItem Resolved;
-	if (!ResolveItem(ItemId, ItemLevel, Resolved) ||
-		Resolved.bIsArmament || !Resolved.AmmoKindId.IsNone())
+	if (!ResolveItem(ItemId, ItemLevel, Resolved))
+	{
+		return false;
+	}
+	return ResolveDetailedNonArmAction(Resolved, ActionId, OutAction);
+}
+
+bool UGridItemSubsystem::ResolveDetailedNonArmAction(
+	const FGridResolvedItem& Resolved, FName ActionId,
+	FGridCombatActionDefinition& OutAction) const
+{
+	OutAction = FGridCombatActionDefinition();
+	if (!RootRegistry || !RootRegistry->ActionCatalogue ||
+		!RootRegistry->ActionPresentationCatalogue || ActionId.IsNone() ||
+		!Resolved.IsValid() || Resolved.bIsArmament || !Resolved.AmmoKindId.IsNone())
 	{
 		return false;
 	}

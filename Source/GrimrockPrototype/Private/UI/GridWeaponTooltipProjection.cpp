@@ -1,48 +1,14 @@
 #include "UI/GridWeaponTooltipProjection.h"
 
-#include "Runtime/Combat/GridWeaponProgressionTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/UILocalizationText.h"
 
 namespace
 {
-    /** One temporary tooltip-shaped projection; canonical item data owns all
-     * N1-N20 values when its ItemId is registered in DA_ItemSystem.
-     * Legacy-only readers continue until binary asset conversion (06.4). */
-    bool ResolveTooltipLevelProfile( const FGridItemInstance& Instance,
-        const UGridItemSubsystem* Registry, FGridWeaponLevelProfile& OutProfile)
+    bool ResolveWeapon(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance,
+        FGridResolvedItem& Item)
     {
-        OutProfile = FGridWeaponLevelProfile();
-        if (!Instance.IsValid())
-        {
-            return false;
-        }
-        if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
-        {
-            FGridResolvedItem Resolved;
-            if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved) ||
-                !Resolved.bIsArmament)
-            {
-                return false; // Known N0, invalid level or non-ARM never borrows old N1.
-            }
-            const FGridResolvedWeapon& Weapon = Resolved.Weapon;
-            OutProfile.ArchetypeId = Resolved.ArchetypeId;
-            OutProfile.ItemLevel = Resolved.ItemLevel;
-            OutProfile.DisplayName = Resolved.DisplayName;
-            OutProfile.WeightKg = Resolved.WeightKg;
-            OutProfile.DamageType = Weapon.DamageType;
-            OutProfile.PhysicalSubtype = Weapon.PhysicalSubtype;
-            OutProfile.ScalingAttribute = Weapon.ScalingAttribute;
-            OutProfile.DamageDice = Weapon.DamageDice;
-            OutProfile.AccuracyBonus = Weapon.AccuracyBonus;
-            OutProfile.ActionPointCost = Weapon.ActionPointCost;
-            OutProfile.RangeCells = Weapon.RangeCells;
-            OutProfile.PhysicalArmor = Weapon.PhysicalArmor;
-            OutProfile.MagicalArmor = Weapon.MagicalArmor;
-            // A tooltip is not a combat action; no action or slot is created.
-            return true;
-        }
-        return false;
+        return Registry && Registry->ResolvePhysicalItem(Instance, Item) && Item.bIsArmament;
     }
 
     FText FormatDice(const FGridDamageDiceProfile& Dice)
@@ -133,18 +99,29 @@ bool FGridWeaponTooltipProjection::Build(
     FGridWeaponTooltipPresentation& Out,
     const UGridItemSubsystem* CanonicalRegistry)
 {
+    FGridResolvedItem Item;
+    if (!ResolveWeapon(CanonicalRegistry, Instance, Item))
+    {
+        Out = FGridWeaponTooltipPresentation();
+        return false;
+    }
+    return Project(Instance, Item, Out);
+}
+
+bool FGridWeaponTooltipProjection::Project(const FGridItemInstance& Instance,
+    const FGridResolvedItem& Item, FGridWeaponTooltipPresentation& Out)
+{
     Out = FGridWeaponTooltipPresentation();
-    FGridWeaponLevelProfile ResolvedProfile;
-    if (!ResolveTooltipLevelProfile( Instance, CanonicalRegistry, ResolvedProfile))
+    if (!Item.bIsArmament)
     {
         return false;
     }
-    const FGridWeaponLevelProfile* Profile = &ResolvedProfile;
+    const FGridResolvedWeapon* Profile = &Item.Weapon;
 
     Out.bHasProfile = true;
     Out.bPassive = !Profile->DamageDice.bEnabled;
-    Out.ArchetypeId = Profile->ArchetypeId;
-    Out.ItemLevel = Profile->ItemLevel;
+    Out.ArchetypeId = Item.ArchetypeId;
+    Out.ItemLevel = Item.ItemLevel;
     // Internal workbook family is not a localized player-facing category.
     // Keep it empty until a canonical family-id mapping is approved.
     Out.FamilyText = FText::GetEmpty();
@@ -262,15 +239,26 @@ bool FGridWeaponTooltipProjection::BuildComparison(
     const UGridItemSubsystem* CanonicalRegistry)
 {
     OutFacts.Reset();
-    FGridWeaponLevelProfile CandidateProfile;
-    FGridWeaponLevelProfile EquippedProfile;
-    if (!ResolveTooltipLevelProfile( Candidate, CanonicalRegistry, CandidateProfile) ||
-        !ResolveTooltipLevelProfile( Equipped, CanonicalRegistry, EquippedProfile))
+    FGridResolvedItem CandidateItem;
+    FGridResolvedItem EquippedItem;
+    if (!ResolveWeapon(CanonicalRegistry, Candidate, CandidateItem) ||
+        !ResolveWeapon(CanonicalRegistry, Equipped, EquippedItem))
     {
         return false;
     }
-    const FGridWeaponLevelProfile* C = &CandidateProfile;
-    const FGridWeaponLevelProfile* E = &EquippedProfile;
+    return Compare(CandidateItem, EquippedItem, OutFacts);
+}
+
+bool FGridWeaponTooltipProjection::Compare(const FGridResolvedItem& Candidate,
+    const FGridResolvedItem& Equipped, TArray<FGridWeaponTooltipComparisonFact>& OutFacts)
+{
+    OutFacts.Reset();
+    if (!Candidate.bIsArmament || !Equipped.bIsArmament)
+    {
+        return false;
+    }
+    const FGridResolvedWeapon* C = &Candidate.Weapon;
+    const FGridResolvedWeapon* E = &Equipped.Weapon;
     const bool bCandidatePassive = !C->DamageDice.bEnabled;
     const bool bEquippedPassive = !E->DamageDice.bEnabled;
     if (bCandidatePassive != bEquippedPassive)

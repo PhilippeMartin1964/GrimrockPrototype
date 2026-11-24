@@ -18,29 +18,34 @@ struct FGridEquipmentPreviewItemReadView
 /** Only the ItemSystem owns registered ARM identity, armor and display name. */
 struct FGridEquipmentPreviewItemReadModel
 {
-	static FGridEquipmentPreviewItemReadView Resolve(
-		const UGridItemSubsystem* Registry,
-		const FGridItemInstance& Item)
+	static FGridEquipmentPreviewItemReadView Project(const FGridItemInstance& Instance,
+		const FGridResolvedItem* Item)
 	{
 		FGridEquipmentPreviewItemReadView View;
-		if (!Item.IsValid())
+		if (!Instance.IsValid())
 		{
 			return View;
 		}
-		View.Bonuses = FGridEquipmentContributionReadModel::ResolveStatBonuses(
-			Registry, Item);
-		View.Resistances = FGridEquipmentContributionReadModel::ResolveResistances(
-			Registry, Item);
-		FGridEquipmentArmorReadView Armor;
-		if (FGridEquipmentArmorReadModel::TryResolve(
-			Registry, Item, Armor))
+		if (Item)
 		{
-			View.RemainingPhysicalArmor = FMath::Max(0, Armor.RemainingPhysical);
+			View.Resistances = FGridEquipmentContributionReadModel::ProjectResistances(*Item);
+			FGridArmorReserveView Armor;
+			if (UGridItemSubsystem::ProjectArmorReserve(Instance, *Item, Armor))
+			{
+				View.Bonuses = FGridEquipmentContributionReadModel::ProjectStatBonuses(*Item, Armor);
+				View.RemainingPhysicalArmor = FMath::Max(0, Armor.RemainingPhysicalArmor);
+			}
 		}
-		const FGridInventoryItemMetadata Metadata =
-			FGridInventoryItemMetadataReadModel::Resolve(Registry, Item);
-		View.DisplayName = Metadata.DisplayName.IsEmpty()
-			? FText::FromName(Item.ItemDefinitionId) : Metadata.DisplayName;
+		View.DisplayName = FGridInventoryItemMetadataReadModel::Project(
+			Instance, Item, Item != nullptr).DisplayName;
 		return View;
+	}
+
+	static FGridEquipmentPreviewItemReadView Resolve(
+		const UGridItemSubsystem* Registry, const FGridItemInstance& Item)
+	{
+		FGridResolvedItem Resolved;
+		const bool bResolved = Registry && Registry->ResolvePhysicalItem(Item, Resolved);
+		return Project(Item, bResolved ? &Resolved : nullptr);
 	}
 };

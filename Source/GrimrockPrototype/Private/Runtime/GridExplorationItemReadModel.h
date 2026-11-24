@@ -29,11 +29,15 @@ struct FGridExplorationItemReadModel
     {
         const FName Id(TEXT("Item_DisarmTools_01"));
         FGridResolvedItem Tool;
-        return Registry && !Tag.IsNone() && Item.IsValid() &&
-            Item.ItemDefinitionId == Id && Item.ItemLevel == 0 &&
-            Registry->ResolveItem(Id, 0, Tool) && Tool.IsValid() &&
-            !Tool.bIsArmament && Tool.Tags.Contains(Tag) &&
-            Item.Quantity <= FMath::Max(1, Tool.MaxStack);
+        return Registry && !Tag.IsNone() && Item.ItemDefinitionId == Id && Item.ItemLevel == 0 &&
+            Registry->ResolvePhysicalItem(Item, Tool) && IsDisarmTool(Item, &Tool, Tag);
+    }
+
+    static bool IsDisarmTool(const FGridItemInstance& Item, const FGridResolvedItem* Tool, FName Tag)
+    {
+        return Tool && Item.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
+            Item.ItemLevel == 0 && !Tool->bIsArmament && Tool->Tags.Contains(Tag) &&
+            Item.Quantity <= FMath::Max(1, Tool->MaxStack);
     }
 
     static bool HasDisarmTool(const UGridItemSubsystem* Registry,

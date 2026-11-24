@@ -15,10 +15,14 @@ struct FGridInventorySortReadModel
 		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
+		return Project(Instance, FGridInventoryItemMetadataReadModel::Resolve(Registry, Instance));
+	}
+
+	static FGridInventorySortReadView Project(const FGridItemInstance& Instance,
+		const FGridInventoryItemMetadata& Meta)
+	{
 		FGridInventorySortReadView Result;
 		if (!Instance.IsValid()) return Result;
-		const FGridInventoryItemMetadata Meta =
-			FGridInventoryItemMetadataReadModel::Resolve(Registry, Instance);
 		Result.DisplayName = Meta.DisplayName.IsEmpty() ? Instance.ItemDefinitionId.ToString()
 			: Meta.DisplayName.ToString();
 		Result.TotalWeight = FMath::Max(0.0f, Meta.UnitWeightKg) *

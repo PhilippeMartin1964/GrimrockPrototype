@@ -1,7 +1,6 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "GridEquipmentArmorReadModel.h"
 #include "GridEquipmentPreviewItemReadModel.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
@@ -154,30 +153,52 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
     OutPreview.bCandidateUsesTwoHands = bIncomingTwoHanded;
     OutPreview.bWouldReleaseBothHands = bReleaseBoth;
 
-    // Mirrors EquipItemFromInventorySlot's physical displaced-items list.
-    auto AppendDisplaced = [this, &OutPreview, Registry](EGridEquipmentSlot Slot,
-        const FGridItemInstance& Item)
+    // Visit both hypothetical states in the normal equipment slot order.
+    // Unchanged items contribute the same local read to both totals.
+    FPreviewEquipmentTotals Before;
+    FPreviewEquipmentTotals After;
+    int64 BeforePhysical = FMath::Max(0, Character.Resources.CurrentPhysicalArmor);
+    int64 AfterPhysical = BeforePhysical;
+    const FGridEquipmentPreviewItemReadView Incoming =
+        FGridEquipmentPreviewItemReadModel::Resolve(Registry, Source);
+    auto AddContribution = [](FPreviewEquipmentTotals& Totals, int64& PhysicalArmor,
+        const FGridEquipmentPreviewItemReadView& View)
     {
-        if (!Item.IsValid()) return;
-        FGridEquipmentPreviewDisplacedItem& Entry = OutPreview.DisplacedItems.AddDefaulted_GetRef();
-        Entry.OriginalSlot = Slot;
-        Entry.ItemDefinitionId = Item.ItemDefinitionId;
-        Entry.RuntimeObjectId = Item.RuntimeObjectId;
-        const FGridEquipmentPreviewItemReadView Read =
-            FGridEquipmentPreviewItemReadModel::Resolve(
-                Registry, Item);
-        Entry.DisplayName = Read.DisplayName;
-        Entry.RemainingPhysicalArmor = Read.RemainingPhysicalArmor;
+        AddBonuses(Totals.Bonuses, View.Bonuses);
+        Totals.Resistances.Add(View.Resistances);
+        PhysicalArmor += View.RemainingPhysicalArmor;
     };
-    if (bReleaseBoth)
-    {
-        AppendDisplaced(EGridEquipmentSlot::MainHand, CurrentEquipment.MainHand);
-        AppendDisplaced(EGridEquipmentSlot::OffHand, CurrentEquipment.OffHand);
-    }
-    else
-    {
-        AppendDisplaced(ActualTarget, *CurrentTarget);
-    }
+    GridEquipmentSlotUtils::ForEachEquipmentItem(CurrentEquipment,
+        [&](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+        {
+            const bool bTarget = Slot == ActualTarget;
+            const bool bDisplaced = bTarget || (bReleaseBoth && GridEquipmentSlotUtils::IsHandSlot(Slot));
+            if (Item.IsValid())
+            {
+                const FGridEquipmentPreviewItemReadView Read =
+                    FGridEquipmentPreviewItemReadModel::Resolve(Registry, Item);
+                AddContribution(Before, BeforePhysical, Read);
+                if (bDisplaced)
+                {
+                    FGridEquipmentPreviewDisplacedItem& Entry = OutPreview.DisplacedItems.AddDefaulted_GetRef();
+                    Entry.OriginalSlot = Slot;
+                    Entry.ItemDefinitionId = Item.ItemDefinitionId;
+                    Entry.RuntimeObjectId = Item.RuntimeObjectId;
+                    Entry.DisplayName = Read.DisplayName;
+                    Entry.RemainingPhysicalArmor = Read.RemainingPhysicalArmor;
+                }
+                else
+                {
+                    AddContribution(After, AfterPhysical, Read);
+                }
+            }
+            if (bTarget)
+            {
+                AddContribution(After, AfterPhysical, Incoming);
+            }
+        });
+    Before.EffectivePhysicalArmor = static_cast<int32>(FMath::Clamp<int64>(BeforePhysical, 0, MAX_int32));
+    After.EffectivePhysicalArmor = static_cast<int32>(FMath::Clamp<int64>(AfterPhysical, 0, MAX_int32));
 
     // Exact source-backed capacity rule: the source bag slot becomes free
     // before the displaced items are returned to inventory.
@@ -197,47 +218,6 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         ? EGridEquipmentPreviewStatus::Ready
         : EGridEquipmentPreviewStatus::InventoryFull;
 
-    // Copy only; this routine never calls EquipItemFromInventorySlot, clears
-    // inventory, changes an item owner, sends delegates or saves packages.
-    FGridCharacterEquipmentState ProjectedEquipment = CurrentEquipment;
-    if (bReleaseBoth)
-    {
-        ProjectedEquipment.MainHand = FGridItemInstance();
-        ProjectedEquipment.OffHand = FGridItemInstance();
-    }
-    FGridItemInstance* Destination = ProjectedEquipment.GetMutableSlot(ActualTarget);
-    if (!Destination) return false;
-    *Destination = Source; // RuntimeObjectId, level and absorbed armor unchanged.
-    Destination->OwnerType = EGridItemOwnerType::EquipmentSlot;
-    Destination->EquipmentSlot = ActualTarget;
-
-    auto Gather = [this, &Character, Registry](const FGridCharacterEquipmentState& Equipment)
-        -> FPreviewEquipmentTotals
-    {
-        FPreviewEquipmentTotals Totals;
-        int64 PhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor);
-        GridEquipmentSlotUtils::ForEachEquipmentItem(Equipment,
-            [this, Registry, &Totals, &PhysicalArmor](EGridEquipmentSlot,
-                const FGridItemInstance& Item)
-            {
-                if (!Item.IsValid()) return;
-                const FGridEquipmentPreviewItemReadView Read =
-                    FGridEquipmentPreviewItemReadModel::Resolve(
-                        Registry, Item);
-                // Independently aggregate the same bonus and resistance sources
-                // as live equipment; lack of an armor reserve must not mask
-                // a real resistance contribution in a read-only projection.
-                AddBonuses(Totals.Bonuses, Read.Bonuses);
-                Totals.Resistances.Add(Read.Resistances);
-                PhysicalArmor += Read.RemainingPhysicalArmor;
-            });
-        Totals.EffectivePhysicalArmor =
-            static_cast<int32>(FMath::Clamp<int64>(PhysicalArmor, 0, MAX_int32));
-        return Totals;
-    };
-
-    const FPreviewEquipmentTotals Before = Gather(CurrentEquipment);
-    const FPreviewEquipmentTotals After = Gather(ProjectedEquipment);
     OutPreview.BeforeBonuses = Before.Bonuses;
     OutPreview.AfterBonuses = After.Bonuses;
     OutPreview.BeforeResistances = Before.Resistances;

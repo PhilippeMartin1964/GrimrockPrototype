@@ -15,26 +15,23 @@ struct FGridEquipmentContributionReadModel
 		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
+		FGridResolvedItem Resolved;
+		FGridArmorReserveView Armor;
+		return Registry && Registry->ResolvePhysicalItem(Instance, Resolved) &&
+			UGridItemSubsystem::ProjectArmorReserve(Instance, Resolved, Armor)
+			? ProjectStatBonuses(Resolved, Armor) : FGridEquipmentStatBonus();
+	}
+
+	static FGridEquipmentStatBonus ProjectStatBonuses(
+		const FGridResolvedItem& Item, const FGridArmorReserveView& Armor)
+	{
 		FGridEquipmentStatBonus Result;
-		FGridEquipmentArmorReadView Armor;
-		if (!FGridEquipmentArmorReadModel::TryResolve(Registry, Instance, Armor))
+		if (!Item.bIsArmament)
 		{
-			return Result; // Known invalid canonical ARM never falls back to old armor.
+			Result = Item.NonArmEquipmentBonuses;
 		}
-		FGridResolvedItem Canonical;
-		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
-		{
-			if (!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Canonical))
-			{
-				return Result;
-			}
-			if (!Canonical.bIsArmament)
-			{
-				Result = Canonical.NonArmEquipmentBonuses;
-			}
-		}
-		Result.ArmorBonus = Armor.NominalPhysical;
-		Result.MagicalArmorBonus = Armor.NominalMagical;
+		Result.ArmorBonus = Armor.NominalPhysicalArmor;
+		Result.MagicalArmorBonus = Armor.NominalMagicalArmor;
 		return Result;
 	}
 
@@ -42,18 +39,14 @@ struct FGridEquipmentContributionReadModel
 		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
-		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
-		{
-			FGridResolvedItem Resolved;
-			if (!Instance.IsValid() ||
-				!Registry->ResolveItem(Instance.ItemDefinitionId, Instance.ItemLevel, Resolved))
-				return FGridDamageResistanceSet();
-			if (!Resolved.bIsArmament)
-				return Instance.ItemLevel == 0 && !Resolved.NonArmEquipmentSlots.IsEmpty()
-					? Resolved.NonArmEquipmentResistances : FGridDamageResistanceSet();
-			return FGridDamageResistanceSet(); // No historical resistance for registered ARM.
-		}
-		// No resistance from unknown identities in a configured game.
-		return FGridDamageResistanceSet();
+		FGridResolvedItem Resolved;
+		return Registry && Registry->ResolvePhysicalItem(Instance, Resolved)
+			? ProjectResistances(Resolved) : FGridDamageResistanceSet();
+	}
+
+	static FGridDamageResistanceSet ProjectResistances(const FGridResolvedItem& Item)
+	{
+		return !Item.bIsArmament && !Item.NonArmEquipmentSlots.IsEmpty()
+			? Item.NonArmEquipmentResistances : FGridDamageResistanceSet();
 	}
 };
