@@ -1194,9 +1194,9 @@ void UGridCombatHudWidget::RefreshFromSources()
 	EnsureInitiativeWidgets();
 	RefreshInitiativeWidgets();
 	RefreshBoundWidgets();
-	if (IsValid(PartyPawn))
+	if (IsValid(PartyPawn) && IsValid(PartyPawn->PersistentHudWidgetInstance))
 	{
-		PartyPawn->RefreshPersistentHudWidget();
+		PartyPawn->PersistentHudWidgetInstance->RequestCombatViewRefresh();
 	}
 }
 

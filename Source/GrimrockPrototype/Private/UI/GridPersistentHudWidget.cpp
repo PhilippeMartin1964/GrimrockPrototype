@@ -92,12 +92,17 @@ void UGridPersistentHudWidget::NativeTick(const FGeometry& MyGeometry, float InD
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_NativeTick);
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	if (bCombatViewRefreshPending)
+	{
+		RefreshFromSources();
+	}
 	SynchronizeActionBarToViewport();
 	SynchronizeEventFeedLayout();
 }
 
 void UGridPersistentHudWidget::NativeDestruct()
 {
+	bCombatViewRefreshPending = false;
 	UnbindNavigationButtons();
 	UnbindInventoryEvents();
 	PartyPortraitWidgets.Reset();
@@ -118,9 +123,22 @@ void UGridPersistentHudWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+void UGridPersistentHudWidget::RequestCombatViewRefresh()
+{
+	if (IsInViewport() && IsVisible())
+	{
+		bCombatViewRefreshPending = true;
+	}
+	else
+	{
+		RefreshFromSources();
+	}
+}
+
 void UGridPersistentHudWidget::RefreshFromSources()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(PERF_PROFILE01_HUD_RefreshFromSources);
+	bCombatViewRefreshPending = false;
 	RefreshNavigationSelection();
 	RefreshPartyPortraits();
 	EnsureActionWidgets();

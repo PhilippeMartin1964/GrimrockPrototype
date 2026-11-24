@@ -156,6 +156,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent")
 	void RefreshFromSources();
 
+	/** Coalesces combat-view publications until the next visible HUD tick. */
+	void RequestCombatViewRefresh();
+
 	/** Event-driven refresh of the persistent party rail. No per-frame RPG polling. */
 	UFUNCTION(BlueprintCallable, Category = "HUD|Persistent|Party")
 	void RefreshPartyPortraits();
@@ -190,6 +193,7 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
+	bool bCombatViewRefreshPending = false;
 	float LastSynchronizedViewportWidth = -1.0f;
 	float LastSynchronizedNavigationWidth = -1.0f;
 	float LastSynchronizedActionSlotWidth = -1.0f;
