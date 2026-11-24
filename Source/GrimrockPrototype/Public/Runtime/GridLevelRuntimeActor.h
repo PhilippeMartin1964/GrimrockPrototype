@@ -1025,6 +1025,8 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	void ClearSurfacePresentation();
+
 	/** Materialize an inbound item without pit chaining or notifying links before dequeue. */
 	bool TryDropItemInstanceAtCellInternal(const FGridItemInstance& ItemInstance,
 		int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset, bool bNotifyAndRoute);

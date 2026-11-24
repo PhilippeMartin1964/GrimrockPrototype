@@ -12,6 +12,7 @@ public:
 	static bool BuildEntry(const FGridCombatLogEntry& CombatEntry, FGridHudEventEntry& OutEntry);
 
 	/** A single player-visible event after one successful catalyst consumption. */
+	static FGridHudEventEntry MakeOilSpread(FName ActionId, int32 AffectedCellCount);
 	static FGridHudEventEntry MakeCatalystLaunch(const FText& CharacterName, int32 AffectedCellCount);
 
 	/** Pure projection of actually applied fire damage (HP/armor), no fabricated dice. */

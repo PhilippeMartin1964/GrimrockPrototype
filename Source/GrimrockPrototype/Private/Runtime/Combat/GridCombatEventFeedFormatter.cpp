@@ -696,3 +696,21 @@ bool FGridCombatEventFeedFormatter::BuildSurfaceDamage(
 }
 
 #undef LOCTEXT_NAMESPACE
+
+FGridHudEventEntry FGridCombatEventFeedFormatter::MakeOilSpread(FName ActionId, int32 AffectedCellCount)
+{
+	FGridHudEventEntry OilEvent;
+	OilEvent.Category = EGridHudEventCategory::Combat;
+	OilEvent.Semantic = EGridHudEventSemantic::Interaction;
+	OilEvent.Visibility = EGridEventVisibility::Always;
+	OilEvent.EventCode = TEXT("Combat.Surface.OilSpread");
+	OilEvent.SourceId = ActionId;
+	OilEvent.Message = AffectedCellCount == 1
+		? NSLOCTEXT("GrimrockOil", "OilSpillEventSingular",
+			"Une flasque d’huile se brise : l’huile se répand sur une case.")
+		: FText::Format(
+			NSLOCTEXT("GrimrockOil", "OilSpillEventPlural",
+				"Une flasque d’huile se brise : l’huile se répand sur {0} cases."),
+			FText::AsNumber(AffectedCellCount));
+	return OilEvent;
+}

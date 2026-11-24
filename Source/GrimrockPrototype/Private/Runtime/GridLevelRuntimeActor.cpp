@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Monsters/GridMonsterWorld.h"
 
 #include "Core/GridRelocationUtils.h"
 #include "Runtime/GrimrockGameInstance.h"
@@ -75,39 +76,6 @@ namespace
 	FString GetRuntimeBoolText(bool bValue)
 	{
 		return bValue ? TEXT("true") : TEXT("false");
-	}
-
-	void GetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
-	{
-		OutMonsters.Reset();
-		if (!World)
-		{
-			return;
-		}
-
-		for (TActorIterator<AGridMonsterActor> It(const_cast<UWorld*>(World)); It; ++It)
-		{
-			if (IsValid(*It))
-			{
-				OutMonsters.Add(*It);
-			}
-		}
-
-		OutMonsters.Sort(
-			[](const AGridMonsterActor& Left, const AGridMonsterActor& Right)
-			{
-				const FGuid LeftId = Left.ResolvePersistenceId();
-				const FGuid RightId = Right.ResolvePersistenceId();
-				if (LeftId.IsValid() != RightId.IsValid())
-				{
-					return LeftId.IsValid();
-				}
-				if (LeftId != RightId)
-				{
-					return LeftId.ToString(EGuidFormats::Digits) < RightId.ToString(EGuidFormats::Digits);
-				}
-				return Left.GetPathName() < Right.GetPathName();
-			});
 	}
 }
 
@@ -303,9 +271,8 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
 	return DungeonRuntimeState.LevelStates.Find(RuntimeLevelId);
 }
 
-void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void AGridLevelRuntimeActor::ClearSurfacePresentation()
 {
-	GetWorldTimerManager().ClearTimer(OpenPitItemTimer);
 	ClearExplorationOilTimer();
 	ClearCombatOilSplash();
 	ClearFlaskGlassShards();
@@ -314,6 +281,12 @@ void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	ClearCombatOilSurfaceVisuals();
 	ClearFireSurfaceVisuals();
 	ClearWaterSurfaceVisuals();
+}
+
+void AGridLevelRuntimeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(OpenPitItemTimer);
+	ClearSurfacePresentation();
 	HideCombatFeedback();
 	Super::EndPlay(EndPlayReason);
 }
@@ -324,14 +297,7 @@ void AGridLevelRuntimeActor::ClearVisuals(EGridRuntimeRebuildMode RebuildMode)
 		FloorISM->ClearInstances();
 	if (WallISM)
 		WallISM->ClearInstances();
-	ClearExplorationOilTimer();
-	ClearCombatOilSplash();
-	ClearFlaskGlassShards();
-	bOilFlaskVisualsDeferred = false;
-	ClearCatalystReactionVfx();
-	ClearCombatOilSurfaceVisuals();
-	ClearFireSurfaceVisuals();
-	ClearWaterSurfaceVisuals();
+	ClearSurfacePresentation();
 	if (CeilingISM)
 	{
 		CeilingISM->ClearInstances();
@@ -1900,7 +1866,7 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel(
 	}
 
 	TArray<AGridMonsterActor*> Monsters;
-	GetWorldMonsters(GetWorld(), Monsters);
+	GridMonsterWorld::CollectWorldMonsters(GetWorld(), Monsters);
 	for (AGridMonsterActor* Monster : Monsters)
 	{
 		if (Monster->ResolveRuntimeDungeonLevelId(OldLevelId) == OldLevelId)

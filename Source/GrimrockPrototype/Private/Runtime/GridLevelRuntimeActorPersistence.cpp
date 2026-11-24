@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "CoreGlobals.h"
+#include "Monsters/GridMonsterWorld.h"
 
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EngineUtils.h"
@@ -74,39 +75,6 @@ namespace
 			}
 		}
 		return RemovedCount;
-	}
-
-	void PersistenceGetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
-	{
-		OutMonsters.Reset();
-		if (!World)
-		{
-			return;
-		}
-
-		for (TActorIterator<AGridMonsterActor> It(const_cast<UWorld*>(World)); It; ++It)
-		{
-			if (IsValid(*It))
-			{
-				OutMonsters.Add(*It);
-			}
-		}
-
-		OutMonsters.Sort(
-			[](const AGridMonsterActor& Left, const AGridMonsterActor& Right)
-			{
-				const FGuid LeftId = Left.ResolvePersistenceId();
-				const FGuid RightId = Right.ResolvePersistenceId();
-				if (LeftId.IsValid() != RightId.IsValid())
-				{
-					return LeftId.IsValid();
-				}
-				if (LeftId != RightId)
-				{
-					return LeftId.ToString(EGuidFormats::Digits) < RightId.ToString(EGuidFormats::Digits);
-				}
-				return Left.GetPathName() < Right.GetPathName();
-			});
 	}
 }
 
@@ -378,7 +346,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	State->Receptacles = MoveTemp(CapturedReceptacles);
 
 	TArray<AGridMonsterActor*> Monsters;
-	PersistenceGetWorldMonsters(GetWorld(), Monsters);
+	GridMonsterWorld::CollectWorldMonsters(GetWorld(), Monsters);
 	TMap<FGuid, int32> PersistenceIdCounts;
 	TSet<FGuid> CapturedMonsterSpawnIds;
 	for (AGridMonsterActor* Monster : Monsters)
@@ -504,7 +472,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 
 
 	TArray<AGridMonsterActor*> WorldMonsters;
-	PersistenceGetWorldMonsters(GetWorld(), WorldMonsters);
+	GridMonsterWorld::CollectWorldMonsters(GetWorld(), WorldMonsters);
 	for (AGridMonsterActor* Monster : WorldMonsters)
 	{
 		SetMonsterRuntimeLevelActive(Monster, false);

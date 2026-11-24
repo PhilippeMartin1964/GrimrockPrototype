@@ -5,7 +5,10 @@
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "../Runtime/Monsters/GridMonsterWorld.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "UObject/Class.h"
 
 namespace
@@ -166,6 +169,89 @@ bool FGridTD052RuntimeActorDiagnosticsContractTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Missing LevelAsset preserves the PIE readiness error contract"), MissingLevelPIEReadiness.Contains(TEXT("Status: ERROR - LevelAsset is null.")));
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridWorldMonsterQueriesTest, "Grimrock.TechnicalDebt.TD05_2.MonsterWorld.Queries",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorldMonsterQueriesTest::RunTest(const FString& Parameters)
+{
+	FGridTD052RuntimeDiagnosticsWorld First;
+	FGridTD052RuntimeDiagnosticsWorld Second;
+	if (!TestNotNull(TEXT("First world"), First.World) || !TestNotNull(TEXT("Second world"), Second.World))
+	{
+		return false;
+	}
+
+	auto SpawnMonster = [](UWorld* World, FName Name)
+	{
+		FActorSpawnParameters Spawn;
+		Spawn.Name = Name;
+		Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		return World->SpawnActor<AGridMonsterActor>(FVector::ZeroVector, FRotator::ZeroRotator, Spawn);
+	};
+	AGridMonsterActor* NoId = SpawnMonster(First.World, TEXT("A_NoId"));
+	AGridMonsterActor* Later = SpawnMonster(First.World, TEXT("A_LaterGuid"));
+	AGridMonsterActor* TieB = SpawnMonster(First.World, TEXT("Z_TieB"));
+	AGridMonsterActor* TieA = SpawnMonster(First.World, TEXT("Y_TieA"));
+	AGridMonsterActor* Destroyed = SpawnMonster(First.World, TEXT("Destroyed"));
+	AGridMonsterActor* OtherWorld = SpawnMonster(Second.World, TEXT("OtherWorld"));
+	if (!NoId || !Later || !TieB || !TieA || !Destroyed || !OtherWorld)
+	{
+		AddError(TEXT("Failed to spawn test monsters"));
+		return false;
+	}
+
+	TestNull(TEXT("No RuntimeActor in the monster's world"), GridMonsterWorld::FindRuntimeActor(OtherWorld));
+	AGridLevelRuntimeActor* RuntimeA = First.World->SpawnActor<AGridLevelRuntimeActor>();
+	AGridLevelRuntimeActor* RuntimeB = First.World->SpawnActor<AGridLevelRuntimeActor>();
+	if (!TestNotNull(TEXT("First RuntimeActor"), RuntimeA) || !TestNotNull(TEXT("Second RuntimeActor"), RuntimeB))
+	{
+		return false;
+	}
+	const TActorIterator<AGridLevelRuntimeActor> FirstRuntime(First.World);
+	if (!TestTrue(TEXT("Runtime iterator has a first result"), static_cast<bool>(FirstRuntime)))
+	{
+		return false;
+	}
+	AGridLevelRuntimeActor* FirstResult = *FirstRuntime;
+	AGridLevelRuntimeActor* NonFirstResult = FirstResult == RuntimeA ? RuntimeB : RuntimeA;
+	TestEqual(TEXT("Unowned monster keeps the first iterator result"), GridMonsterWorld::FindRuntimeActor(TieA), FirstResult);
+	TestNull(TEXT("Fallback cannot cross worlds"), GridMonsterWorld::FindRuntimeActor(OtherWorld));
+	TieB->SetOwner(NonFirstResult);
+	TestEqual(TEXT("Owner takes priority over the first iterator result"), GridMonsterWorld::FindRuntimeActor(TieB), NonFirstResult);
+
+	const FGuid FirstId(0, 0, 0, 1);
+	Later->PersistentMonsterId = FGuid(0, 0, 0, 2);
+	TieA->PersistentMonsterId = FirstId;
+	TieB->PersistentMonsterId = FGuid(0, 0, 0, 3);
+	TieB->SpawnObjectId = FirstId;
+	NonFirstResult->LevelAsset = GridTD052MakeDiagnosticsLevel(NonFirstResult);
+	NonFirstResult->LevelAsset->MonsterSpawns.AddDefaulted_GetRef().SpawnId = FirstId;
+	TestEqual(TEXT("Spawn GUID wins over placed GUID"), TieB->ResolvePersistenceId(), FirstId);
+	TestFalse(TEXT("Unidentified monster has no persistence GUID"), NoId->ResolvePersistenceId().IsValid());
+
+	TestTrue(TEXT("Destroy invalid fixture"), Destroyed->Destroy());
+	TestFalse(TEXT("Destroyed monster is invalid"), IsValid(Destroyed));
+	TestNull(TEXT("Invalid monster cannot resolve a RuntimeActor"), GridMonsterWorld::FindRuntimeActor(Destroyed));
+
+	TArray<AGridMonsterActor*> Monsters{OtherWorld};
+	GridMonsterWorld::CollectWorldMonsters(First.World, Monsters);
+	if (TestEqual(TEXT("Collection replaces output and excludes invalid and foreign actors"), Monsters.Num(), 4))
+	{
+		TestEqual(TEXT("Equal GUIDs use object path first"), Monsters[0], TieA);
+		TestEqual(TEXT("Equal GUIDs use object path second"), Monsters[1], TieB);
+		TestEqual(TEXT("Larger valid GUID next"), Monsters[2], Later);
+		TestEqual(TEXT("Missing GUID last, despite earlier path"), Monsters[3], NoId);
+	}
+	GridMonsterWorld::CollectWorldMonsters(Second.World, Monsters);
+	if (TestEqual(TEXT("Second world has one result"), Monsters.Num(), 1))
+	{
+		TestEqual(TEXT("Only the second world's monster is returned"), Monsters[0], OtherWorld);
+	}
+	GridMonsterWorld::CollectWorldMonsters(nullptr, Monsters);
+	TestTrue(TEXT("Null world also clears previous results"), Monsters.IsEmpty());
 	return true;
 }
 

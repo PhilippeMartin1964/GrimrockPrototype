@@ -1,6 +1,6 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "GridMonsterWorld.h"
 
-#include "EngineUtils.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -9,34 +9,9 @@ DEFINE_LOG_CATEGORY(LogGridMonsterOccupancy);
 
 namespace
 {
-	AGridLevelRuntimeActor* ResolveRuntimeActorForMonster(const AGridMonsterActor* Monster)
-	{
-		if (!IsValid(Monster))
-		{
-			return nullptr;
-		}
-
-		if (AGridLevelRuntimeActor* OwnerRuntime = Cast<AGridLevelRuntimeActor>(Monster->GetOwner()))
-		{
-			return OwnerRuntime;
-		}
-
-		UWorld* World = Monster->GetWorld();
-		if (!World)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
-		{
-			return *It;
-		}
-		return nullptr;
-	}
-
 	void RefreshPressurePlateAtMonsterCell(const AGridMonsterActor* Monster, const FIntPoint& Cell)
 	{
-		AGridLevelRuntimeActor* RuntimeActor = ResolveRuntimeActorForMonster(Monster);
+		AGridLevelRuntimeActor* RuntimeActor = GridMonsterWorld::FindRuntimeActor(Monster);
 		if (!IsValid(RuntimeActor))
 		{
 			return;

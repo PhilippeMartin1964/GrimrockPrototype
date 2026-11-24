@@ -1,8 +1,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Monsters/GridMonsterWorld.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
-#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridMonsterEncounterComponent.h"
@@ -42,39 +42,6 @@ namespace
 
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Edge));
 	}
-
-	void GridLevelRuntimeMonstersGetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
-	{
-		OutMonsters.Reset();
-		if (!World)
-		{
-			return;
-		}
-
-		for (TActorIterator<AGridMonsterActor> It(const_cast<UWorld*>(World)); It; ++It)
-		{
-			if (IsValid(*It))
-			{
-				OutMonsters.Add(*It);
-			}
-		}
-
-		OutMonsters.Sort(
-			[](const AGridMonsterActor& Left, const AGridMonsterActor& Right)
-			{
-				const FGuid LeftId = Left.ResolvePersistenceId();
-				const FGuid RightId = Right.ResolvePersistenceId();
-				if (LeftId.IsValid() != RightId.IsValid())
-				{
-					return LeftId.IsValid();
-				}
-				if (LeftId != RightId)
-				{
-					return LeftId.ToString(EGuidFormats::Digits) < RightId.ToString(EGuidFormats::Digits);
-				}
-				return Left.GetPathName() < Right.GetPathName();
-			});
-	}
 }
 void AGridLevelRuntimeActor::AbortActiveCombatAndMonsterActions()
 {
@@ -84,7 +51,7 @@ void AGridLevelRuntimeActor::AbortActiveCombatAndMonsterActions()
 	}
 
 	TArray<AGridMonsterActor*> Monsters;
-	GridLevelRuntimeMonstersGetWorldMonsters(GetWorld(), Monsters);
+	GridMonsterWorld::CollectWorldMonsters(GetWorld(), Monsters);
 	for (AGridMonsterActor* Monster : Monsters)
 	{
 		if (Monster->CombatComponent)
@@ -301,7 +268,7 @@ void AGridLevelRuntimeActor::ApplyInitialMonsterStateForCurrentLevel()
 	AbortActiveCombatAndMonsterActions();
 
 	TArray<AGridMonsterActor*> Monsters;
-	GridLevelRuntimeMonstersGetWorldMonsters(GetWorld(), Monsters);
+	GridMonsterWorld::CollectWorldMonsters(GetWorld(), Monsters);
 	for (AGridMonsterActor* Monster : Monsters)
 	{
 		SetMonsterRuntimeLevelActive(Monster, false);

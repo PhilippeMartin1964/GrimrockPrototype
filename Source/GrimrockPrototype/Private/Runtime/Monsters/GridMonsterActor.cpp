@@ -1,4 +1,5 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "GridMonsterWorld.h"
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -16,31 +17,6 @@ namespace
 	bool IsCardinalMonsterFacing(EGridEdge Facing)
 	{
 		return Facing == EGridEdge::North || Facing == EGridEdge::East || Facing == EGridEdge::South || Facing == EGridEdge::West;
-	}
-
-	AGridLevelRuntimeActor* FindMonsterRuntimeActor(const AGridMonsterActor* Monster)
-	{
-		if (!IsValid(Monster))
-		{
-			return nullptr;
-		}
-
-		if (AGridLevelRuntimeActor* OwnerRuntime = Cast<AGridLevelRuntimeActor>(Monster->GetOwner()))
-		{
-			return OwnerRuntime;
-		}
-
-		UWorld* World = Monster->GetWorld();
-		if (!World)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
-		{
-			return *It;
-		}
-		return nullptr;
 	}
 
 	bool RuntimeHasMonsterSpawn(const AGridLevelRuntimeActor* RuntimeActor, FGuid SpawnObjectId)
@@ -191,7 +167,7 @@ bool AGridMonsterActor::HasMonsterSpawnIdentity() const
 		return true;
 	}
 
-	return RuntimeHasMonsterSpawn(FindMonsterRuntimeActor(this), SpawnObjectId);
+	return RuntimeHasMonsterSpawn(GridMonsterWorld::FindRuntimeActor(this), SpawnObjectId);
 }
 
 void AGridMonsterActor::EnsurePersistentMonsterId()
@@ -221,7 +197,7 @@ FName AGridMonsterActor::ResolveRuntimeDungeonLevelId(FName CurrentLevelId) cons
 		return HomeDungeonLevelId;
 	}
 
-	const AGridLevelRuntimeActor* RuntimeActor = FindMonsterRuntimeActor(this);
+	const AGridLevelRuntimeActor* RuntimeActor = GridMonsterWorld::FindRuntimeActor(this);
 	if (RuntimeHasMonsterSpawn(RuntimeActor, SpawnObjectId) || CountEnabledDungeonLevels(RuntimeActor) <= 1)
 	{
 		return CurrentLevelId;
@@ -239,7 +215,7 @@ bool AGridMonsterActor::ValidatePersistenceSetup(FString& OutError) const
 		Errors.Add(TEXT("PersistentMonsterId is invalid and no MonsterSpawn ObjectId is available."));
 	}
 
-	const AGridLevelRuntimeActor* RuntimeActor = FindMonsterRuntimeActor(this);
+	const AGridLevelRuntimeActor* RuntimeActor = GridMonsterWorld::FindRuntimeActor(this);
 	const FName CurrentLevelId = RuntimeActor ? RuntimeActor->CurrentDungeonLevelId : NAME_None;
 	const FName ResolvedLevelId = ResolveRuntimeDungeonLevelId(CurrentLevelId);
 
@@ -317,7 +293,7 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState(FGridRuntimeMonsterState& Out
 		return false;
 	}
 
-	const AGridLevelRuntimeActor* RuntimeActor = FindMonsterRuntimeActor(this);
+	const AGridLevelRuntimeActor* RuntimeActor = GridMonsterWorld::FindRuntimeActor(this);
 	if (RuntimeActor && (!RuntimeActor->IsValidCell(CurrentCell.X, CurrentCell.Y) || !RuntimeActor->IsWalkableCell(CurrentCell.X, CurrentCell.Y)))
 	{
 		UE_LOG(LogGridMonsterState, Error, TEXT("[GridMonsterState] Capture skipped Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) Reason=InvalidCell"),

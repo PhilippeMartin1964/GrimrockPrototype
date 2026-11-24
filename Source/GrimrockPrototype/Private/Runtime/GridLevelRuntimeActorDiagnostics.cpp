@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Monsters/GridMonsterWorld.h"
 
 #include "Core/GridRelocationUtils.h"
 
@@ -131,39 +132,6 @@ namespace
 
 		return HiddenFloorCells;
 	}
-
-	void GridLevelRuntimeDiagnosticsGetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
-	{
-		OutMonsters.Reset();
-		if (!World)
-		{
-			return;
-		}
-
-		for (TActorIterator<AGridMonsterActor> It(const_cast<UWorld*>(World)); It; ++It)
-		{
-			if (IsValid(*It))
-			{
-				OutMonsters.Add(*It);
-			}
-		}
-
-		OutMonsters.Sort(
-			[](const AGridMonsterActor& Left, const AGridMonsterActor& Right)
-			{
-				const FGuid LeftId = Left.ResolvePersistenceId();
-				const FGuid RightId = Right.ResolvePersistenceId();
-				if (LeftId.IsValid() != RightId.IsValid())
-				{
-					return LeftId.IsValid();
-				}
-				if (LeftId != RightId)
-				{
-					return LeftId.ToString(EGuidFormats::Digits) < RightId.ToString(EGuidFormats::Digits);
-				}
-				return Left.GetPathName() < Right.GetPathName();
-			});
-	}
 }
 FString AGridLevelRuntimeActor::GetRuntimeDebugSummary() const
 {
@@ -258,7 +226,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics() const
 
 	const FName RuntimeLevelId = GridLevelRuntimeDiagnosticsResolveRuntimeStateLevelId(DungeonAsset, CurrentDungeonLevelId);
 	TArray<AGridMonsterActor*> DiagnosticMonsters;
-	GridLevelRuntimeDiagnosticsGetWorldMonsters(World, DiagnosticMonsters);
+	GridMonsterWorld::CollectWorldMonsters(World, DiagnosticMonsters);
 	int32 AssociatedMonsterCount = 0;
 	int32 InvalidMonsterIdCount = 0;
 	TMap<FGuid, int32> MonsterIdCounts;

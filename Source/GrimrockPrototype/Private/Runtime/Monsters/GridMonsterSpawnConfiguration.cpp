@@ -1,37 +1,9 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "GridMonsterWorld.h"
 
 #include "Core/GridLevelAsset.h"
 #include "Engine/World.h"
-#include "EngineUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
-
-namespace
-{
-	AGridLevelRuntimeActor* FindSpawnRuntimeActor(const AGridMonsterActor* Monster)
-	{
-		if (!IsValid(Monster))
-		{
-			return nullptr;
-		}
-
-		if (AGridLevelRuntimeActor* OwnerRuntime = Cast<AGridLevelRuntimeActor>(Monster->GetOwner()))
-		{
-			return OwnerRuntime;
-		}
-
-		UWorld* World = Monster->GetWorld();
-		if (!World)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
-		{
-			return *It;
-		}
-		return nullptr;
-	}
-}
 
 void AGridMonsterActor::ApplySpawnPlacementConfiguration()
 {
@@ -39,7 +11,7 @@ void AGridMonsterActor::ApplySpawnPlacementConfiguration()
 	PatrolMode = EGridMonsterPatrolMode::None;
 	PatrolWaypoints.Reset();
 
-	AGridLevelRuntimeActor* RuntimeActor = FindSpawnRuntimeActor(this);
+	AGridLevelRuntimeActor* RuntimeActor = GridMonsterWorld::FindRuntimeActor(this);
 	const FGridMonsterSpawnInstance* SpawnData =
 		IsValid(RuntimeActor) && RuntimeActor->LevelAsset && SpawnObjectId.IsValid()
 			? RuntimeActor->LevelAsset->MonsterSpawns.FindByPredicate(
