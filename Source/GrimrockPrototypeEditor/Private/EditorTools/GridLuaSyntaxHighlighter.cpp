@@ -1,4 +1,4 @@
-#include "EditorTools/GridLuaSyntaxHighlighter.h"
+#include "GridLuaSyntaxHighlighter.h"
 
 #include "Framework/Text/IRun.h"
 #include "Framework/Text/SlateTextRun.h"

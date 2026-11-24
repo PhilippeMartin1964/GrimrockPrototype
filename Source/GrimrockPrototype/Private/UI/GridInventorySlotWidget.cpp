@@ -7,7 +7,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
-#include "UI/GridWeaponVisualUiResolver.h"
+#include "GridWeaponVisualUiResolver.h"
 #include "GridInventoryItemMetadataReadModel.h"
 #include "GridInventoryItemTypeReadModel.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"

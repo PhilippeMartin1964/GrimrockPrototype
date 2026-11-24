@@ -1,4 +1,4 @@
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 
 #if WITH_EDITOR
 

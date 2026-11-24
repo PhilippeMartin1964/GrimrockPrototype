@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/Items/GridWorldSnapshotReadModel.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Monsters/GridMonsterWorld.h"
@@ -2155,12 +2156,58 @@ void AGridLevelRuntimeActor::AddPlacedItemActor(const FGridLooseItemInstance& Ob
 		*ObjectData.InstanceId.ToString(), *GetName(), RuntimeObjectRebuildGeneration, SpawnedItemEntries.Num());
 }
 
+AGridRuntimeObjectActor* AGridLevelRuntimeActor::SpawnRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform)
+{
+	OutMesh = nullptr;
+	OutTransform = FTransform::Identity;
+
+	if (!LevelAsset)
+	{
+		return nullptr;
+	}
+	const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
+	OutMesh = Definition && Definition->StaticPart.IsDefined() ? Definition->StaticPart.Mesh.Get() : nullptr;
+	TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
+
+	// WORLDOBJ-MIG03: presentation is optional. Actor existence is driven by RuntimeActorClass,
+	// while StaticPart/MovingParts (or no visual at all) are initialized after spawning.
+	if (!ActorClass)
+	{
+		return nullptr;
+	}
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+	if (!GridPlacementTransformResolver::ResolveWorldObject(*this, ObjectData, OutTransform))
+	{
+		return nullptr;
+	}
+	if (!IsSafeRuntimeRenderTransform(OutTransform))
+	{
+		LogUnsafeObjectTransform(TEXT("SpawnRuntimeObjectActor"), ObjectData, OutMesh, OutTransform);
+		return nullptr;
+	}
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AGridRuntimeObjectActor* Actor = World->SpawnActor<AGridRuntimeObjectActor>(ActorClass, OutTransform.GetLocation(), OutTransform.GetRotation().Rotator(), Params);
+	if (!Actor)
+	{
+		return nullptr;
+	}
+	RegisterRuntimeObjectActor(ObjectData.InstanceId, Actor);
+	return Actor;
+}
+
 void AGridLevelRuntimeActor::AddRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData)
 {
 	UStaticMesh* Mesh = nullptr;
 	FTransform Transform;
 	const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass(ObjectData);
-	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor>(ObjectData, Mesh, Transform);
+	AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor(ObjectData, Mesh, Transform);
 	UE_LOG(LogGridLevelRuntime, VeryVerbose,
 		TEXT("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s WorldObjectDefinitionId=%s ObjectData.Type=%s RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
 		*ObjectData.InstanceId.ToString(), *ObjectData.WorldObjectDefinitionId.ToString(), *UEnum::GetValueAsString(ObjectData.Type),

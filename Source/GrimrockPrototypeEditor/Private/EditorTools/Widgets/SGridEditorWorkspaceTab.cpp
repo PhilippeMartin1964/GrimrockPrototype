@@ -5,7 +5,7 @@
 #include "EditorTools/GridEditorActorLookup.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 #include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectIdentityPanel.h"

@@ -5,7 +5,7 @@
 /** Opt-in Chaos world mass is a unit mass, never the total stack weight. */
 struct FGridWorldPhysicsMassReadModel
 {
-	static bool TryResolveCanonical(const UGridItemSubsystem* Registry,
+	static bool TryResolve(const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance, FGridResolvedItem& OutItem)
 	{
 		return Registry && Instance.IsValid() &&
@@ -33,7 +33,7 @@ struct FGridWorldPhysicsMassReadModel
 		if (Registry)
 		{
 			FGridResolvedItem Item;
-			return TryResolveCanonical(Registry, Instance, Item) &&
+			return TryResolve(Registry, Instance, Item) &&
 				TryResolveProjected(Item, OutMassKg);
 		}
 		return false;

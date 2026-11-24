@@ -15,14 +15,14 @@ public:
     static bool Build(
         const FGridItemInstance& Instance,
         FGridWeaponTooltipPresentation& Out,
-        const UGridItemSubsystem* CanonicalRegistry = nullptr);
+        const UGridItemSubsystem* ItemRegistry = nullptr);
 
     /** Only compares like-for-like catalogued roles; never invents bare-hand damage. */
     static bool BuildComparison(
         const FGridItemInstance& Candidate,
         const FGridItemInstance& Equipped,
         TArray<FGridWeaponTooltipComparisonFact>& OutFacts,
-        const UGridItemSubsystem* CanonicalRegistry = nullptr);
+        const UGridItemSubsystem* ItemRegistry = nullptr);
     static bool Project(const FGridItemInstance& Instance, const FGridResolvedItem& Item,
         FGridWeaponTooltipPresentation& Out);
     static bool Compare(const FGridResolvedItem& Candidate, const FGridResolvedItem& Equipped,

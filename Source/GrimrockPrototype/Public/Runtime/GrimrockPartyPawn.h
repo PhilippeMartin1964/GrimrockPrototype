@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Core/GridTypes.h"
-#include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/GridPartyProgressionReminderState.h"

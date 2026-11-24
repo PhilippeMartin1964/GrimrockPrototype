@@ -7,7 +7,7 @@ void UGridItemSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 	if (ConfiguredItemSystem.IsNull())
 	{
-		// ARM-CLEAN06.1 has no DA_ItemSystem binary yet. Never use the legacy model.
+		// An unconfigured GameInstance leaves the registry empty.
 		return;
 	}
 	UGridItemSystemAsset* Registry = ConfiguredItemSystem.LoadSynchronous();
@@ -184,8 +184,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
 		OutItem.WorldVisualTransform = Visual->WorldTransform;
-		// World pickup presentation comes from this one visual catalogue.
-		// Current legacy-backed ARM placements do not switch to it yet.
+		// The visual catalogue owns world pickup presentation.
 		OutItem.LightEmitter = Visual->LightEmitter;
 		OutItem.VisualEffects = Visual->VisualEffects;
 		OutItem.bEnableWorldSparkle = Visual->bEnableWorldSparkle;
@@ -198,8 +197,7 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		// several weapons may share a visual without sharing their physics.
 		OutItem.bUseItemWeightAsWorldPhysicsMass = Archetype->bUseItemWeightAsWorldPhysicsMass;
 		OutItem.WorldPhysicsInitialTiltDegrees = Archetype->WorldPhysicsInitialTiltDegrees;
-		// The legacy visual resolver uses WorldMesh for a missing equipped mesh.
-		// Keep this transient resolution: do not serialize a second mesh pointer.
+		// Reuse the world mesh when no equipped mesh is authored.
 		OutItem.EquippedMesh = Visual->EquippedMesh.IsNull() ?
 			Visual->WorldMesh : Visual->EquippedMesh;
 		OutItem.ProjectileMesh = Visual->ProjectileMesh;

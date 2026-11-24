@@ -2,7 +2,7 @@
 
 #if WITH_EDITOR
 
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"

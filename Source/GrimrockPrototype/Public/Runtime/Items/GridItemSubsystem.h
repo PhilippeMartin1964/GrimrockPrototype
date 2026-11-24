@@ -208,9 +208,8 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedBoundAction
 };
 
 /**
- * The new subsystem is unconfigured until DA_ItemSystem is authored in 06.2.
- * Never probes the old per-weapon catalogues, looks up legacy definitions or
- * silently resolves an unknown identity. Configuration occurs ONCE per GI.
+ * Resolves registered identities through the item system of this GameInstance.
+ * Until a registry is configured, item reads fail explicitly.
  */
 UCLASS(Config = Game, DefaultConfig)
 class GRIMROCKPROTOTYPE_API UGridItemSubsystem : public UGameInstanceSubsystem

@@ -3,7 +3,7 @@
 #if WITH_EDITOR
 
 #include "EditorTools/GridLevelEditorActor.h"
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 
 #include "Editor.h"
 #include "Framework/Application/SlateApplication.h"

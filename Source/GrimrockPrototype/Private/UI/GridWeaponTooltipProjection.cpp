@@ -97,10 +97,10 @@ namespace
 bool FGridWeaponTooltipProjection::Build(
     const FGridItemInstance& Instance,
     FGridWeaponTooltipPresentation& Out,
-    const UGridItemSubsystem* CanonicalRegistry)
+    const UGridItemSubsystem* ItemRegistry)
 {
     FGridResolvedItem Item;
-    if (!ResolveWeapon(CanonicalRegistry, Instance, Item))
+    if (!ResolveWeapon(ItemRegistry, Instance, Item))
     {
         Out = FGridWeaponTooltipPresentation();
         return false;
@@ -236,13 +236,13 @@ bool FGridWeaponTooltipProjection::BuildComparison(
     const FGridItemInstance& Candidate,
     const FGridItemInstance& Equipped,
     TArray<FGridWeaponTooltipComparisonFact>& OutFacts,
-    const UGridItemSubsystem* CanonicalRegistry)
+    const UGridItemSubsystem* ItemRegistry)
 {
     OutFacts.Reset();
     FGridResolvedItem CandidateItem;
     FGridResolvedItem EquippedItem;
-    if (!ResolveWeapon(CanonicalRegistry, Candidate, CandidateItem) ||
-        !ResolveWeapon(CanonicalRegistry, Equipped, EquippedItem))
+    if (!ResolveWeapon(ItemRegistry, Candidate, CandidateItem) ||
+        !ResolveWeapon(ItemRegistry, Equipped, EquippedItem))
     {
         return false;
     }

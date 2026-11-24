@@ -2,7 +2,7 @@
 
 #if WITH_EDITOR
 
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 #include "EditorTools/GridEditorLuaService.h"
 
 #include "HAL/PlatformApplicationMisc.h"

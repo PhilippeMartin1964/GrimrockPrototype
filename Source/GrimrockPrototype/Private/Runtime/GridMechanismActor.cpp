@@ -1,4 +1,5 @@
 #include "Runtime/GridMechanismActor.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridWorldObjectInstanceVisual.h"
 

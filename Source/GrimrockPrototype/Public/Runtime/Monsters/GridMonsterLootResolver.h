@@ -24,5 +24,5 @@ public:
 
 	/** Resolve a loot item's fixed catalogue level once, without randomization. */
 	static bool TryResolveItemLevel(const FGridMonsterLootEntry& Entry,
-        int32& OutItemLevel, const UGridItemSubsystem* CanonicalRegistry);
+        int32& OutItemLevel, const UGridItemSubsystem* ItemRegistry);
 };

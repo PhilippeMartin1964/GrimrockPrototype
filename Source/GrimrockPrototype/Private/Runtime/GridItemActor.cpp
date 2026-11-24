@@ -285,7 +285,7 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 	if (Registry)
 	{
 		FGridResolvedItem Item;
-		if (!FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item)) return;
+		if (!FGridWorldPhysicsMassReadModel::TryResolve(Registry, Instance, Item)) return;
 		AuthoredTilt = Item.WorldPhysicsInitialTiltDegrees;
 	}
 	else if (!GameInstance && ResolvedWorldPresentation.IsValid() && Instance.IsValid() &&
@@ -376,7 +376,7 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	bool bResolved = false;
 	if (Registry)
 	{
-		bResolved = FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Profile);
+		bResolved = FGridWorldPhysicsMassReadModel::TryResolve(Registry, Instance, Profile);
 	}
 	else if (!GI && Instance.IsValid() && ResolvedWorldPresentation.IsValid() &&
 		ResolvedWorldPresentation.ItemId == Instance.ItemDefinitionId &&
@@ -447,7 +447,7 @@ bool AGridItemActor::HasItemTag(FName Tag) const
 	if (Registry)
 	{
 		FGridResolvedItem Item;
-		return FGridWorldPhysicsMassReadModel::TryResolveCanonical(Registry, Instance, Item) &&
+		return FGridWorldPhysicsMassReadModel::TryResolve(Registry, Instance, Item) &&
 			Item.Tags.Contains(Tag);
 	}
 	if (!GI && Instance.IsValid() && ResolvedWorldPresentation.IsValid() &&

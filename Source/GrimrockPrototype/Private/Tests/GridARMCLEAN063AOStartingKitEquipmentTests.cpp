@@ -80,22 +80,22 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestTrue(TEXT("Actual sword equips MainHand"), RealSword.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
 
 	const FGridStartingKitEquipmentPolicyReadView BowPolicy =
-		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		FGridStartingKitEquipmentPolicyReadModel::Resolve(
 			Registry.Get(), Bow, 6, EGridEquipmentSlot::OffHand);
 	TestTrue(TEXT("Canonical bow permitted from authored OffHand"), BowPolicy.bRegisteredIdentity && BowPolicy.bResolved);
 	TestTrue(TEXT("Canonical bow reserves both hands"), BowPolicy.bTwoHanded);
 	TestEqual(TEXT("Two-handed bow physical storage is MainHand"),
 		BowPolicy.PhysicalSlot, EGridEquipmentSlot::MainHand);
-	const auto ShieldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+	const auto ShieldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		Registry.Get(), Shield, 7, EGridEquipmentSlot::OffHand);
 	TestTrue(TEXT("Shield OffHand does not reserve both hands"),
 		ShieldPolicy.bResolved && !ShieldPolicy.bTwoHanded);
 	TestEqual(TEXT("Shield keeps its own OffHand slot"), ShieldPolicy.PhysicalSlot, EGridEquipmentSlot::OffHand);
 	TestFalse(TEXT("Shield MainHand rejected by actual policy"),
-		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		FGridStartingKitEquipmentPolicyReadModel::Resolve(
 			Registry.Get(), Shield, 7, EGridEquipmentSlot::MainHand).bResolved);
 	TestFalse(TEXT("Known ARM level N0 cannot fall back to old hand data"),
-		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		FGridStartingKitEquipmentPolicyReadModel::Resolve(
 			Registry.Get(), Bow, 0, EGridEquipmentSlot::OffHand).bResolved);
 
 	// Build an actual kit, ensuring the physical instance and stored fixed
@@ -166,11 +166,11 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 		NormalEquipment.MainHand.RuntimeObjectId != NormalEquipment.OffHand.RuntimeObjectId);
 
 	const FName Unknown(TEXT("LegacyStarter_AO"));
-	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		Registry.Get(), Unknown, 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown entry cannot equip in configured world"), OldPolicy.bResolved);
-	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
 		nullptr, Unknown, 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Registry-less entry cannot select an equipment slot"), FixturePolicy.bResolved);
 	return true;

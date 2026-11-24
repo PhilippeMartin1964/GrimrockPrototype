@@ -553,7 +553,7 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
     const FName KitId = GetSelectedStartingEquipmentKitId();
     const UWorld* World = GetWorld();
     UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
-    const UGridItemSubsystem* CanonicalRegistry = GameInstance
+    const UGridItemSubsystem* ItemRegistry = GameInstance
         ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
     for (const FRPGStartingEquipmentKit& Kit : GetAvailableStartingEquipmentKits())
     {
@@ -572,7 +572,7 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
             }
             const FGridStartingKitDisplayReadView ItemView =
                 FGridStartingKitDisplayReadModel::Resolve(
-                    CanonicalRegistry, Entry.ItemLevel, Entry.ItemId);
+                    ItemRegistry, Entry.ItemLevel, Entry.ItemId);
             // Match the grant path: never advertise an unresolved item.
             if (!ItemView.bResolved)
             {

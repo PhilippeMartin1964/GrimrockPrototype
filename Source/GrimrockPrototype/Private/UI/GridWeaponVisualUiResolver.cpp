@@ -1,4 +1,4 @@
-#include "UI/GridWeaponVisualUiResolver.h"
+#include "GridWeaponVisualUiResolver.h"
 
 #include "Runtime/Items/GridItemSubsystem.h"
 

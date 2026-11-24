@@ -112,7 +112,7 @@ namespace RPGStartingPresets
             Spec.Quantity > FMath::Max(1, Native.MaxStack) ||
             (Spec.Slot != EGridEquipmentSlot::None &&
                 (Spec.Quantity != 1 ||
-                 !FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+                 !FGridStartingKitEquipmentPolicyReadModel::Resolve(
                      Registry, ItemId, Spec.ItemLevel, Spec.Slot).bResolved)))
         {
             OutError = FString::Printf(
@@ -174,7 +174,7 @@ bool FRPGStartingEquipmentPresetCatalog::IsProductionClassAsset(const URPGClassA
 }
 
 bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
-    URPGClassAsset& TransientClass, FString& OutError, const UGridItemSubsystem* CanonicalRegistry)
+    URPGClassAsset& TransientClass, FString& OutError, const UGridItemSubsystem* ItemRegistry)
 {
     OutError.Reset();
     if (!RPGStartingPresets::IsSupportedClass(TransientClass.ClassId))
@@ -192,7 +192,7 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
 
     // No test-only exception: every approved recipe must be materialized
     // from a configured canonical ItemSystem, including Automation builds.
-    if (!IsValid(CanonicalRegistry) || !CanonicalRegistry->IsConfigured())
+    if (!IsValid(ItemRegistry) || !ItemRegistry->IsConfigured())
     {
         OutError = TEXT("Approved starter kits require a configured canonical ItemSystem.");
         return false;
@@ -210,10 +210,10 @@ bool FRPGStartingEquipmentPresetCatalog::TryPopulateApprovedTransientClass(
         const FString LabelKey = FString::Printf(TEXT("CharacterCreation.StartingKit.Name.Kit.%s.%s"), Spec.ClassId, Spec.BranchId);
         Kit.DisplayName = FUILocalizationText::Get(*LabelKey);
         if (Kit.DisplayName.IsEmpty() ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError, CanonicalRegistry) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Second, OutError, CanonicalRegistry) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Third, OutError, CanonicalRegistry) ||
-            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Fourth, OutError, CanonicalRegistry))
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.First, OutError, ItemRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Second, OutError, ItemRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Third, OutError, ItemRegistry) ||
+            !RPGStartingPresets::AddApprovedItem(Kit, Spec.Fourth, OutError, ItemRegistry))
         {
             if (OutError.IsEmpty())
             {

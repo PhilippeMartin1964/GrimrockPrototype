@@ -6,7 +6,7 @@
 #include "EditorTools/GridEditorWorkspaceTabs.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/Widgets/SGridEditorDungeonLevelsPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
 #include "Core/GridLevelAsset.h"

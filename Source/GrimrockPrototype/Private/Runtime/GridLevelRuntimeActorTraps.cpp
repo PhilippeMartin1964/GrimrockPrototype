@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridDungeonTrapDisarmFeedback.h"
 #include "Runtime/GridDungeonTrapDisarmOdds.h"
 #include "Core/GridDungeonTrapInstanceUtils.h"

@@ -6,7 +6,7 @@
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridLevelEditorActor.h"
-#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "GridEditorWidgetHelpers.h"
 
 #include "Styling/SlateColor.h"
 #include "Widgets/Input/SCheckBox.h"

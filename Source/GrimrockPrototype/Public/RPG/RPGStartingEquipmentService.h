@@ -21,5 +21,5 @@ public:
 		FGridCharacterInventoryState& InOutCharacter,
 		FGridCharacterEquipmentState& InOutEquipment,
 		FString& OutError,
-		const UGridItemSubsystem* CanonicalRegistry);
+		const UGridItemSubsystem* ItemRegistry);
 };

@@ -8,7 +8,7 @@
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/GridLuaAuthoringCompiler.h"
-#include "EditorTools/GridLuaSyntaxHighlighter.h"
+#include "../GridLuaSyntaxHighlighter.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Input/SButton.h"

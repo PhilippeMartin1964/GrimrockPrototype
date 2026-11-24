@@ -15,7 +15,7 @@ struct FGridStartingKitEquipmentPolicyReadModel
 {
 	/** Equipment policy for an explicitly authored
 	 * ItemId + physical N-level. Rejects unsupported non-ARM hand slots. */
-	static FGridStartingKitEquipmentPolicyReadView ResolveCanonical(
+	static FGridStartingKitEquipmentPolicyReadView Resolve(
 		const UGridItemSubsystem* Registry,
 		FName ItemId, int32 FixedItemLevel, EGridEquipmentSlot AuthoredSlot)
 	{

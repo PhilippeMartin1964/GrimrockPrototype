@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Runtime/GridItemMeshResolver.h"
-#include "UI/GridWeaponVisualUiResolver.h"
+#include "../UI/GridWeaponVisualUiResolver.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace ARMEMENT0162

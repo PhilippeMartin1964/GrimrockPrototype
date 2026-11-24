@@ -1,3 +1,5 @@
+#include "Runtime/GridGenericObjectActor.h"
+
 bool AGridLevelEditorActor::EnsureStairsRelocationDefinitions(FString& OutError)
 {
 	OutError.Reset();

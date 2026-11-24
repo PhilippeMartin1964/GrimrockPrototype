@@ -5,20 +5,18 @@
 #include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridVfxProfileTypes.h"
-#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "TimerManager.h"
 #include "Core/GridGlassShardMotion.h"
-#include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
-#include "Runtime/GridPlacementTransformResolver.h"
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
 class UMaterialInstanceDynamic;
 class AGridRuntimeObjectActor;
+class UGridWorldObjectDefinitionAsset;
 class AGridItemActor;
 class AGridThrownItemActor;
 class AGridPitTrapdoorActor;
@@ -1114,51 +1112,5 @@ private:
 	void HandlePitTrapdoorAnimationFinished(FGuid PitObjectId, bool bWasOpen, bool bIsOpen);
 	void FinalizePitGameplayStateChange(FGuid PitObjectId, bool bWasOpen, bool bIsOpen, bool bEmitEvent);
 
-	template <typename TActor>
-	TActor* SpawnRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform)
-	{
-		static_assert(TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived, "TActor must derive from AGridRuntimeObjectActor");
-		OutMesh = nullptr;
-		OutTransform = FTransform::Identity;
-
-		if (!LevelAsset)
-		{
-			return nullptr;
-		}
-		const UGridWorldObjectDefinitionAsset* Definition = FindWorldObjectDefinition(ObjectData.WorldObjectDefinitionId);
-		OutMesh = Definition && Definition->StaticPart.IsDefined() ? Definition->StaticPart.Mesh.Get() : nullptr;
-		TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass(ObjectData);
-
-		// WORLDOBJ-MIG03: presentation is optional. Actor existence is driven by RuntimeActorClass,
-		// while StaticPart/MovingParts (or no visual at all) are initialized after spawning.
-		if (!ActorClass)
-		{
-			return nullptr;
-		}
-		UWorld* World = GetWorld();
-		if (!World)
-		{
-			return nullptr;
-		}
-		if (!GridPlacementTransformResolver::ResolveWorldObject(*this, ObjectData, OutTransform))
-		{
-			return nullptr;
-		}
-		if (!IsSafeRuntimeRenderTransform(OutTransform))
-		{
-			LogUnsafeObjectTransform(TEXT("SpawnRuntimeObjectActor"), ObjectData, OutMesh, OutTransform);
-			return nullptr;
-		}
-		FActorSpawnParameters Params;
-		Params.Owner = this;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		TActor* Actor = World->SpawnActor<TActor>(ActorClass, OutTransform.GetLocation(), OutTransform.GetRotation().Rotator(), Params);
-		if (!Actor)
-		{
-			return nullptr;
-		}
-		RegisterRuntimeObjectActor(ObjectData.InstanceId, Actor);
-		return Actor;
-	}
+	AGridRuntimeObjectActor* SpawnRuntimeObjectActor(const FGridWorldObjectInstance& ObjectData, UStaticMesh*& OutMesh, FTransform& OutTransform);
 };

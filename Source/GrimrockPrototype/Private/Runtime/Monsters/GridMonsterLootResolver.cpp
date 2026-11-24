@@ -64,15 +64,15 @@ FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveEntryFromRolls(
 
 bool FGridMonsterLootResolver::TryResolveItemLevel(
 	const FGridMonsterLootEntry& Entry, int32& OutItemLevel,
-	const UGridItemSubsystem* CanonicalRegistry)
+	const UGridItemSubsystem* ItemRegistry)
 {
 	OutItemLevel = 0;
-	if (!Entry.IsValidDefinition() || !IsValid(CanonicalRegistry))
+	if (!Entry.IsValidDefinition() || !IsValid(ItemRegistry))
 	{
 		return false;
 	}
 	FGridResolvedItem Fixed;
-	if (!CanonicalRegistry->ResolveItem(Entry.ItemDefinitionId, Entry.ItemLevel, Fixed) ||
+	if (!ItemRegistry->ResolveItem(Entry.ItemDefinitionId, Entry.ItemLevel, Fixed) ||
 		!Fixed.IsValid() || Fixed.ItemId != Entry.ItemDefinitionId || Fixed.ItemLevel != Entry.ItemLevel)
 	{
 		return false;

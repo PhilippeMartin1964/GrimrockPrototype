@@ -10,10 +10,10 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	FGridCharacterInventoryState& InOutCharacter,
 	FGridCharacterEquipmentState& InOutEquipment,
 	FString& OutError,
-	const UGridItemSubsystem* CanonicalRegistry)
+	const UGridItemSubsystem* ItemRegistry)
 {
 	OutError.Reset();
-	if (!IsValid(CanonicalRegistry) || !CanonicalRegistry->IsConfigured())
+	if (!IsValid(ItemRegistry) || !ItemRegistry->IsConfigured())
 	{
 		OutError = TEXT("Starting kit requires the configured canonical ItemSystem.");
 		return false;
@@ -42,7 +42,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	for (const FRPGStartingEquipmentEntry& Entry : Kit->Items)
 	{
 		const FName ItemId = Entry.ItemId;
-		if (!CanonicalRegistry->ContainsItem(ItemId))
+		if (!ItemRegistry->ContainsItem(ItemId))
 		{
 			OutError = TEXT("Starting kit item is not registered in the canonical ItemSystem.");
 			return false;
@@ -55,7 +55,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 
 		const int32 FixedLevel = Entry.ItemLevel;
 		FGridResolvedItem NativeItem;
-		if (!CanonicalRegistry->ResolveItem(ItemId, FixedLevel, NativeItem) || !NativeItem.IsValid() ||
+		if (!ItemRegistry->ResolveItem(ItemId, FixedLevel, NativeItem) || !NativeItem.IsValid() ||
 			!FMath::IsFinite(NativeItem.WeightKg) || NativeItem.WeightKg < 0.0f ||
 			(!NativeItem.bIsArmament && FixedLevel != 0))
 		{
@@ -77,7 +77,7 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 		if (PhysicalSlot != EGridEquipmentSlot::None)
 		{
 			const FGridStartingKitEquipmentPolicyReadView Hand =
-				FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(CanonicalRegistry, ItemId, FixedLevel, PhysicalSlot);
+				FGridStartingKitEquipmentPolicyReadModel::Resolve(ItemRegistry, ItemId, FixedLevel, PhysicalSlot);
 			if (!Hand.bResolved || !CandidateEquipment.GetMutableSlot(Hand.PhysicalSlot))
 			{
 				OutError = FString::Printf(TEXT("Starting kit item %s is incompatible with slot %d."), *ItemId.ToString(), int32(PhysicalSlot));

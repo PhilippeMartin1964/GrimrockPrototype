@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 /**

@@ -24,5 +24,5 @@ public:
      * Missing future support items are never fabricated.
      */
     static bool TryPopulateApprovedTransientClass(URPGClassAsset& TransientClass, FString& OutError,
-        const UGridItemSubsystem* CanonicalRegistry = nullptr);
+        const UGridItemSubsystem* ItemRegistry = nullptr);
 };

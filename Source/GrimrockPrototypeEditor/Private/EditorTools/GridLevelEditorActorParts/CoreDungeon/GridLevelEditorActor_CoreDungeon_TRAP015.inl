@@ -1,3 +1,5 @@
+#include "Runtime/GridGenericObjectActor.h"
+
 // TRAP01.5 — Provision discoverable, authorable dungeon traps in the normal
 // WorldObject palette, using the established UGridLevelAsset placement pipeline.
 // Never alter existing definitions: the user owns those authored assets.

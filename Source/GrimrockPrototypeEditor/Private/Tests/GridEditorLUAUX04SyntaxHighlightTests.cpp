@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "EditorTools/GridLuaSyntaxHighlighter.h"
+#include "../EditorTools/GridLuaSyntaxHighlighter.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridLUAUX04SyntaxHighlightingTest,

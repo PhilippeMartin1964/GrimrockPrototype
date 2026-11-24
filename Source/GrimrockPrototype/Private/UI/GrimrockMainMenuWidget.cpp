@@ -216,9 +216,9 @@ bool UGrimrockMainMenuWidget::OpenNewGameCharacterCreation()
 	// canonical ItemSystem when CreateInitialCharacter builds the starter kit.
 	const UWorld* FrontendWorld = PlayerController->GetWorld();
 	UGameInstance* FrontendGameInstance = FrontendWorld ? FrontendWorld->GetGameInstance() : nullptr;
-	const UGridItemSubsystem* CanonicalRegistry = FrontendGameInstance
+	const UGridItemSubsystem* ItemRegistry = FrontendGameInstance
 		? FrontendGameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	if (!CanonicalRegistry || !CanonicalRegistry->IsConfigured())
+	if (!ItemRegistry || !ItemRegistry->IsConfigured())
 	{
 		UE_LOG(LogGrimrockFrontendUI, Error, TEXT("MainMenu NewGame Failed Widget=%s Reason=ItemSystemNotConfigured"), *GetName());
 		return false;

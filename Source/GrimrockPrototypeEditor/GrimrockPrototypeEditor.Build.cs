@@ -18,22 +18,26 @@ public class GrimrockPrototypeEditor : ModuleRules
             "CoreUObject",
             "Engine",
             "InputCore",
+            "UnrealEd",
+            "Slate",
+            "SlateCore",
+            "GrimrockPrototype",
+            "GrimrockLua"
+        });
+
+        PrivateDependencyModuleNames.AddRange(new string[]
+        {
             "ApplicationCore",
             "AssetRegistry",
             "Json",
             "AssetTools",
             "Niagara",
-            "UnrealEd",
             "EditorFramework",
             "BlueprintGraph",
             "UMG",
             "MaterialEditor",
             "PropertyEditor",
-            "Slate",
-            "SlateCore",
-            "ToolMenus",
-            "GrimrockPrototype",
-            "GrimrockLua"
+            "ToolMenus"
         });
     }
 }

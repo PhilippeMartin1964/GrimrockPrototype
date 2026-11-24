@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/GridPlacementTransformResolver.h"
 
 #include "Components/StaticMeshComponent.h"
