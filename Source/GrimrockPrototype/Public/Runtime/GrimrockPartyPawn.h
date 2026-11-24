@@ -19,7 +19,6 @@ class AGridLevelRuntimeActor;
 class AGridItemActor;
 class AGridReceptacleActor;
 class AGridThrownItemActor;
-class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridPersistentHudWidget;
 class UGridInventoryWidget;

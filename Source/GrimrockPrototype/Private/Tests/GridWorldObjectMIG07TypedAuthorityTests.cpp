@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -16,8 +15,8 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	(void)Parameters;
 
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-	ItemDefinition->ItemDefinitionId = TEXT("MIG07B_Item");
+	FName ItemId;
+	ItemId = TEXT("MIG07B_Item");
 	UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>();
 
 	FGridWorldObjectInstance Door;
@@ -35,7 +34,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemId = ItemDefinition->ItemDefinitionId;
+	Item.ItemId = ItemId;
 	Item.CellX = 5;
 	Item.CellY = 6;
 	Item.LocalYaw = 15.0f;
@@ -78,7 +77,7 @@ bool FGridWorldObjectMIG07TypedAuthorityBridgeTest::RunTest(const FString& Param
 	TestNotNull(TEXT("Loose item is found by native identity"), RestoredItem);
 	if (RestoredItem)
 	{
-		TestEqual(TEXT("Loose item retains its sole authored ItemId"), RestoredItem->ItemId, ItemDefinition->ItemDefinitionId);
+		TestEqual(TEXT("Loose item retains its sole authored ItemId"), RestoredItem->ItemId, ItemId);
 		TestEqual(TEXT("Loose item local yaw survives projection"), RestoredItem->LocalYaw, 15.0f);
 	}
 

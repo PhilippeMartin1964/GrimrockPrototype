@@ -4,7 +4,6 @@
 #include "Runtime/Combat/GridCombatTypes.h"
 
 class URPGClassAsset;
-class UGridItemDefinitionAsset;
 class UGridStatusEffectDefinitionAsset;
 class UGridItemSubsystem;
 
@@ -19,7 +18,6 @@ struct GRIMROCKPROTOTYPEEDITOR_API FRPGAlchemistAuthoring
 	static void ConfigureClass(URPGClassAsset& ClassAsset);
 
 	/** Rebuilds one Alchemist QuickItem mechanically, preserving serialized text; fresh records receive technical bootstrap text only. */
-	static bool ConfigureItem(UGridItemDefinitionAsset& ItemAsset, FName ItemDefinitionId);
 
 	/** Configures Alchemist-owned/shared statuses required by the authored QuickItems. */
 	static bool ConfigureStatus(UGridStatusEffectDefinitionAsset& StatusAsset, FName EffectId);

@@ -7,7 +7,6 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
@@ -53,8 +52,8 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	if (!TestNotNull(TEXT("Editor exists"), Fixture.Editor)) return false;
 	AGridLevelEditorActor* Editor = Fixture.Editor;
 	UGridLevelAsset* Level = Fixture.Level;
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(Level);
-	ItemDefinition->ItemDefinitionId = TEXT("MIG09_Item");
+	FName ItemId;
+	ItemId = TEXT("MIG09_Item");
 	UGridWorldObjectDefinitionAsset* Definition = NewObject<UGridWorldObjectDefinitionAsset>(Level);
 	Definition->DefinitionId = TEXT("MIG09_Receptacle");
 	Definition->SupportedType = EGridLevelObjectType::Receptacle;
@@ -74,7 +73,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridLooseItemInstance& LooseItem = Level->LooseItemInstances.AddDefaulted_GetRef();
 	LooseItem.InstanceId = FGuid::NewGuid();
 	LooseItem.CellX = 1;
-	LooseItem.ItemId = ItemDefinition->ItemDefinitionId;
+	LooseItem.ItemId = ItemId;
 	LooseItem.Quantity = 7;
 	LooseItem.LocalOffset = FVector(3.f, 4.f, 5.f);
 	LooseItem.ReadTextOverride = FText::FromString(TEXT("Keep this text"));
@@ -119,7 +118,7 @@ bool FGridMIG09EditorTypedMutationsTest::RunTest(const FString& Parameters)
 	FGridObjectBehaviorParams EditedBehavior = Editor->ObjectBehavior;
 	EditedBehavior.Receptacle.MaxContainedItems = 99;
 	FGridReceptacleInitialItemConfig& Content = EditedBehavior.Receptacle.InitialContent.AddDefaulted_GetRef();
-	Content.ItemId = ItemDefinition->ItemDefinitionId;
+	Content.ItemId = ItemId;
 	Content.Quantity = 2;
 	TestTrue(TEXT("Apply only instance behavior"), Editor->ApplyBehaviorToSelectedObject(EditedBehavior));
 	TestEqual(TEXT("Definition rule remains authoritative"), Editor->ObjectBehavior.Receptacle.MaxContainedItems, 4);

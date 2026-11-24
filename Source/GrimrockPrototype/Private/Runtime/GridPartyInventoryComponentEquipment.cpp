@@ -4,7 +4,6 @@
 #include "GridEquipmentArmorReadModel.h"
 #include "GridEquipmentContributionReadModel.h"
 #include "Runtime/Combat/GridCombatTraceTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"

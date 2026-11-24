@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/Combat/GridEquippedGuardItemReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -24,10 +23,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> ConflictingLegacy(NewObject<UGridItemDefinitionAsset>());
-	ConflictingLegacy->ItemType = EGridItemType::Shield; // Contradicts ARM013.
-	ConflictingLegacy->bUseWeaponCatalogue = true;
-	ConflictingLegacy->WeaponArchetypeId = TEXT("ARM013");
+	FName FixtureId;
 	const FName Ids[] = {
 		TEXT("Weapon_MainGauche_01"), TEXT("Weapon_StraightSword_01"),
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01")
@@ -35,7 +31,6 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Ids)
 	{
-		ConflictingLegacy->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Definition;
@@ -92,11 +87,10 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 
 	// Unknown identities fail closed in a configured canonical world; only
 	// isolated registry-less Automation fixtures retain the old guard rules.
-	ConflictingLegacy->ItemDefinitionId = TEXT("LegacyGuard_063AB");
-	ConflictingLegacy->ItemType = EGridItemType::Weapon;
+	FixtureId = TEXT("LegacyGuard_063AB");
 	FGridItemInstance Unknown;
 	Unknown.RuntimeObjectId = FGuid::NewGuid();
-	Unknown.ItemDefinitionId = ConflictingLegacy->ItemDefinitionId;
+	Unknown.ItemDefinitionId = FixtureId;
 	Unknown.ItemLevel = 1;
 	Unknown.Quantity = 1;
 	Unknown.EquipmentSlot = EGridEquipmentSlot::OffHand;
@@ -108,7 +102,6 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 	TestFalse(TEXT("Unknown cannot inherit historical shield"), Refused.bIsShield);
 	TestFalse(TEXT("Without a registry there is no parry source"),
 		FGridEquippedGuardItemReadModel::Resolve(nullptr, Unknown).bCanParry);
-	ConflictingLegacy->ItemType = EGridItemType::Shield;
 	TestFalse(TEXT("Configured canonical registry refuses unknown historical shield"),
 		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), Unknown).bResolved);
 	TestFalse(TEXT("Without a registry there is no shield source"),

@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -47,9 +47,8 @@ bool FGridItemVFX013TorchAuthoringTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UGridItemDefinitionAsset* Torch = NewObject<UGridItemDefinitionAsset>();
-    Torch->ItemDefinitionId = TEXT("VFX013_TorchAuthoring");
-    Torch->ItemType = EGridItemType::Torch;
+    UGridNonArmamentDefinitionAsset* Torch = NewObject<UGridNonArmamentDefinitionAsset>();
+    Torch->ItemId = TEXT("VFX013_TorchAuthoring");
     Torch->LightEmitter.bUsePointLight = true;
     Torch->LightEmitter.bDefaultEnabled = true;
     Torch->LightEmitter.LightIntensity = 769.f;
@@ -66,9 +65,9 @@ bool FGridItemVFX013TorchAuthoringTest::RunTest(const FString& Parameters)
     Flame.ActivationMode = EGridItemVfxActivationMode::WhenLightEnabled;
     Torch->VisualEffects.Effects.Add(Flame);
 
-    TestTrue(TEXT("Data-driven torch definition remains valid"), Torch->IsValidDefinition());
+    TestTrue(TEXT("Data-driven torch definition remains valid"), Torch->VisualEffects.IsValid());
     TestTrue(TEXT("Torch uses a PointLight"), Torch->LightEmitter.HasEmitter());
-    TestTrue(TEXT("Torch is lit by default"), Torch->IsLightEnabledByDefault());
+    TestTrue(TEXT("Torch is lit by default"), (Torch->LightEmitter.HasEmitter() && Torch->LightEmitter.bDefaultEnabled));
     TestTrue(TEXT("Light intensity and radius are unchanged"),
         FMath::IsNearlyEqual(Torch->LightEmitter.LightIntensity, 769.f) &&
         FMath::IsNearlyEqual(Torch->LightEmitter.LightRadius, 386.f));

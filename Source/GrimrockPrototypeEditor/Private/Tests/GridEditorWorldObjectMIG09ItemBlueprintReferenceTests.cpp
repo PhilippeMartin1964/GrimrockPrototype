@@ -144,7 +144,7 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		{
 			return Type == FGridItemActionContext::StaticStruct() ||
 				Type == FRPGStartingEquipmentEntry::StaticStruct() ||
-				(Type && Type->GetFName() == TEXT("GridItemDefinitionAsset"));
+				(Cast<UClass>(Type) && CastChecked<UClass>(Type)->FindPropertyByName(TEXT("bUseWeaponCatalogue")));
 		};
 		return Matches(PinType.PinSubCategoryObject.Get()) ||
 			Matches(PinType.PinValueType.TerminalSubCategoryObject.Get());

@@ -13,7 +13,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridInventoryCategoryTags.h"
 #include "Runtime/GridReadableContentAsset.h"
@@ -87,15 +87,6 @@ namespace GridTD0737Normalization
 		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
 			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
-			return;
-		}
-
-		if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(&DataAsset))
-		{
-			if (!Item->HasValidCombatActions())
-			{
-				AddCandidate(Candidates, TEXT("ITEM.INVALID_COMBAT_ACTIONS"), AssetPath, TEXT("CombatActions"));
-			}
 			return;
 		}
 

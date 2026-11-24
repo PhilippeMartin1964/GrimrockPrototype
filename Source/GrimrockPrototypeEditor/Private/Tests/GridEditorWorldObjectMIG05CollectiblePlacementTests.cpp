@@ -8,7 +8,6 @@
 #include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
@@ -86,16 +85,13 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	}
 	EditorActor->LevelAsset = Level;
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(EditorActor);
-	Definition->ItemDefinitionId = TEXT("Item_Arrows_01");
-	Definition->DisplayName = FText::FromString(TEXT("Blue Gem"));
-	Definition->ItemType = EGridItemType::Gem;
-	Definition->WorldMesh = NewObject<UStaticMesh>(Definition);
+	FName ItemId;
+	ItemId = TEXT("Item_Arrows_01");
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>(EditorActor);
 	FGridObjectPaletteEntry& Entry = Palette->Entries.AddDefaulted_GetRef();
 	Entry.EntryId = TEXT("BlueGem");
-	Entry.ItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = ItemId;
 	EditorActor->ObjectPalette = Palette;
 
 	EditorActor->SelectedCellX = 1;
@@ -118,7 +114,7 @@ bool FGridEditorWorldObjectMIG05DirectItemPlacementTest::RunTest(const FString& 
 	const FGridLooseItemInstance& PlacedItem = Level->LooseItemInstances[0];
 	TestEqual(TEXT("Placed collectible type is Item"), Level->GetTypedPlacementType(PlacedItem.InstanceId), EGridLevelObjectType::Item);
 	TestTrue(TEXT("Placed collectible has no companion world object"), Level->WorldObjectInstances.IsEmpty());
-	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.ItemId, Definition->ItemDefinitionId);
+	TestEqual(TEXT("Placed collectible stores the canonical ItemId"), PlacedItem.ItemId, ItemId);
 	TestNull(TEXT("Placed collectible has no old definition"), FGridLooseItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
 	TestEqual(TEXT("Placement creates exactly one typed entry"), Level->GetTypedPlacementCount(), 1);
 	TestEqual(TEXT("Placed collectible keeps the selected cell X"), PlacedItem.CellX, 1);

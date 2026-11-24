@@ -12,7 +12,6 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -105,16 +104,11 @@ namespace ARMCLEAN063AV
     const FName Ids[] = { TEXT("Weapon_ThrowingKnife_01"),
         TEXT("Weapon_Javelin_01"), TEXT("Weapon_Dart_01") };
 
-    UGridItemDefinitionAsset* Contradictory = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    Contradictory->Weight = 1000.0f;
-    Contradictory->ThrowSpeed = 0.0f;
-    Contradictory->bUseWeaponCatalogue = false;
 
     if (FCString::Strcmp(Scenario, TEXT("Catalogues")) == 0)
     {
     for (const FName Id : Ids)
     {
-        Contradictory->ItemDefinitionId = Id;
         for (const int32 Level : {1, 20})
         {
             const FGridItemInstance Instance = F.Make(Id, Level);
@@ -163,7 +157,6 @@ namespace ARMCLEAN063AV
     const FGridItemInstance BeforeLaunch = Valid;
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
     const FVector Velocity(1200.0f, 0.0f, 100.0f);
-    Contradictory->ItemDefinitionId = Valid.ItemDefinitionId;
     AGridThrownItemActor* Projectile = F.Runtime->SpawnThrownItemProjectile(
         Valid, Start, Velocity, 0, 0);
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
@@ -223,7 +216,6 @@ namespace ARMCLEAN063AV
     {
     const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.0f);
     const FVector Velocity(1200.0f, 0.0f, 100.0f);
-    Contradictory->ItemDefinitionId = Ids[0];
     for (const int32 Invalid : {0, 21})
     {
         const FGridItemInstance Bad = F.Make(Ids[0], Invalid);
@@ -254,11 +246,6 @@ namespace ARMCLEAN063AV
     Test.TestFalse(TEXT("Unknown item without old definition has no throw gate"),
         FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Unknown, 20).bResolved);
 
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    Legacy->ItemDefinitionId = Unknown.ItemDefinitionId;
-    Legacy->HandUsage = EGridItemHandUsage::OneHanded;
-    Legacy->ThrowSpeed = 1800.0f;
-    Legacy->Weight = 0.25f;
     FGridItemInstance Oversized = F.Make(Ids[0], 20);
     Oversized.Quantity = 2;
     Test.TestNull(TEXT("One physical projectile cannot carry two armaments"),
@@ -334,11 +321,6 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
         if (!TestTrue(TEXT("Native N0 resolves"), F.Registry->ResolveItem(Native->ItemId, 0, Resolved))) return false;
         TestTrue(TEXT("Exact authored throw policy projected"),
             FGridNonArmamentThrowPolicy::StaticStruct()->CompareScriptStruct(&Native->GenericThrow, &Resolved.GenericThrow, 0));
-        auto* Stale = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-        Stale->ItemDefinitionId = Native->ItemId;
-        Stale->HandUsage = EGridItemHandUsage::OneHanded;
-        Stale->Weight = 0.1f;
-        Stale->ThrowSpeed = 777.f;
         const auto* Equipment = Cast<UGridOtherEquipmentDefinitionAsset>(Native);
         const bool bOneHand = Equipment && Equipment->HandPolicy == EGridNonArmamentHandPolicy::OneHanded;
         const auto Gate = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Item, 100);
@@ -392,11 +374,6 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
             if (Item.Weapon.Projectile.bEnabled) continue;
             if (!TestTrue(TEXT("Every ordinary ARM requires materialized flight policy"), Item.Weapon.Projectile.bGenericThrowAuthored)) return false;
             if (N == 1) ++Authored;
-            auto* Stale = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-            Stale->ItemDefinitionId = Arm->ItemId;
-            Stale->ThrowSpeed = 99999.f;
-            Stale->ThrowArc = 99.f;
-            Stale->Weight = 99999.f;
             const auto Flight = FGridThrowBallisticsReadModel::Resolve(F.Registry, Instance);
             const auto Strength = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Instance, 100);
             TestFalse(TEXT("No specialist attack invented"), Item.Weapon.Projectile.bEnabled || Flight.bSpecializedProjectile);

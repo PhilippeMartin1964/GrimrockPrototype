@@ -5,7 +5,6 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -78,14 +77,9 @@ bool FGridMON114ProfileValidationTest::RunTest(const FString& Parameters)
 	Invalid.AttackAudio.Sounds.Add(TSoftObjectPtr<USoundBase>());
 	TestFalse(TEXT("Explicit null audio is invalid"), Invalid.IsValid());
 
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-	Item->ItemDefinitionId = TEXT("Item_Test");
-	Item->bProvidesAttackPresentation = true;
-	Item->PlayerAttackPresentationProfile = Empty;
-	TestTrue(TEXT("Item helper accepts the presentation"), Item->HasValidPlayerAttackPresentation());
-	Item->PlayerAttackPresentationProfile.FeedbackDurationSeconds = 0.0f;
-	TestFalse(TEXT("Item helper rejects invalid presentation"), Item->HasValidPlayerAttackPresentation());
-	TestTrue(TEXT("Presentation never invalidates gameplay definition"), Item->IsValidDefinition());
+	Invalid = Empty;
+	Invalid.FeedbackDurationSeconds = 0.0f;
+	TestFalse(TEXT("Invalid authored feedback duration is refused by presentation validation"), Invalid.IsValid());
 	return true;
 }
 

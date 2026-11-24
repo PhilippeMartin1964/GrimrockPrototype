@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
@@ -17,7 +16,7 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
+	UClass* ItemClass = UGridNonArmamentDefinitionAsset::StaticClass();
 	TestNotNull(TEXT("Item definition class exists"), ItemClass);
 	if (!ItemClass)
 	{
@@ -26,10 +25,7 @@ bool FGridItemThrowCLEAN01Test::RunTest(const FString& Parameters)
 
 	TestNull(TEXT("Legacy bThrowable property is physically removed"), ItemClass->FindPropertyByName(TEXT("bThrowable")));
 
-	// H.67: Physical throw eligibility is an ItemSystem read, not an
-	// authored synthetic UGridItemDefinitionAsset that may disappear at cutover.
-	// The remaining reflection check above guards the old bThrowable removal
-	// until the UGridItemDefinitionAsset type itself is retired.
+	// Physical throw eligibility is read from ItemSystem.
 	TStrongObjectPtr<UGameInstance> GI(NewObject<UGameInstance>());
 	TStrongObjectPtr<UGridItemSubsystem> Registry(NewObject<UGridItemSubsystem>(GI.Get()));
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,

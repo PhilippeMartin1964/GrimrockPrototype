@@ -7,7 +7,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Engine/GameInstance.h"

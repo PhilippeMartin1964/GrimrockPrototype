@@ -1,5 +1,4 @@
 #include "Core/GridObjectPaletteAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
 

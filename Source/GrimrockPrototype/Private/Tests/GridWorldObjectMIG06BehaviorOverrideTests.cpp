@@ -5,7 +5,6 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Core/GridObjectInstanceBehavior.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FGridWorldObjectMIG06SparseBehaviorResolutionTest,
@@ -29,8 +28,8 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	Definition->DefaultBehavior.DoorAnimation.bHasChainMechanism = true;
 	Definition->DefaultBehavior.DoorAnimation.ChainPullDistance = 31.0f;
 
-	UGridItemDefinitionAsset* InitialItem = NewObject<UGridItemDefinitionAsset>();
-	InitialItem->ItemDefinitionId = TEXT("MIG06_InitialItem");
+	FName InitialItemId;
+	InitialItemId = TEXT("MIG06_InitialItem");
 
 	FGridObjectBehaviorParams Staged = Definition->DefaultBehavior;
 	Staged.Relocation.TargetCellX = 7;
@@ -39,7 +38,7 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	Staged.Pit.bInitiallyOpen = false;
 	Staged.Lock.bStartsUnlocked = true;
 	FGridReceptacleInitialItemConfig& InitialContent = Staged.Receptacle.InitialContent.AddDefaulted_GetRef();
-	InitialContent.ItemId = InitialItem->ItemDefinitionId;
+	InitialContent.ItemId = InitialItemId;
 	InitialContent.Quantity = 2;
 
 	FGridWorldObjectInstance ObjectData;
@@ -71,7 +70,7 @@ bool FGridWorldObjectMIG06SparseBehaviorResolutionTest::RunTest(const FString& P
 	TestEqual(TEXT("Receptacle initial content remains instance-owned"), Resolved.Receptacle.InitialContent.Num(), 1);
 	if (Resolved.Receptacle.InitialContent.Num() == 1)
 	{
-		TestTrue(TEXT("Initial content keeps explicit ItemId"), Resolved.Receptacle.InitialContent[0].ItemId == InitialItem->ItemDefinitionId);
+		TestTrue(TEXT("Initial content keeps explicit ItemId"), Resolved.Receptacle.InitialContent[0].ItemId == InitialItemId);
 		TestEqual(TEXT("Initial content keeps quantity"), Resolved.Receptacle.InitialContent[0].Quantity, 2);
 	}
 
@@ -123,8 +122,8 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* InitialItem = NewObject<UGridItemDefinitionAsset>();
-	InitialItem->ItemDefinitionId = TEXT("MIG06_StorageInitialItem");
+	FName InitialItemId;
+	InitialItemId = TEXT("MIG06_StorageInitialItem");
 
 	FGridObjectBehaviorParams Source;
 	Source.ButtonAnimation.ButtonHoldTime = 4.0f;
@@ -137,7 +136,7 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 	Source.Receptacle.bAcceptAnyItem = false;
 	Source.Receptacle.MaxContainedItems = 3;
 	FGridReceptacleInitialItemConfig& InitialContent = Source.Receptacle.InitialContent.AddDefaulted_GetRef();
-	InitialContent.ItemId = InitialItem->ItemDefinitionId;
+	InitialContent.ItemId = InitialItemId;
 	InitialContent.Quantity = 2;
 
 	const FGridObjectBehaviorParams Sparse = GridObjectInstanceBehavior::BuildSparseOverrides(Source);
@@ -155,7 +154,7 @@ bool FGridWorldObjectMIG06SparseStorageContractTest::RunTest(const FString& Para
 	TestEqual(TEXT("Receptacle initial content remains the sparse instance payload"), Sparse.Receptacle.InitialContent.Num(), 1);
 	if (Sparse.Receptacle.InitialContent.Num() == 1)
 	{
-		TestTrue(TEXT("Sparse initial content keeps its ItemId"), Sparse.Receptacle.InitialContent[0].ItemId == InitialItem->ItemDefinitionId);
+		TestTrue(TEXT("Sparse initial content keeps its ItemId"), Sparse.Receptacle.InitialContent[0].ItemId == InitialItemId);
 		TestEqual(TEXT("Sparse initial content keeps quantity"), Sparse.Receptacle.InitialContent[0].Quantity, 2);
 	}
 

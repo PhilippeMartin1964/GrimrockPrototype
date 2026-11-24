@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/GridLevelAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
@@ -16,8 +15,8 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	UGridLevelAsset* Level = NewObject<UGridLevelAsset>();
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-	ItemDefinition->ItemDefinitionId = TEXT("MIG07C_Item");
+	FName ItemId;
+	ItemId = TEXT("MIG07C_Item");
 
 	FGridWorldObjectInstance Door;
 	Door.InstanceId = FGuid::NewGuid();
@@ -34,7 +33,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemId = ItemDefinition->ItemDefinitionId;
+	Item.ItemId = ItemId;
 	Item.CellX = 4;
 	Item.CellY = 5;
 	Item.Tag = TEXT("ItemBefore");
@@ -90,7 +89,7 @@ bool FGridWorldObjectMIG07TypedLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Loose item typed-only offset survives direct snapshot edit"), Level->LooseItemInstances[0].LocalOffset.Equals(FVector(12.0f, -8.0f, 4.0f)));
 
 	FGridLooseItemInstance AddedItem;
-	AddedItem.ItemId = ItemDefinition->ItemDefinitionId;
+	AddedItem.ItemId = ItemId;
 	AddedItem.CellX = 10;
 	AddedItem.CellY = 11;
 	Level->LooseItemInstances.Add(AddedItem);

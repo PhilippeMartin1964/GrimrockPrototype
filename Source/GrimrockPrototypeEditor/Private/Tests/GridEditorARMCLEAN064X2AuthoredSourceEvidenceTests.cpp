@@ -7,7 +7,6 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
@@ -54,74 +53,27 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     int32 Palette = 0;
     TSet<FGuid> LoosePlacementGuids;
 
-    auto CheckSource = [&](FName CanonicalId, const UGridItemDefinitionAsset* Source,
-        int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
+    auto CheckSource = [&](FName CanonicalId,
+        int32 AuthoredLevel, int32 Quantity) -> bool
     {
-        // X.58: loose, palette and initial-content rows may be pointerless.
-        if (!IsValid(Source) && bAllowPointerless)
-        {
-            const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
-            if (CanonicalId.IsNone() || !Found || !IsValid(*Found) ||
-                Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
-            {
-                return false;
-            }
-            if (Cast<UGridArmamentDefinitionAsset>(*Found))
-            {
-                if (AuthoredLevel == 0) { return false; }
-                ++ArmReferences;
-            }
-            else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) && AuthoredLevel == 0)
-            {
-                ++NonArmN0;
-            }
-            else
-            {
-                return false;
-            }
-            ++Total;
-            return true;
-        }
-        if (!IsValid(Source) || CanonicalId.IsNone() ||
-            CanonicalId != Source->ItemDefinitionId ||
+        const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
+        if (CanonicalId.IsNone() || !Found || !IsValid(*Found) ||
             Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
         {
             return false;
         }
-        const UGridCanonicalItemDefinitionAsset* const* Found =
-            Registry.Find(CanonicalId);
-        if (!Found || !IsValid(*Found))
+        if (Cast<UGridArmamentDefinitionAsset>(*Found))
         {
-            return false;
-        }
-
-        if (!Source->WeaponArchetypeId.IsNone())
-        {
-            const UGridArmamentDefinitionAsset* Weapon =
-                Cast<UGridArmamentDefinitionAsset>(*Found);
-            if (!Weapon || Weapon->ArchetypeId != Source->WeaponArchetypeId)
-            {
-                return false;
-            }
-            // Authored N0 is an inheritance instruction, NOT an actual
-            // persisted ARM level. Never synthesize a default of N1.
-            const int32 EffectiveLevel = AuthoredLevel == 0
-                ? Source->DefaultWeaponItemLevel : AuthoredLevel;
-            if (EffectiveLevel < 1 || EffectiveLevel > 20)
-            {
-                return false;
-            }
+            if (AuthoredLevel == 0) { return false; }
             ++ArmReferences;
-            if (AuthoredLevel == 0) { ++InheritedArmN0; }
+        }
+        else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) && AuthoredLevel == 0)
+        {
+            ++NonArmN0;
         }
         else
         {
-            if (!Cast<UGridNonArmamentDefinitionAsset>(*Found) ||
-                AuthoredLevel != 0)
-            {
-                return false; // Non-ARM authoring really stays at N0.
-            }
-            ++NonArmN0;
+            return false;
         }
         ++Total;
         return true;
@@ -150,8 +102,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         {
             if (!Item.InstanceId.IsValid() ||
                 LoosePlacementGuids.Contains(Item.InstanceId) ||
-                !CheckSource(Item.ItemId, nullptr,
-                    Item.ItemLevel, Item.Quantity, true))
+                !CheckSource(Item.ItemId,
+                    Item.ItemLevel, Item.Quantity))
             {
                 AddError(TEXT("Invalid loose placement identity, GUID or authored level."));
                 return false;
@@ -162,8 +114,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!Item.SpawnId.IsValid() ||
-                !CheckSource(Item.ItemId, nullptr,
-                    Item.ItemLevel, Item.Quantity, true))
+                !CheckSource(Item.ItemId,
+                    Item.ItemLevel, Item.Quantity))
             {
                 AddError(TEXT("Invalid authored item spawn identity or level."));
                 return false;
@@ -175,8 +127,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Item :
                 Object.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!CheckSource(Item.ItemId, nullptr,
-                    Item.ItemLevel, Item.Quantity, true))
+                if (!CheckSource(Item.ItemId,
+                    Item.ItemLevel, Item.Quantity))
                 {
                     AddError(TEXT("Invalid receptacle initial item identity or level."));
                     return false;
@@ -198,8 +150,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         // X.5 materialized the physical palette default.
-        if (!CheckSource(Entry.ItemId, nullptr,
-            Entry.DefaultItemLevel, 1, true))
+        if (!CheckSource(Entry.ItemId,
+            Entry.DefaultItemLevel, 1))
         {
             AddError(TEXT("Invalid direct palette identity or inherited level."));
             return false;

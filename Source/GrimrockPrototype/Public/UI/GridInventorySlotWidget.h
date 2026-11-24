@@ -8,7 +8,6 @@
 #include "GridInventorySlotWidget.generated.h"
 
 class UTexture2D;
-class UGridItemDefinitionAsset;
 class UGridInventoryWidget;
 class UDragDropOperation;
 

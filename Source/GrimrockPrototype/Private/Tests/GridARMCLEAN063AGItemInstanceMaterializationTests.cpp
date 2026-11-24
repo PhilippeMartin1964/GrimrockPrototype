@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridItemInstanceMaterializationReadModel.h"
 #include "../Runtime/GridItemWeightReadModel.h"
@@ -29,18 +28,14 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         return false;
     }
 
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-    Old->DisplayName = FText::FromString(TEXT("WRONG OLD NAME"));
-    Old->Weight = 999.0f;
-    Old->bUseWeaponCatalogue = true;
-    Old->DefaultWeaponItemLevel = 6;
+    FName FixtureId;
     // Deliberately no old WeaponCatalogue: registered IDs must not need it.
     const FName Arms[] = {
         TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
         TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01") };
     for (const FName Id : Arms)
     {
-        Old->ItemDefinitionId = Id;
+        FixtureId = Id;
         for (const int32 Level : {1, 20})
         {
             FGridResolvedItem Canonical;
@@ -91,20 +86,17 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         Fresh.ItemLevel = 0;
         Fresh.Quantity = 1;
         const FGridItemInstance BeforeFresh = Fresh;
-        Old->bUseWeaponCatalogue = false;
         TestFalse(TEXT("Registered physical ARM N0 cannot inherit obsolete N6"),
             FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Fresh));
         TestEqual(TEXT("Refused level stays N0"), Fresh.ItemLevel, 0);
         TestTrue(TEXT("Refused durable fields remain unchanged"),
             FGridItemInstance::StaticStruct()->CompareScriptStruct(&Fresh, &BeforeFresh, 0));
-        Old->bUseWeaponCatalogue = true;
     }
 
-    Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-    Old->DefaultWeaponItemLevel = 0;
+    FixtureId = TEXT("Weapon_RoundShield_01");
     FGridItemInstance Bad;
     Bad.RuntimeObjectId = FGuid::NewGuid();
-    Bad.ItemDefinitionId = Old->ItemDefinitionId;
+    Bad.ItemDefinitionId = FixtureId;
     Bad.ItemLevel = 0;
     Bad.Quantity = 1;
     const FGridItemInstance Original = Bad;
@@ -113,17 +105,15 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestEqual(TEXT("Rejected level unchanged"), Bad.ItemLevel, Original.ItemLevel);
     TestTrue(TEXT("Rejected durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Bad, &Original, 0));
-    Old->DefaultWeaponItemLevel = 6;
     Bad.ItemLevel = 21;
     TestFalse(TEXT("N21 does not downgrade to legacy"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Bad));
     TestEqual(TEXT("Rejected N21 input unchanged"), Bad.ItemLevel, 21);
 
-    Old->ItemDefinitionId = TEXT("Item_Arrows_01");
-    Old->bUseWeaponCatalogue = true; // Intentionally wrong old flag.
+    FixtureId = TEXT("Item_Arrows_01");
     FGridItemInstance Ammo;
     Ammo.RuntimeObjectId = FGuid::NewGuid();
-    Ammo.ItemDefinitionId = Old->ItemDefinitionId;
+    Ammo.ItemDefinitionId = FixtureId;
     Ammo.ItemLevel = 0;
     Ammo.Quantity = 12;
     FGridResolvedItem CanonicalArrow;
@@ -139,14 +129,14 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestTrue(TEXT("Arrow unit mass canonical"), FMath::IsNearlyEqual(ArrowMeta.UnitWeightKg, CanonicalArrow.WeightKg));
 
     // A stale historical identity cannot veto the actual canonical item.
-    Old->ItemDefinitionId = TEXT("UnrelatedHistorical_AG");
+    FixtureId = TEXT("UnrelatedHistorical_AG");
     FGridItemInstance Contradictory = Ammo;
     TestTrue(TEXT("Canonical item resolves despite unrelated old pointer"),
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Contradictory));
     TestEqual(TEXT("Canonical identity remains unchanged"), Contradictory.ItemDefinitionId, Ammo.ItemDefinitionId);
     TestTrue(TEXT("Unrelated old definition cannot change durable state"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Contradictory, &Ammo, 0));
-    Old->ItemDefinitionId = Ammo.ItemDefinitionId;
+    FixtureId = Ammo.ItemDefinitionId;
 
     FGridItemInstance InvalidAmmo = Ammo;
     InvalidAmmo.ItemLevel = 1;
@@ -157,13 +147,10 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     TestTrue(TEXT("Refused ammo durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&InvalidAmmo, &BeforeInvalidAmmo, 0));
 
-    Old->ItemDefinitionId = TEXT("UnregisteredItem_AG");
-    Old->DisplayName = FText::FromString(TEXT("LEGACY ORIGINAL"));
-    Old->Weight = 1.75f;
-    Old->bUseWeaponCatalogue = false;
+    FixtureId = TEXT("UnregisteredItem_AG");
     FGridItemInstance Legacy;
     Legacy.RuntimeObjectId = FGuid::NewGuid();
-    Legacy.ItemDefinitionId = Old->ItemDefinitionId;
+    Legacy.ItemDefinitionId = FixtureId;
     Legacy.Quantity = 1;
     const FGridItemInstance BeforeUnknown = Legacy;
     TestFalse(TEXT("Configured registry cannot materialize an unknown historical ID"),

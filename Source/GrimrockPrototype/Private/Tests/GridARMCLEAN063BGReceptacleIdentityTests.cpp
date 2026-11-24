@@ -6,7 +6,6 @@
 #include "Engine/World.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridReceptacleItemMetadataReadModel.h"
@@ -71,14 +70,6 @@ namespace ARMCLEAN063BG
             return Receptacle->TryInsertItemInstanceFromCursor(Item, Accepted);
         }
 
-        UGridItemDefinitionAsset* Contradictory() const
-        {
-            UGridItemDefinitionAsset* Old =
-                NewObject<UGridItemDefinitionAsset>(Receptacle);
-            Old->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-            Old->Weight = 1000.0f;
-            return Old;
-        }
     };
 }
 
@@ -141,13 +132,12 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
     ARMCLEAN063BG::FFixture F;
     if (!TestTrue(TEXT("Production registry and real receptacle"), F.Ready()))
         return false;
-    UGridItemDefinitionAsset* Old = F.Contradictory();
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const auto Arrow = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, ArrowId, 0);
     TestTrue(TEXT("Registered arrow N0 ignores contradicting old definition"),
         Arrow.bRegisteredIdentity && Arrow.bResolved && Arrow.FixedItemLevel == 0 &&
-        Arrow.UnitWeightKg < Old->Weight);
+        Arrow.UnitWeightKg < 1000.f);
     const auto InvalidArrow = FGridReceptacleItemMetadataReadModel::Resolve(
         F.Registry, ArrowId, 1);
     TestFalse(TEXT("N1 ammunition remains invalid"), InvalidArrow.bResolved);

@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.generated.h"
 
-class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
 
 UENUM(BlueprintType)

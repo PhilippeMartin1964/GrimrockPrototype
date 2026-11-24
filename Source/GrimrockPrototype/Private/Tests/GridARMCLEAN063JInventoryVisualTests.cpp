@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/GridWeaponVisualUiResolver.h"
 #include "UObject/StrongObjectPtr.h"
@@ -35,12 +34,10 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01")
 	};
 	const int32 Levels[] = {1, 20};
-	TStrongObjectPtr<UGridItemDefinitionAsset> ConflictingLegacy(NewObject<UGridItemDefinitionAsset>());
-	ConflictingLegacy->Icon = TSoftObjectPtr<UTexture2D>(
-		FSoftObjectPath(TEXT("/Game/Tests/ARM063J/LegacyOnly.LegacyOnly")));
+	FName FixtureId;
 	for (const FName ItemId : IDs)
 	{
-		ConflictingLegacy->ItemDefinitionId = ItemId;
+		FixtureId = ItemId;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Canonical;
@@ -64,7 +61,7 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 			TestEqual(TEXT("Inventory tooltip visual identity uses canonical VisualId"),
 				Icon.VisualId, Canonical.VisualId);
 			TestTrue(TEXT("Canonical profile does not use the conflicting legacy icon"),
-				Icon.Icon.ToSoftObjectPath() != ConflictingLegacy->Icon.ToSoftObjectPath());
+				Icon.Icon.ToSoftObjectPath() != FSoftObjectPath(TEXT("/Game/Tests/ARM063J/LegacyOnly.LegacyOnly")));
 
 			Instance.ItemLevel = 0;
 			const FGridResolvedInventoryItemIcon Invalid =
@@ -78,9 +75,9 @@ bool FGridClean063JInventoryIconTest::RunTest(const FString&)
 
 	// H.68: once ItemSystem exists, an unknown ID cannot borrow old UI
 	// fields even if an obsolete asset pointer is still in memory.
-	ConflictingLegacy->ItemDefinitionId = TEXT("LegacyOther_063J");
+	FixtureId = TEXT("LegacyOther_063J");
 	FGridItemInstance LegacyInstance;
-	LegacyInstance.ItemDefinitionId = ConflictingLegacy->ItemDefinitionId;
+	LegacyInstance.ItemDefinitionId = FixtureId;
 	LegacyInstance.RuntimeObjectId = FGuid::NewGuid();
 	LegacyInstance.ItemLevel = 1;
 	LegacyInstance.Quantity = 1;

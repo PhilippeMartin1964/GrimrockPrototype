@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Engine/Texture2D.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorPaletteIcon01,
@@ -31,8 +31,8 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 	UGridWorldObjectDefinitionAsset* Door = NewObject<UGridWorldObjectDefinitionAsset>();
 	Door->DefinitionId = TEXT("Door_Icon01");
 	Door->SupportedType = EGridLevelObjectType::Door;
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-	Item->ItemDefinitionId = TEXT("Item_Icon01");
+	UGridNonArmamentDefinitionAsset* Item = NewObject<UGridNonArmamentDefinitionAsset>();
+	Item->ItemId = TEXT("Item_Icon01");
 	Item->Icon = ItemIcon;
 
 	FGridObjectPaletteEntry WorldEntry;
@@ -44,9 +44,9 @@ bool FGridEditorPaletteIcon01::RunTest(const FString& Parameters)
 	TestTrue(TEXT("World-object icon preserved"), WorldEntry.Icon.Get() == WorldIcon);
 
 	FGridObjectPaletteEntry DirectItemEntry;
-	DirectItemEntry.EntryId = Item->ItemDefinitionId;
+	DirectItemEntry.EntryId = Item->ItemId;
 	DirectItemEntry.PaletteCategory = TEXT("Items");
-	DirectItemEntry.ItemId = Item->ItemDefinitionId;
+	DirectItemEntry.ItemId = Item->ItemId;
 	DirectItemEntry.Icon = WorldIcon; // Simulate setting Icon before choosing the ItemDefinition.
 	TestFalse(TEXT("Duplicate icon is invalid before normalizing"), DirectItemEntry.IsValidEntry());
 	TestTrue(TEXT("Switch to direct item clears its stale palette icon"), DirectItemEntry.ClearRedundantIconForDirectItem());

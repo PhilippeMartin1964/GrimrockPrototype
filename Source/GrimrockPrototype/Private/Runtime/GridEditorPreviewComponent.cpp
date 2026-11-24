@@ -8,7 +8,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPlacementTransformResolver.h"
 #include "Runtime/Monsters/GridMonsterActor.h"

@@ -18,7 +18,6 @@
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"

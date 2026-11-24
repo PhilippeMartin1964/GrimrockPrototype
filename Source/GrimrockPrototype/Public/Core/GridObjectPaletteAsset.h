@@ -4,7 +4,6 @@
 #include "Engine/DataAsset.h"
 #include "GridWorldObjectDefinitionAsset.h"
 #include "GridTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridObjectPaletteAsset.generated.h"
 
 class UTexture2D;

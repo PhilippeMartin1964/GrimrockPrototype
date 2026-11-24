@@ -14,7 +14,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -101,16 +101,6 @@ namespace GridTD0737Characterization
 		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
 			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
-			return;
-		}
-
-		if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(&DataAsset))
-		{
-			if (!Item->HasValidCombatActions())
-			{
-				AddCandidate(Candidates, TEXT("ITEM.INVALID_COMBAT_ACTIONS"), AssetPath, TEXT("Equipment|CombatActions"),
-					TEXT("Item contains an invalid or duplicate CombatActions definition."));
-			}
 			return;
 		}
 

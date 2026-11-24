@@ -9,7 +9,6 @@
 #include "GridDungeonRuntimeState.generated.h"
 
 class UGridReadableContentAsset;
-class UGridItemDefinitionAsset;
 USTRUCT(BlueprintType)
 struct FGridRuntimeDoorState
 {

@@ -16,7 +16,6 @@
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"

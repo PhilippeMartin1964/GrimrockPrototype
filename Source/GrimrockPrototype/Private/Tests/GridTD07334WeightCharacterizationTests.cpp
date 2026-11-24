@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalWeightTestWorld.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace GridTD07334Characterization

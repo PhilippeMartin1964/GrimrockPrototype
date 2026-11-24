@@ -3,7 +3,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
@@ -55,20 +55,14 @@ bool FGridEditorARMCLEAN065D4ArmExtraStats::RunTest(const FString&)
     TSet<FString> OldPaths;
     for (const FAssetData& Asset : OldWeapons)
     {
-        if (Asset.AssetClassPath.GetAssetName() ==
-            UGridItemDefinitionAsset::StaticClass()->GetFName())
+        if (GridEditorRetirementAudit::IsRetiredItemPackage(Asset.PackageName))
             OldPaths.Add(Asset.GetSoftObjectPath().ToString());
     }
     int32 ManifestSourcesPresent = 0;
     for (const FGridWeaponPipelineRow& Row : Rows)
         ManifestSourcesPresent += OldPaths.Contains(Row.ItemPath) ? 1 : 0;
-    const bool bOldSourcesPresent = ManifestSourcesPresent == 22;
-    if (!TestTrue(TEXT("All 22 historical ARM sources or none; partial retirement refused"),
-        bOldSourcesPresent || ManifestSourcesPresent == 0))
-        return false;
+    if (!TestEqual(TEXT("No historical ARM source package remains"), ManifestSourcesPresent, 0)) return false;
 
-    const FGridEquipmentStatBonus NoExtra;
-    const FGridDamageResistanceSet NoResistance;
     TSet<FName> Ids;
     for (const FGridWeaponPipelineRow& Row : Rows)
     {
@@ -85,28 +79,6 @@ bool FGridEditorARMCLEAN065D4ArmExtraStats::RunTest(const FString&)
             N1.ItemId == ItemId && N20.ItemId == ItemId &&
             N1.ArchetypeId == FName(*Row.ArchetypeId) &&
             N20.ArchetypeId == N1.ArchetypeId);
-        if (!bOldSourcesPresent) continue;
-
-        const UGridItemDefinitionAsset* Old =
-            LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-        if (!TestNotNull(TEXT("Exact historical ARM for pre-retirement evidence"), Old))
-            return false;
-        if (!TestTrue(TEXT("Historical source path and identity exact"),
-            Old->ItemDefinitionId == ItemId && Old->GetPathName() == Row.ItemPath))
-            return false;
-        const bool bWasDirty = Old->GetOutermost()->IsDirty();
-        FGridEquipmentStatBonus Extras = Old->EquipmentStatBonus;
-        // N1 armor maxima already have their own canonical growth rules.
-        Extras.ArmorBonus = 0;
-        Extras.MagicalArmorBonus = 0;
-        TestTrue(FString(TEXT("No other ARM source bonus: ")) + Row.ArchetypeId,
-            FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(
-                &Extras, &NoExtra, 0));
-        TestTrue(FString(TEXT("No ARM source resistance loss: ")) + Row.ArchetypeId,
-            FGridDamageResistanceSet::StaticStruct()->CompareScriptStruct(
-                &Old->EquipmentResistanceBonus, &NoResistance, 0));
-        TestEqual(TEXT("Historical source remains read-only"),
-            Old->GetOutermost()->IsDirty(), bWasDirty);
     }
     TestEqual(TEXT("Every production ARM identity inspected"), Ids.Num(), 22);
     TestEqual(TEXT("Canonical ItemSystem remains read-only"),

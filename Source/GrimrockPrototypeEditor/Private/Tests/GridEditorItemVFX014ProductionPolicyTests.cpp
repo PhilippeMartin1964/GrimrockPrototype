@@ -5,7 +5,7 @@
 #include "UObject/StrongObjectPtr.h"
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 namespace GridItemVFX014Policy
@@ -75,9 +75,8 @@ bool FGridItemVFX014FlaskVisualPolicyTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UGridItemDefinitionAsset* CleanFlask = NewObject<UGridItemDefinitionAsset>();
-    CleanFlask->ItemDefinitionId = TEXT("VFX014_CleanFlask");
-    CleanFlask->ItemType = EGridItemType::Potion;
+    UGridNonArmamentDefinitionAsset* CleanFlask = NewObject<UGridNonArmamentDefinitionAsset>();
+    CleanFlask->ItemId = TEXT("VFX014_CleanFlask");
 
     TestTrue(TEXT("An empty flask VFX list is valid"), CleanFlask->VisualEffects.IsValid());
     TestFalse(TEXT("No sparkle is automatically added to a clean flask"),
@@ -129,7 +128,7 @@ bool FGridItemVFX014ProductionPolicyAuditTest::RunTest(const FString& Parameters
     }
 
     // Inspect all 48 identities from the root, including non-ARM N0 and
-    // ARM N1. No AssetRegistry walk of obsolete UGridItemDefinitionAsset.
+    // ARM N1. No AssetRegistry walk of obsolete UGridNonArmamentDefinitionAsset.
     TArray<FName> Ids;
     Source.Registry->GetItemIds(Ids);
     TestEqual(TEXT("All native production items are audited"), Ids.Num(), 48);

@@ -8,7 +8,6 @@
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGCharacterTypes.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "UI/RPGCharacterCreationWizardWidget.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UnrealType.h"

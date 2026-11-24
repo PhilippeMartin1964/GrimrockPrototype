@@ -15,7 +15,7 @@
 #include "Modules/ModuleManager.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridReceptacleTypes.h"
@@ -92,15 +92,6 @@ namespace GridTD0738StrictSchema
 		if (const UGridWorldObjectDefinitionAsset* Definition = Cast<UGridWorldObjectDefinitionAsset>(&DataAsset))
 		{
 			AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition->DefaultBehavior, Candidates);
-			return;
-		}
-
-		if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(&DataAsset))
-		{
-			if (!Item->HasValidCombatActions())
-			{
-				AddCandidate(Candidates, TEXT("ITEM.INVALID_COMBAT_ACTIONS"), AssetPath, TEXT("CombatActions"));
-			}
 			return;
 		}
 
@@ -213,7 +204,7 @@ bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("bPlaceOnEdge is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
 	TestNull(TEXT("bPlaceAtCellCenter is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
-	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
+	UClass* ItemClass = UGridCanonicalItemDefinitionAsset::StaticClass();
 	TestNull(TEXT("Legacy item bProvidesAttack is absent"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));
 	TestNull(TEXT("Legacy item-level OffensiveProfile is absent"), ItemClass->FindPropertyByName(TEXT("OffensiveProfile")));
 

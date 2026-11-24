@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemCategory.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridInventoryCategoryTags.h"
 

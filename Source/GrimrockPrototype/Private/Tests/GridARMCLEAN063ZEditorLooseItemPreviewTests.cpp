@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridEditorLooseItemPreviewReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -29,14 +28,12 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->bUseWeaponCatalogue = false; // Obsolete flag deliberately disagrees with real ARM.
-	Old->DefaultWeaponItemLevel = 3;
+	FName FixtureId;
 	const FName ArmIds[] = {TEXT("Weapon_ThrowingKnife_01"),
 		TEXT("Weapon_GreatAxe_01"), TEXT("Weapon_RoundShield_01")};
 	for (const FName ArmId : ArmIds)
 	{
-		Old->ItemDefinitionId = ArmId;
+		FixtureId = ArmId;
 		FGridLooseItemInstance Placement;
 		Placement.InstanceId = FGuid::NewGuid();
 		Placement.ItemId = ArmId;
@@ -70,15 +67,14 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		TestFalse(TEXT("Registered invalid level cannot use old world visual"), Invalid.bResolved);
 		TestTrue(TEXT("Invalid level has no mesh"), Invalid.WorldMesh.IsNull());
 	}
-	Old->bUseWeaponCatalogue = true; // Obsolete flag deliberately disagrees with ammo N0.
-	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
+	FixtureId = TEXT("Item_Arrows_01");
 	FGridLooseItemInstance Arrows;
 	Arrows.InstanceId = FGuid::NewGuid();
 	Arrows.ItemId = TEXT("Item_Arrows_01");
 	Arrows.ItemLevel = 0;
 	FGridResolvedItem ExpectedAmmo;
 	if (!TestTrue(TEXT("Production unlevelled arrows resolve at N0"),
-		Registry->ResolveItem(Old->ItemDefinitionId, 0, ExpectedAmmo))) return false;
+		Registry->ResolveItem(FixtureId, 0, ExpectedAmmo))) return false;
 	const FGridEditorLooseItemPreviewReadView Ammo =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);
 	TestTrue(TEXT("Arrow editor preview uses canonical registry"), Ammo.bRegisteredIdentity && Ammo.bResolved);
@@ -88,9 +84,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 		ExpectedAmmo.WorldMesh.ToSoftObjectPath().ToString());
 	// A known invalid inherited ARM default cannot be rescued by an old
 	// flag, by N1, or by a legacy mesh.
-	Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-	Old->DefaultWeaponItemLevel = 0;
-	Old->bUseWeaponCatalogue = false;
+	FixtureId = TEXT("Weapon_RoundShield_01");
 	FGridLooseItemInstance InvalidDefault;
 	InvalidDefault.InstanceId = FGuid::NewGuid();
 	InvalidDefault.ItemId = TEXT("Weapon_RoundShield_01");
@@ -100,9 +94,7 @@ bool FGridClean063ZEditorLooseItemPreview::RunTest(const FString&)
 	TestTrue(TEXT("Known invalid default classified canonical"), BadDefault.bRegisteredIdentity);
 	TestFalse(TEXT("Known ARM authored N0 without valid default fails"), BadDefault.bResolved);
 	TestTrue(TEXT("Invalid default cannot expose old mesh"), BadDefault.WorldMesh.IsNull());
-	Old->DefaultWeaponItemLevel = 3;
-	Old->bUseWeaponCatalogue = true;
-	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
+	FixtureId = TEXT("Item_Arrows_01");
 	Arrows.ItemLevel = 1;
 	const FGridEditorLooseItemPreviewReadView InvalidAmmo =
 		FGridEditorLooseItemPreviewReadModel::Resolve(Registry.Get(), Arrows);

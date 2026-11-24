@@ -1,50 +1,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
+#include <limits>
 
 namespace ARMEMENT0161
 {
-	FGridWeaponVisualProfile MakeProfile(FName Id, FName Family, bool bWorldMesh = true)
-	{
-		FGridWeaponVisualProfile Profile;
-		Profile.VisualId = Id;
-		Profile.FamilyTag = Family;
-		Profile.BaseIcon = TSoftObjectPtr<UTexture2D>(
-			FSoftObjectPath(TEXT("/Game/GrimrockPrototype/UI/Icons/Weapons/T_VisualPilot.T_VisualPilot")));
-		if (bWorldMesh)
-		{
-			Profile.WorldMesh = TSoftObjectPtr<UStaticMesh>(
-				FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Meshes/Weapons/SM_VisualPilot.SM_VisualPilot")));
-		}
-		return Profile;
-	}
-
-	FGridWeaponVisualArchetypeBinding MakeBinding(FName Archetype, FName Visual)
-	{
-		FGridWeaponVisualArchetypeBinding Binding;
-		Binding.ArchetypeId = Archetype;
-		Binding.VisualId = Visual;
-		return Binding;
-	}
-
-	UGridWeaponVisualCatalogueAsset* MakePilot()
-	{
-		UGridWeaponVisualCatalogueAsset* Catalogue = NewObject<UGridWeaponVisualCatalogueAsset>();
-		Catalogue->VisualProfiles.Add(MakeProfile(TEXT("VIS_Dagger_A"), TEXT("Light")));
-		Catalogue->VisualProfiles.Add(MakeProfile(TEXT("VIS_Bow_A"), TEXT("Ranged")));
-		Catalogue->VisualProfiles.Add(MakeProfile(TEXT("VIS_Shield_A"), TEXT("Shield")));
-		Catalogue->ArchetypeBindings.Add(MakeBinding(TEXT("ARM001"), TEXT("VIS_Dagger_A")));
-		Catalogue->ArchetypeBindings.Add(MakeBinding(TEXT("ARM002"), TEXT("VIS_Dagger_A")));
-		Catalogue->ArchetypeBindings.Add(MakeBinding(TEXT("ARM045"), TEXT("VIS_Bow_A")));
-		Catalogue->ArchetypeBindings.Add(MakeBinding(TEXT("ARM075"), TEXT("VIS_Shield_A")));
-		return Catalogue;
-	}
 	TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> MakeActivePilot()
 	{
 		TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> Catalogue(NewObject<UGridCanonicalWeaponVisualCatalogueAsset>());
@@ -142,33 +106,23 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161VisualProfileTest,
 bool FARMEMENT0161VisualProfileTest::RunTest(const FString&)
 {
 	using namespace ARMEMENT0161;
-	TestTrue(TEXT("Canonical first archetype"), UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(TEXT("ARM001")));
-	TestTrue(TEXT("Canonical last archetype"), UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(TEXT("ARM082")));
-	TestFalse(TEXT("ARM000 is invalid"), UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(TEXT("ARM000")));
-	TestFalse(TEXT("ARM083 is invalid"), UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(TEXT("ARM083")));
-	TestFalse(TEXT("Malformed identity rejected"), UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(TEXT("Archetype_1")));
+	TestTrue(TEXT("Canonical first archetype"), FGridWeaponArchetype::IsValidArchetypeId(TEXT("ARM001")));
+	TestTrue(TEXT("Canonical last archetype"), FGridWeaponArchetype::IsValidArchetypeId(TEXT("ARM082")));
+	TestFalse(TEXT("ARM000 is invalid"), FGridWeaponArchetype::IsValidArchetypeId(TEXT("ARM000")));
+	TestFalse(TEXT("ARM083 is invalid"), FGridWeaponArchetype::IsValidArchetypeId(TEXT("ARM083")));
+	TestFalse(TEXT("Malformed identity rejected"), FGridWeaponArchetype::IsValidArchetypeId(TEXT("Archetype_1")));
 
-	FGridWeaponVisualProfile Profile = MakeProfile(TEXT("VIS_Test"), TEXT("Light"), false);
-	TestTrue(TEXT("Icon-only profile is allowed"), Profile.IsValidProfile());
-	Profile.BaseIcon.Reset();
-	TestFalse(TEXT("Completely empty silhouette is rejected"), Profile.IsValidProfile());
-
-	Profile = MakeProfile(TEXT("VIS_Test"), TEXT("Light"));
-	Profile.BaseIcon.Reset();
-	TestTrue(TEXT("Mesh-only profile is allowed"), Profile.IsValidProfile());
-
-	Profile.OrnamentMesh = TSoftObjectPtr<UStaticMesh>(
-		FSoftObjectPath(TEXT("/Game/GrimrockPrototype/Meshes/Weapons/SM_Ornament.SM_Ornament")));
-	TestTrue(TEXT("Ornament with world mesh allowed"), Profile.IsValidProfile());
-	Profile.WorldMesh.Reset();
-	TestFalse(TEXT("Ornament with no base mesh rejected"), Profile.IsValidProfile());
-
-	Profile = MakeProfile(TEXT("VIS_Test"), TEXT("Light"));
-	Profile.WorldVisualTransform.SetScale3D(FVector::ZeroVector);
-	TestFalse(TEXT("Degenerate world transform rejected"), Profile.IsValidProfile());
-
-	Profile = MakeProfile(TEXT("VIS_Test"), NAME_None);
-	TestFalse(TEXT("Family group required for authoring"), Profile.IsValidProfile());
+    auto Catalogue = MakeActivePilot();
+    auto& Profile = Catalogue->VisualProfiles[0];
+    Profile.ProjectileAppearance.bEnabled = true;
+    TArray<FString> Errors;
+    TestFalse(TEXT("Enabled projectile appearance needs a mesh"), Catalogue->Validate(Errors));
+    Profile.ProjectileMesh = Profile.WorldMesh;
+    Errors.Reset();
+    TestTrue(TEXT("Complete projectile appearance is valid"), Catalogue->Validate(Errors));
+    Profile.ProjectileAppearance.TumbleDegreesPerSecond = std::numeric_limits<float>::infinity();
+    Errors.Reset();
+    TestFalse(TEXT("Nonfinite projectile spin rejected"), Catalogue->Validate(Errors));
 	return true;
 }
 
@@ -178,23 +132,14 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161ItemOptInTest,
 
 bool FARMEMENT0161ItemOptInTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>();
-	Item->ItemDefinitionId = TEXT("ARM0161_Prototype");
-	TestFalse(TEXT("All prior item definitions remain visual-Legacy by default"), Item->bUseWeaponVisualCatalogue);
-	TestTrue(TEXT("Legacy item without any visual catalogue stays valid"), Item->IsValidDefinition());
-
-	Item->bUseWeaponVisualCatalogue = true;
-	TestFalse(TEXT("Explicit visual opt-in requires an archetype and catalogue"), Item->IsValidDefinition());
-
-	Item->WeaponArchetypeId = TEXT("ARM001");
-	Item->WeaponVisualCatalogue = ARMEMENT0161::MakePilot();
-	TestTrue(TEXT("Visually linked item definition is structurally valid"), Item->IsValidDefinition());
-	TestFalse(TEXT("Visual opt-in does not auto-enable combat catalogue"), Item->bUseWeaponCatalogue);
-
-	Item->WeaponArchetypeId = TEXT("ARM099");
-	TestFalse(TEXT("Unknown weapon ID is rejected"), Item->IsValidDefinition());
-	Item->bUseWeaponVisualCatalogue = false;
-	TestTrue(TEXT("Disabling visual opt-in preserves Legacy validity"), Item->IsValidDefinition());
+    auto Catalogue = ARMEMENT0161::MakeActivePilot();
+    TestNotNull(TEXT("A valid archetype uses its bound presentation"), Catalogue->FindForArchetype(TEXT("ARM001")));
+    TestNull(TEXT("A valid but unbound archetype has no presentation"), Catalogue->FindForArchetype(TEXT("ARM003")));
+    TestNull(TEXT("An unknown archetype has no presentation"), Catalogue->FindForArchetype(TEXT("ARM099")));
+    Catalogue->ArchetypeBindings[0].VisualId = TEXT("VIS_Missing");
+    TestNull(TEXT("Missing visual profile does not fall back"), Catalogue->FindForArchetype(TEXT("ARM001")));
+    TArray<FString> Errors;
+    TestFalse(TEXT("A missing visual profile invalidates the catalogue"), Catalogue->Validate(Errors));
 	return true;
 }
 
@@ -204,7 +149,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161NoGameplayAuthorityTest,
 
 bool FARMEMENT0161NoGameplayAuthorityTest::RunTest(const FString&)
 {
-	UScriptStruct* ProfileType = FGridWeaponVisualProfile::StaticStruct();
+	UScriptStruct* ProfileType = FGridWeaponVisual::StaticStruct();
 	TestNotNull(TEXT("Visual profile is a reflected struct"), ProfileType);
 	if (!ProfileType) { return false; }
 
@@ -214,11 +159,7 @@ bool FARMEMENT0161NoGameplayAuthorityTest::RunTest(const FString&)
 	TestNull(TEXT("Visual profile has no forging authority"), ProfileType->FindPropertyByName(TEXT("ForgeRank")));
 	TestNull(TEXT("Visual profile has no material override"), ProfileType->FindPropertyByName(TEXT("MaterialOverride")));
 
-	const FProperty* OutputIcon = FGridResolvedWeaponVisual::StaticStruct()->FindPropertyByName(TEXT("Icon"));
-	TestNotNull(TEXT("Visual read model exposes an icon"), OutputIcon);
-	TestTrue(TEXT("Resolved visual icon is transient and never saved"),
-		OutputIcon && OutputIcon->HasAnyPropertyFlags(CPF_Transient));
-
+	TestNotNull(TEXT("Presentation owns the item icon"), ProfileType->FindPropertyByName(TEXT("ItemIcon")));
 	const FProperty* ItemLevel = FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("ItemLevel"));
 	TestNotNull(TEXT("Instance keeps ARMEMENT01.5's level field"), ItemLevel);
 	TestNull(TEXT("Instance does not persist presentation VisualId"),

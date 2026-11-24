@@ -1,10 +1,10 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "AssetRegistry/AssetRegistryModule.h"
+#include "../ARMEMENT/GridEditorRetirementAudit.h"
+#include "Misc/PackageName.h"
 
 #include "RPG/RPGAlchemistAuthoring.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
@@ -20,63 +20,6 @@ namespace UIRPGCONTENTTEXT021
 		OutItemIds = MoveTemp(B1ItemIds);
 		OutItemIds.Append(B2ItemIds);
 	}
-
-	void LogSerializedText(const UGridItemDefinitionAsset& Item)
-	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT("[UI-RPG-CONTENT-TEXT02.1][ITEM] ItemId=%s DisplayName=\"%s\" Description=\"%s\" ReadText=\"%s\" QuickActionId=%s QuickDisplayName=\"%s\" QuickDescription=\"%s\""),
-			*Item.ItemDefinitionId.ToString(),
-			*Item.DisplayName.ToString(),
-			*Item.Description.ToString(),
-			*Item.ReadText.ToString(),
-			*Item.QuickItemCombatAction.ActionId.ToString(),
-			*Item.QuickItemCombatAction.DisplayName.ToString(),
-			*Item.QuickItemCombatAction.Description.ToString());
-	}
-
-	void LogOverwrite(
-		FName ItemId,
-		const TCHAR* Field,
-		const FText& Before,
-		const FText& After)
-	{
-		UE_LOG(
-			LogTemp,
-			Display,
-			TEXT("[UI-RPG-CONTENT-TEXT02.1][TEXT-OVERWRITE] ItemId=%s Field=%s Before=\"%s\" After=\"%s\""),
-			*ItemId.ToString(),
-			Field,
-			*Before.ToString(),
-			*After.ToString());
-	}
-
-    // Inspect the complete historical alchemy batch in AssetRegistry before
-    // loading an individual package. Missing one source is not a successful
-    // retirement; all eleven must be intact or all must be gone.
-    int32 CountHistoricalAlchemySources()
-    {
-        IAssetRegistry& Assets = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(
-            TEXT("AssetRegistry")).Get();
-        Assets.SearchAllAssets(true);
-        TArray<FAssetData> Entries;
-        Assets.GetAssetsByPath(
-            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items")), Entries, false);
-        TSet<FString> OldPaths;
-        for (const FAssetData& Entry : Entries)
-        {
-            if (Entry.AssetClassPath.GetAssetName() ==
-                UGridItemDefinitionAsset::StaticClass()->GetFName())
-                OldPaths.Add(Entry.GetSoftObjectPath().ToString());
-        }
-        TArray<FName> Ids;
-        CollectProductionItemIds(Ids);
-        int32 Count = 0;
-        for (FName ItemId : Ids)
-            Count += OldPaths.Contains(FRPGAlchemistAuthoring::GetItemObjectPath(ItemId)) ? 1 : 0;
-        return Count;
-    }
 
     bool IsNativeAlchemyTextComplete()
     {
@@ -110,450 +53,61 @@ namespace UIRPGCONTENTTEXT021
 
 }
 
-/**
- * UI-RPG-CONTENT-TEXT02.1 is a characterization audit only.
- *
- * It never saves a package. The eleven production Alchemist DA_Item_* assets
- * are loaded as serialized text-authority candidates, while ConfigureItem()
- * runs only against transient duplicates.
- *
- * TEXT-OVERWRITE entries are informational: they identify any field reclaimed
- * or cleared by the Alchemist mechanical rematerializer.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUIRPGCONTENTTEXT021ItemTextOwnershipAuditTest,
-	"Grimrock.UI.RPG.CONTENTTEXT02.ItemOwnershipAudit",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPGCONTENTTEXT021ItemTextOwnershipAuditTest,
+    "Grimrock.UI.RPG.CONTENTTEXT02.ItemOwnershipAudit",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FUIRPGCONTENTTEXT021ItemTextOwnershipAuditTest::RunTest(const FString&)
 {
-	using namespace UIRPGCONTENTTEXT021;
-	const int32 Historical = CountHistoricalAlchemySources();
-	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
-		Historical == 11 || Historical == 0)) return false;
-	if (Historical == 0)
-	{
-		TestTrue(TEXT("Historical serialized text audit is retired; native text remains authored"), IsNativeAlchemyTextComplete());
-		return !HasAnyErrors();
-	}
-
-	TArray<FName> ItemIds;
-	CollectProductionItemIds(ItemIds);
-
-	TestEqual(TEXT("Alchemist production authoring targets exactly eleven QuickItems"), ItemIds.Num(), 11);
-
-	TSet<FName> UniqueItemIds;
-	for (const FName ItemId : ItemIds)
-	{
-		TestFalse(TEXT("Alchemist production ItemId is non-empty"), ItemId.IsNone());
-		TestFalse(
-			*FString::Printf(TEXT("%s ItemId appears only once"), *ItemId.ToString()),
-			UniqueItemIds.Contains(ItemId));
-		UniqueItemIds.Add(ItemId);
-	}
-
-	int32 LoadedItemCount = 0;
-	int32 SerializedDisplayNameCount = 0;
-	int32 SerializedDescriptionCount = 0;
-	int32 SerializedReadTextCount = 0;
-	int32 SerializedQuickDisplayNameCount = 0;
-	int32 SerializedQuickDescriptionCount = 0;
-
-	int32 ItemDisplayNameOverwriteCount = 0;
-	int32 ItemDescriptionOverwriteCount = 0;
-	int32 ItemReadTextOverwriteCount = 0;
-	int32 QuickDisplayNameOverwriteCount = 0;
-	int32 QuickDescriptionOverwriteCount = 0;
-
-	for (const FName ItemId : ItemIds)
-	{
-		const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-		UGridItemDefinitionAsset* Serialized =
-			LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath);
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s serialized DA_Item loads"), *ItemId.ToString()),
-				Serialized))
-		{
-			continue;
-		}
-
-		++LoadedItemCount;
-		TestEqual(
-			*FString::Printf(TEXT("%s keeps canonical ItemDefinitionId"), *ItemId.ToString()),
-			Serialized->ItemDefinitionId,
-			ItemId);
-		TestTrue(
-			*FString::Printf(TEXT("%s remains structurally valid"), *ItemId.ToString()),
-			Serialized->IsValidDefinition());
-		TestTrue(
-			*FString::Printf(TEXT("%s exposes a QuickItem action"), *ItemId.ToString()),
-			Serialized->bProvidesQuickItemCombatAction);
-
-		if (!Serialized->DisplayName.IsEmpty())
-		{
-			++SerializedDisplayNameCount;
-		}
-		else
-		{
-			UE_LOG(
-				LogTemp,
-				Warning,
-				TEXT("[UI-RPG-CONTENT-TEXT02.1][ITEM-DISPLAYNAME-EMPTY] ItemId=%s"),
-				*ItemId.ToString());
-		}
-
-		if (!Serialized->Description.IsEmpty())
-		{
-			++SerializedDescriptionCount;
-		}
-		else
-		{
-			UE_LOG(
-				LogTemp,
-				Display,
-				TEXT("[UI-RPG-CONTENT-TEXT02.1][ITEM-DESCRIPTION-EMPTY] ItemId=%s"),
-				*ItemId.ToString());
-		}
-
-		if (!Serialized->ReadText.IsEmpty())
-		{
-			++SerializedReadTextCount;
-		}
-		if (!Serialized->QuickItemCombatAction.DisplayName.IsEmpty())
-		{
-			++SerializedQuickDisplayNameCount;
-		}
-		if (!Serialized->QuickItemCombatAction.Description.IsEmpty())
-		{
-			++SerializedQuickDescriptionCount;
-		}
-
-		LogSerializedText(*Serialized);
-
-		UGridItemDefinitionAsset* Working =
-			DuplicateObject<UGridItemDefinitionAsset>(Serialized, GetTransientPackage());
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s transient audit duplicate is created"), *ItemId.ToString()),
-				Working))
-		{
-			continue;
-		}
-
-		const FText SentinelItemDisplayName = FText::FromString(
-			FString::Printf(TEXT("TEXT02.1 Item Name %s"), *ItemId.ToString()));
-		const FText SentinelItemDescription = FText::FromString(
-			FString::Printf(TEXT("TEXT02.1 Item Description %s"), *ItemId.ToString()));
-		const FText SentinelReadText = FText::FromString(
-			FString::Printf(TEXT("TEXT02.1 Read Text %s"), *ItemId.ToString()));
-		const FText SentinelQuickDisplayName = FText::FromString(
-			FString::Printf(TEXT("TEXT02.1 Quick Name %s"), *ItemId.ToString()));
-		const FText SentinelQuickDescription = FText::FromString(
-			FString::Printf(TEXT("TEXT02.1 Quick Description %s"), *ItemId.ToString()));
-
-		Working->DisplayName = SentinelItemDisplayName;
-		Working->Description = SentinelItemDescription;
-		Working->ReadText = SentinelReadText;
-		Working->QuickItemCombatAction.DisplayName = SentinelQuickDisplayName;
-		Working->QuickItemCombatAction.Description = SentinelQuickDescription;
-		Working->QuickItemCombatAction.ActionPointCost = 777;
-
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s current ConfigureItem rematerializes a transient duplicate"), *ItemId.ToString()),
-				FRPGAlchemistAuthoring::ConfigureItem(*Working, ItemId)))
-		{
-			continue;
-		}
-
-		TestTrue(
-			*FString::Printf(TEXT("%s QuickItem mechanics were actually rebuilt"), *ItemId.ToString()),
-			Working->QuickItemCombatAction.ActionPointCost != 777);
-
-		if (!SentinelItemDisplayName.EqualTo(Working->DisplayName))
-		{
-			++ItemDisplayNameOverwriteCount;
-			LogOverwrite(ItemId, TEXT("Item.DisplayName"), SentinelItemDisplayName, Working->DisplayName);
-		}
-		if (!SentinelItemDescription.EqualTo(Working->Description))
-		{
-			++ItemDescriptionOverwriteCount;
-			LogOverwrite(ItemId, TEXT("Item.Description"), SentinelItemDescription, Working->Description);
-		}
-		if (!SentinelReadText.EqualTo(Working->ReadText))
-		{
-			++ItemReadTextOverwriteCount;
-			LogOverwrite(ItemId, TEXT("Item.ReadText"), SentinelReadText, Working->ReadText);
-		}
-		if (!SentinelQuickDisplayName.EqualTo(Working->QuickItemCombatAction.DisplayName))
-		{
-			++QuickDisplayNameOverwriteCount;
-			LogOverwrite(
-				ItemId,
-				TEXT("QuickItemCombatAction.DisplayName"),
-				SentinelQuickDisplayName,
-				Working->QuickItemCombatAction.DisplayName);
-		}
-		if (!SentinelQuickDescription.EqualTo(Working->QuickItemCombatAction.Description))
-		{
-			++QuickDescriptionOverwriteCount;
-			LogOverwrite(
-				ItemId,
-				TEXT("QuickItemCombatAction.Description"),
-				SentinelQuickDescription,
-				Working->QuickItemCombatAction.Description);
-		}
-	}
-
-	TestEqual(TEXT("Audit loads all eleven production Alchemist DA_Item assets"), LoadedItemCount, 11);
-	TestEqual(TEXT("Every production Alchemist item has a serialized DisplayName"), SerializedDisplayNameCount, 11);
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT02.1][SUMMARY] LoadedItems=%d SerializedDisplayNames=%d SerializedDescriptions=%d SerializedReadTexts=%d SerializedQuickDisplayNames=%d SerializedQuickDescriptions=%d ItemDisplayNameOverwrites=%d ItemDescriptionOverwrites=%d ItemReadTextOverwrites=%d QuickDisplayNameOverwrites=%d QuickDescriptionOverwrites=%d"),
-		LoadedItemCount,
-		SerializedDisplayNameCount,
-		SerializedDescriptionCount,
-		SerializedReadTextCount,
-		SerializedQuickDisplayNameCount,
-		SerializedQuickDescriptionCount,
-		ItemDisplayNameOverwriteCount,
-		ItemDescriptionOverwriteCount,
-		ItemReadTextOverwriteCount,
-		QuickDisplayNameOverwriteCount,
-		QuickDescriptionOverwriteCount);
-
-	return true;
+    using namespace UIRPGCONTENTTEXT021;
+    TArray<FName> Ids;
+    CollectProductionItemIds(Ids);
+    TestEqual(TEXT("Eleven historical alchemy identities audited"), Ids.Num(), 11);
+    for (FName Id : Ids)
+    {
+        const FString Package = FPackageName::ObjectPathToPackageName(FRPGAlchemistAuthoring::GetItemObjectPath(Id));
+        TestTrue(TEXT("Exact alchemy source belongs to the retirement receipt"),
+            GridEditorRetirementAudit::IsRetiredItemPackage(FName(*Package)));
+        TestFalse(TEXT("Retired alchemy source package has not reappeared"),
+            FPackageName::DoesPackageExist(Package));
+    }
+    return !HasAnyErrors();
 }
 
-
-/**
- * UI-RPG-CONTENT-TEXT02.2 proves that ConfigureItem rematerializes Alchemist
- * QuickItem mechanics without taking text ownership back from an existing
- * DA_Item record. Empty serialized text is authoritative too; the sentinel
- * values here deliberately prove exact preservation of every text surface.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUIRPGCONTENTTEXT022ItemTextPreservationTest,
-	"Grimrock.UI.RPG.CONTENTTEXT02.Preservation",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPGCONTENTTEXT022ItemTextPreservationTest,
+    "Grimrock.UI.RPG.CONTENTTEXT02.Preservation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FUIRPGCONTENTTEXT022ItemTextPreservationTest::RunTest(const FString&)
 {
-	using namespace UIRPGCONTENTTEXT021;
-	const int32 Historical = CountHistoricalAlchemySources();
-	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
-		Historical == 11 || Historical == 0)) return false;
-	if (Historical == 0)
-	{
-		TestTrue(TEXT("Historical reauthoring fixture is retired; native text remains authored"), IsNativeAlchemyTextComplete());
-		return !HasAnyErrors();
-	}
-
-	TArray<FName> ItemIds;
-	CollectProductionItemIds(ItemIds);
-
-	int32 PreservedItemCount = 0;
-	for (const FName ItemId : ItemIds)
-	{
-		const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-		UGridItemDefinitionAsset* Serialized =
-			LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath);
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s serialized DA_Item loads for preservation test"), *ItemId.ToString()),
-				Serialized))
-		{
-			continue;
-		}
-
-		UGridItemDefinitionAsset* Working =
-			DuplicateObject<UGridItemDefinitionAsset>(Serialized, GetTransientPackage());
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s transient preservation duplicate is created"), *ItemId.ToString()),
-				Working))
-		{
-			continue;
-		}
-
-		const FString ItemName = FString::Printf(TEXT("TEXT02.2 Item Name %s"), *ItemId.ToString());
-		const FString ItemDescription = FString::Printf(TEXT("TEXT02.2 Item Description %s"), *ItemId.ToString());
-		const FString ReadText = FString::Printf(TEXT("TEXT02.2 Read Text %s"), *ItemId.ToString());
-		const FString QuickName = FString::Printf(TEXT("TEXT02.2 Quick Name %s"), *ItemId.ToString());
-		const FString QuickDescription = FString::Printf(TEXT("TEXT02.2 Quick Description %s"), *ItemId.ToString());
-
-		Working->DisplayName = FText::FromString(ItemName);
-		Working->Description = FText::FromString(ItemDescription);
-		Working->ReadText = FText::FromString(ReadText);
-		Working->QuickItemCombatAction.DisplayName = FText::FromString(QuickName);
-		Working->QuickItemCombatAction.Description = FText::FromString(QuickDescription);
-
-		Working->ItemType = EGridItemType::None;
-		Working->bProvidesQuickItemCombatAction = false;
-		Working->QuickItemActionIdOverride = TEXT("TEXT02_2_POISON_ACTION_ID");
-		Working->QuickItemCombatAction.ActionPointCost = 777;
-		Working->ItemTags = { TEXT("TEXT02_2_POISON_TAG") };
-
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s mechanics rematerialize with serialized text preservation"), *ItemId.ToString()),
-				FRPGAlchemistAuthoring::ConfigureItem(*Working, ItemId)))
-		{
-			continue;
-		}
-
-		TestEqual(
-			*FString::Printf(TEXT("%s preserves Item DisplayName"), *ItemId.ToString()),
-			Working->DisplayName.ToString(),
-			ItemName);
-		TestEqual(
-			*FString::Printf(TEXT("%s preserves Item Description"), *ItemId.ToString()),
-			Working->Description.ToString(),
-			ItemDescription);
-		TestEqual(
-			*FString::Printf(TEXT("%s preserves Item ReadText"), *ItemId.ToString()),
-			Working->ReadText.ToString(),
-			ReadText);
-		TestEqual(
-			*FString::Printf(TEXT("%s preserves QuickItem DisplayName"), *ItemId.ToString()),
-			Working->QuickItemCombatAction.DisplayName.ToString(),
-			QuickName);
-		TestEqual(
-			*FString::Printf(TEXT("%s preserves QuickItem Description"), *ItemId.ToString()),
-			Working->QuickItemCombatAction.Description.ToString(),
-			QuickDescription);
-
-		TestTrue(
-			*FString::Printf(TEXT("%s rematerializes ItemType"), *ItemId.ToString()),
-			Working->ItemType != EGridItemType::None);
-		TestTrue(
-			*FString::Printf(TEXT("%s reenables QuickItem combat action"), *ItemId.ToString()),
-			Working->bProvidesQuickItemCombatAction);
-		TestTrue(
-			*FString::Printf(TEXT("%s rematerializes QuickItem ActionId override"), *ItemId.ToString()),
-			Working->QuickItemActionIdOverride != TEXT("TEXT02_2_POISON_ACTION_ID"));
-		TestTrue(
-			*FString::Printf(TEXT("%s rematerializes QuickItem AP cost"), *ItemId.ToString()),
-			Working->QuickItemCombatAction.ActionPointCost != 777);
-		TestFalse(
-			*FString::Printf(TEXT("%s rematerializes ItemTags"), *ItemId.ToString()),
-			Working->ItemTags.Contains(TEXT("TEXT02_2_POISON_TAG")));
-		TestTrue(
-			*FString::Printf(TEXT("%s remains structurally valid after rematerialization"), *ItemId.ToString()),
-			Working->IsValidDefinition());
-
-		UGridItemDefinitionAsset* EmptyTextWorking =
-			DuplicateObject<UGridItemDefinitionAsset>(Serialized, GetTransientPackage());
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s empty-text preservation duplicate is created"), *ItemId.ToString()),
-				EmptyTextWorking))
-		{
-			continue;
-		}
-
-		EmptyTextWorking->DisplayName = FText::GetEmpty();
-		EmptyTextWorking->Description = FText::GetEmpty();
-		EmptyTextWorking->ReadText = FText::GetEmpty();
-		EmptyTextWorking->QuickItemCombatAction.DisplayName = FText::GetEmpty();
-		EmptyTextWorking->QuickItemCombatAction.Description = FText::GetEmpty();
-		EmptyTextWorking->QuickItemCombatAction.ActionPointCost = 777;
-
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s mechanics rematerialize while empty serialized text remains authoritative"), *ItemId.ToString()),
-				FRPGAlchemistAuthoring::ConfigureItem(*EmptyTextWorking, ItemId)))
-		{
-			continue;
-		}
-
-		TestTrue(*FString::Printf(TEXT("%s preserves empty Item DisplayName"), *ItemId.ToString()),
-			EmptyTextWorking->DisplayName.IsEmpty());
-		TestTrue(*FString::Printf(TEXT("%s preserves empty Item Description"), *ItemId.ToString()),
-			EmptyTextWorking->Description.IsEmpty());
-		TestTrue(*FString::Printf(TEXT("%s preserves empty Item ReadText"), *ItemId.ToString()),
-			EmptyTextWorking->ReadText.IsEmpty());
-		TestTrue(*FString::Printf(TEXT("%s preserves empty QuickItem DisplayName"), *ItemId.ToString()),
-			EmptyTextWorking->QuickItemCombatAction.DisplayName.IsEmpty());
-		TestTrue(*FString::Printf(TEXT("%s preserves empty QuickItem Description"), *ItemId.ToString()),
-			EmptyTextWorking->QuickItemCombatAction.Description.IsEmpty());
-		TestTrue(
-			*FString::Printf(TEXT("%s still rebuilds mechanics with empty serialized text"), *ItemId.ToString()),
-			EmptyTextWorking->QuickItemCombatAction.ActionPointCost != 777);
-
-		++PreservedItemCount;
-	}
-
-	TestEqual(TEXT("Preservation covers all eleven production Alchemist QuickItems"), PreservedItemCount, 11);
-
-	UE_LOG(
-		LogTemp,
-		Display,
-		TEXT("[UI-RPG-CONTENT-TEXT02.2][SUMMARY] PreservedItems=%d PreservedNonEmptyTextFields=%d PreservedEmptyTextFields=%d"),
-		PreservedItemCount,
-		PreservedItemCount * 5,
-		PreservedItemCount * 5);
-
-	return true;
+    using namespace UIRPGCONTENTTEXT021;
+    FGridCanonicalRegistryFixture Fixture;
+    const auto* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
+    if (!TestNotNull(TEXT("Configured item system"), Root) || !Fixture.bReady) return false;
+    TArray<FName> Ids;
+    CollectProductionItemIds(Ids);
+    for (FName Id : Ids)
+    {
+        const auto* Asset = Root->ItemDefinitions.FindByPredicate(
+            [Id](const auto& Definition) { return Definition && Definition->ItemId == Id; });
+        if (!TestNotNull(TEXT("Canonical item owns its text"), Asset)) continue;
+        const bool bWasDirty = (*Asset)->GetOutermost()->IsDirty();
+        FGridResolvedItem Native;
+        if (!TestTrue(TEXT("Read-only item resolves"), Fixture.Resolve(Id, 0, Native))) continue;
+        TestTrue(TEXT("Authored name is preserved"), Native.DisplayName.EqualTo((*Asset)->DisplayName));
+        TestTrue(TEXT("Authored description is preserved"), Native.Description.EqualTo((*Asset)->Description));
+        TestEqual(TEXT("Read model leaves the source package unchanged"), (*Asset)->GetOutermost()->IsDirty(), bWasDirty);
+    }
+    return !HasAnyErrors();
 }
 
-
-/**
- * UI-RPG-CONTENT-TEXT02.3 keeps Alchemist C++ as a mechanics/bootstrap producer
- * only. Fresh DA_Item records have no serialized text to preserve, so item and
- * QuickItem action text must be deterministic technical markers, never
- * player-facing prose.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUIRPGCONTENTTEXT023BootstrapOnlyTest,
-	"Grimrock.UI.RPG.CONTENTTEXT02.BootstrapOnly",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPGCONTENTTEXT023BootstrapOnlyTest,
+    "Grimrock.UI.RPG.CONTENTTEXT02.BootstrapOnly",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FUIRPGCONTENTTEXT023BootstrapOnlyTest::RunTest(const FString&)
 {
-	using namespace UIRPGCONTENTTEXT021;
-
-	TArray<FName> ItemIds;
-	CollectProductionItemIds(ItemIds);
-
-	int32 BootstrapItemCount = 0;
-	for (const FName ItemId : ItemIds)
-	{
-		UGridItemDefinitionAsset* Fresh = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s fresh QuickItem mechanics can be authored"), *ItemId.ToString()),
-				FRPGAlchemistAuthoring::ConfigureItem(*Fresh, ItemId)))
-		{
-			continue;
-		}
-
-		const FString StableItemId = ItemId.ToString();
-		TestEqual(
-			*FString::Printf(TEXT("%s bootstrap item name is its stable id"), *StableItemId),
-			Fresh->DisplayName.ToString(),
-			StableItemId);
-		TestEqual(
-			*FString::Printf(TEXT("%s bootstrap item description is technical only"), *StableItemId),
-			Fresh->Description.ToString(),
-			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableItemId));
-
-		const FName ActionId = Fresh->QuickItemCombatAction.ActionId;
-		TestFalse(
-			*FString::Printf(TEXT("%s fresh item exposes a stable QuickItem ActionId"), *StableItemId),
-			ActionId.IsNone());
-		const FString StableActionId = ActionId.ToString();
-		TestEqual(
-			*FString::Printf(TEXT("%s bootstrap QuickItem action name is its stable id"), *StableItemId),
-			Fresh->QuickItemCombatAction.DisplayName.ToString(),
-			StableActionId);
-		TestEqual(
-			*FString::Printf(TEXT("%s bootstrap QuickItem action description is technical only"), *StableItemId),
-			Fresh->QuickItemCombatAction.Description.ToString(),
-			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableActionId));
-		TestTrue(
-			*FString::Printf(TEXT("%s fresh bootstrap remains structurally valid"), *StableItemId),
-			Fresh->IsValidDefinition());
-
-		++BootstrapItemCount;
-	}
-
-	TestEqual(TEXT("Bootstrap-only audit covers all eleven Alchemist QuickItems"), BootstrapItemCount, 11);
-
 	for (const EGridCombatSurfaceType Output : {
 		EGridCombatSurfaceType::Fire,
 		EGridCombatSurfaceType::Ice,
@@ -579,133 +133,21 @@ bool FUIRPGCONTENTTEXT023BootstrapOnlyTest::RunTest(const FString&)
 			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *StableActionId));
 	}
 
-	return true;
+    return !HasAnyErrors();
 }
 
-
-/**
- * UI-RPG-CONTENT-TEXT02.4 closes item text ownership at the runtime boundary.
- *
- * BuildQuickItemCombatActionDefinition must never synthesize player-facing
- * prose. An explicitly authored action presentation wins; otherwise the
- * containing DA_Item_* record supplies the fallback. Both are serialized data
- * from the same authority.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest,
-	"Grimrock.UI.RPG.CONTENTTEXT02.FinalAudit",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest,
+    "Grimrock.UI.RPG.CONTENTTEXT02.FinalAudit",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FUIRPGCONTENTTEXT024FinalItemOwnershipAuditTest::RunTest(const FString&)
 {
-	using namespace UIRPGCONTENTTEXT021;
-	const int32 Historical = CountHistoricalAlchemySources();
-	if (!TestTrue(TEXT("No partially retired Alchemist source batch"),
-		Historical == 11 || Historical == 0)) return false;
-	if (Historical == 0)
-	{
-		TestTrue(TEXT("Historical text fallback probe is retired; native text remains authored"), IsNativeAlchemyTextComplete());
-		return !HasAnyErrors();
-	}
-
-	TArray<FName> ItemIds;
-	CollectProductionItemIds(ItemIds);
-
-	int32 AuditedItemCount = 0;
-	for (const FName ItemId : ItemIds)
-	{
-		const FString ObjectPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-		UGridItemDefinitionAsset* Serialized =
-			LoadObject<UGridItemDefinitionAsset>(nullptr, *ObjectPath);
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s serialized DA_Item loads for final audit"), *ItemId.ToString()),
-				Serialized))
-		{
-			continue;
-		}
-
-		const FString TechnicalItemMarker =
-			FString::Printf(TEXT("AUTHOR_TEXT_REQUIRED:%s"), *ItemId.ToString());
-		TestFalse(
-			*FString::Printf(TEXT("%s production item DisplayName is not a technical bootstrap marker"), *ItemId.ToString()),
-			Serialized->DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
-		TestFalse(
-			*FString::Printf(TEXT("%s production item Description is not a technical bootstrap marker"), *ItemId.ToString()),
-			Serialized->Description.ToString() == TechnicalItemMarker);
-
-		UGridItemDefinitionAsset* FallbackProbe =
-			DuplicateObject<UGridItemDefinitionAsset>(Serialized, GetTransientPackage());
-		if (!TestNotNull(
-				*FString::Printf(TEXT("%s fallback probe is created"), *ItemId.ToString()),
-				FallbackProbe))
-		{
-			continue;
-		}
-
-		const FString ItemName =
-			FString::Printf(TEXT("TEXT02.4 Item Name %s"), *ItemId.ToString());
-		const FString ItemDescription =
-			FString::Printf(TEXT("TEXT02.4 Item Description %s"), *ItemId.ToString());
-		FallbackProbe->DisplayName = FText::FromString(ItemName);
-		FallbackProbe->Description = FText::FromString(ItemDescription);
-		FallbackProbe->QuickItemCombatAction.DisplayName = FText::GetEmpty();
-		FallbackProbe->QuickItemCombatAction.Description = FText::GetEmpty();
-
-		FGridCombatActionDefinition Built;
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s runtime QuickItem definition builds for fallback audit"), *ItemId.ToString()),
-				FallbackProbe->BuildQuickItemCombatActionDefinition(Built)))
-		{
-			continue;
-		}
-
-		TestEqual(
-			*FString::Printf(TEXT("%s empty action DisplayName falls back to serialized item DisplayName"), *ItemId.ToString()),
-			Built.DisplayName.ToString(),
-			ItemName);
-		TestEqual(
-			*FString::Printf(TEXT("%s empty action Description falls back to serialized item Description"), *ItemId.ToString()),
-			Built.Description.ToString(),
-			ItemDescription);
-
-		const FString ActionName =
-			FString::Printf(TEXT("TEXT02.4 Action Name %s"), *ItemId.ToString());
-		const FString ActionDescription =
-			FString::Printf(TEXT("TEXT02.4 Action Description %s"), *ItemId.ToString());
-		FallbackProbe->QuickItemCombatAction.DisplayName = FText::FromString(ActionName);
-		FallbackProbe->QuickItemCombatAction.Description = FText::FromString(ActionDescription);
-
-		if (!TestTrue(
-				*FString::Printf(TEXT("%s runtime QuickItem definition rebuilds with authored action presentation"), *ItemId.ToString()),
-				FallbackProbe->BuildQuickItemCombatActionDefinition(Built)))
-		{
-			continue;
-		}
-
-		TestEqual(
-			*FString::Printf(TEXT("%s authored action DisplayName wins over item fallback"), *ItemId.ToString()),
-			Built.DisplayName.ToString(),
-			ActionName);
-		TestEqual(
-			*FString::Printf(TEXT("%s authored action Description wins over item fallback"), *ItemId.ToString()),
-			Built.Description.ToString(),
-			ActionDescription);
-
-		++AuditedItemCount;
-	}
-
-	TestEqual(TEXT("Final ownership audit covers all eleven Alchemist QuickItems"), AuditedItemCount, 11);
-	return true;
+    using namespace UIRPGCONTENTTEXT021;
+    TestTrue(TEXT("Production alchemy resolves authored non-placeholder item and action text"), IsNativeAlchemyTextComplete());
+    return !HasAnyErrors();
 }
 
-/**
- * ARM-CLEAN06.5: before retiring serialized DA_Item_* packages, preserve
- * independent evidence that the eleven item text surfaces survived in the
- * native registered ItemSystem. Neither source nor destination is modified.
- * Detailed action text uses its own canonical action authority.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-    FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest,
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest,
     "Grimrock.UI.RPG.CONTENTTEXT02.CanonicalTextRetirementParity",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -713,78 +155,27 @@ bool FUIRPGCONTENTTEXT025CanonicalTextRetirementParityTest::RunTest(const FStrin
 {
     using namespace UIRPGCONTENTTEXT021;
     FGridCanonicalRegistryFixture Fixture;
-    if (!TestTrue(TEXT("Configured native ItemSystem is registered"), Fixture.bReady))
-        return false;
-    UGridItemSystemAsset* Root =
-        GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
-    if (!TestNotNull(TEXT("Installed native ItemSystem root"), Root))
-        return false;
-    const bool bRootDirty = Root->GetOutermost()->IsDirty();
-
-    TArray<FName> ItemIds;
-    CollectProductionItemIds(ItemIds);
-    if (!TestEqual(TEXT("Exactly eleven Alchemist item source identities"), ItemIds.Num(), 11))
-        return false;
-
-    const int32 Historical = CountHistoricalAlchemySources();
-    if (!TestTrue(TEXT("Alchemist legacy batch is all eleven or fully retired"),
-        Historical == 0 || Historical == 11))
-        return false;
-    TestTrue(TEXT("All eleven native Alchemist item/action presentations stay authored"),
-        IsNativeAlchemyTextComplete());
-    int32 Matched = 0;
-    for (const FName ItemId : ItemIds)
+    if (!TestTrue(TEXT("Configured native ItemSystem is registered"), Fixture.bReady)) return false;
+    TArray<FName> Ids;
+    CollectProductionItemIds(Ids);
+    TSet<FName> ActionIds;
+    for (FName Id : Ids)
     {
-        const FString OldPath = FRPGAlchemistAuthoring::GetItemObjectPath(ItemId);
-        const UGridItemDefinitionAsset* Old = Historical == 11
-            ? LoadObject<UGridItemDefinitionAsset>(nullptr, *OldPath) : nullptr;
-        if (Historical == 11 &&
-            !TestNotNull(TEXT("Historical authored text source before retirement"), Old))
-            continue;
-        const bool bOldDirty = Old && Old->GetOutermost()->IsDirty();
         FGridResolvedItem Native;
-        if (!TestTrue(TEXT("Canonical N0 Alchemist item resolves"),
-            Fixture.Resolve(ItemId, 0, Native)))
-            continue;
-        TestFalse(TEXT("Alchemist text is attached to a non-ARM item"), Native.bIsArmament);
-        const bool bSameItemText = !Old || (
-            Native.DisplayName.ToString() == Old->DisplayName.ToString() &&
-            Native.Description.ToString() == Old->Description.ToString() &&
-            Native.ReadText.ToString() == Old->ReadText.ToString());
-        TestTrue(*FString::Printf(
-            TEXT("%s preserves authored item name, description and reading text"),
-            *ItemId.ToString()), bSameItemText);
-        TestFalse(TEXT("Native DisplayName is not empty"), Native.DisplayName.IsEmpty());
-        TestFalse(TEXT("Native DisplayName is not an authoring placeholder"),
-            Native.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
-        TestFalse(TEXT("Native Description is not an authoring placeholder"),
-            Native.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
-
+        if (!TestTrue(TEXT("Canonical N0 Alchemist item resolves"), Fixture.Resolve(Id, 0, Native)) ||
+            !TestEqual(TEXT("Exactly one authored action is bound"), Native.AvailableActions.Num(), 1)) continue;
+        const FName ActionId = Native.AvailableActions[0].ActionId;
+        TestFalse(TEXT("Another alchemy item cannot own the same action"), ActionIds.Contains(ActionId));
+        ActionIds.Add(ActionId);
         FGridCombatActionDefinition Action;
-        const bool bOneNativeAction = Native.AvailableActions.Num() == 1 &&
-            Fixture.Registry->ResolveDetailedNonArmAction(
-                ItemId, 0, Native.AvailableActions[0].ActionId, Action);
-        if (TestTrue(TEXT("A single native detailed QuickItem action is resolved"),
-            bOneNativeAction))
-        {
-            TestEqual(TEXT("Detailed native action retains the bound action identity"),
-                Action.ActionId, Native.AvailableActions[0].ActionId);
-            TestFalse(TEXT("Detailed action name is not an authoring placeholder"),
-                Action.DisplayName.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
-            TestFalse(TEXT("Detailed action description is not an authoring placeholder"),
-                Action.Description.ToString().StartsWith(TEXT("AUTHOR_TEXT_REQUIRED:")));
-        }
-        if (Old)
-            TestEqual(TEXT("Historical item not modified by parity"),
-                Old->GetOutermost()->IsDirty(), bOldDirty);
-        if (bSameItemText && bOneNativeAction) ++Matched;
+        if (!TestTrue(TEXT("The action resolves from its actual owner"),
+            Fixture.Registry->ResolveDetailedNonArmAction(Id, 0, ActionId, Action))) continue;
+        TestEqual(TEXT("Detailed action keeps the bound identity"), Action.ActionId, ActionId);
+        TestEqual(TEXT("Detailed action is owned by QuickItem"), Action.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+        TestEqual(TEXT("One source item consumed"), Action.ResourceCosts.SourceItemQuantityCost, 1);
     }
-    TestEqual(TEXT("Eleven Alchemist native texts complete and source-parity when present"),
-        Matched, 11);
-    TestEqual(TEXT("Installed ItemSystem was not modified by parity"),
-        Root->GetOutermost()->IsDirty(), bRootDirty);
+    TestEqual(TEXT("Eleven unique authored actions"), ActionIds.Num(), 11);
     return !HasAnyErrors();
 }
-
 
 #endif

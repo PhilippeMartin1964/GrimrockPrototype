@@ -4,7 +4,7 @@
 #include "RPG/RPGAlchemistAuthoring.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
 
@@ -20,10 +20,12 @@ namespace RPG0396B1
 		return Asset;
 	}
 
-	UGridItemDefinitionAsset* BuildItem(FName Id)
+	bool ReadAction(FName Id, FGridCombatActionDefinition& Out)
 	{
-		UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-		return FRPGAlchemistAuthoring::ConfigureItem(*Item, Id) ? Item : nullptr;
+		FGridCanonicalRegistryFixture Fixture;
+		FGridResolvedItem Item;
+		return Fixture.bReady && Fixture.Resolve(Id, 0, Item) && Item.AvailableActions.Num() == 1 &&
+			Fixture.Registry->ResolveDetailedNonArmAction(Id, 0, Item.AvailableActions[0].ActionId, Out);
 	}
 
 	const FRPGClassProgressionChoiceDefinition* Choice(const URPGClassAsset* Asset, FName Id)
@@ -77,14 +79,9 @@ bool FRPG0396B1ItemIdentityTest::RunTest(const FString&)
 	TestEqual(TEXT("B1 defines eight concrete QuickItems"), Ids.Num(), 8);
 	for (const FName Id : Ids)
 	{
-		UGridItemDefinitionAsset* Item = RPG0396B1::BuildItem(Id);
-		if (!TestNotNull(*FString::Printf(TEXT("%s configures"), *Id.ToString()), Item))
-		{
-			continue;
-		}
 		FGridCombatActionDefinition Built;
-		TestTrue(*FString::Printf(TEXT("%s builds QuickItem action"), *Id.ToString()), Item->BuildQuickItemCombatActionDefinition(Built));
-		TestEqual(TEXT("Built action preserves explicit canonical ActionId"), Built.ActionId, Item->QuickItemActionIdOverride);
+		if (!TestTrue(*FString::Printf(TEXT("%s has a bound QuickItem action"), *Id.ToString()), RPG0396B1::ReadAction(Id, Built))) continue;
+		TestFalse(TEXT("Action identity is explicit"), Built.ActionId.IsNone());
 		TestEqual(TEXT("Built action uses QuickItem source"), Built.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
 		TestEqual(TEXT("Built action consumes exactly one item"), Built.ResourceCosts.SourceItemQuantityCost, 1);
 	}
@@ -98,9 +95,8 @@ bool FRPG0396B1BombsTest::RunTest(const FString&)
 {
 	for (const FName Id : { FName(TEXT("Item_Bomb_Fire")), FName(TEXT("Item_Bomb_Toxic")) })
 	{
-		UGridItemDefinitionAsset* Item = RPG0396B1::BuildItem(Id);
 		FGridCombatActionDefinition A;
-		if (!TestTrue(*FString::Printf(TEXT("%s builds"), *Id.ToString()), Item && Item->BuildQuickItemCombatActionDefinition(A)))
+		if (!TestTrue(*FString::Printf(TEXT("%s builds"), *Id.ToString()), RPG0396B1::ReadAction(Id, A)))
 		{
 			continue;
 		}
@@ -166,11 +162,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396B1ApothecaryItemsTest, "Grimrock.RPG.RP
 
 bool FRPG0396B1ApothecaryItemsTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Antidote = RPG0396B1::BuildItem(TEXT("Item_Antidote"));
-	UGridItemDefinitionAsset* Panacea = RPG0396B1::BuildItem(TEXT("Item_Panacea"));
 	FGridCombatActionDefinition A, P;
-	TestTrue(TEXT("Antidote builds"), Antidote && Antidote->BuildQuickItemCombatActionDefinition(A));
-	TestTrue(TEXT("Panacea builds"), Panacea && Panacea->BuildQuickItemCombatActionDefinition(P));
+	TestTrue(TEXT("Antidote builds"), RPG0396B1::ReadAction(TEXT("Item_Antidote"), A));
+	TestTrue(TEXT("Panacea builds"), RPG0396B1::ReadAction(TEXT("Item_Panacea"), P));
 	TestTrue(TEXT("Antidote is Ally R1 AP1 with Poison + Toxin removal"), A.TargetingPolicy == EGridCombatTargetingPolicy::Ally &&
 		A.RangeCells == 1 && A.ActionPointCost == 1 && A.StatusRemovals.Num() == 2);
 	TestTrue(TEXT("Panacea is Ally R1 AP2 CD3, 10 + 2xAlchemy, +8 MagicalArmor, 3 removals"), P.TargetingPolicy == EGridCombatTargetingPolicy::Ally &&

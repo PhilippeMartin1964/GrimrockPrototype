@@ -8,7 +8,7 @@
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemActor.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 
 namespace GridItemVFX011Tests
@@ -67,9 +67,9 @@ bool FGridItemVFX011ConfigurationTest::RunTest(const FString& Parameters)
 {
     (void)Parameters;
 
-    UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-    Definition->ItemDefinitionId = TEXT("VFX011_VisualOnlyPotion");
-    TestFalse(TEXT("A visual-only item has no light emitter"), Definition->HasLightEmitter());
+    UGridNonArmamentDefinitionAsset* Definition = NewObject<UGridNonArmamentDefinitionAsset>();
+    Definition->ItemId = TEXT("VFX011_VisualOnlyPotion");
+    TestFalse(TEXT("A visual-only item has no light emitter"), Definition->LightEmitter.HasEmitter());
     TestTrue(TEXT("Empty visual effect configuration is valid"), Definition->VisualEffects.IsValid());
 
     UNiagaraSystem* System = GridItemVFX011Tests::LoadProductionNiagara();
@@ -84,11 +84,11 @@ bool FGridItemVFX011ConfigurationTest::RunTest(const FString& Parameters)
     Effect.RelativeTransform = FTransform(FRotator(0.f, 12.f, 0.f), FVector(2.f, -3.f, 7.f));
     Definition->VisualEffects.Effects.Add(Effect);
 
-    TestTrue(TEXT("A Niagara-only definition is valid"), Definition->IsValidDefinition());
-    TestFalse(TEXT("Visual effects do not implicitly provide light"), Definition->HasLightEmitter());
+    TestTrue(TEXT("A Niagara-only definition is valid"), Definition->VisualEffects.IsValid());
+    TestFalse(TEXT("Visual effects do not implicitly provide light"), Definition->LightEmitter.HasEmitter());
 
     Definition->VisualEffects.Effects.Add(FGridItemNiagaraEffectConfig());
-    TestFalse(TEXT("An absent Niagara asset invalidates the definition"), Definition->IsValidDefinition());
+    TestFalse(TEXT("An absent Niagara asset invalidates the definition"), Definition->VisualEffects.IsValid());
     Definition->VisualEffects.Effects.Pop();
 
     Definition->VisualEffects.Effects.Add(Effect);

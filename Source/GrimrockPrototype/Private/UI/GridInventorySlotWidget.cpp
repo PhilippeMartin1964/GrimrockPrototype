@@ -3,7 +3,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemCategory.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"

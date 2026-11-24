@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "GridEditorCanonicalStarterTestWorld.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172CatalystContract,
 	"Grimrock.RPG.ARMEMENT01.17.2.CatalystDefinition",

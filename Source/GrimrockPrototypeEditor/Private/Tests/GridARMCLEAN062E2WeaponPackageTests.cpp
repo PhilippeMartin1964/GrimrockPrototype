@@ -2,7 +2,7 @@
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
@@ -41,8 +41,7 @@ bool FGridClean062E2WeaponPackageRegistryTest::RunTest(const FString&)
     int32 HistoricalDefinitions = 0;
     for (const FAssetData& Asset : AllAssets)
     {
-        if (Asset.AssetClassPath.GetAssetName() ==
-            UGridItemDefinitionAsset::StaticClass()->GetFName())
+        if (GridEditorRetirementAudit::IsRetiredItemPackage(Asset.PackageName))
             ++HistoricalDefinitions;
     }
     const bool bIntact = HistoricalDefinitions == 48;
@@ -87,10 +86,10 @@ bool FGridClean062E2WeaponPackageRegistryTest::RunTest(const FString&)
         Seen.Add(Asset.PackageName);
 
         const FName Class = Asset.AssetClassPath.GetAssetName();
-        if (Class == UGridItemDefinitionAsset::StaticClass()->GetFName())
+        if (GridEditorRetirementAudit::IsRetiredItemPackage(Asset.PackageName))
         {
             ++OldWeaponDefinitions;
-            if (!IsValid(Asset.GetAsset())) ++Unloadable;
+            ++Unloadable; // Retired packages are rejected without loading old schemas.
         }
         else if (Class == FName(TEXT("ObjectRedirector")) &&
             Package == ThrowingKnifeRedirector)

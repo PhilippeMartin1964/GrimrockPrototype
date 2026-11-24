@@ -8,8 +8,7 @@
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "GridCanonicalLootTestScope.h"
+#include "../Runtime/GridPhysicalThrowStrengthReadModel.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -143,31 +142,6 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* StoneDefinition = NewObject<UGridItemDefinitionAsset>();
-	StoneDefinition->ItemDefinitionId = TEXT("Stone_TD027");
-	StoneDefinition->DisplayName = FText::FromString(TEXT("Pierre"));
-	StoneDefinition->Weight = 1.0f;
-	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
-	StoneDefinition->ThrowVisualMode = EGridThrowVisualMode::Tumble;
-
-	TestEqual(TEXT("A stone is explicitly one-handed"), StoneDefinition->GetEffectiveHandUsage(), EGridItemHandUsage::OneHanded);
-	TestEqual(TEXT("Strength 10 can throw up to 2.5 kg"), StoneDefinition->GetMaxThrowableWeightForStrength(10), 2.5f);
-	TestTrue(TEXT("Strength 10 can throw a 1 kg stone"), StoneDefinition->CanBeThrownByStrength(10));
-	const float Strength10Scale = StoneDefinition->GetThrowSpeedScaleForStrength(10);
-	TestTrue(TEXT("An allowed stone receives a positive throw speed scale"), Strength10Scale > 0.0f);
-
-	StoneDefinition->Weight = 3.0f;
-	TestFalse(TEXT("Strength 10 cannot throw a 3 kg one-handed object"), StoneDefinition->CanBeThrownByStrength(10));
-	TestTrue(TEXT("Strength 12 can throw a 3 kg one-handed object"), StoneDefinition->CanBeThrownByStrength(12));
-
-	StoneDefinition->Weight = 1.0f;
-	const float Strength20Scale = StoneDefinition->GetThrowSpeedScaleForStrength(20);
-	TestTrue(TEXT("Higher Strength increases launch speed for the same object"), Strength20Scale > Strength10Scale);
-
-	StoneDefinition->HandUsage = EGridItemHandUsage::TwoHanded;
-	TestFalse(TEXT("A two-handed object is not eligible for the generic one-hand throw"), StoneDefinition->CanBeThrownByStrength(20));
-
-	StoneDefinition->HandUsage = EGridItemHandUsage::OneHanded;
 	FGridTD027TestWorld TestWorld;
 	if (!TestNotNull(TEXT("The context-action world is created"), TestWorld.World))
 	{
@@ -176,17 +150,20 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 
 	const FName LightStoneId(TEXT("Stone_TD027"));
 	const FName HeavyStoneId(TEXT("HeavyStone_TD027"));
+	const FName TwoHandedId(TEXT("TwoHanded_TD027"));
 	FGridCanonicalLootTestScope Registry;
 	if (!TestTrue(TEXT("Register light and heavy stone definitions"), Registry.AttachWithWeights(
 		TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
 		{
-			for (const auto& Pair : TMap<FName, float>{{LightStoneId, 1.0f}, {HeavyStoneId, 3.0f}})
+			for (const auto& Pair : TMap<FName, float>{{LightStoneId, 1.0f}, {HeavyStoneId, 3.0f}, {TwoHandedId, 1.0f}})
 			{
 				auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
 				Stone->ItemId = Pair.Key;
 				Stone->DisplayName = FText::FromName(Pair.Key);
 				Stone->WeightKg = Pair.Value;
-				Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+				Stone->HandPolicy = Pair.Key == TwoHandedId
+					? EGridNonArmamentHandPolicy::TwoHanded : EGridNonArmamentHandPolicy::OneHanded;
+				Stone->GenericThrow.InitialSpeed = 800.f;
 				Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
 				Root.ItemDefinitions.Add(Stone);
 			}
@@ -215,6 +192,21 @@ bool FGridTD027PhysicalThrowRulesTest::RunTest(const FString& Parameters)
 	EquippedStone.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedStone.OwnerCharacterIndex = CharacterIndex;
 	EquippedStone.EquipmentSlot = EGridEquipmentSlot::MainHand;
+
+	const auto ResolveThrow = [&](FName Id, int32 Strength)
+	{
+		FGridItemInstance Physical = EquippedStone;
+		Physical.ItemDefinitionId = Id;
+		return FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Registry, Physical, Strength);
+	};
+	const auto Light = ResolveThrow(LightStoneId, 10);
+	TestTrue(TEXT("A stone is physically one handed"), Light.bOneHanded);
+	TestEqual(TEXT("Strength 10 can throw up to 2.5 kg"), Light.MaxWeightKg, 2.5f);
+	TestTrue(TEXT("Strength 10 can throw a 1 kg stone"), Light.bCanThrow && Light.SpeedScale > 0.0f);
+	TestFalse(TEXT("Strength 10 refuses a 3 kg stone"), ResolveThrow(HeavyStoneId, 10).bCanThrow);
+	TestTrue(TEXT("Strength 12 accepts a 3 kg stone"), ResolveThrow(HeavyStoneId, 12).bCanThrow);
+	TestTrue(TEXT("Higher Strength increases launch speed"), ResolveThrow(LightStoneId, 20).SpeedScale > Light.SpeedScale);
+	TestFalse(TEXT("Two hands are incompatible with the generic throw"), ResolveThrow(TwoHandedId, 20).bCanThrow);
 
 	FGridItemActionContext Context;
 	Context.PartyPawn = Party;

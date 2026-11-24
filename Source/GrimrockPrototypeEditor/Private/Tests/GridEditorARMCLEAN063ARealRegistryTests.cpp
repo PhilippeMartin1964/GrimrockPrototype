@@ -7,7 +7,7 @@
 #include "ARMEMENT/GridWeaponPipelineManifest.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Combat/GridAttackPresentationReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "../ARMEMENT/GridEditorRetirementAudit.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 
@@ -107,17 +107,13 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	TSet<FString> HistoricalPaths;
 	for (const FAssetData& Asset : WeaponAssets)
 	{
-		if (Asset.AssetClassPath.GetAssetName() ==
-			UGridItemDefinitionAsset::StaticClass()->GetFName())
+		if (GridEditorRetirementAudit::IsRetiredItemPackage(Asset.PackageName))
 			HistoricalPaths.Add(Asset.GetSoftObjectPath().ToString());
 	}
 	int32 HistoricSourceCount = 0;
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 		HistoricSourceCount += HistoricalPaths.Contains(Row.ItemPath) ? 1 : 0;
-	const bool bSourceIntact = HistoricSourceCount == 22;
-	if (!TestTrue(TEXT("All 22 historical source ARM assets or none"),
-		bSourceIntact || HistoricSourceCount == 0))
-		return false;
+	if (!TestEqual(TEXT("No historical ARM source package remains"), HistoricSourceCount, 0)) return false;
 
 	int32 AttackCount = 0;
 	int32 PassiveCount = 0;
@@ -125,28 +121,6 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
 		const FName ItemId(*Row.ItemDefinitionId);
-		const UGridItemDefinitionAsset* Old = nullptr;
-		if (bSourceIntact)
-		{
-			Old = LoadObject<UGridItemDefinitionAsset>(nullptr, *Row.ItemPath);
-			if (!TestNotNull(TEXT("Exact historical ARM for read-only retirement evidence"), Old))
-				return false;
-			if (!TestTrue(TEXT("Historical identity and path exact"),
-				Old->ItemDefinitionId == ItemId && Old->GetPathName() == Row.ItemPath))
-				return false;
-			const bool bWasDirty = Old->GetOutermost()->IsDirty();
-			TestEqual(TEXT("No additional historical combat action to lose"),
-				Old->CombatActions.Num(), Row.IsPassive() ? 0 : 1);
-			for (const auto& Action : Old->CombatActions)
-			{
-				TestTrue(TEXT("Historical standard attack has no status or armor effects"),
-					Action.ActionId == FName(*Row.AttackId) &&
-					Action.OffensiveProfile.AttackId == Action.ActionId &&
-					Action.StatusApplications.IsEmpty() && Action.ArmorEffects.IsEmpty());
-			}
-			TestEqual(TEXT("Native audit leaves historical ARM package untouched"),
-				Old->GetOutermost()->IsDirty(), bWasDirty);
-		}
 		TestTrue(TEXT("Each official ARM is known to the one runtime registry"),
 			Items->ContainsItem(ItemId));
 		FGridResolvedItem N1, N20;
@@ -185,12 +159,6 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 		{
 			return false;
 		}
-		if (Old)
-		{
-			for (const FName Tag : Old->ItemTags)
-				TestTrue(TEXT("Historical gameplay tag preserved in canonical registry"),
-					N20.Tags.Contains(Tag));
-		}
 		TestTrue(TEXT("Canonical compact standard attack has no unprojected effects"),
 			Bound.Action.Effects.IsEmpty() && Bound.Action.WeaponDamagePercent == 0);
 		TestEqual(TEXT("No substituted action identity"), Bound.ActionId,
@@ -220,9 +188,6 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 			VerifiedInstance.ActionId, Bound.ActionId);
 		// Compare the actual execution view, not only the Editor forward
 		// conversion. No persisted fields, media order or timings may be lost.
-		FGridPlayerAttackPresentationProfile HistoricalExpected;
-		if (Old && Old->HasValidPlayerAttackPresentation())
-			HistoricalExpected = Old->PlayerAttackPresentationProfile;
 		FGridPlayerAttackPresentationProfile FirstNativePresentation;
 		bool bHasFirstNativePresentation = false;
 		for (const int32 Level : {1, 20})
@@ -250,12 +215,6 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 					TestTrue(TEXT("N1 and N20 maintain identical runtime attack presentation"),
 						FGridPlayerAttackPresentationProfile::StaticStruct()->CompareScriptStruct(
 							&Actual, &FirstNativePresentation, 0));
-				}
-				if (Old)
-				{
-					TestTrue(FString(TEXT("Lossless historical attack presentation: ")) + Row.ArchetypeId,
-						FGridPlayerAttackPresentationProfile::StaticStruct()->CompareScriptStruct(
-							&Actual, &HistoricalExpected, 0));
 				}
 			}
 			TestEqual(TEXT("Real source level captured"), Request.PresentationSource.ItemLevel, Level);

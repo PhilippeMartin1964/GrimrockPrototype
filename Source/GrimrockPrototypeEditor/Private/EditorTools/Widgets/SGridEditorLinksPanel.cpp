@@ -7,7 +7,6 @@
 #include "EditorTools/GridEditorLinkService.h"
 #include "EditorTools/GridEditorLuaService.h"
 #include "EditorTools/GridLevelEditorActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"

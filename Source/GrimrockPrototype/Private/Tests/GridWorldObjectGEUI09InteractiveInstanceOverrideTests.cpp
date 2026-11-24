@@ -5,7 +5,6 @@
 #include "Core/GridLevelPlacementTypes.h"
 #include "Core/GridObjectInstanceBehavior.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridRuntimeWorldObjectData.h"
 #include "UObject/UnrealType.h"
 

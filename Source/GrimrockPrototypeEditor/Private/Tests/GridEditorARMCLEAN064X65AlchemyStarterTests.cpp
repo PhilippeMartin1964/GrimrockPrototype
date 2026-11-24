@@ -5,7 +5,6 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorARMCLEAN064X65AlchemyStarterAuthoring,
     "Grimrock.RPG.ARM.CLEAN06_4X65.CanonicalAlchemyStartersAndAuthoringGuard",

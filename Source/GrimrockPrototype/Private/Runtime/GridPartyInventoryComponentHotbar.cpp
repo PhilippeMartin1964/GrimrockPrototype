@@ -1,6 +1,5 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "GridItemInteractionReadModel.h"

@@ -6,7 +6,6 @@
 #include "Engine/World.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridLightEmitterComponent.h"

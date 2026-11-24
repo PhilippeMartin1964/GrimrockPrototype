@@ -4,7 +4,7 @@
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "UObject/UnrealType.h"
 
@@ -24,7 +24,7 @@ bool FGridTD0735ItemSchemaAuthorityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
+	UClass* ItemClass = UGridNonArmamentDefinitionAsset::StaticClass();
 	TestNotNull(TEXT("Item definition class exists"), ItemClass);
 	if (!ItemClass)
 	{
@@ -34,9 +34,9 @@ bool FGridTD0735ItemSchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("Legacy bProvidesAttack is removed"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));
 	TestNull(TEXT("Legacy item-level OffensiveProfile is removed"), ItemClass->FindPropertyByName(TEXT("OffensiveProfile")));
 
-	const FProperty* CurrentActions = ItemClass->FindPropertyByName(TEXT("CombatActions"));
-	TestNotNull(TEXT("Current CombatActions exists"), CurrentActions);
-	TestTrue(TEXT("CombatActions is the durable authoring property"), CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
+	const FProperty* CurrentActions = ItemClass->FindPropertyByName(TEXT("ActionBindings"));
+	TestNotNull(TEXT("Canonical ActionBindings exist"), CurrentActions);
+	TestTrue(TEXT("ActionBindings remains durable authoring data"), CurrentActions && !CurrentActions->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 

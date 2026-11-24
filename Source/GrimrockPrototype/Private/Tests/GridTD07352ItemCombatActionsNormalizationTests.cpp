@@ -1,10 +1,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -17,27 +18,6 @@ namespace GridTD07352Normalization
 		return FFileHelper::LoadFileToString(OutText, *FPaths::Combine(FPaths::ProjectDir(), RelativePath));
 	}
 
-	FGridCombatActionDefinition MakeAttackAction(FName ActionId, int32 RangeCells = 1)
-	{
-		FGridCombatActionDefinition Action;
-		Action.ActionId = ActionId;
-		Action.DisplayName = FText::FromName(ActionId);
-		Action.ActionType = RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
-		Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-		Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-		Action.ActionPointCost = 2;
-		Action.RangeCells = RangeCells;
-		Action.PresentationProfileId = ActionId;
-		Action.OffensiveProfile.AttackId = ActionId;
-		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Slashing;
-		Action.OffensiveProfile.AttackDefinition.MinDamage = 1;
-		Action.OffensiveProfile.AttackDefinition.MaxDamage = 3;
-		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Strength;
-		Action.OffensiveProfile.RangeCells = RangeCells;
-		return Action;
-	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07352SchemaAuthorityTest, "Grimrock.TechnicalDebt.TD07_3_5_2.Normalization.SchemaAuthority",
@@ -47,7 +27,7 @@ bool FGridTD07352SchemaAuthorityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
+	UClass* ItemClass = UGridNonArmamentDefinitionAsset::StaticClass();
 	TestNotNull(TEXT("Item definition class exists"), ItemClass);
 	if (!ItemClass)
 	{
@@ -57,9 +37,9 @@ bool FGridTD07352SchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("bProvidesAttack property is physically removed"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));
 	TestNull(TEXT("item-level OffensiveProfile property is physically removed"), ItemClass->FindPropertyByName(TEXT("OffensiveProfile")));
 
-	const FProperty* CombatActions = ItemClass->FindPropertyByName(TEXT("CombatActions"));
-	TestNotNull(TEXT("CombatActions remains the item combat authoring property"), CombatActions);
-	TestTrue(TEXT("CombatActions remains durable authoring data"), CombatActions && !CombatActions->HasAnyPropertyFlags(CPF_Transient));
+	const FProperty* CombatActions = ItemClass->FindPropertyByName(TEXT("ActionBindings"));
+	TestNotNull(TEXT("ActionBindings own item action identity"), CombatActions);
+	TestTrue(TEXT("ActionBindings are durable authoring data"), CombatActions && !CombatActions->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 
@@ -71,24 +51,21 @@ bool FGridTD07352CombatActionsOnlyBehaviorTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	using namespace GridTD07352Normalization;
 
-	UGridItemDefinitionAsset* Weapon = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	Weapon->ItemDefinitionId = TEXT("TD07352_Sword");
-	Weapon->DisplayName = FText::FromString(TEXT("Sword"));
-	Weapon->ItemType = EGridItemType::Weapon;
-	Weapon->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+	FGridCanonicalRegistryFixture Fixture;
+	if (!TestTrue(TEXT("Configured item system"), Fixture.bReady)) return false;
+	FGridCombatActionDefinition Action;
+	const FName Bomb(TEXT("Item_Bomb_Fire"));
+	FGridResolvedItem Item;
+	if (!TestTrue(TEXT("Bomb has exactly one authored action binding"),
+			Fixture.Resolve(Bomb, 0, Item) && Item.AvailableActions.Num() == 1)) return false;
+	const FName ActionId = Item.AvailableActions[0].ActionId;
+	TestFalse(TEXT("A passive item cannot borrow the action"),
+		Fixture.Registry->ResolveDetailedNonArmAction(TEXT("Stone"), 0, ActionId, Action));
+	TestTrue(TEXT("The authored source can resolve its action"),
+		Fixture.Registry->ResolveDetailedNonArmAction(Bomb, 0, ActionId, Action));
+	TestEqual(TEXT("QuickItem consumes one source item"), Action.ResourceCosts.SourceItemQuantityCost, 1);
+	TestEqual(TEXT("Configured attack stays bound to the same identity"), Action.ActionId, ActionId);
 
-	TestTrue(TEXT("A non-combat item definition can remain structurally valid"), Weapon->IsValidDefinition());
-	TestFalse(TEXT("An empty CombatActions array grants no attack"), Weapon->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-
-	Weapon->CombatActions.Add(MakeAttackAction(TEXT("Attack_TD07352_Sword")));
-	TestTrue(TEXT("A current CombatAction grants the main-hand attack"), Weapon->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("Current CombatActions keep the item definition valid"), Weapon->IsValidDefinition());
-
-	Weapon->bCombatThrowWeapon = true;
-	FGridCombatActionDefinition InventoryAction;
-	TestTrue(TEXT("Throwable inventory action is built from the configured CombatAction"), Weapon->BuildInventoryCombatActionDefinition(InventoryAction));
-	TestEqual(TEXT("Inventory throw keeps the configured attack profile"), InventoryAction.OffensiveProfile.AttackId, FName(TEXT("Attack_TD07352_Sword")));
-	TestEqual(TEXT("Inventory throw consumes one source item"), InventoryAction.ResourceCosts.SourceItemQuantityCost, 1);
 	return true;
 }
 

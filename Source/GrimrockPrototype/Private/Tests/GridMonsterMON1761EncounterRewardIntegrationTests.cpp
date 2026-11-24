@@ -8,7 +8,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridDungeonRuntimeState.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"

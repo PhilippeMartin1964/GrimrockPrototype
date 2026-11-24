@@ -9,7 +9,6 @@
 #include "EngineUtils.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridEditorLooseItemPreviewReadModel.h"

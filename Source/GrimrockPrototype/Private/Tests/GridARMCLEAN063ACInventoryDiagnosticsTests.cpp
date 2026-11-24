@@ -4,7 +4,6 @@
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridInventoryDiagnosticWeightReadModel.h"
 #include "../Runtime/GridInventoryDefinitionDiagnosticReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -46,8 +45,7 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 	}
 	TestFalse(TEXT("Absent registry is explicit"), FGridInventoryDefinitionDiagnosticReadModel::Build(nullptr, Rows));
 	TestTrue(TEXT("Absent registry clears rows"), Rows.IsEmpty());
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->Weight = 99999.0f;
+	FName FixtureId;
 	const FName Arms[] = {
 		TEXT("Weapon_MainGauche_01"), TEXT("Weapon_StraightSword_01"),
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01")
@@ -55,7 +53,7 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 	const int32 Levels[] = {1, 20};
 	for (const FName ItemId : Arms)
 	{
-		Old->ItemDefinitionId = ItemId;
+		FixtureId = ItemId;
 		FGridResolvedItem First, Last;
 		if (!TestTrue(TEXT("Canonical N1 ARM resolves"), Registry->ResolveItem(ItemId, 1, First)) ||
 			!TestTrue(TEXT("Canonical N20 ARM resolves"), Registry->ResolveItem(ItemId, 20, Last)))
@@ -65,7 +63,7 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 		const FString ExpectedDefinition = FString::Printf(
 			TEXT("N1:%.1f,N20:%.1f"), First.WeightKg, Last.WeightKg);
 		TestEqual(TEXT("Definition shows explicit level endpoints without old weight"),
-			FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), Old->ItemDefinitionId),
+			FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), FixtureId),
 			ExpectedDefinition);
 		for (const int32 Level : Levels)
 		{
@@ -86,38 +84,38 @@ bool FGridClean063ACInventoryDiagnosticWeight::RunTest(const FString&)
 				FString(TEXT("INVALID")));
 		}
 	}
-	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
+	FixtureId = TEXT("Item_Arrows_01");
 	FGridResolvedItem Arrows;
 	if (!TestTrue(TEXT("Production unlevelled arrows resolve at N0"),
-		Registry->ResolveItem(Old->ItemDefinitionId, 0, Arrows))) return false;
+		Registry->ResolveItem(FixtureId, 0, Arrows))) return false;
 	TestEqual(TEXT("Unlevelled definition explicitly reports N0"),
-		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), Old->ItemDefinitionId),
+		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), FixtureId),
 		FString::Printf(TEXT("N0:%.1f"), Arrows.WeightKg));
 	FGridItemInstance Arrow;
 	Arrow.RuntimeObjectId = FGuid::NewGuid();
-	Arrow.ItemDefinitionId = Old->ItemDefinitionId;
+	Arrow.ItemDefinitionId = FixtureId;
 	Arrow.ItemLevel = 0;
 	Arrow.Quantity = 12;
 	TestEqual(TEXT("Unlevelled ammo slot uses canonical unit weight"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry.Get(), Arrow),
 		FString::Printf(TEXT("%.1f"), Arrows.WeightKg));
 
-	Old->ItemDefinitionId = TEXT("UnregisteredDiagnostic063AC");
+	FixtureId = TEXT("UnregisteredDiagnostic063AC");
 	FGridItemInstance Unknown;
 	Unknown.RuntimeObjectId = FGuid::NewGuid();
-	Unknown.ItemDefinitionId = Old->ItemDefinitionId;
+	Unknown.ItemDefinitionId = FixtureId;
 	Unknown.Quantity = 2;
 	TestEqual(TEXT("Configured registry rejects copied weight of unknown instance"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(Registry.Get(), Unknown),
 		FString(TEXT("INVALID")));
 	TestEqual(TEXT("Configured registry rejects copied weight of unknown definition"),
-		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), Old->ItemDefinitionId),
+		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(Registry.Get(), FixtureId),
 		FString(TEXT("INVALID")));
 	TestEqual(TEXT("Registry-less fixture rejects unit mass with no canonical authority"),
 		FGridInventoryDiagnosticWeightReadModel::FormatInstanceUnitWeight(nullptr, Unknown),
 		FString(TEXT("INVALID")));
 	TestEqual(TEXT("Registry-less fixture cannot project a definition weight"),
-		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(nullptr, Old->ItemDefinitionId),
+		FGridInventoryDiagnosticWeightReadModel::FormatDefinitionWeight(nullptr, FixtureId),
 		FString(TEXT("INVALID")));
 	return true;
 }

@@ -6,7 +6,7 @@
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "../Runtime/GridWorldPhysicsMassReadModel.h"
 
 namespace
 {
@@ -124,17 +124,14 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 	ZeroTiltActor->ApplyWorldPhysicsInitialNudge();
 	TestTrue(TEXT("Rotation remains unchanged when initial tilt is zero"), ZeroTiltActor->GetActorQuat().Equals(ZeroTiltRotation));
 
-	UGridItemDefinitionAsset* InvalidMassDefinition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
-	InvalidMassDefinition->ItemDefinitionId = TEXT("Invalid_Zero_Mass");
-	InvalidMassDefinition->Weight = 0.0f;
-	InvalidMassDefinition->bUseItemWeightAsWorldPhysicsMass = true;
-	TestFalse(TEXT("Mass override requires a positive finite item weight"), InvalidMassDefinition->IsValidDefinition());
-
-	UGridItemDefinitionAsset* InvalidTiltDefinition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
-	InvalidTiltDefinition->ItemDefinitionId = TEXT("Invalid_Tilt");
-	InvalidTiltDefinition->Weight = 0.1f;
-	InvalidTiltDefinition->WorldPhysicsInitialTiltDegrees = 50.0f;
-	TestFalse(TEXT("Initial tilt outside the authored safety range is invalid"), InvalidTiltDefinition->IsValidDefinition());
+	FGridResolvedItem ZeroMass = FirstActor->ResolvedWorldPresentation;
+	ZeroMass.WeightKg = 0.f;
+	float MassKg = -1.f;
+	TestFalse(TEXT("Mass override requires a positive item weight"),
+		FGridWorldPhysicsMassReadModel::TryResolveProjected(ZeroMass, MassKg));
+	TestEqual(TEXT("Refused override clears the projected mass"), MassKg, 0.f);
+	TestTrue(TEXT("Placement tilt does not change the resolved instance identity"),
+		FirstActor->GetRuntimeObjectId() == RuntimeId && FirstActor->GetItemDefinitionId() == FName(TEXT("Gem_Blue_Physics_Test")));
 
 	return true;
 }

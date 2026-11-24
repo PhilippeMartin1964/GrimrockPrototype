@@ -30,7 +30,6 @@
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridCombatMovementResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatEventFeedFormatter.h"
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"

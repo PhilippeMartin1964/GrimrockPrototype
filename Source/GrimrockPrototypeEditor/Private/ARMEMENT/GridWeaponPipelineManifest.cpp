@@ -3,7 +3,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/Csv/CsvParser.h"
-#include "Runtime/Combat/GridWeaponVisualCatalogueAsset.h"
+#include "Runtime/Items/GridItemCatalogues.h"
 
 namespace
 {
@@ -107,7 +107,7 @@ bool FGridWeaponPipelineManifest::Load(const FString& File,
         Row.EquipmentSlots = V[15];
         Row.MigrationPresentationId = V[16];
 
-        if (!UGridWeaponVisualCatalogueAsset::IsCanonicalArchetypeId(FName(Row.ArchetypeId)) ||
+        if (!FGridWeaponArchetype::IsValidArchetypeId(FName(Row.ArchetypeId)) ||
             (Row.ProductionState != TEXT("Active") && Row.ProductionState != TEXT("Planned")) ||
             !Row.IsSupportedBuildKind() || Row.ItemDefinitionId.IsEmpty() ||
             Row.VisualId.IsEmpty() || Row.VisualFamily.IsEmpty() ||

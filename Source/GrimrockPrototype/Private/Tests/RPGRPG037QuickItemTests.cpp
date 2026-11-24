@@ -6,7 +6,7 @@
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace RPG037
 {
@@ -85,36 +85,32 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG037QuickItemNormalizationTest, "Grimrock.RP
 
 bool FRPG037QuickItemNormalizationTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	Item->ItemDefinitionId = TEXT("Item_RPG037_Bomb");
-	Item->ItemType = EGridItemType::Component;
-	Item->DisplayName = FText::FromString(TEXT("RPG03.7 Bomb"));
-	Item->bProvidesQuickItemCombatAction = true;
-	Item->ItemTags = { TEXT("QuickItem.Bomb"), TEXT("QuickItem.Alchemy"), TEXT("QuickItem.Bomb"), NAME_None };
-	Item->QuickItemCombatAction = RPG037::MakeQuickAttack();
-	Item->QuickItemCombatAction.ActionId = TEXT("AuthoredIdentityIsNormalized");
-	Item->QuickItemCombatAction.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+	FGridCanonicalRegistryFixture Fixture;
+	if (!TestTrue(TEXT("Configured item system"), Fixture.bReady)) return false;
+	const FName BombId(TEXT("Item_Bomb_Fire"));
+	const FName PotionId(TEXT("Item_Potion_Healing_01"));
+	FGridResolvedItem Bomb, Potion;
+	if (!TestTrue(TEXT("Registered bomb and potion resolve at N0"),
+		Fixture.Resolve(BombId, 0, Bomb) && Fixture.Resolve(PotionId, 0, Potion)) ||
+		!TestEqual(TEXT("Bomb has one explicit binding"), Bomb.AvailableActions.Num(), 1) ||
+		!TestEqual(TEXT("Potion has one explicit binding"), Potion.AvailableActions.Num(), 1)) return false;
 
+	const FName ActionId = Bomb.AvailableActions[0].ActionId;
 	FGridCombatActionDefinition Built;
-	TestTrue(TEXT("Explicit QuickItem opt-in supports non-Potion/Scroll item types"), Item->BuildQuickItemCombatActionDefinition(Built));
-	TestEqual(TEXT("Source policy is normalized"), Built.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
-	TestEqual(TEXT("Source item cost is exactly at least one"), Built.ResourceCosts.SourceItemQuantityCost, 1);
-	TestTrue(TEXT("Bomb tag is projected"), Built.SourceTags.Contains(TEXT("QuickItem.Bomb")));
-	TestTrue(TEXT("Alchemy tag is projected"), Built.SourceTags.Contains(TEXT("QuickItem.Alchemy")));
-	TestEqual(TEXT("Source tags are normalized unique"), Built.SourceTags.Num(), 2);
-	TestEqual(TEXT("Area targeting remains authorable for C8"), Built.TargetingPolicy, EGridCombatTargetingPolicy::Area);
+	if (!TestTrue(TEXT("Explicit QuickItem action binds to the bomb"),
+		Fixture.Registry->ResolveDetailedNonArmAction(BombId, 0, ActionId, Built))) return false;
+	TestEqual(TEXT("Source policy is explicitly QuickItem"), Built.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
+	TestEqual(TEXT("Source item cost is one"), Built.ResourceCosts.SourceItemQuantityCost, 1);
+	TestTrue(TEXT("Bomb tag remains authored"), Bomb.Tags.Contains(TEXT("QuickItem.Bomb")));
+	TestTrue(TEXT("Alchemy tag remains authored"), Bomb.Tags.Contains(TEXT("QuickItem.Alchemy")));
+	TestEqual(TEXT("Area targeting remains authored"), Built.TargetingPolicy, EGridCombatTargetingPolicy::Area);
+	FGridCombatActionDefinition PotionAction;
+	TestFalse(TEXT("Another item cannot borrow the bomb action"),
+		Fixture.Registry->ResolveDetailedNonArmAction(PotionId, 0, ActionId, PotionAction));
+	TestTrue(TEXT("Potion retains its authored action and effect"),
+		Fixture.Registry->ResolveDetailedNonArmAction(PotionId, 0, Potion.AvailableActions[0].ActionId, PotionAction) &&
+		PotionAction.EffectProfile.IsValid());
 
-	UGridItemDefinitionAsset* LegacyPotion = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-	LegacyPotion->ItemDefinitionId = TEXT("Item_RPG037_LegacyPotion");
-	LegacyPotion->ItemType = EGridItemType::Potion;
-	LegacyPotion->DisplayName = FText::FromString(TEXT("Legacy Potion"));
-	LegacyPotion->bProvidesQuickItemCombatAction = true;
-	LegacyPotion->QuickItemCombatAction = RPG037::MakePositivePotion();
-	LegacyPotion->QuickItemCombatAction.QuickItemScaling = FGridCombatQuickItemScalingProfile();
-	LegacyPotion->QuickItemCombatAction.SourceTags.Reset();
-	FGridCombatActionDefinition LegacyBuilt;
-	TestTrue(TEXT("Existing unscaled Potion QuickItems remain compatible"), LegacyPotion->BuildQuickItemCombatActionDefinition(LegacyBuilt));
-	TestTrue(TEXT("Legacy potion keeps its authored positive self effect"), LegacyBuilt.EffectProfile.IsValid());
 	return true;
 }
 

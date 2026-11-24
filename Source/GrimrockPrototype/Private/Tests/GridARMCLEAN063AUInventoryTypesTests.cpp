@@ -11,7 +11,6 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -88,14 +87,6 @@ namespace ARMCLEAN063AU
             Item.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
             return Item;
         }
-        UGridItemDefinitionAsset* MakeContradictoryDefinition(FName Id, EGridItemType Type) const
-        {
-            UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-            Definition->ItemDefinitionId = Id;
-            Definition->ItemType = Type;
-            Definition->DisplayName = FText::FromString(TEXT("WRONG HISTORICAL CATEGORY"));
-            return Definition;
-        }
         void Put(int32 Slot, const FGridItemInstance& Item) const
         {
             FGridInventorySlot& Destination =
@@ -124,14 +115,6 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
     const FGridItemInstance Shield = Fixture.Make(ShieldId, 20);
     const FGridItemInstance Arrows = Fixture.Make(AmmoId, 0);
     const FGridItemInstance Potion = Fixture.Make(PotionId, 0);
-    UGridItemDefinitionAsset* WrongSword =
-        Fixture.MakeContradictoryDefinition(SwordId, EGridItemType::Potion);
-    UGridItemDefinitionAsset* WrongShield =
-        Fixture.MakeContradictoryDefinition(ShieldId, EGridItemType::Book);
-    UGridItemDefinitionAsset* WrongArrows =
-        Fixture.MakeContradictoryDefinition(AmmoId, EGridItemType::Weapon);
-    UGridItemDefinitionAsset* RealLegacy =
-        Fixture.MakeContradictoryDefinition(PotionId, EGridItemType::Potion);
 
     for (const int32 Level : {1, 20})
     {
@@ -325,12 +308,6 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
         Item.ItemDefinitionId = Ids[I];
         Item.ItemLevel = 0;
         Item.Quantity = 1;
-        auto* Wrong = NewObject<UGridItemDefinitionAsset>(GI.Get());
-        Wrong->ItemDefinitionId = Ids[I];
-        Wrong->ItemType = EGridItemType::Book;
-        Wrong->CompatibleEquipmentSlots = {EGridEquipmentSlot::MainHand};
-        Wrong->bStackable = true;
-        Wrong->MaxStackSize = 3;
         const auto Category = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Item);
         TestTrue(TEXT("Registered N0 category resolved"), Category.bRegisteredIdentity && Category.bResolved);
         TestEqual(TEXT("Retain original inventory type without old definition"), Category.ItemType, Types[I]);
@@ -379,9 +356,6 @@ bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
     Item.ItemDefinitionId = Definition->ItemId;
     Item.Quantity = 1;
     Item.ItemLevel = 0;
-    auto* Wrong = NewObject<UGridItemDefinitionAsset>(GI.Get());
-    Wrong->ItemDefinitionId = Item.ItemDefinitionId;
-    Wrong->ItemType = EGridItemType::Weapon;
     const auto View = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Item);
     TestTrue(TEXT("Category resolves without historical definition authority"), View.bRegisteredIdentity && View.bResolved);
     TestEqual(TEXT("Explicit Potion category"), View.ItemType, EGridItemType::Potion);
@@ -433,13 +407,7 @@ bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
             !Comparison->WeaponFacts.IsEmpty());
     TestEqual(TEXT("Preview leaves equipped GUID alone"), F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.RuntimeObjectId,
         Equipped.RuntimeObjectId);
-    auto* Stale = F.MakeContradictoryDefinition(SwordId, EGridItemType::Book);
-    Stale->ReadText = FText::FromString(TEXT("Stale readable text"));
-    Stale->EquipmentStatBonus.StrengthBonus = 999;
-    Slot->SetItem(Candidate);
-    const auto Contradictory = Slot->GetTooltipView();
-    TestFalse(TEXT("Stale book cannot give sword read capability"), Contradictory.bReadable);
-    TestEqual(TEXT("Same weapon facts with contradictory source"), Contradictory.WeaponProfile.Facts.Num(), SwordView.WeaponProfile.Facts.Num());
+    TestFalse(TEXT("The weapon tooltip does not advertise an unauthored read action"), SwordView.bReadable);
 
     auto Torch = F.Make(TEXT("Item_Torch"), 0);
     Torch.bLightsEnabled = true;
@@ -482,8 +450,6 @@ bool FGridClean065E4ContextEquip::RunTest(const FString&)
     const auto Shield = F.Make(TEXT("Weapon_RoundShield_01"), 1);
     F.Put(0, Sword);
     F.Put(1, Shield);
-    auto* WrongShield = F.MakeContradictoryDefinition(Shield.ItemDefinitionId, EGridItemType::Book);
-    WrongShield->CompatibleEquipmentSlots.Reset();
     const auto EquipViaMenu = [&](int32 SlotIndex, EGridEquipmentSlot Hand)
     {
         FGridFacingTargetContext Target;

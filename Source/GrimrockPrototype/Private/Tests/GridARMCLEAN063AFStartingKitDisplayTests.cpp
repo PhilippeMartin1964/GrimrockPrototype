@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../UI/GridStartingKitDisplayReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -25,17 +24,12 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
         return false;
     }
 
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-    Old->DisplayName = FText::FromString(TEXT("INCORRECT OLD STARTING NAME"));
-    Old->Weight = 100.0f;
-    Old->DefaultWeaponItemLevel = 4;
-    Old->bUseWeaponCatalogue = false; // Intentionally contradict ARM identity.
+    FName FixtureId;
     const FName Arms[] = {
         TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
         TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01") };
     for (const FName Id : Arms)
     {
-        Old->ItemDefinitionId = Id;
         for (const int32 Level : {1, 20})
         {
             FGridResolvedItem Canonical;
@@ -62,33 +56,27 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
         TestTrue(TEXT("Invalid N21 has no obsolete name"), Invalid.DisplayName.IsEmpty());
     }
 
-    Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-    Old->DefaultWeaponItemLevel = 0;
     const FGridStartingKitDisplayReadView BadDefault =
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, TEXT("Weapon_RoundShield_01"));
     TestTrue(TEXT("Known invalid default remains canonical"), BadDefault.bRegisteredIdentity);
     TestFalse(TEXT("Invalid ARM N0 never silently becomes N1"), BadDefault.bResolved);
     TestTrue(TEXT("Invalid default never exposes historic name"), BadDefault.DisplayName.IsEmpty());
-    Old->DefaultWeaponItemLevel = 4;
 
-    Old->ItemDefinitionId = TEXT("Item_Arrows_01");
-    Old->bUseWeaponCatalogue = true; // Intentionally contradict ammo type.
+    FixtureId = TEXT("Item_Arrows_01");
     FGridResolvedItem Arrows;
     if (!TestTrue(TEXT("Real canonical arrows N0 resolve"),
-        Registry->ResolveItem(Old->ItemDefinitionId, 0, Arrows))) return false;
+        Registry->ResolveItem(FixtureId, 0, Arrows))) return false;
     TestFalse(TEXT("Registered ammo also needs an explicit authored ID"),
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, NAME_None).bResolved);
     const FGridStartingKitDisplayReadView Ammo =
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, Old->ItemDefinitionId);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, FixtureId);
     TestTrue(TEXT("Ammo N0 still has canonical identity"), Ammo.bRegisteredIdentity && Ammo.bResolved);
     TestEqual(TEXT("Ammo N0 is a real fixed level 0"), Ammo.FixedItemLevel, 0);
     TestEqual(TEXT("Ammo name canonical not obsolete"), Ammo.DisplayName.ToString(),
         Arrows.DisplayName.ToString());
     TestFalse(TEXT("Ammo N1 is rejected for starting kit, despite transitional resolver support"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 1, Old->ItemDefinitionId).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 1, FixtureId).bResolved);
 
-    Old->ItemDefinitionId = TEXT("LegacyStarter_AF");
-    Old->bUseWeaponCatalogue = false;
     const FGridStartingKitDisplayReadView Legacy =
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, NAME_None);
     TestFalse(TEXT("Unknown item remains outside registry"), Legacy.bRegisteredIdentity);
@@ -102,9 +90,6 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), -1, NAME_None).bResolved);
     TestFalse(TEXT("Legacy item cannot invent N9"),
         FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 9, NAME_None).bResolved);
-    TestEqual(TEXT("Preview never edits source's default"), Old->DefaultWeaponItemLevel, 4);
-    TestEqual(TEXT("Preview never edits source's display name"),
-        Old->DisplayName.ToString(), FString(TEXT("INCORRECT OLD STARTING NAME")));
     // X.65: the production wizard can display an explicit native N0
     // ingredient without a legacy pointer, using only the real registry.
     FGridResolvedItem Oil;

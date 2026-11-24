@@ -11,7 +11,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 namespace GridEditorITEMSTACK01

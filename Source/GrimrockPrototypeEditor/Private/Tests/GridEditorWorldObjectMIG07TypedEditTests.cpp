@@ -6,7 +6,6 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
 {
@@ -83,12 +82,12 @@ bool FGridEditorWorldObjectMIG07TypedWriteThroughTest::RunTest(const FString& Pa
 		Cell.bBlocksOccupancy = false;
 	}
 
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>(EditorActor);
-	ItemDefinition->ItemDefinitionId = TEXT("MIG07C_EditorItem");
+	FName ItemId;
+	ItemId = TEXT("MIG07C_EditorItem");
 
 	FGridLooseItemInstance Item;
 	Item.InstanceId = FGuid::NewGuid();
-	Item.ItemId = ItemDefinition->ItemDefinitionId;
+	Item.ItemId = ItemId;
 	Item.CellX = 1;
 	Item.CellY = 1;
 	Item.Quantity = 9;

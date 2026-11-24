@@ -40,25 +40,11 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     int32 Spawn = 0;
     int32 Receptacle = 0;
     int32 Palette = 0;
-    auto Visit = [&](const UGridItemDefinitionAsset* Legacy, FName ItemId,
-        bool bAllowPointerless) -> bool
+    auto Visit = [&](FName ItemId) -> bool
     {
-        // X.58: loose, palette and initial-content rows may be pointerless.
-        if (!IsValid(Legacy) && bAllowPointerless)
-        {
-            if (ItemId.IsNone() || !ValidIds.Contains(ItemId)) { return false; }
-            ++Total;
-            ++Materialized;
-            return true;
-        }
-        if (!IsValid(Legacy) || Legacy->ItemDefinitionId.IsNone() ||
-            !ValidIds.Contains(Legacy->ItemDefinitionId) ||
-            (!ItemId.IsNone() && ItemId != Legacy->ItemDefinitionId))
-        {
-            return false;
-        }
+        if (ItemId.IsNone() || !ValidIds.Contains(ItemId)) { return false; }
         ++Total;
-        if (!ItemId.IsNone()) { ++Materialized; }
+        ++Materialized;
         return true;
     };
 
@@ -78,13 +64,13 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         for (const FGridLooseItemInstance& Item : Level->LooseItemInstances)
         {
             if (!TestTrue(TEXT("Loose item maintains exact source ItemId"),
-                Visit(nullptr, Item.ItemId, true))) { return false; }
+                Visit(Item.ItemId))) { return false; }
             ++Loose;
         }
         for (const FGridItemSpawnInstance& Item : Level->ItemSpawns)
         {
             if (!TestTrue(TEXT("Spawn maintains exact source ItemId"),
-                Visit(nullptr, Item.ItemId, true))) { return false; }
+                Visit(Item.ItemId))) { return false; }
             ++Spawn;
         }
         for (const FGridWorldObjectInstance& World : Level->WorldObjectInstances)
@@ -93,7 +79,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
                 World.InstanceConfig.ReceptacleInitialContent)
             {
                 if (!TestTrue(TEXT("Receptacle maintains exact source ItemId"),
-                    Visit(nullptr, Item.ItemId, true))) { return false; }
+                    Visit(Item.ItemId))) { return false; }
                 ++Receptacle;
             }
         }
@@ -107,7 +93,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
     {
         if (!Entry.IsDirectItemEntry()) { continue; }
         if (!TestTrue(TEXT("Palette item retains exact source ItemId"),
-                Visit(nullptr, Entry.ItemId, true)))
+                Visit(Entry.ItemId)))
         {
             return false;
         }

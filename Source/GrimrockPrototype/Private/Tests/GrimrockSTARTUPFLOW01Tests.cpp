@@ -5,7 +5,6 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockStartupModeComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"

@@ -59,6 +59,7 @@ int32 UGridArmClean065RetirementAuditCommandlet::Main(const FString& Params)
         UE_LOG(LogTemp, Error, TEXT("[ARM-CLEAN06.5A] Native evidence refused: %s"), *Error);
         return 2;
     }
+    if (FParse::Param(*Params, TEXT("WeaponProfiles")) && !CollectWeaponProfiles(*Native.Report)) return 2;
     const bool bWorldPreflight = FParse::Param(*Params, TEXT("WorldPointerPreflight"));
     const bool bInstanceEvidence = FParse::Param(*Params, TEXT("InstanceCacheEvidence"));
     const bool bWeightEvidence = FParse::Param(*Params, TEXT("WeightCacheEvidence"));

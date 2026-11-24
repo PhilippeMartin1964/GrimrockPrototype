@@ -10,7 +10,6 @@
 #include "Engine/GameInstance.h"
 #include "Misc/AssetRegistryInterface.h"
 #include "Modules/ModuleManager.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -43,6 +42,63 @@ namespace GridEditorRetirementAudit
         };
     }
 
+    // The 48 package paths recorded in the 5H.25 retirement receipt.
+    // Path identity is independent of future reflected class names.
+    inline bool IsRetiredItemPackage(FName Package)
+    {
+        static const TSet<FName> Retired = {
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Antidote")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Arrows_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_BlueGem")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Fire")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Bomb_Toxic")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_CopperKey")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Fire")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Ice")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Lightning")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DefensiveElixir_Poison")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_DisarmTools_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_EmptyVial")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Acid")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_CorrosiveCloud")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Flask_Oil")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_GoblinKnife")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_IronKey")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Panacea")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Potion_Healing_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatMeat")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_RatTooth")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Stone")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Torch")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Tests/Items/DA_Item_TestNote")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ArcaneOrb_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ArcaneWand_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_AssassinDagger_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dart_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ElementalStaff_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_FireWand_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_GreatAxe_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_HolyAegis_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_HolyScepter_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Javelin_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_LongSword_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Mace_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_MainGauche_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RecurveBow_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_RoundShield_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortBow_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ShortSpear_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Shuriken")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Stiletto_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_StraightSword_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_ThrowingKnife_01")),
+            FName(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_WarPick_01")),
+        };
+        return Retired.Contains(Package);
+    }
+
     // This is a disposition taxonomy, never an automatic deletion list.
     // In particular the legacy DA_WeaponCatalogue and DA_WeaponVisualCatalogue
     // are NOT the active catalogues owned by DA_ItemSystem in Items/Catalogues.
@@ -50,7 +106,7 @@ namespace GridEditorRetirementAudit
     {
         const FString Package = Data.PackageName.ToString();
         const FName Class = Data.AssetClassPath.GetAssetName();
-        if (Class == UGridItemDefinitionAsset::StaticClass()->GetFName())
+        if (IsRetiredItemPackage(Data.PackageName))
             return TEXT("historical_item_definition");
         if ((Package == TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_WeaponCatalogue") &&
              Class == FName(TEXT("GridWeaponCatalogueAsset"))) ||
@@ -160,7 +216,7 @@ namespace GridEditorRetirementAudit
         {
             const FString Package = Data.PackageName.ToString();
             const FName Class = Data.AssetClassPath.GetAssetName();
-            if (Class == UGridItemDefinitionAsset::StaticClass()->GetFName()) return true;
+            if (IsRetiredItemPackage(Data.PackageName)) return true;
             if (ActivePackages.Contains(Data.PackageName)) return false;
             if (Class == FName(TEXT("ObjectRedirector")) &&
                 Package.StartsWith(Base + TEXT("CanonicalStage/")))
@@ -200,17 +256,12 @@ namespace GridEditorRetirementAudit
         Assets.Sort([](const FAssetData& A, const FAssetData& B)
             { return A.GetSoftObjectPath().ToString() < B.GetSoftObjectPath().ToString(); });
 
-        int32 LegacyCount = 0;
         TMap<FString, int32> CandidateRoleCounts;
         int32 ExternalEdges = 0;
-        TMap<EGridItemType, int32> LegacyCategoryCounts;
-        TArray<TSharedPtr<FJsonValue>> CategoryRows;
         const auto CategoryName = [](EGridItemType Type)
         {
             return StaticEnum<EGridItemType>()->GetNameStringByValue(static_cast<int64>(Type));
         };
-        TSet<FName> CoveredIds;
-        TArray<FName> UnmappedIds;
         for (const FAssetData& Data : Assets)
         {
             const FString ObjectPath = Data.GetSoftObjectPath().ToString();
@@ -222,56 +273,10 @@ namespace GridEditorRetirementAudit
             const FString RetirementRole = CandidateRetirementRole(Data);
             Row->SetStringField(TEXT("retirement_role"), RetirementRole);
             ++CandidateRoleCounts.FindOrAdd(RetirementRole);
-            if (Data.AssetClassPath.GetAssetName() == UGridItemDefinitionAsset::StaticClass()->GetFName())
+            if (RetirementRole == TEXT("historical_item_definition"))
             {
-                const auto* Legacy = Cast<UGridItemDefinitionAsset>(Data.GetAsset());
-                if (!IsValid(Legacy))
-                {
-                    Error = TEXT("Historical definition failed to load: ") + ObjectPath;
-                    return false;
-                }
-                ++LegacyCount;
-                Row->SetStringField(TEXT("item_id"), Legacy->ItemDefinitionId.ToString());
-                const bool bCovered = Out.ItemIds.Contains(Legacy->ItemDefinitionId);
-                Row->SetBoolField(TEXT("canonical_id_exists"), bCovered);
-                if (bCovered) CoveredIds.Add(Legacy->ItemDefinitionId);
-                else UnmappedIds.AddUnique(Legacy->ItemDefinitionId);
-
-                // The old category is evidence of the authored puzzle contract,
-                // not a new runtime authority. Record tags without inferring types.
-                ++LegacyCategoryCounts.FindOrAdd(Legacy->ItemType);
-                auto Category = MakeShared<FJsonObject>();
-                Category->SetStringField(TEXT("source"), ObjectPath);
-                Category->SetStringField(TEXT("item_id"), Legacy->ItemDefinitionId.ToString());
-                Category->SetStringField(TEXT("legacy_type"), CategoryName(Legacy->ItemType));
-                Category->SetBoolField(TEXT("canonical_id_exists"), bCovered);
-                if (bCovered)
-                {
-                    const auto* Definition = Root->ItemDefinitions.FindByPredicate(
-                        [&](const auto& Def) { return IsValid(Def.Get()) && Def->ItemId == Legacy->ItemDefinitionId; });
-                    if (!Definition)
-                    {
-                        Error = TEXT("Missing canonical definition for category evidence: ") + ObjectPath;
-                        return false;
-                    }
-                    const bool bArm = (*Definition)->IsA<UGridArmamentDefinitionAsset>();
-                    FGridResolvedItem Resolved;
-                    if (!Items->ResolveItem(Legacy->ItemDefinitionId, bArm ? 1 : 0, Resolved))
-                    {
-                        Error = TEXT("Unresolved category evidence: ") + ObjectPath;
-                        return false;
-                    }
-                    Category->SetBoolField(TEXT("armament"), bArm);
-                    Category->SetArrayField(TEXT("canonical_tags"), Names(Resolved.Tags));
-                    if (bArm)
-                    {
-                        const EGridItemType Type = Resolved.Weapon.Kind == EGridArmamentKind::Shield
-                            ? EGridItemType::Shield : EGridItemType::Weapon;
-                        Category->SetStringField(TEXT("canonical_arm_type"), CategoryName(Type));
-                        Category->SetBoolField(TEXT("arm_type_matches"), Type == Legacy->ItemType);
-                    }
-                }
-                CategoryRows.Add(MakeShared<FJsonValueObject>(Category));
+                Error = TEXT("A retired package has reappeared: ") + ObjectPath;
+                return false;
             }
             TArray<FName> AllRefs, Hard, Soft, External;
             const bool bQuery = Registry.GetReferencers(Data.PackageName, AllRefs, EDependencyCategory::All, FDependencyQuery());
@@ -287,11 +292,8 @@ namespace GridEditorRetirementAudit
             Row->SetArrayField(TEXT("external_referencers"), Names(External));
             Rows.Add(MakeShared<FJsonValueObject>(Row));
         }
-        TArray<FName> MissingLegacyIds;
-        for (FName Id : Out.ItemIds)
-            if (!CoveredIds.Contains(Id)) MissingLegacyIds.Add(Id);
         Out.CandidatePaths.Sort();
-        Out.Report->SetNumberField(TEXT("legacy_definition_count"), LegacyCount);
+        Out.Report->SetNumberField(TEXT("legacy_definition_count"), 0);
         Out.Report->SetNumberField(TEXT("candidate_asset_count"), Assets.Num());
         TSharedRef<FJsonObject> Roles = MakeShared<FJsonObject>();
         for (const TCHAR* Name : {
@@ -308,10 +310,10 @@ namespace GridEditorRetirementAudit
         Out.Report->SetNumberField(TEXT("unclassified_candidate_count"),
             CandidateRoleCounts.FindRef(TEXT("unclassified_keep_and_investigate")));
         Out.Report->SetNumberField(TEXT("external_referencer_edges"), ExternalEdges);
-        Out.Report->SetArrayField(TEXT("legacy_ids_without_canonical"), Names(UnmappedIds));
-        Out.Report->SetArrayField(TEXT("canonical_ids_without_legacy_source"), Names(MissingLegacyIds));
+        Out.Report->SetArrayField(TEXT("legacy_ids_without_canonical"), {});
+        Out.Report->SetArrayField(TEXT("canonical_ids_without_legacy_source"), Names(Out.ItemIds.Array()));
         Out.Report->SetArrayField(TEXT("candidates"), Rows);
-        Out.Report->SetArrayField(TEXT("puzzle_category_sources"), CategoryRows);
+        Out.Report->SetArrayField(TEXT("puzzle_category_sources"), {});
 
         // Native level assets, including subclasses. Do not rewrite links,
         // reverse conditions, Blueprint defaults or save data in this audit.
@@ -344,7 +346,7 @@ namespace GridEditorRetirementAudit
                 Row->SetStringField(TEXT("type"), CategoryName(Link.ConditionItemType));
                 Row->SetBoolField(TEXT("inverted"), Link.bInvertCondition);
                 Row->SetNumberField(TEXT("historical_matching_definitions"),
-                    LegacyCategoryCounts.FindRef(Link.ConditionItemType));
+                    0);
                 TypeLinks.Add(MakeShared<FJsonValueObject>(Row));
             }
         }
@@ -352,6 +354,46 @@ namespace GridEditorRetirementAudit
         Out.Report->SetArrayField(TEXT("puzzle_type_links"), TypeLinks);
         Out.Report->SetBoolField(TEXT("native_root_dirty"), Root->GetOutermost()->IsDirty());
         return !Root->GetOutermost()->IsDirty();
+    }
+
+    inline bool CollectWeaponProfiles(FJsonObject& Report)
+    {
+        const auto* Root = LoadObject<UGridItemSystemAsset>(nullptr, RootPath());
+        if (!IsValid(Root) || !Root->WeaponCatalogue || Root->WeaponCatalogue->Archetypes.Num() != 82)
+            return false;
+
+        TArray<TSharedPtr<FJsonValue>> Rows;
+        Rows.Reserve(1640);
+        for (int32 Index = 1; Index <= 82; ++Index)
+        {
+            const FName Id(*FString::Printf(TEXT("ARM%03d"), Index));
+            const FGridWeaponArchetype* Archetype = Root->WeaponCatalogue->Find(Id);
+            if (!Archetype) return false;
+
+            for (int32 Level = 1; Level <= 20; ++Level)
+            {
+                FGridResolvedWeapon Weapon;
+                if (!Archetype->TryResolve(Level, Weapon)) return false;
+                const auto Row = MakeShared<FJsonObject>();
+                Row->SetStringField(TEXT("ArchetypeId"), Id.ToString());
+                Row->SetNumberField(TEXT("ItemLevel"), Level);
+                Row->SetStringField(TEXT("DamageType"), StaticEnum<EGridDamageType>()->GetNameStringByValue(int64(Weapon.DamageType)));
+                Row->SetStringField(TEXT("PhysicalSubtype"), StaticEnum<EGridPhysicalDamageSubtype>()->GetNameStringByValue(int64(Weapon.PhysicalSubtype)));
+                Row->SetStringField(TEXT("ScalingAttribute"), StaticEnum<EGridAttackScalingAttribute>()->GetNameStringByValue(int64(Weapon.ScalingAttribute)));
+                Row->SetNumberField(TEXT("AccuracyBonus"), Weapon.AccuracyBonus);
+                Row->SetNumberField(TEXT("ActionPointCost"), Weapon.ActionPointCost);
+                Row->SetNumberField(TEXT("RangeCells"), Weapon.RangeCells);
+                Row->SetNumberField(TEXT("PhysicalArmor"), Weapon.PhysicalArmor);
+                Row->SetNumberField(TEXT("MagicalArmor"), Weapon.MagicalArmor);
+                Row->SetBoolField(TEXT("bEnabled"), Weapon.DamageDice.bEnabled);
+                Row->SetNumberField(TEXT("DiceCount"), Weapon.DamageDice.DiceCount);
+                Row->SetNumberField(TEXT("DiceSides"), Weapon.DamageDice.DiceSides);
+                Row->SetNumberField(TEXT("FlatBonus"), Weapon.DamageDice.FlatBonus);
+                Rows.Add(MakeShared<FJsonValueObject>(Row));
+            }
+        }
+        Report.SetArrayField(TEXT("weapon_profiles"), Rows);
+        return true;
     }
 
     // SaveGame proxy archives may replace missing object references with null.

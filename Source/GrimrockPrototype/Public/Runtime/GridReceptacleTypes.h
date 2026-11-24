@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridObjectBehavior.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridReceptacleTypes.generated.h"
 
 UENUM(BlueprintType)

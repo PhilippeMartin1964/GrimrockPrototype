@@ -9,7 +9,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -81,7 +80,7 @@ namespace ARMCLEAN063BB
         }
 
         FGridRangedAmmunitionRequirement Resolve(
-            const UGridItemDefinitionAsset* Legacy = nullptr, int32 Level = 1,
+            int32 Level = 1,
             bool bRanged = true) const
         {
             return FGridRangedAmmunitionPolicy::ResolveForAttack(
@@ -112,10 +111,7 @@ namespace ARMCLEAN063BB
         Test.TestFalse(TEXT("No guessed ammo ID for unknown kind"),
             F.Registry->ResolveAmmoKind(TEXT("MissingAmmoKind"), MissingAmmo));
 
-        UGridItemDefinitionAsset* OldWeapon = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-        OldWeapon->ItemDefinitionId = TEXT("Weapon_ShortBow_01");
-        OldWeapon->RequiredAmmunitionItemDefinitionId = TEXT("Item_Old_Contradictory");
-        const FGridRangedAmmunitionRequirement Required = F.Resolve(OldWeapon);
+        const FGridRangedAmmunitionRequirement Required = F.Resolve();
         const auto NoLegacy = F.Resolve();
         Test.TestTrue(TEXT("Canonical source wins over conflicting old definition"),
             Required.bRegisteredSource && Required.bValid && Required.AmmunitionItemId == ArrowId);
@@ -160,23 +156,21 @@ namespace ARMCLEAN063BB
             Test.TestFalse(TEXT("Invalid enabled launcher cannot borrow ammo speed"), FGridRangedAmmunitionPolicy::TryResolveLaunchSpeed(&ProbeWeapon, ProbeAmmo, Speed));
             ProbeAmmo.ItemLevel = 1;
             Test.TestFalse(TEXT("N1 ammo cannot be physical flight"), FGridRangedAmmunitionPolicy::TryResolveLaunchSpeed(nullptr, ProbeAmmo, Speed));
-            const auto InvalidN0 = F.Resolve(OldWeapon, 0);
+            const auto InvalidN0 = F.Resolve(0);
             Test.TestTrue(TEXT("Known but invalid canonical N0 fails closed"),
                 InvalidN0.bRegisteredSource && !InvalidN0.bValid);
-            const auto Melee = F.Resolve(OldWeapon, 1, false);
+            const auto Melee = F.Resolve(1, false);
             Test.TestTrue(TEXT("Melee needs no arrow"), Melee.bValid && Melee.AmmunitionItemId.IsNone());
-            UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-            Legacy->ItemDefinitionId = TEXT("Legacy_Bow_BB");
-            Legacy->RequiredAmmunitionItemDefinitionId = TEXT("Legacy_Arrow_BB");
+            const FName UnknownBow(TEXT("Legacy_Bow_BB"));
             const auto UnknownConfigured = FGridRangedAmmunitionPolicy::ResolveForAttack(
-                F.Registry, Legacy->ItemDefinitionId, 0, true);
+                F.Registry, UnknownBow, 0, true);
             Test.TestFalse(TEXT("Unregistered launcher cannot borrow historical ammo in a configured world"),
                 UnknownConfigured.bValid);
             Test.TestTrue(TEXT("Configured unknown launcher never invents an ammo join"),
                 UnknownConfigured.AmmunitionItemId.IsNone() &&
                 !UnknownConfigured.bRegisteredAmmunition);
             const auto WorldlessLegacy = FGridRangedAmmunitionPolicy::ResolveForAttack(
-                nullptr, Legacy->ItemDefinitionId, 0, true);
+                nullptr, UnknownBow, 0, true);
             Test.TestTrue(TEXT("No ammunition policy exists without the registry"),
                 !WorldlessLegacy.bRegisteredSource && !WorldlessLegacy.bValid &&
                 WorldlessLegacy.AmmunitionItemId.IsNone());
@@ -207,7 +201,7 @@ namespace ARMCLEAN063BB
                 FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*F.Inventory, 0, Required));
             Test.TestEqual(TEXT("Refusal leaves invalid stack untouched"), Slot.Item.Quantity, 2);
             Slot.Item.ItemLevel = 0;
-            const auto NonRanged = F.Resolve(OldWeapon, 1, false);
+            const auto NonRanged = F.Resolve(1, false);
             Test.TestTrue(TEXT("Non ranged call no-op"),
                 FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*F.Inventory, 0, NonRanged));
             Test.TestEqual(TEXT("Melee leaves stack unchanged"), Slot.Item.Quantity, 2);
@@ -226,7 +220,7 @@ namespace ARMCLEAN063BB
                 FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*F.Inventory, 0, Required));
             Test.TestFalse(TEXT("Known invalid level never debits anything"),
                 FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
-                    *F.Inventory, 0, F.Resolve(OldWeapon, 0)));
+                    *F.Inventory, 0, F.Resolve(0)));
             return !Test.HasAnyErrors();
         }
 

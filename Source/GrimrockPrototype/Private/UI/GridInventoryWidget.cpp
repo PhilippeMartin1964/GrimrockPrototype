@@ -12,7 +12,7 @@
 #include "RPG/RPGSkillAsset.h"
 #include "Runtime/GridEventFeedPublisher.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemCategory.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "GridInventorySortReadModel.h"

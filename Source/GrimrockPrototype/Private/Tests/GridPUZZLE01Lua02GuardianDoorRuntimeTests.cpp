@@ -13,7 +13,6 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridDoorSystemComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLevelVariableStore.h"
 #include "Runtime/GridPartyInventoryComponent.h"

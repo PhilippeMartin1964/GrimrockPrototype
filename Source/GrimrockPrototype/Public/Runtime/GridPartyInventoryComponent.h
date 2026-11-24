@@ -10,7 +10,6 @@
 struct FGridArmorAbsorptionSourceTrace;
 struct FGridEquipmentArmorReadView;
 
-class UGridItemDefinitionAsset;
 class UTexture2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGridPartyInventoryChangedSignature, int32, CharacterIndex);

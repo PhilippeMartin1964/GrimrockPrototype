@@ -12,7 +12,6 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridAttackPresentationReadModel.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/Items/GridItemSubsystem.h"

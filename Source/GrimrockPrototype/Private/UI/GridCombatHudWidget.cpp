@@ -22,7 +22,6 @@
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/Combat/GridActionIconReadModel.h"
 #include "GridCombatHudActionReadModel.h"

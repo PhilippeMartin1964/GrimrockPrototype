@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridWorldItemLevelReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -24,18 +23,14 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->DefaultWeaponItemLevel = 7;
-	Old->DisplayName = FText::FromString(TEXT("OUTDATED WORLD ITEM"));
-	Old->Weight = 4321.0f;
-	Old->bUseWeaponCatalogue = false; // Intentionally disagree with registry.
+	FName FixtureId;
 	const FName Arms[] = {
 		TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01"),
 		TEXT("Weapon_ThrowingKnife_01") };
 	for (const FName Id : Arms)
 	{
-		Old->ItemDefinitionId = Id;
+		FixtureId = Id;
 		for (const int32 Level : {1, 20})
 		{
 			FGridResolvedItem Canonical;
@@ -70,15 +65,13 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 			FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 				Registry.Get(), Id, 20).bResolved);
 	}
-	Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-	Old->DefaultWeaponItemLevel = 0;
+	FixtureId = TEXT("Weapon_RoundShield_01");
 	TestFalse(TEXT("Invalid authored default N0 rejected, no forced N1"),
 		FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-			Registry.Get(), Old->ItemDefinitionId, 0).bResolved);
-	Old->DefaultWeaponItemLevel = 7;
+			Registry.Get(), FixtureId, 0).bResolved);
 	TestFalse(TEXT("Known ARM invalid N21 has no legacy fallback"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-			Registry.Get(), Old->ItemDefinitionId, 21).bResolved);
+			Registry.Get(), FixtureId, 21).bResolved);
 	// A registered ItemId does not borrow the obsolete definition ID.
 	FGridResolvedItem RealGreatAxe;
 	if (!TestTrue(TEXT("Real N7 great axe in canonical catalogue"),
@@ -95,41 +88,37 @@ bool FGridClean063AJWorldItemLevels::RunTest(const FString&)
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
 			Registry.Get(), TEXT("AJ_UnregisteredOther"), 0).bResolved);
 
-	Old->ItemDefinitionId = TEXT("Item_Arrows_01");
-	Old->bUseWeaponCatalogue = true; // Misleading historic flag must be ignored.
+	FixtureId = TEXT("Item_Arrows_01");
 	FGridResolvedItem Arrows;
 	if (!TestTrue(TEXT("Real unlevelled arrows N0 resolve"),
-		Registry->ResolveItem(Old->ItemDefinitionId, 0, Arrows))) return false;
+		Registry->ResolveItem(FixtureId, 0, Arrows))) return false;
 	const auto PlacedAmmo = FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-		Registry.Get(), Old->ItemDefinitionId, 0);
+		Registry.Get(), FixtureId, 0);
 	const auto DroppedAmmo = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-		Registry.Get(), Old->ItemDefinitionId, 0);
+		Registry.Get(), FixtureId, 0);
 	TestTrue(TEXT("New arrow placement remains N0"), PlacedAmmo.bResolved && PlacedAmmo.FixedItemLevel == 0);
 	TestTrue(TEXT("Existing arrow drop remains N0"), DroppedAmmo.bResolved && DroppedAmmo.FixedItemLevel == 0);
 	TestTrue(TEXT("Arrow unit mass from ItemSystem"), FMath::IsNearlyEqual(DroppedAmmo.UnitWeightKg, Arrows.WeightKg));
 	TestFalse(TEXT("Canonical ammo cannot be assigned N1 in placement"),
 		FGridWorldItemLevelReadModel::ResolveAuthoredPlacement(
-			Registry.Get(), Old->ItemDefinitionId, 1).bResolved);
+			Registry.Get(), FixtureId, 1).bResolved);
 	TestFalse(TEXT("Canonical ammo cannot be assigned N20 in world drop"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-			Registry.Get(), Old->ItemDefinitionId, 20).bResolved);
+			Registry.Get(), FixtureId, 20).bResolved);
 
-	Old->ItemDefinitionId = TEXT("LegacyWorld_AJ");
-	Old->bUseWeaponCatalogue = false;
-	Old->Weight = 2.5f;
+	FixtureId = TEXT("LegacyWorld_AJ");
 	const auto Legacy = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-		Registry.Get(), Old->ItemDefinitionId, 0);
+		Registry.Get(), FixtureId, 0);
 	TestFalse(TEXT("Configured registry refuses unknown physical world item"), Legacy.bResolved);
 	TestFalse(TEXT("Nonregistered item is not labelled canonical"), Legacy.bRegisteredIdentity);
 	TestEqual(TEXT("Rejected world item exposes no legacy weight"), Legacy.UnitWeightKg, 0.f);
 	const auto FixtureOnly = FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-		nullptr, Old->ItemDefinitionId, 0);
+		nullptr, FixtureId, 0);
 	TestTrue(TEXT("Registry-less placement cannot resolve weight"),
 		!FixtureOnly.bResolved && !FixtureOnly.bRegisteredIdentity && FixtureOnly.UnitWeightKg == 0.f);
 	TestFalse(TEXT("Unknown non-levelled definition does not invent N9"),
 		FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-			Registry.Get(), Old->ItemDefinitionId, -1).bResolved);
-	TestEqual(TEXT("Default authoring level never mutated"), Old->DefaultWeaponItemLevel, 7);
+			Registry.Get(), FixtureId, -1).bResolved);
 	return true;
 }
 

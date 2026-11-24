@@ -1,7 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "UObject/StrongObjectPtr.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062HandActionSeparationTest,
 	"Grimrock.RPG.ARM.CLEAN06_2.Semantics.HandActionSeparation",
@@ -9,41 +8,29 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean062HandActionSeparationTest,
 
 bool FGridClean062HandActionSeparationTest::RunTest(const FString&)
 {
-	TStrongObjectPtr<UGridItemDefinitionAsset> Item(
-		NewObject<UGridItemDefinitionAsset>(GetTransientPackage()));
-	Item->ItemDefinitionId = TEXT("TestHandActionSeparation");
-	Item->HandUsage = EGridItemHandUsage::Auto;
-	TestEqual(TEXT("Auto without authored hands is not held"),
-		Item->GetEffectiveHandUsage(), EGridItemHandUsage::NotHandHeld);
-	TestFalse(TEXT("No implicit main-hand equip"), Item->CanEquipToSlot(EGridEquipmentSlot::MainHand));
+	FGridCanonicalRegistryFixture Fixture;
+	if (!TestTrue(TEXT("Production item system registers"), Fixture.bReady)) return false;
+	FGridResolvedItem Sword, Bow, Shield, Stone;
+	if (!TestTrue(TEXT("Real hand and action policies resolve"),
+		Fixture.Resolve(TEXT("Weapon_StraightSword_01"), 1, Sword) &&
+		Fixture.Resolve(TEXT("Weapon_ShortBow_01"), 1, Bow) &&
+		Fixture.Resolve(TEXT("Weapon_RoundShield_01"), 1, Shield) &&
+		Fixture.Resolve(TEXT("Stone"), 0, Stone))) return false;
 
-	Item->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	TestEqual(TEXT("Auto with one authored hand becomes one handed"),
-		Item->GetEffectiveHandUsage(), EGridItemHandUsage::OneHanded);
-	TestTrue(TEXT("One handed equip may widen to offhand"),
-		Item->CanEquipToSlot(EGridEquipmentSlot::OffHand));
-	TestFalse(TEXT("Widened equip does not grant an offhand attack"),
-		Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand));
-	TestFalse(TEXT("An equipped item without an attack action cannot attack"),
-		Item->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-
-	Item->HandUsage = EGridItemHandUsage::TwoHanded;
-	TestTrue(TEXT("Two handed equip accepts offhand before inventory normalization"),
-		Item->CanEquipToSlot(EGridEquipmentSlot::OffHand));
-	TestFalse(TEXT("Two handed equip alone does not create an attack"),
-		Item->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand));
-
-	Item->HandUsage = EGridItemHandUsage::NotHandHeld;
-	TestFalse(TEXT("NotHandHeld does not implicitly allow offhand"),
-		Item->CanEquipToSlot(EGridEquipmentSlot::OffHand));
-
-	Item->bUseWeaponCatalogue = false;
-	Item->bCombatThrowWeapon = true;
-	TestTrue(TEXT("Legacy combat throw opt-in is independent of ARM catalogue"),
-		Item->IsCombatThrowable());
-	FGridCombatActionDefinition InventoryAction;
-	TestFalse(TEXT("Throw flag without a local attack does not manufacture a QuickItem"),
-		Item->BuildInventoryCombatActionDefinition(InventoryAction));
-	return true;
+	TestTrue(TEXT("Sword can occupy MainHand"), Sword.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Bow needs two hands"), Bow.Weapon.HandPolicy == EGridHandPolicy::TwoHanded);
+	TestFalse(TEXT("Shield does not implicitly occupy MainHand"), Shield.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
+	TestTrue(TEXT("Equipping a shield does not create an attack"), Shield.AvailableActions.IsEmpty());
+	TestTrue(TEXT("A plain stone has no authored offensive action"), Stone.AvailableActions.IsEmpty());
+	FGridResolvedBoundAction Attack;
+	if (!TestTrue(TEXT("Sword has an explicit primary action"), !Sword.AvailableActions.IsEmpty())) return false;
+	const FName ActionId = Sword.AvailableActions[0].ActionId;
+	TestTrue(TEXT("Correct hand grants the sword attack"),
+		Fixture.Registry->ResolveBoundAttackForHand(Sword.ItemId, 1, ActionId, EGridEquipmentSlot::MainHand, Attack));
+	TestFalse(TEXT("Unequipped slots cannot grant the attack"),
+		Fixture.Registry->ResolveBoundAttackForHand(Sword.ItemId, 1, ActionId, EGridEquipmentSlot::Head, Attack));
+	TestFalse(TEXT("Physical throwing does not borrow a weapon action"),
+		Fixture.Registry->ResolveBoundAction(Stone.ItemId, 0, ActionId, Attack));
+	return !HasAnyErrors();
 }
 #endif

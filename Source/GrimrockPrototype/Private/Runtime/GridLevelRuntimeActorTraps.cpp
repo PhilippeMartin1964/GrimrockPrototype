@@ -9,7 +9,6 @@
 #include "Runtime/GridDungeonTrapRewardRules.h"
 #include "RPG/RPGSkillCheckService.h"
 #include "RPG/RPGSkillService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "GridExplorationItemReadModel.h"
 #include "Runtime/GrimrockPartyPawn.h"

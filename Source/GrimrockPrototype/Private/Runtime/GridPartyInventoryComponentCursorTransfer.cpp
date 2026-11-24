@@ -6,7 +6,6 @@
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridInventory, Log, All);
 

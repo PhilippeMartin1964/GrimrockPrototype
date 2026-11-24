@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.h"
 #include "GridLogicTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemCategory.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "GridTypes.generated.h"
 

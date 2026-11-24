@@ -11,7 +11,6 @@
 class AGridLevelRuntimeActor;
 class UGridObjectPaletteAsset;
 class UGridWorldObjectDefinitionAsset;
-class UGridItemDefinitionAsset;
 class UGameInstance;
 class UGridItemSubsystem;
 class UGridReadableContentAsset;

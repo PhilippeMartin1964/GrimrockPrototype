@@ -5,7 +5,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Core/GridLevelAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -179,11 +178,10 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
         {return false;}
 
     // Canonical ammunition never borrows obsolete old hand policy.
-    UGridItemDefinitionAsset* OldAmmo = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    OldAmmo->ItemDefinitionId = TEXT("Item_Arrows_01");
-    OldAmmo->HandUsage = EGridItemHandUsage::OneHanded;
+    FName AmmoId;
+    AmmoId = TEXT("Item_Arrows_01");
     FGridItemInstance Ammo = ARMCLEAN064X17::MakeItem(
-        OldAmmo->ItemDefinitionId, 0, Character.CharacterId);
+        AmmoId, 0, Character.CharacterId);
     auto AmmoSlots = FGridEquipmentSlots::Resolve(
         F.Registry, Ammo);
     if (!TestTrue(TEXT("Canonical ammo has no equip actions"),

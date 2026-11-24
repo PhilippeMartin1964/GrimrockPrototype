@@ -7,7 +7,6 @@
 #include "EngineUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridItemCatalogues.h"

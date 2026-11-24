@@ -17,7 +17,6 @@
 #include "Save/GrimrockPartySaveGame.h"
 #include "Engine/World.h"
 #include "Runtime/GridActivationComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPitTrapdoorActor.h"
 #include "Runtime/GrimrockPartyPawn.h"

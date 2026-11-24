@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemCategory.h"
 #include "GridInventoryUiTypes.generated.h"
 
 UENUM(BlueprintType)

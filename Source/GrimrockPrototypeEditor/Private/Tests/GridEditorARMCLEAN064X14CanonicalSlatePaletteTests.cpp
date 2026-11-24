@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Core/GridObjectPaletteAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"

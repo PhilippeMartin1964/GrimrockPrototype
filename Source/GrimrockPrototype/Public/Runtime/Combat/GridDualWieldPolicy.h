@@ -1,7 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/GridInventoryTypes.h"
 
 class UGridItemSubsystem;
 

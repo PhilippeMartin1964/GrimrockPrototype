@@ -12,7 +12,6 @@
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "UObject/UnrealType.h"
 
@@ -85,19 +84,15 @@ bool FGridWorldObjectPaletteDisplayNameAuthorityTest::RunTest(const FString& Par
 	WorldObjectDefinition->DisplayName = FText::GetEmpty();
 	TestEqual(TEXT("World-object display name falls back to DefinitionId"), WorldObjectEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Door_Test")));
 
-	UGridItemDefinitionAsset* ItemDefinition = NewObject<UGridItemDefinitionAsset>();
-	ItemDefinition->ItemDefinitionId = TEXT("Item_Test");
-	ItemDefinition->DisplayName = FText::FromString(TEXT("Item Alpha"));
+	const FName ItemId(TEXT("Item_Test"));
 
 	FGridObjectPaletteEntry ItemEntry;
 	ItemEntry.EntryId = TEXT("Item_Entry");
-	ItemEntry.ItemId = ItemDefinition->ItemDefinitionId;
+	ItemEntry.ItemId = ItemId;
 	TestEqual(TEXT("Direct-item context-free name is stable ID"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item_Test")));
 
-	ItemDefinition->DisplayName = FText::FromString(TEXT("Item Beta"));
 	TestEqual(TEXT("Legacy label changes cannot affect direct entry"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item_Test")));
 
-	ItemDefinition->DisplayName = FText::GetEmpty();
 	TestEqual(TEXT("Direct-item display name falls back to ItemDefinitionId"), ItemEntry.GetEffectiveDisplayName().ToString(), FString(TEXT("Item_Test")));
 
 	const UGridObjectPaletteAsset* ProductionPalette = LoadObject<UGridObjectPaletteAsset>(
@@ -190,8 +185,8 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 			auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
 			Definition->ItemId = ItemId;
 			Definition->DisplayName = FText::FromString(TEXT("Blue Gem"));
-			Definition->WorldMesh = WorldMesh;
 			Definition->Icon = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture"));
+			Definition->WorldMesh = WorldMesh;
 			Root.ItemDefinitions.Add(Definition);
 		})))
 	{
@@ -258,9 +253,7 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("CopperKey");
-	Definition->DisplayName = FText::FromString(TEXT("Copper Key"));
+	const FName ItemId(TEXT("CopperKey"));
 
 	UGridWorldObjectDefinitionAsset* LegacyDefinition = NewObject<UGridWorldObjectDefinitionAsset>();
 	LegacyDefinition->DefinitionId = TEXT("Item_CopperKey_Legacy");
@@ -268,7 +261,7 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("CopperKey");
-	Entry.ItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = ItemId;
 	Entry.DefaultWorldObjectDefinition = LegacyDefinition;
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
@@ -320,14 +313,14 @@ bool FGridWorldObjectMIG05PaletteAmbiguityTest::RunTest(const FString& Parameter
 	Runtime->LevelAsset = EmptyLevel;
 	FGridItemInstance Unknown;
 	Unknown.RuntimeObjectId = FGuid::NewGuid();
-	Unknown.ItemDefinitionId = Definition->ItemDefinitionId;
+	Unknown.ItemDefinitionId = ItemId;
 	Unknown.Quantity = 1;
 	Unknown.ItemLevel = 0;
 	TestFalse(TEXT("Runtime cannot drop an item through WorldObjectDefinition alone"),
 		Runtime->TryDropItemInstanceAtCell(Unknown, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
 	LegacyDefinition->SupportedType = EGridLevelObjectType::Receptacle;
-	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemId = Definition->ItemDefinitionId;
+	LegacyDefinition->DefaultBehavior.Receptacle.InitialContent.AddDefaulted_GetRef().ItemId = ItemId;
 	TestFalse(TEXT("Receptacle canonical ID cannot supply an obsolete runtime item definition"),
 		Runtime->TryDropItemInstanceAtCell(Unknown, 0, 0, EGridEdge::None, FVector::ZeroVector));
 
@@ -343,14 +336,11 @@ bool FGridWorldObjectMIG05PaletteIconAuthorityTest::RunTest(const FString& Param
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("SilverKey");
-	Definition->DisplayName = FText::FromString(TEXT("Silver Key"));
-	Definition->Icon = NewObject<UTexture2D>(Definition);
+	const FName ItemId(TEXT("SilverKey"));
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("SilverKey");
-	Entry.ItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = ItemId;
 	Entry.Icon = NewObject<UTexture2D>();
 
 	TestFalse(TEXT("Direct collectible entry is invalid when Palette Icon duplicates ItemDefinition.Icon"), Entry.IsValidEntry());

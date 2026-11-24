@@ -8,7 +8,6 @@
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
 #include "RPG/RPGStartingEquipmentService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace ARMEMENT0192

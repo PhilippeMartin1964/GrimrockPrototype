@@ -10,8 +10,6 @@
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"

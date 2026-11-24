@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridEquipmentArmorReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -28,13 +27,11 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 		return false;
 	}
 
-	TStrongObjectPtr<UGridItemDefinitionAsset> ConflictingLegacy(NewObject<UGridItemDefinitionAsset>());
-	ConflictingLegacy->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-	ConflictingLegacy->EquipmentStatBonus.ArmorBonus = 999;
-	ConflictingLegacy->EquipmentStatBonus.MagicalArmorBonus = 999;
+	FName ShieldId;
+	ShieldId = TEXT("Weapon_RoundShield_01");
 	FGridItemInstance Shield;
 	Shield.RuntimeObjectId = FGuid::NewGuid();
-	Shield.ItemDefinitionId = ConflictingLegacy->ItemDefinitionId;
+	Shield.ItemDefinitionId = ShieldId;
 	Shield.Quantity = 1;
 	Shield.ItemLevel = 20;
 	Shield.AbsorbedEquipmentPhysicalArmor = 2;
@@ -96,13 +93,11 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 		Expected.NominalPhysicalArmor + 7);
 
 	// A configured canonical game refuses all obsolete armor from unknown IDs.
-	TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
-	Legacy->ItemDefinitionId = TEXT("LegacyArmor_063H");
-	Legacy->EquipmentStatBonus.ArmorBonus = 8;
-	Legacy->EquipmentStatBonus.MagicalArmorBonus = 6;
+	FName UnknownId;
+	UnknownId = TEXT("LegacyArmor_063H");
 	FGridItemInstance LegacyItem;
 	LegacyItem.RuntimeObjectId = FGuid::NewGuid();
-	LegacyItem.ItemDefinitionId = Legacy->ItemDefinitionId;
+	LegacyItem.ItemDefinitionId = UnknownId;
 	LegacyItem.Quantity = 1;
 	LegacyItem.AbsorbedEquipmentPhysicalArmor = 3;
 	LegacyItem.AbsorbedEquipmentMagicalArmor = 2;

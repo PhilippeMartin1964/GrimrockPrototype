@@ -8,7 +8,6 @@
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemActor.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridLightEmitterTypes.h"

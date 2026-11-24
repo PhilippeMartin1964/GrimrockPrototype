@@ -8,7 +8,6 @@
 #include "Runtime/GridPitTrapdoorActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Components/TextRenderComponent.h"

@@ -715,6 +715,7 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponArchetype
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Combat")
 	TArray<EGridEquipmentSlot> AttackSourceSlots;
 
+	static bool IsValidArchetypeId(FName Id);
 	bool TryResolve(int32 Level, FGridResolvedWeapon& Out) const;
 };
 

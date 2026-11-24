@@ -67,6 +67,13 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
     }
     const auto& ActivePackages = Audit.Report->GetArrayField(TEXT("active_packages"));
     TestEqual(TEXT("Root owns 53 distinct live packages"), ActivePackages.Num(), 53);
+    for (const auto& Package : ActivePackages)
+    {
+        TestFalse(TEXT("Active package remains active independently of its reflected class name"),
+            IsRetiredItemPackage(FName(*Package->AsString())));
+    }
+    TestTrue(TEXT("The exact old dagger package remains a retired source"),
+        IsRetiredItemPackage(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01")));
     const auto& Aliases = Audit.Report->GetArrayField(TEXT("active_compatibility_redirectors"));
     TestEqual(TEXT("All 53 former paths remain live compatibility aliases"), Aliases.Num(), 53);
     int32 RedirectedIds = 0;

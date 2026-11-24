@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridEquipmentPreviewItemReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -24,12 +23,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> ConflictingOld(NewObject<UGridItemDefinitionAsset>());
-	ConflictingOld->DisplayName = FText::FromString(TEXT("Wrong ancient item name"));
-	ConflictingOld->EquipmentStatBonus.ArmorBonus = 999;
-	ConflictingOld->EquipmentStatBonus.MagicalArmorBonus = 999;
-	ConflictingOld->EquipmentStatBonus.StrengthBonus = 7;
-	ConflictingOld->EquipmentResistanceBonus.FireResistance = 14;
+	FName FixtureId;
 	const FName Items[] = {
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01"),
 		TEXT("Weapon_StraightSword_01"), TEXT("Weapon_MainGauche_01")
@@ -37,7 +31,6 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Items)
 	{
-		ConflictingOld->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Canonical;
@@ -84,11 +77,10 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 				Invalid.DisplayName.ToString(), Id.ToString());
 		}
 	}
-	ConflictingOld->ItemDefinitionId = TEXT("LegacyPreview_AE");
-	ConflictingOld->EquipmentStatBonus.ArmorBonus = 4;
+	FixtureId = TEXT("LegacyPreview_AE");
 	FGridItemInstance Legacy;
 	Legacy.RuntimeObjectId = FGuid::NewGuid();
-	Legacy.ItemDefinitionId = ConflictingOld->ItemDefinitionId;
+	Legacy.ItemDefinitionId = FixtureId;
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	Legacy.AbsorbedEquipmentPhysicalArmor = 1;

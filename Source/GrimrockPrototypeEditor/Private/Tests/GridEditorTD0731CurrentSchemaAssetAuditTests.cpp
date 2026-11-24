@@ -14,7 +14,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
@@ -152,15 +152,6 @@ namespace GridTD0731SchemaAuditPrivate
 		AuditBehavior(AssetPath, TEXT("DefaultBehavior"), Definition.DefaultBehavior, Findings);
 	}
 
-	void AuditItemDefinition(const UGridItemDefinitionAsset& Item, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
-	{
-		if (!Item.HasValidCombatActions())
-		{
-			AddFinding(Findings, EGridTD0731FindingKind::Conflict, TEXT("ITEM.INVALID_COMBAT_ACTIONS"), AssetPath, TEXT("Equipment|CombatActions"),
-				TEXT("Item contains an invalid or duplicate CombatActions definition."));
-		}
-	}
-
 	void AuditMonsterDefinition(const UGridMonsterDefinitionAsset& Monster, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
 		for (int32 LootIndex = 0; LootIndex < Monster.LootTable.Num(); ++LootIndex)
@@ -182,10 +173,7 @@ namespace GridTD0731SchemaAuditPrivate
 		{
 			AuditDefinitionAsset(*Definition, AssetPath, Findings);
 		}
-		else if (const UGridItemDefinitionAsset* Item = Cast<UGridItemDefinitionAsset>(&DataAsset))
-		{
-			AuditItemDefinition(*Item, AssetPath, Findings);
-		}
+
 		else if (const UGridMonsterDefinitionAsset* Monster = Cast<UGridMonsterDefinitionAsset>(&DataAsset))
 		{
 			AuditMonsterDefinition(*Monster, AssetPath, Findings);

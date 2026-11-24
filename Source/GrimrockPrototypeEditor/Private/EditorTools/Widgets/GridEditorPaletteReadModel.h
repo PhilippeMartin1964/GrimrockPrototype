@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/GridObjectPaletteAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Editor-only, read-only projection from the same canonical registry used

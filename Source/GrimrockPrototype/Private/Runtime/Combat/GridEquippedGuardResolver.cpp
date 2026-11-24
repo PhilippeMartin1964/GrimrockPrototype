@@ -1,6 +1,5 @@
 #include "Runtime/Combat/GridEquippedGuardResolver.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"

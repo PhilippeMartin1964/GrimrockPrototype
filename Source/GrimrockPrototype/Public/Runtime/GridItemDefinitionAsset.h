@@ -6,6 +6,7 @@
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridItemCategory.h"
 #include "Runtime/GridLightEmitterTypes.h"
 #include "Runtime/GridItemVisualEffectsTypes.h"
 #include "GridItemDefinitionAsset.generated.h"
@@ -16,26 +17,6 @@ class UTexture2D;
 class UGridWeaponCatalogueAsset;
 class UGridWeaponVisualCatalogueAsset;
 struct FGridWeaponLevelProfile;
-
-UENUM(BlueprintType)
-enum class EGridItemType : uint8
-{
-	None,
-	Torch,
-	Weapon,
-	Shield,
-	Armor,
-	Jewelry,
-	Key,
-	Gem,
-	Potion,
-	Scroll,
-	Book,
-	Food,
-	Component,
-	Quest,
-	Misc
-};
 
 UENUM(BlueprintType)
 enum class EGridItemHandUsage : uint8

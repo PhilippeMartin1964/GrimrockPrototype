@@ -3,7 +3,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Core/GridLevelAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 

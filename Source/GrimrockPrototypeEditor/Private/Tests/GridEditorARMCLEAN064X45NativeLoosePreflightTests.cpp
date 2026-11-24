@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"

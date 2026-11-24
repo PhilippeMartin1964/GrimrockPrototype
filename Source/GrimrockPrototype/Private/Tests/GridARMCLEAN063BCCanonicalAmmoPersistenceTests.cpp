@@ -10,7 +10,6 @@
 #include "EngineUtils.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"

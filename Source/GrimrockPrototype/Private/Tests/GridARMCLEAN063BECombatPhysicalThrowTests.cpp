@@ -1,7 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/Combat/GridCombatPhysicalThrowSourceReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -80,16 +79,11 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
                 NoLegacy.bRegisteredIdentity && NoLegacy.bResolved &&
                 NoLegacy.bLaunchPhysicalProjectile && !NoLegacy.bRejectAction);
 
-            UGridItemDefinitionAsset* Old = NewObject<UGridItemDefinitionAsset>(GI.Get());
-            Old->ItemDefinitionId = Id;
-            Old->bCombatThrowWeapon = false;
-            Old->ThrowSpeed = 0.f;
             const auto Contradictory = FGridCombatPhysicalThrowSourceReadModel::Resolve(
                 Registry.Get(), Item, 1, Bound.Action.bRangedAttack);
             TestTrue(TEXT("Old bCombatThrowWeapon=false cannot stop a canonical combat throw"),
                 Contradictory.bLaunchPhysicalProjectile && !Contradictory.bRejectAction);
 
-            Old->bCombatThrowWeapon = true;
             const auto NoCost = FGridCombatPhysicalThrowSourceReadModel::Resolve(
                 Registry.Get(), Item, 0, true);
             TestTrue(TEXT("No authored source cost cannot permit a free ranged projectile"),
@@ -114,22 +108,21 @@ bool FGridBECombatThrowInvalidKnown::RunTest(const FString&)
     TStrongObjectPtr<UGameInstance> GI;
     TStrongObjectPtr<UGridItemSubsystem> Registry;
     if (!ARMCLEAN063BE::Prepare(*this, Root, GI, Registry)) return false;
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-    Old->ItemDefinitionId = TEXT("Weapon_ThrowingKnife_01");
-    Old->bCombatThrowWeapon = true;
+    FName FixtureId;
+    FixtureId = TEXT("Weapon_ThrowingKnife_01");
     for (int32 Level : {0, 21})
     {
         const auto Bad = FGridCombatPhysicalThrowSourceReadModel::Resolve(
             Registry.Get(),
-            ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, Level), 1, true);
+            ARMCLEAN063BE::MakeItem(FixtureId, Level), 1, true);
         TestTrue(TEXT("Known invalid ARM fails closed without old throw"),
             Bad.bRegisteredIdentity && Bad.bRejectAction &&
             !Bad.bLaunchPhysicalProjectile);
     }
-    Old->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
+    FixtureId = TEXT("Weapon_StraightSword_01");
     const auto Sword = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(),
-        ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 1), 0, false);
+        ARMCLEAN063BE::MakeItem(FixtureId, 1), 0, false);
     TestTrue(TEXT("Old flag cannot create projectile for canonical straight sword"),
         Sword.bRegisteredIdentity && Sword.bResolved &&
         !Sword.bLaunchPhysicalProjectile && !Sword.bRejectAction);
@@ -146,10 +139,9 @@ bool FGridBECombatThrowLegacy::RunTest(const FString&)
     TStrongObjectPtr<UGameInstance> GI;
     TStrongObjectPtr<UGridItemSubsystem> Registry;
     if (!ARMCLEAN063BE::Prepare(*this, Root, GI, Registry)) return false;
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-    Old->ItemDefinitionId = TEXT("BE_LegacyCombatThrow");
-    Old->bCombatThrowWeapon = true;
-    const FGridItemInstance Item = ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 0);
+    FName FixtureId;
+    FixtureId = TEXT("BE_LegacyCombatThrow");
+    const FGridItemInstance Item = ARMCLEAN063BE::MakeItem(FixtureId, 0);
     const auto UnknownConfigured = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), Item, 0, false);
     TestTrue(TEXT("Configured registry never borrows unknown bCombatThrowWeapon"),
@@ -163,7 +155,6 @@ bool FGridBECombatThrowLegacy::RunTest(const FString&)
     const auto Missing = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), Item, 0, true);
     TestFalse(TEXT("Missing old unregistered definition cannot launch"), Missing.bLaunchPhysicalProjectile);
-    Old->ItemDefinitionId = TEXT("BE_DifferentIdentity");
     const auto Mismatched = FGridCombatPhysicalThrowSourceReadModel::Resolve(
         Registry.Get(), Item, 0, false);
     TestFalse(TEXT("Mismatched legacy source never launches"), Mismatched.bLaunchPhysicalProjectile);

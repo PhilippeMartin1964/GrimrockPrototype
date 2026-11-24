@@ -6,7 +6,6 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -78,114 +77,39 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
 
     const auto Check = [this, &Definitions, &Registry, &CanonicalCount,
         &ArmCount, &InheritedArmCount, &NonArmCount](
-            const FName AuthoredItemId, const UGridItemDefinitionAsset* Source,
-            int32 AuthoredLevel, int32 Quantity, bool bAllowPointerless) -> bool
+            const FName AuthoredItemId,
+            int32 AuthoredLevel, int32 Quantity) -> bool
     {
-        // X.58: loose, palette and initial-content rows may be pointerless.
-        if (!IsValid(Source) && bAllowPointerless)
-        {
-            const UGridCanonicalItemDefinitionAsset* const* Found =
-                Definitions.Find(AuthoredItemId);
-            if (AuthoredItemId.IsNone() || !Found || !IsValid(*Found) ||
-                Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
-            {
-                return false;
-            }
-            const UGridArmamentDefinitionAsset* Arm =
-                Cast<UGridArmamentDefinitionAsset>(*Found);
-            if (Arm)
-            {
-                if (AuthoredLevel == 0 || Arm->ArchetypeId.IsNone()) { return false; }
-                ++ArmCount;
-            }
-            else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) &&
-                AuthoredLevel == 0)
-            {
-                ++NonArmCount;
-            }
-            else
-            {
-                return false;
-            }
-            FGridResolvedItem Physical;
-            if (!Registry->ResolveItem(AuthoredItemId, AuthoredLevel, Physical) ||
-                !Physical.IsValid() || Physical.ItemId != AuthoredItemId ||
-                Physical.ItemLevel != AuthoredLevel ||
-                Physical.bIsArmament != (Arm != nullptr) ||
-                (Arm && Physical.ArchetypeId != Arm->ArchetypeId))
-            {
-                return false;
-            }
-            ++CanonicalCount;
-            return true;
-        }
-        if (!IsValid(Source) || AuthoredItemId.IsNone() ||
-            Source->ItemDefinitionId != AuthoredItemId ||
-            Quantity < 1)
-        {
-            AddError(TEXT("Authored ItemId, historical source or quantity is invalid."));
-            return false;
-        }
-
         const UGridCanonicalItemDefinitionAsset* const* Found =
             Definitions.Find(AuthoredItemId);
-        if (!Found || !IsValid(*Found))
+        if (AuthoredItemId.IsNone() || !Found || !IsValid(*Found) ||
+            Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
         {
-            AddError(TEXT("An authored ItemId does not exist in the native registry."));
             return false;
         }
-
-        int32 EffectiveLevel = INDEX_NONE;
-        bool bInherited = false;
-        if (!FGridArmClean064X3AuthoredLevelMaterializer::TryResolve(
-            *Found, AuthoredLevel, Source->DefaultWeaponItemLevel,
-            EffectiveLevel, bInherited))
-        {
-            AddError(TEXT("Real authored source cannot yield a physical ItemLevel."));
-            return false;
-        }
-
         const UGridArmamentDefinitionAsset* Arm =
             Cast<UGridArmamentDefinitionAsset>(*Found);
         if (Arm)
         {
-            if (Arm->ArchetypeId.IsNone() ||
-                Arm->ArchetypeId != Source->WeaponArchetypeId ||
-                EffectiveLevel < 1 || EffectiveLevel > 20 ||
-                bInherited != (AuthoredLevel == 0) ||
-                (bInherited && EffectiveLevel != Source->DefaultWeaponItemLevel) ||
-                (!bInherited && EffectiveLevel != AuthoredLevel))
-            {
-                AddError(TEXT("Physical ARM level or real weapon source differs."));
-                return false;
-            }
+            if (AuthoredLevel == 0 || Arm->ArchetypeId.IsNone()) { return false; }
             ++ArmCount;
-            if (bInherited)
-            {
-                ++InheritedArmCount;
-            }
         }
-        else if (!Cast<UGridNonArmamentDefinitionAsset>(*Found) ||
-            !Source->WeaponArchetypeId.IsNone() ||
-            AuthoredLevel != 0 || EffectiveLevel != 0 || bInherited)
-        {
-            AddError(TEXT("Unlevelled canonical non-ARM must remain physical N0."));
-            return false;
-        }
-        else
+        else if (Cast<UGridNonArmamentDefinitionAsset>(*Found) &&
+            AuthoredLevel == 0)
         {
             ++NonArmCount;
         }
-
-        FGridResolvedItem Resolved;
-        if (!Registry->ResolveItem(AuthoredItemId, EffectiveLevel, Resolved) ||
-            !Resolved.IsValid() ||
-            Resolved.ItemId != AuthoredItemId ||
-            Resolved.ItemLevel != EffectiveLevel ||
-            Resolved.bIsArmament != (Arm != nullptr) ||
-            (Arm && Resolved.ArchetypeId != Arm->ArchetypeId))
+        else
         {
-            AddError(TEXT("Resulting physical level cannot resolve through ItemSystem."));
+            return false;
+        }
+        FGridResolvedItem Physical;
+        if (!Registry->ResolveItem(AuthoredItemId, AuthoredLevel, Physical) ||
+            !Physical.IsValid() || Physical.ItemId != AuthoredItemId ||
+            Physical.ItemLevel != AuthoredLevel ||
+            Physical.bIsArmament != (Arm != nullptr) ||
+            (Arm && Physical.ArchetypeId != Arm->ArchetypeId))
+        {
             return false;
         }
         ++CanonicalCount;
@@ -217,8 +141,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         {
             if (!Placement.InstanceId.IsValid() ||
                 PhysicalGuids.Contains(Placement.InstanceId) ||
-                !Check(Placement.ItemId, nullptr,
-                    Placement.ItemLevel, Placement.Quantity, true))
+                !Check(Placement.ItemId,
+                    Placement.ItemLevel, Placement.Quantity))
             {
                 AddError(TEXT("Invalid source, duplicate GUID or level in real loose placement."));
                 return false;
@@ -230,8 +154,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         for (const FGridItemSpawnInstance& Spawn : Level->ItemSpawns)
         {
             if (!Spawn.SpawnId.IsValid() ||
-                !Check(Spawn.ItemId, nullptr,
-                    Spawn.ItemLevel, Spawn.Quantity, true))
+                !Check(Spawn.ItemId,
+                    Spawn.ItemLevel, Spawn.Quantity))
             {
                 AddError(TEXT("Invalid source identity or level in authored spawn."));
                 return false;
@@ -244,8 +168,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             for (const FGridReceptacleInitialItemConfig& Initial :
                 World.InstanceConfig.ReceptacleInitialContent)
             {
-                if (!Check(Initial.ItemId, nullptr,
-                    Initial.ItemLevel, Initial.Quantity, true))
+                if (!Check(Initial.ItemId,
+                    Initial.ItemLevel, Initial.Quantity))
                 {
                     AddError(TEXT("Invalid initial receptacle physical level."));
                     return false;
@@ -277,8 +201,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             continue;
         }
         // X.5 materialized the physical default in the palette.
-        if (!Check(Entry.ItemId, nullptr,
-                Entry.DefaultItemLevel, 1, true))
+        if (!Check(Entry.ItemId,
+                Entry.DefaultItemLevel, 1))
         {
             AddError(TEXT("Physical level for a direct palette item is unresolved."));
             return false;

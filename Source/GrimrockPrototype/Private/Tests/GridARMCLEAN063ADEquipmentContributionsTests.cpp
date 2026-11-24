@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
 #include "../Runtime/GridEquipmentContributionReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -25,19 +24,12 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 		return false;
 	}
 
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->EquipmentStatBonus.StrengthBonus = 3; // Deliberately conflicting stale data; canonical ARM must ignore it.
-	Old->EquipmentStatBonus.CarryWeightBonus = 2.5f;
-	Old->EquipmentStatBonus.ArmorBonus = 999;
-	Old->EquipmentStatBonus.MagicalArmorBonus = 999;
-	Old->EquipmentResistanceBonus.FireResistance = 12;
-	Old->EquipmentResistanceBonus.IceResistance = 7;
+	FName FixtureId;
 	const FName Ids[] = {TEXT("Weapon_MainGauche_01"), TEXT("Weapon_RoundShield_01"),
 		TEXT("Weapon_HolyAegis_01"), TEXT("Weapon_StraightSword_01")};
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Ids)
 	{
-		Old->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridItemInstance Equipped;
@@ -72,14 +64,13 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 			TestTrue(TEXT("Registered ARM ignores old resistance"), Resistances.IsEmpty());
 			TestTrue(TEXT("Pointerless ARM has no resistance contribution"),
 				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped).IsEmpty());
-			Old->ItemDefinitionId = TEXT("Conflicting_ARM_5D5");
+			FixtureId = TEXT("Conflicting_ARM_5D5");
 			const auto WrongIdentity = FGridEquipmentContributionReadModel::ResolveStatBonuses(
 				Registry.Get(), Equipped);
 			TestTrue(TEXT("Wrong historical identity cannot affect registered ARM"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&WrongIdentity, &Expected, 0));
 			TestTrue(TEXT("Wrong identity cannot affect resistance"),
 				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped).IsEmpty());
-			Old->ItemDefinitionId = Id;
 			for (const int32 InvalidLevel : {0, 21})
 			{
 				Equipped.ItemLevel = InvalidLevel;
@@ -108,12 +99,10 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 
 	// Unregistered identities are invalid in a configured canonical game.
 	// Historical bonus and resistance characterization remains registry-less only.
-	Old->ItemDefinitionId = TEXT("LegacyStats_063AD");
-	Old->EquipmentStatBonus.ArmorBonus = 7;
-	Old->EquipmentStatBonus.MagicalArmorBonus = 4;
+	FixtureId = TEXT("LegacyStats_063AD");
 	FGridItemInstance Legacy;
 	Legacy.RuntimeObjectId = FGuid::NewGuid();
-	Legacy.ItemDefinitionId = Old->ItemDefinitionId;
+	Legacy.ItemDefinitionId = FixtureId;
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	const FGridEquipmentStatBonus Refused =
@@ -153,10 +142,8 @@ bool FGridClean065D4NonArmContributions::RunTest(const FString&)
 		const auto* Gear = Cast<UGridOtherEquipmentDefinitionAsset>(Entry.Get());
 		if (!Gear || Gear->GetAvailableSlots().IsEmpty()) continue;
 		++Count;
-		TStrongObjectPtr<UGridItemDefinitionAsset> Stale(NewObject<UGridItemDefinitionAsset>());
-		Stale->ItemDefinitionId = Gear->ItemId;
-		Stale->EquipmentStatBonus.StrengthBonus = Gear->Bonuses.StrengthBonus + 100;
-		Stale->EquipmentResistanceBonus.FireResistance = Gear->Resistances.FireResistance + 100;
+		FName UnusedId;
+		UnusedId = Gear->ItemId;
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = Gear->ItemId;

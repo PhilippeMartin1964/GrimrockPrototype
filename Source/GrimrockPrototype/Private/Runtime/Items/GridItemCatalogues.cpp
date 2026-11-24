@@ -10,24 +10,6 @@ namespace
 		return false;
 	}
 
-	bool IsArmId(FName Id)
-	{
-		const FString Value = Id.ToString();
-		if (Value.Len() != 6 || !Value.StartsWith(TEXT("ARM")))
-		{
-			return false;
-		}
-		for (int32 Index = 3; Index < 6; ++Index)
-		{
-			if (Value[Index] < TCHAR('0') || Value[Index] > TCHAR('9'))
-			{
-				return false;
-			}
-		}
-		const int32 Number = FCString::Atoi(*Value.Mid(3));
-		return Number >= 1 && Number <= 82;
-	}
-
 	bool ValidateBindings(const TArray<FGridItemActionBinding>& Bindings,
 		const UGridActionCatalogueAsset* Actions,
 		const UGridActionPresentationCatalogueAsset* Presentations, const FString& Owner,
@@ -227,6 +209,24 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 	return bValid;
 }
 
+bool FGridWeaponArchetype::IsValidArchetypeId(FName Id)
+{
+	const FString Value = Id.ToString();
+	if (Value.Len() != 6 || !Value.StartsWith(TEXT("ARM")))
+	{
+		return false;
+	}
+	for (int32 Index = 3; Index < 6; ++Index)
+	{
+		if (Value[Index] < TCHAR('0') || Value[Index] > TCHAR('9'))
+		{
+			return false;
+		}
+	}
+	const int32 Number = FCString::Atoi(*Value.Mid(3));
+	return Number >= 1 && Number <= 82;
+}
+
 const FGridWeaponVisual* UGridCanonicalWeaponVisualCatalogueAsset::FindForArchetype(
 	FName ArchetypeId) const
 {
@@ -274,7 +274,7 @@ bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors)
 	TSet<FName> SeenBindings;
 	for (const FGridWeaponVisualBinding& Binding : ArchetypeBindings)
 	{
-		if (!IsArmId(Binding.ArchetypeId) || SeenBindings.Contains(Binding.ArchetypeId) ||
+		if (!FGridWeaponArchetype::IsValidArchetypeId(Binding.ArchetypeId) || SeenBindings.Contains(Binding.ArchetypeId) ||
 			!SeenProfiles.Contains(Binding.VisualId))
 		{
 			bValid = AddError(Errors, FString::Printf(TEXT("Visual binding invalid: %s"),
@@ -341,7 +341,7 @@ bool FGridArmorReserveResolver::TryCompute(
 bool FGridWeaponArchetype::TryResolve(int32 Level, FGridResolvedWeapon& Out) const
 {
 	Out = FGridResolvedWeapon();
-	if (Level < 1 || Level > 20 || !IsArmId(ArchetypeId) ||
+	if (Level < 1 || Level > 20 || !FGridWeaponArchetype::IsValidArchetypeId(ArchetypeId) ||
 		!DiceCountGrowth.IsValid() || !DiceSidesGrowth.IsValid() || !FlatBonusGrowth.IsValid() ||
 		!PhysicalArmorGrowth.IsValid() || !MagicalArmorGrowth.IsValid())
 	{
@@ -442,7 +442,7 @@ bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 	TSet<FName> Seen;
 	for (const FGridWeaponArchetype& Archetype : Archetypes)
 	{
-		if (!IsArmId(Archetype.ArchetypeId) || Seen.Contains(Archetype.ArchetypeId))
+		if (!FGridWeaponArchetype::IsValidArchetypeId(Archetype.ArchetypeId) || Seen.Contains(Archetype.ArchetypeId))
 		{
 			bValid = AddError(Errors, TEXT("Weapon catalogue: missing/invalid/duplicate ArchetypeId"));
 			continue;

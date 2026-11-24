@@ -5,7 +5,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -184,12 +183,8 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestEqual(TEXT("Second stack now contains four"), Character.InventorySlots[1].Item.Quantity, 4);
 
     // Contradicting legacy capacity MUST NOT change registered ammo policy.
-    UGridItemDefinitionAsset* WrongOld = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
-    WrongOld->ItemDefinitionId = AmmoId;
-    WrongOld->DisplayName = FText::FromString(TEXT("Old wrong arrows"));
-    WrongOld->Weight = 1234.0f;
-    WrongOld->bStackable = false;
-    WrongOld->MaxStackSize = 1;
+    FName UnusedId;
+    UnusedId = AmmoId;
     FGridItemInstance Conflict = ARMCLEAN063AS::MakeItem(AmmoId, 0, 7);
     TestTrue(TEXT("Canonical materialization ignores old unstackable flag"),
         Fixture.Inventory->ApplyItemDefinitionToInstance(Conflict));
@@ -294,13 +289,9 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
 
     // An unknown item may not gain inventory capacity from an obsolete definition.
     Fixture.ClearSlots();
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(Fixture.Inventory);
-    Legacy->ItemDefinitionId = TEXT("ARM063AS_Unregistered_Stack");
-    Legacy->DisplayName = FText::FromString(TEXT("Old stack"));
-    Legacy->bStackable = true;
-    Legacy->MaxStackSize = 10;
-    Legacy->Weight = 1.5f;
-    FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(Legacy->ItemDefinitionId, 0, 13);
+    FName UnknownId;
+    UnknownId = TEXT("ARM063AS_Unregistered_Stack");
+    FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(UnknownId, 0, 13);
     const auto RefusedPolicy =
         FGridInventoryStackReadModel::Resolve(Fixture.Registry, OldStack);
     TestFalse(TEXT("Configured registry refuses unknown legacy stack capacity"), RefusedPolicy.bResolved);

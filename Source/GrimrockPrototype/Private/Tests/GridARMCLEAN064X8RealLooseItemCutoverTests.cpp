@@ -8,7 +8,6 @@
 #include "EngineUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"

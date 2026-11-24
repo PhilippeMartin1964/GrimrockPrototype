@@ -4,7 +4,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "EditorTools/GridEditorReceptacleRuleAuthoring.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"

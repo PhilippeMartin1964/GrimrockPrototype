@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/GameInstance.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/GridWeaponTooltipProjection.h"
 #include "UObject/StrongObjectPtr.h"
@@ -27,14 +26,13 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
     }
     // Deliberately omit the former per-weapon catalogue: canonical tooltip
     // projection must work even when old DA_Weapon N1-N20 profiles are absent.
-    TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
+    FName FixtureId;
     const FName Ids[] = { TEXT("Weapon_StraightSword_01"),
         TEXT("Weapon_ThrowingKnife_01"), TEXT("Weapon_RoundShield_01"),
         TEXT("Weapon_HolyAegis_01") };
     const int32 Levels[] = { 1, 20 };
     for (const FName Id : Ids)
     {
-        Old->ItemDefinitionId = Id;
         for (const int32 Level : Levels)
         {
             FGridResolvedItem Canonical;
@@ -107,10 +105,8 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
             TestTrue(TEXT("Both comparison sources can be pointerless"),
                 FGridWeaponTooltipProjection::BuildComparison( Item, Equipped, NoOldFacts, Registry.Get()));
             TestEqual(TEXT("Same comparison count"), NoOldFacts.Num(), Comparisons.Num());
-            Old->ItemDefinitionId = TEXT("WrongHistoricalIdentity");
             TestTrue(TEXT("Registered item ignores conflicting historical identity"),
                 FGridWeaponTooltipProjection::Build( Item, Pointerless, Registry.Get()));
-            Old->ItemDefinitionId = Id;
 
             Item.ItemLevel = 0;
             FGridWeaponTooltipPresentation Invalid;
@@ -119,10 +115,10 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
             TestFalse(TEXT("Registered ARM N0 has no profile"), Invalid.bHasProfile);
         }
     }
-    Old->ItemDefinitionId = TEXT("UnknownToolTip_063AA");
+    FixtureId = TEXT("UnknownToolTip_063AA");
     FGridItemInstance Unknown;
     Unknown.RuntimeObjectId = FGuid::NewGuid();
-    Unknown.ItemDefinitionId = Old->ItemDefinitionId;
+    Unknown.ItemDefinitionId = FixtureId;
     Unknown.ItemLevel = 1;
     Unknown.Quantity = 1;
     FGridWeaponTooltipPresentation Unregistered;

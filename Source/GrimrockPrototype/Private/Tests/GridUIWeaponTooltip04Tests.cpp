@@ -3,7 +3,6 @@
 #include "Misc/AutomationTest.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 #include "GridCanonicalWeightTestWorld.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridWeaponTooltipProjection.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -12,11 +11,11 @@
 
 namespace WeaponTooltipTests
 {
-    FGridItemInstance MakeItem(const UGridItemDefinitionAsset* Def, int32 Level)
+    FGridItemInstance MakeItem(FName ItemId, int32 Level)
     {
         FGridItemInstance Item;
         Item.RuntimeObjectId = FGuid::NewGuid();
-        Item.ItemDefinitionId = Def->ItemDefinitionId;
+        Item.ItemDefinitionId = ItemId;
         Item.ItemLevel = Level;
         Item.Quantity = 1;
         Item.OwnerType = EGridItemOwnerType::CharacterInventory;
@@ -149,12 +148,11 @@ bool FWeaponTooltipPassiveLegacyTest::RunTest(const FString&)
 
     // A deliberately unregistered legacy object is a negative characterization
     // fixture only. It is not an authorized production data source.
-    UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>();
-    Legacy->ItemDefinitionId = TEXT("Legacy_ItemWithoutCatalogue");
-    Legacy->DisplayName = FText::FromString(TEXT("Legacy item"));
+    FName FixtureId;
+    FixtureId = TEXT("Legacy_ItemWithoutCatalogue");
     FGridWeaponTooltipPresentation LegacyView;
     TestFalse(TEXT("Legacy is not retroactively migrated"),
-        FGridWeaponTooltipProjection::Build( WeaponTooltipTests::MakeItem(Legacy, 0), LegacyView));
+        FGridWeaponTooltipProjection::Build( WeaponTooltipTests::MakeItem(FixtureId, 0), LegacyView));
     TestFalse(TEXT("Legacy produces no new weapon profile"),
         LegacyView.bHasProfile);
 

@@ -4,7 +4,7 @@
 #include "RPG/RPGAlchemistAuthoring.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Tests/GridCanonicalRegistryFixture.h"
 #include "Runtime/Combat/GridCombatArmorEffectResolver.h"
 
 namespace RPG0396B2
@@ -19,10 +19,12 @@ namespace RPG0396B2
 		return Asset;
 	}
 
-	UGridItemDefinitionAsset* BuildItem(FName Id)
+	bool ReadAction(FName Id, FGridCombatActionDefinition& Out)
 	{
-		UGridItemDefinitionAsset* Item = NewObject<UGridItemDefinitionAsset>(GetTransientPackage());
-		return FRPGAlchemistAuthoring::ConfigureItem(*Item, Id) ? Item : nullptr;
+		FGridCanonicalRegistryFixture Fixture;
+		FGridResolvedItem Item;
+		return Fixture.bReady && Fixture.Resolve(Id, 0, Item) && Item.AvailableActions.Num() == 1 &&
+			Fixture.Registry->ResolveDetailedNonArmAction(Id, 0, Item.AvailableActions[0].ActionId, Out);
 	}
 }
 
@@ -45,9 +47,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396B2OilTest, "Grimrock.RPG.RPG03.9.6B2.Oi
 
 bool FRPG0396B2OilTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = RPG0396B2::BuildItem(TEXT("Item_Flask_Oil"));
 	FGridCombatActionDefinition A;
-	TestTrue(TEXT("Oil item builds"), Item && Item->BuildQuickItemCombatActionDefinition(A));
+	TestTrue(TEXT("Oil item builds"), RPG0396B2::ReadAction(TEXT("Item_Flask_Oil"), A));
 	TestTrue(TEXT("Oil is AP2 R4 Area1 and creates four-round +1 traversal Oil"), A.ActionPointCost == 2 &&
 		A.RangeCells == 4 && A.AreaRadiusCells == 1 && A.SurfaceEffects.Num() == 1 &&
 		A.SurfaceEffects[0].SurfaceType == EGridCombatSurfaceType::Oil &&
@@ -61,9 +62,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396B2AcidTest, "Grimrock.RPG.RPG03.9.6B2.A
 
 bool FRPG0396B2AcidTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = RPG0396B2::BuildItem(TEXT("Item_Flask_Acid"));
 	FGridCombatActionDefinition A;
-	TestTrue(TEXT("Acid Flask builds"), Item && Item->BuildQuickItemCombatActionDefinition(A));
+	TestTrue(TEXT("Acid Flask builds"), RPG0396B2::ReadAction(TEXT("Item_Flask_Acid"), A));
 	TestTrue(TEXT("Acid Flask is Hostile R4 AP2 CD1 Effect"), A.TargetingPolicy == EGridCombatTargetingPolicy::Hostile &&
 		A.ResolutionProfile == EGridCombatActionResolutionProfile::Effect &&
 		A.RangeCells == 4 && A.ActionPointCost == 2 && A.CooldownRounds == 1);
@@ -84,9 +84,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPG0396B2CloudTest, "Grimrock.RPG.RPG03.9.6B2.
 
 bool FRPG0396B2CloudTest::RunTest(const FString&)
 {
-	UGridItemDefinitionAsset* Item = RPG0396B2::BuildItem(TEXT("Item_Flask_CorrosiveCloud"));
 	FGridCombatActionDefinition A;
-	TestTrue(TEXT("Corrosive Cloud builds"), Item && Item->BuildQuickItemCombatActionDefinition(A));
+	TestTrue(TEXT("Corrosive Cloud builds"), RPG0396B2::ReadAction(TEXT("Item_Flask_CorrosiveCloud"), A));
 	TestTrue(TEXT("Cloud is AP3 R4 Area1 CD2 with 4 + Alchemy Poison impact"), A.ActionPointCost == 3 &&
 		A.RangeCells == 4 && A.AreaRadiusCells == 1 && A.CooldownRounds == 2 &&
 		A.OffensiveProfile.AttackDefinition.DamageType == EGridDamageType::Poison &&

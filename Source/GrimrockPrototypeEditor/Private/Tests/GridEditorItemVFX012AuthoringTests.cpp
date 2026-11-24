@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "UObject/StrongObjectPtr.h"
@@ -78,14 +78,13 @@ bool FGridItemVFX012VisualOnlyAuthoringTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-    Definition->ItemDefinitionId = TEXT("VFX012_VisualOnlyHealingPotion");
-    Definition->ItemType = EGridItemType::Potion;
+    UGridNonArmamentDefinitionAsset* Definition = NewObject<UGridNonArmamentDefinitionAsset>();
+    Definition->ItemId = TEXT("VFX012_VisualOnlyHealingPotion");
     Definition->LightEmitter.bDefaultEnabled = true;
     TestFalse(TEXT("Default-enabled flag alone cannot create a light emitter"),
-        Definition->HasLightEmitter());
+        Definition->LightEmitter.HasEmitter());
     TestFalse(TEXT("A visual-only item does not become a light by default"),
-        Definition->IsLightEnabledByDefault());
+        (Definition->LightEmitter.HasEmitter() && Definition->LightEmitter.bDefaultEnabled));
 
     FGridItemNiagaraEffectConfig Effect;
     Effect.EffectId = GridItemVFX012AuthoringTests::SparkleId;
@@ -95,7 +94,7 @@ bool FGridItemVFX012VisualOnlyAuthoringTest::RunTest(const FString& Parameters)
     Definition->VisualEffects.Effects.Add(Effect);
 
     TestTrue(TEXT("Healing sparkle is independent from PointLight"),
-        Definition->IsValidDefinition() && !Definition->HasLightEmitter());
+        Definition->VisualEffects.IsValid() && !Definition->LightEmitter.HasEmitter());
     TestTrue(TEXT("Niagara transform stays in VisualEffects"),
         Definition->VisualEffects.Effects[0].RelativeTransform.Equals(Effect.RelativeTransform));
     TestTrue(TEXT("LiquidSparkle is permanently visible even when unlit"),
@@ -104,7 +103,7 @@ bool FGridItemVFX012VisualOnlyAuthoringTest::RunTest(const FString& Parameters)
     Definition->VisualEffects.Effects.Add(Effect);
     TestFalse(TEXT("Duplicate LiquidSparkle IDs are rejected"), Definition->VisualEffects.IsValid());
     Definition->VisualEffects.Effects.Pop();
-    TestTrue(TEXT("Removing duplicate restores validity"), Definition->IsValidDefinition());
+    TestTrue(TEXT("Removing duplicate restores validity"), Definition->VisualEffects.IsValid());
     return true;
 }
 
