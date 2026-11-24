@@ -138,8 +138,6 @@ namespace Shield024A
 
 			if (bEquipShield)
 			{
-				if (Inventory->FindItemDefinition(ShieldDefinition.ItemId))
-					return false; // Never register the old DataAsset.
 				FGridItemInstance Shield;
 				Shield.RuntimeObjectId = FGuid::NewGuid();
 				Shield.ItemDefinitionId = ShieldDefinition.ItemId;
@@ -216,8 +214,6 @@ bool FGridShield024APhysicalEquipmentSurfaceTest::RunTest(const FString&)
 	FGridInventoryCharacterSummary Summary;
 	TestTrue(TEXT("UI read model generated"), Fixture.Inventory->GetCharacterSummary(0, Summary));
 	TestEqual(TEXT("UI sees depleted effective armor"), Summary.Resources.CurrentPhysicalArmor, 0);
-	TestNull(TEXT("No historical shield definition registered during surface combat"),
-		Fixture.Inventory->FindItemDefinition(Fixture.ShieldDefinition.ItemId));
 	return true;
 }
 

@@ -343,7 +343,7 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
             Interaction.bRegisteredIdentity && Interaction.bResolved && !Interaction.bCanRead &&
             !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeItem &&
             !Interaction.bCanAddToHotbar && !Interaction.bPhysicalThrowHotbar);
-        const auto Stack = FGridInventoryStackReadModel::Resolve(Registry.Get(), Wrong, Item);
+        const auto Stack = FGridInventoryStackReadModel::Resolve(Registry.Get(), Item);
         TestEqual(TEXT("Exact capacity wins over stale source"), Stack.MaxStackSize, Capacities[I]);
     }
     return !HasAnyErrors();
@@ -422,7 +422,6 @@ bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
     Equipped.OwnerType = EGridItemOwnerType::EquipmentSlot;
     Equipped.EquipmentSlot = EGridEquipmentSlot::MainHand;
     F.Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
-    TestNull(TEXT("No historical sword definition"), F.Inventory->FindItemDefinition(SwordId));
     Slot->SetItem(Candidate);
     const auto SwordView = Slot->GetTooltipView();
     TestTrue(TEXT("Pointerless N20 weapon facts"), SwordView.WeaponProfile.bHasProfile &&
@@ -444,7 +443,6 @@ bool FGridClean065E1PointerlessTooltip::RunTest(const FString&)
 
     auto Torch = F.Make(TEXT("Item_Torch"), 0);
     Torch.bLightsEnabled = true;
-    TestNull(TEXT("No historical torch definition"), F.Inventory->FindItemDefinition(Torch.ItemDefinitionId));
     F.Put(0, Torch);
     Slot->SetItem(Torch);
     const auto TorchView = Slot->GetTooltipView();
@@ -484,7 +482,6 @@ bool FGridClean065E4ContextEquip::RunTest(const FString&)
     const auto Shield = F.Make(TEXT("Weapon_RoundShield_01"), 1);
     F.Put(0, Sword);
     F.Put(1, Shield);
-    TestNull(TEXT("Sword needs no historical definition"), F.Inventory->FindItemDefinition(Sword.ItemDefinitionId));
     auto* WrongShield = F.MakeContradictoryDefinition(Shield.ItemDefinitionId, EGridItemType::Book);
     WrongShield->CompatibleEquipmentSlots.Reset();
     const auto EquipViaMenu = [&](int32 SlotIndex, EGridEquipmentSlot Hand)

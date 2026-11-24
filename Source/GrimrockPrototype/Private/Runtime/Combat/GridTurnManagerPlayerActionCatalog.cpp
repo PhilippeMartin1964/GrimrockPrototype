@@ -387,80 +387,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			continue;
 		}
 
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Canonical || !GIsAutomationTesting) continue;
-		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-		if (!IsValid(ItemDefinition))
-		{
-			continue;
-		}
-		if (!ItemDefinition->IsValidDefinition() || !ItemDefinition->CanEquipToSlot(HandSlot))
-		{
-			continue;
-		}
-
-		for (const FGridCombatActionDefinition& SourceAction : ItemDefinition->CombatActions)
-		{
-			// CanEquipToSlot(OffHand) alone is deliberately permissive for
-			// one-handed items. Never invent an OffHand attack when the
-			// authored definition does not actually authorize one.
-			if (HandSlot == EGridEquipmentSlot::OffHand &&
-				SourceAction.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				SourceAction.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-				!ItemDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::OffHand))
-			{
-				continue;
-			}
-			FGridCombatActionDefinition Definition = SourceAction;
-			if (ItemDefinition->bUseWeaponCatalogue &&
-				Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
-			{
-				FGridOffensiveEquipmentProfile ResolvedProfile;
-				if (!ItemDefinition->ResolveEquippedOffensiveProfile(EquippedItem, SourceAction, ResolvedProfile))
-				{
-					// An invalid catalogue level must not fall back to Legacy dice.
-					continue;
-				}
-				// The serialized CombatAction is an identity/targeting template.
-				// Canonical damage, scaling, range AND base AP cost come from
-				// the item's effective level, never the N1 authoring snapshot.
-				const FGridWeaponLevelProfile* LevelProfile = nullptr;
-				if (!ItemDefinition->TryGetWeaponCatalogueProfile(EquippedItem.ItemLevel, LevelProfile))
-				{
-					continue;
-				}
-				Definition.OffensiveProfile = ResolvedProfile;
-				Definition.RangeCells = ResolvedProfile.RangeCells;
-				Definition.ActionPointCost = LevelProfile->ActionPointCost;
-			}
-			for (const FName ItemTag : ItemDefinition->ItemTags)
-			{
-				if (!ItemTag.IsNone())
-				{
-					Definition.SourceTags.AddUnique(ItemTag);
-				}
-			}
-			if (Definition.DisplayName.IsEmpty())
-			{
-				Definition.DisplayName = ItemDefinition->DisplayName;
-			}
-			if (Definition.Description.IsEmpty())
-			{
-				Definition.Description = ItemDefinition->Description;
-			}
-			if (Definition.Icon.IsNull())
-			{
-				Definition.Icon = ItemDefinition->Icon;
-			}
-			if (ItemDefinition->IsCombatThrowable() && Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
-			{
-				Definition.ResourceCosts.SourceItemQuantityCost = 1;
-			}
-			AddMON126Contribution(Definition, EquippedItem.ItemDefinitionId, EquippedItem.RuntimeObjectId, HandSlot, EquippedItem.Quantity, OutContributions);
-		}
-#endif // WITH_DEV_AUTOMATION_TESTS: old equipped-action fixtures
 	}
 
 	// ARMEMENT-LOT02.19.2: one composite action, two *physical* weapon
@@ -487,13 +413,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 				? Canonical->FindEquippedActionIcon(EGridEquippedWeaponActionIconKind::MeleeDualWield)
 				: TSoftObjectPtr<UTexture2D>();
 		}
-#if WITH_DEV_AUTOMATION_TESTS
-		else if (!Canonical && GIsAutomationTesting &&
-			DualAction.Icon.IsNull() && IsValid(DualPair.Main.Definition))
-		{
-			DualAction.Icon = DualPair.Main.Definition->Icon;
-		}
-#endif
 		for (const FName Tag : DualPair.Main.SourceTags)
 		{
 			if (!Tag.IsNone())
@@ -550,18 +469,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			// Physical throws are projected separately; never revive a legacy action.
 			continue;
 		}
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Canonical || !GIsAutomationTesting) continue;
-		const UGridItemDefinitionAsset* ItemDefinition = Inventory->FindItemDefinition(ItemDefinitionId);
-		FGridCombatActionDefinition QuickItemAction;
-		if (!IsValid(ItemDefinition) || !ItemDefinition->BuildInventoryCombatActionDefinition(QuickItemAction))
-		{
-			continue;
-		}
-
-		AddMON126Contribution(QuickItemAction, ItemDefinitionId, FGuid(), EGridEquipmentSlot::None,
-			Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, ItemDefinitionId), OutContributions);
-#endif // WITH_DEV_AUTOMATION_TESTS: old QuickItem fixtures
 	}
 }
 
@@ -669,36 +576,6 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 				}
 				continue;
 			}
-#if WITH_DEV_AUTOMATION_TESTS
-			if (Canonical || !GIsAutomationTesting) continue;
-			const UGridItemDefinitionAsset* Definition = Item && Item->IsValid() ? Inventory->FindItemDefinition(Item->ItemDefinitionId) : nullptr;
-			if (!IsValid(Definition))
-			{
-				continue;
-			}
-			for (const FName ItemTag : Definition->ItemTags)
-			{
-				Context.SatisfiedRequirements.Add(ItemTag);
-			}
-			if (Definition->CanProvideAttackFromSlot(HandSlot))
-			{
-				Context.EquippedOffensiveSourceTagSets.Add(Definition->ItemTags);
-				FGridOffensiveEquipmentProfile EquippedProfile;
-				if (ResolveEquippedAttackProfile(Definition, *Item, EquippedProfile) && EquippedProfile.IsValid())
-				{
-					Context.EquippedOffensivePhysicalSubtypes.Add(
-						EquippedProfile.AttackDefinition.DamageType == EGridDamageType::Physical
-							? EquippedProfile.AttackDefinition.PhysicalSubtype
-							: EGridPhysicalDamageSubtype::None);
-					Context.EquippedOffensiveRangeCells.Add(EquippedProfile.RangeCells);
-				}
-				else
-				{
-					Context.EquippedOffensivePhysicalSubtypes.Add(EGridPhysicalDamageSubtype::None);
-					Context.EquippedOffensiveRangeCells.Add(0);
-				}
-			}
-#endif // WITH_DEV_AUTOMATION_TESTS: legacy equipment requirements
 		}
 	}
 
@@ -743,13 +620,6 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			Action.Definition.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
 			Action.Definition.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
 		{
-			const UGridItemDefinitionAsset* LegacyWeapon = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-			if (!AmmoRegistry && GIsAutomationTesting)
-			{
-				LegacyWeapon = Inventory->FindItemDefinition(Action.SourceDefinitionId);
-			}
-#endif
 			FGridItemInstance Equipped;
 			const bool bEquipped = Inventory->GetEquippedItem(
 				CharacterIndex, Action.SourceEquipmentSlot, Equipped) &&
@@ -762,7 +632,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			const FGridRangedAmmunitionRequirement Ammo =
 				FGridRangedAmmunitionPolicy::ResolveForAttack(
 					AmmoRegistry, Action.SourceDefinitionId,
-					bEquipped ? Equipped.ItemLevel : 0, LegacyWeapon,
+					bEquipped ? Equipped.ItemLevel : 0, nullptr,
 					Action.Definition.ActionType == EGridCombatActionType::RangedAttack && !bUsesBoundNonArmAttack);
 			if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 					*Inventory, CharacterIndex, Ammo))

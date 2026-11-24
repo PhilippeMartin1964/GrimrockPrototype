@@ -281,7 +281,6 @@ bool FARMLot02132Ammo::RunTest(const FString&)
     TestEqual(TEXT("No arrows remain"), Inv->CountItemDefinitionInCharacterInventory(0, ArrowId), 0);
     TestFalse(TEXT("Third shot denied"),
         FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inv, 0, Required));
-    TestNull(TEXT("No old arrow source registered"), Inv->FindItemDefinition(ArrowId));
     AddInfo(TEXT("[ARM-CLEAN06] ARM048 canonical ammo: 0 rejected, 2->1->0, 0 rejected. PIE pending."));
     return !HasAnyErrors();
 }

@@ -338,7 +338,7 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	CachedVisualId = NAME_None;
 	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridResolvedInventoryItemIcon Visual =
-		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, GetItemDefinition(), CachedItem);
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, nullptr, CachedItem);
 	CachedVisualId = Visual.VisualId;
 	CachedIconTexture = Visual.Icon.Get();
 	if (!CachedIconTexture && !Visual.Icon.IsNull())
@@ -369,24 +369,6 @@ FGridItemInstance UGridInventorySlotWidget::GetCachedItem() const
 	return CachedItem;
 }
 
-const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition() const
-{
-	if (!bHasItem || CachedItem.ItemDefinitionId.IsNone())
-	{
-		return nullptr;
-	}
-
-	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
-	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
-
-	#if WITH_DEV_AUTOMATION_TESTS
-    if (!GetItemRegistry(this) && GIsAutomationTesting && InventoryComponent)
-    {
-        return InventoryComponent->FindItemDefinition(CachedItem.ItemDefinitionId);
-    }
-#endif
-    return nullptr;
-}
 
 FString UGridInventorySlotWidget::GetDisplayNameText() const
 {
@@ -396,7 +378,7 @@ FString UGridInventorySlotWidget::GetDisplayNameText() const
 	}
 
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-		GetItemRegistry(this), GetItemDefinition(), CachedItem);
+		GetItemRegistry(this), nullptr, CachedItem);
 	return Metadata.DisplayName.IsEmpty() ? CachedItem.ItemDefinitionId.ToString()
 		: Metadata.DisplayName.ToString();
 }
@@ -419,10 +401,9 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		return View;
 	}
 
-	const UGridItemDefinitionAsset* Definition = GetItemDefinition();
 	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-		Registry, Definition, CachedItem);
+		Registry, nullptr, CachedItem);
 	View.bValid = true;
 	View.ItemDefinitionId = CachedItem.ItemDefinitionId;
 	View.Icon = CachedIconTexture;
@@ -439,11 +420,6 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		Canonical.IsValid() && Canonical.ItemId == CachedItem.ItemDefinitionId &&
 		Canonical.ItemLevel == CachedItem.ItemLevel &&
 		(Canonical.bIsArmament ? CachedItem.ItemLevel >= 1 : CachedItem.ItemLevel == 0);
-	bool bLegacy = false;
-#if WITH_DEV_AUTOMATION_TESTS
-	bLegacy = !Registry && GIsAutomationTesting && !bCanonical && IsValid(Definition) &&
-		Definition->ItemDefinitionId == CachedItem.ItemDefinitionId;
-#endif
 	FGridCombatActionDefinition QuickItemAction;
 	bool bHasQuickItemAction = false;
 	if (bResolvedItem)
@@ -452,12 +428,6 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		bHasQuickItemAction = Use.bResolved;
 		if (bHasQuickItemAction) QuickItemAction = Use.Action;
 	}
-	#if WITH_DEV_AUTOMATION_TESTS
-	else if (bLegacy)
-	{
-		bHasQuickItemAction = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
-	}
-#endif
 	if (bHasQuickItemAction)
 	{
 		const FText SurfaceUsage = FGridQuickItemSurfaceTooltipText::Build(QuickItemAction);
@@ -469,7 +439,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		}
 	}
 	const FGridInventoryItemTypeReadView TypeView =
-		FGridInventoryItemTypeReadModel::Resolve(Registry, Definition, CachedItem);
+		FGridInventoryItemTypeReadModel::Resolve(Registry, nullptr, CachedItem);
 	View.ItemType = TypeView.bResolved
 		? GetItemTypeDisplayName(TypeView.ItemType)
 		: NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
@@ -487,23 +457,23 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 	View.WeightText = View.Quantity > 1
 		? FText::FromString(FString::Printf(TEXT("%.1f × %d = %.1f"), View.UnitWeight, View.Quantity, View.TotalWeight))
 		: FText::FromString(FString::Printf(TEXT("%.1f"), View.UnitWeight));
-	if (!bResolvedItem && !bLegacy)
+	if (!bResolvedItem)
 	{
 		// Diagnostic identity only: do not advertise old icons or equip rules.
 		View.Icon = nullptr;
 		View.VisualId = NAME_None;
 		return View;
 	}
-	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, Definition, CachedItem);
+	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, nullptr, CachedItem);
 	const FGridEquipmentSlotsView EquipmentSlots =
-		FGridEquipmentSlots::Resolve(Registry, Definition, CachedItem);
+		FGridEquipmentSlots::Resolve(Registry, nullptr, CachedItem);
 	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
-	FGridWeaponTooltipProjection::Build(Definition, CachedItem, View.WeaponProfile, Registry);
-	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, Definition, CachedItem);
+	FGridWeaponTooltipProjection::Build(nullptr, CachedItem, View.WeaponProfile, Registry);
+	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, nullptr, CachedItem);
 	View.bReadable = Capabilities.bCanRead;
-	View.bProvidesLight = bResolvedItem ? Canonical.LightEmitter.HasEmitter() : Definition->HasLightEmitter();
+	View.bProvidesLight = Canonical.LightEmitter.HasEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
 	if (View.bProvidesLight)
 	{
@@ -516,7 +486,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		SlotType == EGridInventoryUiSlotType::Inventory && Capabilities.bCanAddToHotbar;
 
 
-	AppendDefinitionStats(Registry, Definition, CachedItem, nullptr, nullptr, false, View.StatLines);
+	AppendDefinitionStats(Registry, nullptr, CachedItem, nullptr, nullptr, false, View.StatLines);
 
 	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
@@ -543,13 +513,13 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
     {
         TArray<EGridEquipmentSlot> AllowedSlots;
         FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
-			Registry, Definition, CachedItem, AllowedSlots);
+			Registry, nullptr, CachedItem, AllowedSlots);
         for (const EGridEquipmentSlot TargetSlot : AllowedSlots)
         {
             FGridItemTooltipEquipmentComparison Scenario;
             if (FGridEquipmentTooltipGlobalProjection::BuildScenario(
                 InventoryComponent, CharacterIndex, InventorySlotIndex,
-                TargetSlot, Definition, CachedItem, Scenario))
+                TargetSlot, nullptr, CachedItem, Scenario))
             {
                 View.EquipmentComparisons.Add(MoveTemp(Scenario));
             }
@@ -579,17 +549,10 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		Comparison.EquipmentSlot = TargetSlot;
 		Comparison.SlotLabel = GetEquipmentSlotDisplayName(TargetSlot);
 
-		const UGridItemDefinitionAsset* EquippedDefinition = nullptr;
 		if (bHasEquippedItem)
 		{
-			#if WITH_DEV_AUTOMATION_TESTS
-            if (!Registry && GIsAutomationTesting)
-            {
-                EquippedDefinition = InventoryComponent->FindItemDefinition(EquippedItem.ItemDefinitionId);
-            }
-#endif
 			const FGridInventoryItemMetadata EquippedMetadata = FGridInventoryItemMetadataReadModel::Resolve(
-				Registry, EquippedDefinition, EquippedItem);
+				Registry, nullptr, EquippedItem);
 			Comparison.EquippedItemDisplayText = EquippedMetadata.DisplayName.IsEmpty()
 				? FText::FromName(EquippedItem.ItemDefinitionId) : EquippedMetadata.DisplayName;
 		}
@@ -597,12 +560,12 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		{
 			Comparison.EquippedItemDisplayText = NSLOCTEXT("GridInventoryTooltip", "EmptyEquipment", "vide");
 		}
-		AppendDefinitionStats(Registry, Definition, CachedItem, EquippedDefinition,
+		AppendDefinitionStats(Registry, nullptr, CachedItem, nullptr,
 			bHasEquippedItem ? &EquippedItem : nullptr, true, Comparison.StatLines);
         if (bHasEquippedItem)
         {
             FGridWeaponTooltipProjection::BuildComparison(
-                Definition, CachedItem, EquippedDefinition, EquippedItem,
+                nullptr, CachedItem, nullptr, EquippedItem,
                 Comparison.WeaponFacts, Registry);
         }
 	}

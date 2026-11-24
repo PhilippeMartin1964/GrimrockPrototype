@@ -10,7 +10,6 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -74,35 +73,6 @@ namespace
 		return Profile;
 	}
 
-	UGridItemDefinitionAsset* MakeEquipmentDefinition(UObject* Outer, FName ItemDefinitionId, EGridItemType ItemType,
-		const FGridOffensiveEquipmentProfile& Profile, EGridEquipmentSlot CompatibleSlot, bool bProvideAttack = true)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromName(ItemDefinitionId);
-		Definition->ItemType = ItemType;
-		if (CompatibleSlot != EGridEquipmentSlot::None)
-		{
-			Definition->CompatibleEquipmentSlots.Add(CompatibleSlot);
-		}
-		if (bProvideAttack)
-		{
-			FGridCombatActionDefinition Action;
-			Action.ActionId = Profile.AttackId;
-			Action.DisplayName = Definition->DisplayName;
-			Action.ActionType = Profile.RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
-			Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-			Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-			Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-			Action.ActionPointCost = 2;
-			Action.RangeCells = Profile.RangeCells;
-			Action.PresentationProfileId = Profile.AttackId;
-			Action.OffensiveProfile = Profile;
-			Definition->CombatActions.Add(Action);
-		}
-		return Definition;
-	}
-
 	FGridItemInstance MakeEquippedItem(FName ItemDefinitionId, int32 CharacterIndex, EGridEquipmentSlot Slot)
 	{
 		FGridItemInstance Item;
@@ -144,6 +114,7 @@ namespace
 	struct FGridMON11EquipmentFixture
 	{
 		FGridMON11EquipmentWorld TestWorld;
+		FGridCanonicalLootTestScope Registry;
 		AGridLevelRuntimeActor* Runtime = nullptr;
 		UGridLevelAsset* LevelAsset = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
@@ -244,17 +215,36 @@ namespace
 			}
 		}
 
-		void Equip(const UGridItemDefinitionAsset* Definition, EGridEquipmentSlot Slot, bool bRegisterDefinition = true)
+		bool AttachInventory()
 		{
-			if (bRegisterDefinition)
+			return Registry.AttachWithWeights(TestWorld.World, {}, [](UGridItemSystemAsset& Root)
 			{
-				Party->PartyInventoryComponent->RegisterItemDefinition(const_cast<UGridItemDefinitionAsset*>(Definition));
-			}
-			FGridItemInstance* TargetSlot = Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].GetMutableSlot(Slot);
-			if (TargetSlot)
-			{
-				*TargetSlot = MakeEquippedItem(Definition->ItemDefinitionId, 0, Slot);
-			}
+				using S = FGridCanonicalLootTestScope;
+				S::AddWeapon(Root, TEXT("Item_TestSword"), TEXT("Attack_MON11_Sword"), FText::FromString(TEXT("Test sword")),
+					EGridEquipmentSlot::MainHand, EGridPhysicalDamageSubtype::Slashing, EGridAttackScalingAttribute::Strength, 8, 1, 2);
+				S::AddWeapon(Root, TEXT("Item_MainWeapon"), TEXT("Attack_MON11_Main"), FText::FromString(TEXT("Main weapon")),
+					EGridEquipmentSlot::MainHand, EGridPhysicalDamageSubtype::Slashing, EGridAttackScalingAttribute::Strength, 4, 1, 2);
+				S::AddWeapon(Root, TEXT("Item_OffWeapon"), TEXT("Attack_MON11_Off"), FText::FromString(TEXT("Off-hand weapon")),
+					EGridEquipmentSlot::OffHand, EGridPhysicalDamageSubtype::Piercing, EGridAttackScalingAttribute::Dexterity, 6, 1, 2);
+				S::AddWeapon(Root, TEXT("Item_MON11_RangeThree"), TEXT("Attack_MON11_RangeThree"), FText::FromString(TEXT("Ranged weapon")),
+					EGridEquipmentSlot::MainHand, EGridPhysicalDamageSubtype::Piercing, EGridAttackScalingAttribute::Dexterity, 4, 3, 2);
+
+				auto* Gear = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+				Gear->ItemId = TEXT("Item_MON11_Headgear");
+				Gear->DisplayName = FText::FromString(TEXT("Test headgear"));
+				Gear->EquipmentSlots.Add(EGridEquipmentSlot::Head);
+				Gear->Bonuses.StrengthBonus = 2;
+				Root.ItemDefinitions.Add(Gear);
+			});
+		}
+
+		void Equip(FName ItemId, EGridEquipmentSlot Slot, int32 Level)
+		{
+			auto* Inventory = Party->PartyInventoryComponent.Get();
+			FGridItemInstance& Item = *Inventory->PartyInventoryState.ActiveEquipment[0].GetMutableSlot(Slot);
+			Item = MakeEquippedItem(ItemId, 0, Slot);
+			Item.ItemLevel = Level;
+			Item.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
 		}
 
 		void ClearEquipment()
@@ -302,21 +292,13 @@ bool FGridMonsterMON11OffensiveProfileValidationTest::RunTest(const FString& Par
 	Invalid.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
 	TestFalse(TEXT("An elemental physical subtype is rejected"), Invalid.IsValid());
 
-	UGridItemDefinitionAsset* HeadDefinition =
-		MakeEquipmentDefinition(GetTransientPackage(), TEXT("Item_HeadCombatAction"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::Head);
-	TestTrue(TEXT("A well-formed CombatActions item remains structurally valid outside hand slots"), HeadDefinition->IsValidDefinition());
-	TestFalse(TEXT("A head slot never exposes an equipment attack"), HeadDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::Head));
-	TestFalse(TEXT("The head-only definition is not a main-hand attack source"), HeadDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
-
 	FGridMON11EquipmentFixture Fixture;
-	if (!TestTrue(TEXT("The rejection fixture is ready"), Fixture.IsReady() && Fixture.Monster))
+	if (!TestTrue(TEXT("The rejection fixture is ready"), Fixture.IsReady() && Fixture.Monster && Fixture.AttachInventory()))
 	{
 		return false;
 	}
 
-	UGridItemDefinitionAsset* MissingDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_MissingDefinition"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::MainHand);
-	Fixture.Equip(MissingDefinition, EGridEquipmentSlot::MainHand, false);
+	Fixture.Equip(TEXT("Item_MON11_MissingDefinition"), EGridEquipmentSlot::MainHand, 1);
 	constexpr int32 RefusalSeed = 424242;
 	Fixture.TurnManager->CombatRandomStream.Initialize(RefusalSeed);
 	const int32 HealthBefore = Fixture.Monster->CurrentHealth;
@@ -329,14 +311,12 @@ bool FGridMonsterMON11OffensiveProfileValidationTest::RunTest(const FString& Par
 	TestEqual(TEXT("The missing definition consumes no random draw"), Fixture.TurnManager->CombatRandomStream.GetCurrentSeed(), RefusalSeed);
 
 	Fixture.ClearEquipment();
-	UGridItemDefinitionAsset* InvalidDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_InvalidOffense"), EGridItemType::Weapon, PhysicalProfile, EGridEquipmentSlot::MainHand);
-	InvalidDefinition->CombatActions[0].OffensiveProfile.RangeCells = 0;
-	Fixture.Equip(InvalidDefinition, EGridEquipmentSlot::MainHand);
-	TestFalse(TEXT("An invalid offensive profile is rejected"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
+	Fixture.Equip(TEXT("Item_TestSword"), EGridEquipmentSlot::MainHand, 0);
+	TestFalse(TEXT("A known weapon with no valid physical level is rejected"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("The invalid profile reason is explicit"), RejectReason, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);
 	FGridPlayerCharacterTurnState TurnState;
 	TestTrue(TEXT("The rejected character turn state is available"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnState));
+	TestEqual(TEXT("An invalid level consumes no random draw"), Fixture.TurnManager->CombatRandomStream.GetCurrentSeed(), RefusalSeed);
 	TestEqual(TEXT("No rejected attack consumes action points"), TurnState.RemainingActionPoints, 4);
 	TestEqual(TEXT("No rejected attack emits an attack log"), CountPlayerAttackEntries(Fixture.TurnManager), 0);
 	TestEqual(TEXT("No rejected attack emits Requested"), Fixture.TurnManager->PlayerAttackRequestedBroadcastCount, 0);
@@ -353,17 +333,15 @@ bool FGridMonsterMON11EquippedWeaponMappingTest::RunTest(const FString& Paramete
 {
 	(void)Parameters;
 	FGridMON11EquipmentFixture Fixture;
-	if (!TestTrue(TEXT("The sword fixture is ready"), Fixture.IsReady() && Fixture.Monster))
+	if (!TestTrue(TEXT("The sword fixture is ready"), Fixture.IsReady() && Fixture.Monster && Fixture.AttachInventory()))
 	{
 		return false;
 	}
 
 	const FGridOffensiveEquipmentProfile SwordProfile = MakeOffensiveProfile(
-		TEXT("Attack_Sword"), EGridDamageType::Physical, EGridPhysicalDamageSubtype::Slashing, 1, 8, EGridAttackScalingAttribute::Strength, 1);
-	UGridItemDefinitionAsset* SwordDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_TestSword"), EGridItemType::Weapon, SwordProfile, EGridEquipmentSlot::MainHand);
-	SwordDefinition->EquipmentStatBonus.StrengthBonus = 2;
-	Fixture.Equip(SwordDefinition, EGridEquipmentSlot::MainHand);
+		TEXT("Attack_MON11_Sword"), EGridDamageType::Physical, EGridPhysicalDamageSubtype::Slashing, 1, 8, EGridAttackScalingAttribute::Strength, 1);
+	Fixture.Equip(TEXT("Item_TestSword"), EGridEquipmentSlot::MainHand, 1);
+	Fixture.Equip(TEXT("Item_MON11_Headgear"), EGridEquipmentSlot::Head, 0);
 
 	FGridMonsterDamageModifier SlashingModifier;
 	SlashingModifier.DamageType = EGridDamageType::Physical;
@@ -379,6 +357,8 @@ bool FGridMonsterMON11EquippedWeaponMappingTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("The exact sword inputs are built"),
 		Fixture.TurnManager->BuildPlayerAttackResolutionInputs(Summary, Fixture.Monster, SwordProfile, Source, Target, Attack));
 	TestEqual(TEXT("Final derived accuracy is used"), Source.Accuracy, Summary.DerivedStats.Accuracy);
+	TestEqual(TEXT("Equipment adds two Strength"), Summary.Attributes.Strength,
+		Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Attributes.Strength + 2);
 	TestEqual(TEXT("Final Strength drives sword damage"), Source.DamageBonus, URPGCharacterRulesLibrary::GetAttributeModifier(Summary.Attributes.Strength));
 	TestEqual(TEXT("The sword definition is copied exactly"), Attack.MaxDamage, SwordProfile.AttackDefinition.MaxDamage);
 	TestEqual(TEXT("The Slashing multiplier is selected"), Target.DamageMultiplier, 1.25f);
@@ -389,8 +369,8 @@ bool FGridMonsterMON11EquippedWeaponMappingTest::RunTest(const FString& Paramete
 	FGridAttackResult Result;
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
 	TestTrue(TEXT("The equipped sword attack resolves"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
-	TestEqual(TEXT("The sword AttackId is retained"), Request.AttackId, FName(TEXT("Attack_Sword")));
-	TestEqual(TEXT("The real sword item id is retained"), Request.OffensiveItemDefinitionId, SwordDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The sword AttackId is retained"), Request.AttackId, FName(TEXT("Attack_MON11_Sword")));
+	TestEqual(TEXT("The real sword item id is retained"), Request.OffensiveItemDefinitionId, FName(TEXT("Item_TestSword")));
 	TestEqual(TEXT("The real MainHand slot is retained"), Request.OffensiveEquipmentSlot, EGridEquipmentSlot::MainHand);
 	TestEqual(TEXT("The result retains Slashing"), Result.PhysicalSubtype, EGridPhysicalDamageSubtype::Slashing);
 	TestEqual(TEXT("Exactly one result delegate is emitted"), Fixture.TurnManager->PlayerAttackResolvedBroadcastCount, 1);
@@ -407,54 +387,40 @@ bool FGridMonsterMON11HandPriorityAndFallbackTest::RunTest(const FString& Parame
 {
 	(void)Parameters;
 	FGridMON11EquipmentFixture Fixture;
-	if (!TestTrue(TEXT("The hand-priority fixture is ready"), Fixture.IsReady() && Fixture.Monster))
+	if (!TestTrue(TEXT("The hand-priority fixture is ready"), Fixture.IsReady() && Fixture.Monster && Fixture.AttachInventory()))
 	{
 		return false;
 	}
 
-	const FGridOffensiveEquipmentProfile MainProfile = MakeOffensiveProfile(
-		TEXT("Attack_Main"), EGridDamageType::Physical, EGridPhysicalDamageSubtype::Slashing, 1, 4, EGridAttackScalingAttribute::Strength, 1);
-	const FGridOffensiveEquipmentProfile OffProfile = MakeOffensiveProfile(
-		TEXT("Attack_Off"), EGridDamageType::Physical, EGridPhysicalDamageSubtype::Piercing, 1, 6, EGridAttackScalingAttribute::Dexterity, 1);
-	UGridItemDefinitionAsset* TorchDefinition = MakeEquipmentDefinition(
-		Fixture.Runtime, TEXT("Item_Torch"), EGridItemType::Torch, FGridOffensiveEquipmentProfile(), EGridEquipmentSlot::MainHand, false);
-	UGridItemDefinitionAsset* MainDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_MainWeapon"), EGridItemType::Weapon, MainProfile, EGridEquipmentSlot::MainHand);
-	UGridItemDefinitionAsset* OffDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_OffWeapon"), EGridItemType::Weapon, OffProfile, EGridEquipmentSlot::OffHand);
-	Fixture.Equip(TorchDefinition, EGridEquipmentSlot::MainHand);
-	Fixture.Equip(OffDefinition, EGridEquipmentSlot::OffHand);
+	Fixture.Equip(TEXT("Item_Torch"), EGridEquipmentSlot::MainHand, 0);
+	Fixture.Equip(TEXT("Item_OffWeapon"), EGridEquipmentSlot::OffHand, 1);
 
 	FGridPlayerAttackRequest Request;
 	FGridAttackResult Result;
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
 	TestTrue(TEXT("A non-offensive main hand allows the off hand"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("OffHand is selected behind a non-offensive MainHand"), Request.OffensiveEquipmentSlot, EGridEquipmentSlot::OffHand);
-	TestEqual(TEXT("The off-hand attack is not combined"), Request.AttackId, OffProfile.AttackId);
+	TestEqual(TEXT("The off-hand attack is not combined"), Request.AttackId, FName(TEXT("Attack_MON11_Off")));
 
 	Fixture.TurnManager->BeginPlayerCharacterPhase();
-	Fixture.Equip(MainDefinition, EGridEquipmentSlot::MainHand);
+	Fixture.Equip(TEXT("Item_MainWeapon"), EGridEquipmentSlot::MainHand, 1);
 	TestTrue(TEXT("Two offensive hands still resolve once"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("MainHand wins over an offensive OffHand"), Request.OffensiveEquipmentSlot, EGridEquipmentSlot::MainHand);
-	TestEqual(TEXT("Only the main-hand attack is selected"), Request.AttackId, MainProfile.AttackId);
+	TestEqual(TEXT("Only the main-hand attack is selected"), Request.AttackId, FName(TEXT("Attack_MON11_Main")));
 
 	Fixture.TurnManager->BeginPlayerCharacterPhase();
 	Fixture.ClearEquipment();
-	Fixture.Equip(TorchDefinition, EGridEquipmentSlot::MainHand);
-	UGridItemDefinitionAsset* ShieldDefinition = MakeEquipmentDefinition(
-		Fixture.Runtime, TEXT("Item_Shield"), EGridItemType::Shield, FGridOffensiveEquipmentProfile(), EGridEquipmentSlot::OffHand, false);
-	Fixture.Equip(ShieldDefinition, EGridEquipmentSlot::OffHand);
+	Fixture.Equip(TEXT("Item_Torch"), EGridEquipmentSlot::MainHand, 0);
+	Fixture.Equip(TEXT("Weapon_RoundShield_01"), EGridEquipmentSlot::OffHand, 1);
 	TestTrue(TEXT("Two non-offensive hands fall back"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("The fallback is Attack_Unarmed"), Request.AttackId, FName(TEXT("Attack_Unarmed")));
 	TestTrue(TEXT("The fallback has no item identity"), Request.OffensiveItemDefinitionId.IsNone());
 
 	Fixture.TurnManager->BeginPlayerCharacterPhase();
 	Fixture.ClearEquipment();
-	UGridItemDefinitionAsset* HeadOffense =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_HeadOffense"), EGridItemType::Misc, MainProfile, EGridEquipmentSlot::Head);
-	Fixture.Equip(HeadOffense, EGridEquipmentSlot::Head);
-	TestTrue(TEXT("An offensive non-hand slot does not become active"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
-	TestEqual(TEXT("The non-hand profile is ignored"), Request.AttackId, FName(TEXT("Attack_Unarmed")));
+	Fixture.Equip(TEXT("Item_MON11_Headgear"), EGridEquipmentSlot::Head, 0);
+	TestTrue(TEXT("Equipment in a non-hand slot does not become active"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
+	TestEqual(TEXT("The non-hand item is ignored"), Request.AttackId, FName(TEXT("Attack_Unarmed")));
 	TestEqual(TEXT("Four commands produce four resolutions only"), Fixture.TurnManager->PlayerAttackResolvedBroadcastCount, 4);
 	TestEqual(TEXT("Four commands produce four attack logs only"), CountPlayerAttackEntries(Fixture.TurnManager), 4);
 	return true;
@@ -466,14 +432,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON11RangedWeaponTargetingTest, "Gr
 bool FGridMonsterMON11RangedWeaponTargetingTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGridOffensiveEquipmentProfile RangedProfile = MakeOffensiveProfile(
-		TEXT("Attack_RangeThree"), EGridDamageType::Physical, EGridPhysicalDamageSubtype::Piercing, 1, 4, EGridAttackScalingAttribute::Dexterity, 3);
 
 	{
 		FGridMON11EquipmentFixture Fixture(FIntPoint(2, 4));
-		UGridItemDefinitionAsset* Weapon =
-			MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_RangeThree"), EGridItemType::Weapon, RangedProfile, EGridEquipmentSlot::MainHand);
-		Fixture.Equip(Weapon, EGridEquipmentSlot::MainHand);
+		if (!TestTrue(TEXT("The ranged weapon is registered"), Fixture.AttachInventory())) return false;
+		Fixture.Equip(TEXT("Item_MON11_RangeThree"), EGridEquipmentSlot::MainHand, 1);
 		FGridPlayerAttackRequest Request;
 		FGridAttackResult Result;
 		EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
@@ -486,9 +449,8 @@ bool FGridMonsterMON11RangedWeaponTargetingTest::RunTest(const FString& Paramete
 		FGridMON11EquipmentFixture Fixture(FIntPoint(2, 3));
 		AGridMonsterActor* RearMonster = Fixture.SpawnMonster(FIntPoint(2, 4));
 		Fixture.SetOnlyCombatMonsters({ Fixture.Monster, RearMonster });
-		UGridItemDefinitionAsset* Weapon =
-			MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_FirstTarget"), EGridItemType::Weapon, RangedProfile, EGridEquipmentSlot::MainHand);
-		Fixture.Equip(Weapon, EGridEquipmentSlot::MainHand);
+		if (!TestTrue(TEXT("The ranged weapon is registered"), Fixture.AttachInventory())) return false;
+		Fixture.Equip(TEXT("Item_MON11_RangeThree"), EGridEquipmentSlot::MainHand, 1);
 		FGridPlayerAttackRequest Request;
 		FGridAttackResult Result;
 		EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
@@ -499,9 +461,8 @@ bool FGridMonsterMON11RangedWeaponTargetingTest::RunTest(const FString& Paramete
 
 	{
 		FGridMON11EquipmentFixture Fixture(FIntPoint(2, 4));
-		UGridItemDefinitionAsset* Weapon =
-			MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_BlockedRange"), EGridItemType::Weapon, RangedProfile, EGridEquipmentSlot::MainHand);
-		Fixture.Equip(Weapon, EGridEquipmentSlot::MainHand);
+		if (!TestTrue(TEXT("The ranged weapon is registered"), Fixture.AttachInventory())) return false;
+		Fixture.Equip(TEXT("Item_MON11_RangeThree"), EGridEquipmentSlot::MainHand, 1);
 		Fixture.LevelAsset->GetCellMutable(2, 2).NorthWall = EGridWallType::Solid;
 		constexpr int32 BlockedSeed = 777;
 		Fixture.TurnManager->CombatRandomStream.Initialize(BlockedSeed);
@@ -515,9 +476,8 @@ bool FGridMonsterMON11RangedWeaponTargetingTest::RunTest(const FString& Paramete
 
 	{
 		FGridMON11EquipmentFixture Fixture(FIntPoint(2, 5));
-		UGridItemDefinitionAsset* Weapon =
-			MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_OutOfRange"), EGridItemType::Weapon, RangedProfile, EGridEquipmentSlot::MainHand);
-		Fixture.Equip(Weapon, EGridEquipmentSlot::MainHand);
+		if (!TestTrue(TEXT("The ranged weapon is registered"), Fixture.AttachInventory())) return false;
+		Fixture.Equip(TEXT("Item_MON11_RangeThree"), EGridEquipmentSlot::MainHand, 1);
 		FGridPlayerAttackRequest Request;
 		FGridAttackResult Result;
 		EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
@@ -527,9 +487,8 @@ bool FGridMonsterMON11RangedWeaponTargetingTest::RunTest(const FString& Paramete
 
 	{
 		FGridMON11EquipmentFixture Fixture(FIntPoint::ZeroValue, false);
-		UGridItemDefinitionAsset* Weapon =
-			MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_NoTarget"), EGridItemType::Weapon, RangedProfile, EGridEquipmentSlot::MainHand);
-		Fixture.Equip(Weapon, EGridEquipmentSlot::MainHand);
+		if (!TestTrue(TEXT("The ranged weapon is registered"), Fixture.AttachInventory())) return false;
+		Fixture.Equip(TEXT("Item_MON11_RangeThree"), EGridEquipmentSlot::MainHand, 1);
 		FGridPlayerAttackRequest Request;
 		FGridAttackResult Result;
 		EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;

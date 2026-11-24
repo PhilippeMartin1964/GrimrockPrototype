@@ -251,15 +251,8 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
         Preview.ActualTargetSlot, EquippedItem) &&
         EquippedItem.RuntimeObjectId != Candidate.RuntimeObjectId)
     {
-        const UGridItemDefinitionAsset* EquippedDef = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!Registry && GIsAutomationTesting)
-        {
-            EquippedDef = Inventory->FindItemDefinition(EquippedItem.ItemDefinitionId);
-        }
-#endif
         FGridWeaponTooltipProjection::BuildComparison(
-            CandidateDefinition, Candidate, EquippedDef, EquippedItem,
+            CandidateDefinition, Candidate, nullptr, EquippedItem,
             OutScenario.WeaponFacts, Registry);
     }
     return true;

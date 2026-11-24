@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
@@ -20,7 +19,7 @@ struct FGridInventoryStackReadView
 struct FGridInventoryStackReadModel
 {
     static FGridInventoryStackReadView Resolve(
-        const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Legacy,
+        const UGridItemSubsystem* Registry,
         const FGridItemInstance& Item)
     {
         FGridInventoryStackReadView View;
@@ -41,16 +40,6 @@ struct FGridInventoryStackReadModel
             View.MaxStackSize = FMath::Max(1, Resolved.MaxStack);
             return View;
         }
-        // Explicit historical inventory fixtures only; never a runtime fallback.
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!Registry && GIsAutomationTesting && IsValid(Legacy) &&
-            Legacy->ItemDefinitionId == Item.ItemDefinitionId)
-        {
-            View.bResolved = true;
-            View.MaxStackSize = Legacy->bStackable
-                ? FMath::Max(1, Legacy->MaxStackSize) : 1;
-        }
-#endif
         return View;
     }
 };

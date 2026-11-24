@@ -83,8 +83,6 @@ bool FARMEMENT01161SaboteurApprovedGrant::RunTest(const FString&)
     if (!TestTrue(TEXT("Tool resolves from sole configured ItemSystem"),
         Fixture.Registry->ResolveItem(ARMEMENT01161Test::ToolId, 0, ProductionTool)))
         return false;
-    TestNull(TEXT("Starting kit does not register old tool definitions"),
-        Inventory->FindItemDefinition(ARMEMENT01161Test::ToolId));
     const FGridCharacterEquipmentState& Equipment = Inventory->PartyInventoryState.ActiveEquipment[0];
     TestFalse(TEXT("Reusable tools are not equipped into the off hand"),
         Equipment.OffHand.ItemDefinitionId == ARMEMENT01161Test::ToolId);

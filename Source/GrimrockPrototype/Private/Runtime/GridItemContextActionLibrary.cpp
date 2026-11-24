@@ -259,10 +259,6 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	if (!ItemRegistry && GIsAutomationTesting)
 	{
 		Definition = ItemContext.ItemDefinition;
-		if (!Definition && ItemContext.PartyPawn->PartyInventoryComponent)
-		{
-			Definition = ItemContext.PartyPawn->PartyInventoryComponent->FindItemDefinition(ItemContext.Item.ItemDefinitionId);
-		}
 	}
 #endif
 	const FGridItemInteractionReadView Capabilities =
@@ -457,7 +453,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridInventoryStackReadView StackPolicy =
-			FGridInventoryStackReadModel::Resolve(Registry, Definition, ItemContext.Item);
+			FGridInventoryStackReadModel::Resolve(Registry, ItemContext.Item);
 		if (StackPolicy.IsStackable())
 		{
 			AddAction(OutActions, EGridItemActionType::SplitStack,

@@ -464,26 +464,6 @@ FGridPlayerAttackPresentationProfile UGridPlayerAttackPresentationComponent::Res
 		// only; damage and the committed projectile remain authoritative.
 		return FGridPlayerAttackPresentationProfile();
 	}
-	#if WITH_DEV_AUTOMATION_TESTS
-	if (!Canonical && GIsAutomationTesting)
-	{
-		const UGridPartyInventoryComponent* Inventory = PartyPawn ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
-		const UGridItemDefinitionAsset* Definition = Inventory ? Inventory->FindItemDefinition(Request.OffensiveItemDefinitionId) : nullptr;
-		if (Definition && Definition->ItemDefinitionId == Request.OffensiveItemDefinitionId && Definition->HasValidPlayerAttackPresentation())
-		{
-			return Definition->PlayerAttackPresentationProfile;
-		}
-		if (Request.ResolutionCount > 1)
-		{
-			UE_LOG(LogGridPlayerAttackPresentation, Warning,
-				TEXT("[ARMEMENT-LOT02.19.2.2] MultiHitProfileUnavailable Item=%s Hand=%s Definition=%s PresentationOptIn=%s ProfileValid=%s"),
-				*Request.OffensiveItemDefinitionId.ToString(), *UEnum::GetValueAsString(Request.OffensiveEquipmentSlot),
-				*GetNameSafe(Definition),
-				Definition && Definition->bProvidesAttackPresentation ? TEXT("true") : TEXT("false"),
-				Definition && Definition->PlayerAttackPresentationProfile.IsValid() ? TEXT("true") : TEXT("false"));
-		}
-	}
-#endif
 	return FGridPlayerAttackPresentationProfile();
 }
 

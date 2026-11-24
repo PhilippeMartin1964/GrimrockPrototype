@@ -53,8 +53,6 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 		Character.CharacterId, EGridEquipmentSlot::OffHand);
 	const FGuid MainId = Equipment.MainHand.RuntimeObjectId;
 	const FGuid OffId = Equipment.OffHand.RuntimeObjectId;
-	TestNull(TEXT("No legacy main definition is required"), Inventory->FindItemDefinition(Equipment.MainHand.ItemDefinitionId));
-	TestNull(TEXT("No legacy offhand definition is required"), Inventory->FindItemDefinition(Equipment.OffHand.ItemDefinitionId));
 	FGridResolvedItem MainN3, OffN19;
 	if (!TestTrue(TEXT("Real ARM001 N3 profile"), Registry->ResolveItem(
 			Equipment.MainHand.ItemDefinitionId, 3, MainN3)) ||
@@ -68,8 +66,6 @@ bool FGridClean063APDualWield::RunTest(const FString&)
 	if (!TestTrue(TEXT("Two actual canonical sources form a dual pair"),
 		FGridDualWieldPolicy::TryResolve(Inventory.Get(), 0, Pair, Registry.Get()))) return false;
 	TestTrue(TEXT("Both sources use canonical identity"), Pair.Main.bRegisteredIdentity && Pair.Off.bRegisteredIdentity);
-	TestNull(TEXT("No old main weapon asset used"), Pair.Main.Definition);
-	TestNull(TEXT("No old offhand weapon asset used"), Pair.Off.Definition);
 	TestEqual(TEXT("Main physical GUID"), Pair.Main.Item.RuntimeObjectId, MainId);
 	TestEqual(TEXT("Off physical GUID"), Pair.Off.Item.RuntimeObjectId, OffId);
 	TestTrue(TEXT("Distinct physical items"), MainId != OffId);

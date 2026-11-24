@@ -103,8 +103,6 @@ bool FARMEMENT0166EquipmentAttackTest::RunTest(const FString&)
             FMath::IsFinite(Resolved.WeightKg) && Resolved.WeightKg >= 0.f);
         TestTrue(TEXT("Canonical pilot supports its authored equipment hand"),
             Resolved.Weapon.CanEquipInHand(Spec.Slot));
-        TestNull(TEXT("No legacy pilot definition is registered"),
-            Inventory->FindItemDefinition(ItemId));
         FGridItemInstance Instance;
         Instance.RuntimeObjectId = FGuid::NewGuid();
         Instance.ItemDefinitionId = ItemId;

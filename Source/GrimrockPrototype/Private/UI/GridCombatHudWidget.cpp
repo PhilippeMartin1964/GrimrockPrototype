@@ -138,9 +138,6 @@ namespace
 		const UWorld* World = IsValid(PartyPawn) ? PartyPawn->GetWorld() : InventoryComponent->GetWorld();
 		UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-		const bool bCanonical = Registry && Registry->ContainsItem(Binding.SourceDefinitionId);
-		const UGridItemDefinitionAsset* OldDefinition = bCanonical ? nullptr :
-			InventoryComponent->FindItemDefinition(Binding.SourceDefinitionId);
 		const FGridInventorySlot* Source = Character.InventorySlots.FindByPredicate(
 			[&Binding](const FGridInventorySlot& Slot)
 			{
@@ -153,19 +150,18 @@ namespace
 			return Action;
 		}
 		const FGridItemInteractionReadView Capabilities =
-			FGridItemInteractionReadModel::Resolve(Registry, OldDefinition, Source->Item);
-		if (bCanonical ? !Capabilities.bPhysicalThrowHotbar :
-			(!IsValid(OldDefinition) || !OldDefinition->IsPhysicallyThrowable()))
+			FGridItemInteractionReadModel::Resolve(Registry, nullptr, Source->Item);
+		if (!Capabilities.bPhysicalThrowHotbar)
 		{
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ItemDefinition"));
 			return Action;
 		}
-		const FText ItemName = bCanonical ? Capabilities.DisplayName : OldDefinition->DisplayName;
+		const FText ItemName = Capabilities.DisplayName;
 		Action.Definition.DisplayName = FText::FormatNamed(
 			FUILocalizationText::Get(TEXT("Combat.Action.ThrowName")),
 			TEXT("ItemName"), ItemName);
-		Action.Definition.Description = bCanonical ? Capabilities.Description : OldDefinition->Description;
-		Action.Definition.Icon = bCanonical ? Capabilities.ItemIcon : OldDefinition->Icon;
+		Action.Definition.Description = Capabilities.Description;
+		Action.Definition.Icon = Capabilities.ItemIcon;
 
 		FGridInventoryCharacterSummary Summary;
 		if (!InventoryComponent->GetCharacterSummary(CharacterIndex, Summary))
@@ -175,7 +171,7 @@ namespace
 			return Action;
 		}
 		const FGridPhysicalThrowPreflightReadView Gate =
-			FGridPhysicalThrowPreflightReadModel::Resolve(Registry, OldDefinition, Source->Item, Summary.Attributes.Strength);
+			FGridPhysicalThrowPreflightReadModel::Resolve(Registry, nullptr, Source->Item, Summary.Attributes.Strength);
 		if (!Gate.bCanThrow)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;
@@ -220,14 +216,8 @@ namespace
         const FGridQuickItemUseReadView Use = bCanonical
             ? FGridQuickItemUseReadModel::Resolve(Registry, Source->Item)
             : FGridQuickItemUseReadView();
-        const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr :
-            Inventory->FindItemDefinition(Binding.SourceDefinitionId);
-        FGridCombatActionDefinition QuickItem;
-        const bool bHasAction = bCanonical
-            ? (Use.bResolved && Use.bExplorationCompatible && (QuickItem = Use.Action, true))
-            : (IsValid(Definition) &&
-                (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food) &&
-                Definition->BuildQuickItemCombatActionDefinition(QuickItem));
+        const FGridCombatActionDefinition& QuickItem = Use.Action;
+        const bool bHasAction = Use.bResolved && Use.bExplorationCompatible;
         if (!bHasAction ||
             QuickItem.ActionId != Binding.ActionId ||
             QuickItem.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
@@ -1743,31 +1733,6 @@ void UGridCombatHudWidget::EnrichHotbarActionPresentation()
 				Registry, SourceDefinitionId, ActionView.bResolved,
 				SourceItem, ActionView.Action);
 		}
-#if WITH_DEV_AUTOMATION_TESTS
-		else if (!Registry && GIsAutomationTesting && !bRegisteredIdentity)
-		{
-			// Legacy action metadata is for worldless Editor test fixtures only.
-			const UGridItemDefinitionAsset* ItemDefinition =
-				IsValid(InventoryComponent) && !SourceDefinitionId.IsNone()
-					? InventoryComponent->FindItemDefinition(SourceDefinitionId)
-					: nullptr;
-			if (IsValid(ItemDefinition))
-			{
-				if (ActionView.Action.Definition.DisplayName.IsEmpty())
-				{
-					ActionView.Action.Definition.DisplayName = ItemDefinition->DisplayName;
-				}
-				if (ActionView.Action.Definition.Description.IsEmpty())
-				{
-					ActionView.Action.Definition.Description = ItemDefinition->Description;
-				}
-				if (ActionView.Action.Definition.Icon.IsNull())
-				{
-					ActionView.Action.Definition.Icon = ItemDefinition->Icon;
-				}
-			}
-		}
-#endif // WITH_DEV_AUTOMATION_TESTS
 
 		if (ActionView.bResolved)
 		{

@@ -19,22 +19,6 @@ namespace
         return GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
     }
 
-    const UGridItemDefinitionAsset* ResolveCursorHistoricalDefinitionForAutomation(
-        const UGridPartyInventoryComponent* Inventory, const UGridItemSubsystem* Registry, FName ItemId)
-    {
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!Registry && GIsAutomationTesting && IsValid(Inventory))
-        {
-            return Inventory->FindItemDefinition(ItemId);
-        }
-#else
-        (void)Inventory;
-        (void)Registry;
-        (void)ItemId;
-#endif
-        return nullptr;
-    }
-
 	int32 GridPartyInventoryCursorTransferFindFreeInventorySlotIndex(const FGridCharacterInventoryState& CharacterState)
 	{
 		for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num(); ++SlotIndex)
@@ -190,11 +174,9 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 
 	FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[InventorySlotIndex];
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
-    const UGridItemDefinitionAsset* Definition =
-        ResolveCursorHistoricalDefinitionForAutomation(this, Registry, InventorySlot.Item.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			Registry, Definition, InventorySlot.Item);
+			Registry, InventorySlot.Item);
 	const bool bCanSplitStack = StackPolicy.IsStackable() &&
 		InventorySlot.Item.Quantity > 1 && Quantity < InventorySlot.Item.Quantity;
 
@@ -274,11 +256,9 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 	}
 
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
-    const UGridItemDefinitionAsset* Definition =
-        ResolveCursorHistoricalDefinitionForAutomation(this, Registry, CursorItem.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			Registry, Definition, CursorItem);
+			Registry, CursorItem);
 	if (StackPolicy.IsStackable() && TargetSlot.Item.ItemDefinitionId == CursorItem.ItemDefinitionId)
 	{
 		const int32 MaxStackSize = StackPolicy.MaxStackSize;
@@ -384,11 +364,9 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	}
 
 	const UGridItemSubsystem* Registry = ResolveCursorStackRegistry(this);
-    const UGridItemDefinitionAsset* Definition =
-        ResolveCursorHistoricalDefinitionForAutomation(this, Registry, SourceItem.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			Registry, Definition, SourceItem);
+			Registry, SourceItem);
 	if (StackPolicy.IsStackable() && TargetSlot.Item.ItemDefinitionId == SourceItem.ItemDefinitionId)
 	{
 		const int32 MaxStackSize = StackPolicy.MaxStackSize;

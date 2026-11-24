@@ -228,16 +228,9 @@ public:
 	 */
 	bool TryConsumeSelfRestorativeQuickItem(int32 CharacterIndex, FGuid SourceRuntimeObjectId, FText& OutError);
 
-#if WITH_DEV_AUTOMATION_TESTS
-	/** Historical fixture registration only; production has no native caller. */
-	bool RegisterItemDefinition(UGridItemDefinitionAsset* Definition);
-#endif
 
 	/** Production New Game/Continue: validate against the configured registry; never restore old definitions. */
 	bool RehydrateOwnedItems(FName& OutMissingDefinitionId);
-
-	/** Historical native lookup; canonical definitions are resolved through ItemSystem. */
-	UGridItemDefinitionAsset* FindItemDefinition(FName ItemDefinitionId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Items")
 	bool ApplyItemDefinitionToInstance(FGridItemInstance& ItemInstance) const;
@@ -428,9 +421,6 @@ private:
 
 	/** Shared bounded refill for the two authoritative entry points: Victory and explicit Rest. */
 	int32 RefillArmorReservesForRecovery();
-
-	UPROPERTY(Transient)
-	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> RuntimeItemDefinitionsById;
 
 	void EnsureEquipmentCountMatchesActiveCharacters();
 	void InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;

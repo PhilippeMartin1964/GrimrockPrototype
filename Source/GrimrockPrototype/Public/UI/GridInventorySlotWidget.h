@@ -101,8 +101,6 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Inventory|Slot")
 	void RefreshSlotVisual();
 
-private:
-	const UGridItemDefinitionAsset* GetItemDefinition() const;
 
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;

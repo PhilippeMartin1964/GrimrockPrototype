@@ -51,8 +51,6 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
         TestEqual(TEXT("Exact approved bow is equipped"), Gear.MainHand.ItemDefinitionId, BowIds[KitIndex]);
         TestFalse(TEXT("Two-handed bow does not duplicate OffHand item"), Gear.OffHand.IsValid());
 
-        TestNull(TEXT("Canonical starter does not register a historical bow definition"),
-            Inventory->FindItemDefinition(BowIds[KitIndex]));
         const FGridRangedAmmunitionRequirement BowRequirement =
             FGridRangedAmmunitionPolicy::ResolveForAttack(
                 NativeWorld.Scope.Registry, BowIds[KitIndex], 1, nullptr, true);

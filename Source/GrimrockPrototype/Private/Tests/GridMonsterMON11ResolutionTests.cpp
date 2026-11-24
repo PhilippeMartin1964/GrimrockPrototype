@@ -454,8 +454,7 @@ bool FGridMonsterMON11EquippedGuardRuntimeTest::RunTest(const FString&)
 		if (!Inventory || !RegistryScope.Registry ||
 			!RegistryScope.Registry->ResolveItem(ItemId, 1, Definition) ||
 			!Definition.bIsArmament ||
-			!Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand) ||
-			Inventory->FindItemDefinition(ItemId))
+			!Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand))
 			return false;
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();

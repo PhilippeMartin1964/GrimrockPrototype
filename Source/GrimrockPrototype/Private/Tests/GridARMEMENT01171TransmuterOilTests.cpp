@@ -235,8 +235,6 @@ bool FARMEMENT01171StarterAndSave::RunTest(const FString&)
     TestEqual(TEXT("Physical owner is hero"), Flask->OwnerGuid, Hero.CharacterId);
     TestEqual(TEXT("Physical owner type is bag"), Flask->OwnerType,
         EGridItemOwnerType::CharacterInventory);
-    TestNull(TEXT("No historical Oil definition registered"),
-        Inventory->FindItemDefinition(OilId));
     TestEqual(TEXT("Dagger remains equipped"),
         Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.ItemDefinitionId,
         FName(TEXT("Weapon_Dagger_01")));
@@ -282,8 +280,6 @@ bool FARMEMENT01171StarterAndSave::RunTest(const FString&)
     }
     TestEqual(TEXT("Restored Transmuter carries one oil flask"),
         Continued->CountItemDefinitionInCharacterInventory(0, OilId), 1);
-    TestNull(TEXT("Restored bag contains no legacy Oil definition"),
-        Continued->FindItemDefinition(OilId));
     return !HasAnyErrors();
 }
 

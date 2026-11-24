@@ -62,46 +62,7 @@ namespace
 			return false;
 		}
 
-		// After canonical migration, the old dual-attack authoring path
-		// exists for *worldless* Automation fixtures only. A configured
-		// ItemSystem must not borrow a copied attack for an unknown ItemId.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Registry || !GIsAutomationTesting)
-		{
-			return false;
-		}
-		OutSource.Definition = Inventory->FindItemDefinition(OutSource.Item.ItemDefinitionId);
-		if (!IsValid(OutSource.Definition) || !OutSource.Definition->IsValidDefinition() ||
-			OutSource.Definition->GetEffectiveHandUsage() != EGridItemHandUsage::OneHanded ||
-			OutSource.Definition->IsCombatThrowable() ||
-			!OutSource.Definition->RequiredAmmunitionItemDefinitionId.IsNone() ||
-			!OutSource.Definition->CanProvideAttackFromSlot(Slot))
-			return false;
-		const FGridCombatActionDefinition* Attack =
-			OutSource.Definition->CombatActions.FindByPredicate(
-				[](const FGridCombatActionDefinition& Candidate)
-				{
-					return Candidate.IsValid() &&
-						Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-						Candidate.ResolutionProfile == EGridCombatActionResolutionProfile::Attack &&
-						Candidate.TargetingPolicy == EGridCombatTargetingPolicy::FirstAxialTarget &&
-						Candidate.ActionType == EGridCombatActionType::MeleeAttack &&
-						Candidate.RangeCells == 1 && Candidate.ResolutionCount == 1 &&
-						Candidate.ResourceCosts.ManaCost == 0 &&
-						Candidate.ResourceCosts.SourceItemQuantityCost == 0 &&
-						Candidate.CooldownRounds == 0;
-				});
-		if (!Attack ||
-			!OutSource.Definition->ResolveEquippedOffensiveProfile(
-				OutSource.Item, *Attack, OutSource.Profile) ||
-			OutSource.Profile.RangeCells != 1 || !OutSource.Profile.IsValid())
-			return false;
-		OutSource.Action = *Attack;
-		OutSource.SourceTags = OutSource.Definition->ItemTags;
-		return true;
-#else
 		return false;
-#endif // WITH_DEV_AUTOMATION_TESTS
 	}
 }
 

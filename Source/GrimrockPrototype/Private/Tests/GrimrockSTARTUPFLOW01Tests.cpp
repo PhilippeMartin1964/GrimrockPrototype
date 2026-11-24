@@ -189,12 +189,6 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 			UGridPartyInventoryComponent* Dungeon = Fixture.NewInventory();
 			if (!TestNotNull(TEXT("Real dungeon inventory"), Dungeon)) return false;
 			Dungeon->InitializeDefaultPartyIfNeeded();
-			const FName FirstId = Kit.Items[0].ItemId;
-			if (!TestNull(TEXT("Dungeon initially has no frontend definition map"),
-				Dungeon->FindItemDefinition(FirstId)))
-			{
-				return false;
-			}
 			if (!TestTrue(*FString::Printf(TEXT("%s: startup restores canonical physical identities"),
 				*Kit.KitId.ToString()),
 				UGrimrockStartupModeComponent::RestorePendingNewGameParty(
@@ -220,9 +214,7 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 				FGridResolvedItem Resolved;
 				if (!TestNull(TEXT("No legacy definition in approved recipe"), Entry.ItemDefinition.Get()) ||
 					!TestTrue(TEXT("Real recipe identity resolves"),
-						Fixture.Registry->ResolveItem(Entry.ItemId, Entry.ItemLevel, Resolved)) ||
-					!TestNull(TEXT("No old definition in dungeon registry"),
-						Dungeon->FindItemDefinition(Entry.ItemId)))
+						Fixture.Registry->ResolveItem(Entry.ItemId, Entry.ItemLevel, Resolved)))
 				{
 					return false;
 				}

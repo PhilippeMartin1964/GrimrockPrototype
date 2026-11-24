@@ -67,11 +67,6 @@ bool FEquipmentTooltip043DHandUsageTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory))
         return false;
     Inventory->InitializeDefaultPartyIfNeeded();
-    if (!TestNull(TEXT("No historical Great Axe definition registered"),
-            Inventory->FindItemDefinition(Axe.ItemId)) ||
-        !TestNull(TEXT("No historical War Pick definition registered"),
-            Inventory->FindItemDefinition(Pick.ItemId)))
-        return false;
 
     const FText TwoHands = FUILocalizationText::Get(TEXT("Inventory.Tooltip.Equipment.TwoHands"));
     if (!TestFalse(TEXT("Two hands key exists in the generated ST_UI"), TwoHands.IsEmpty()))

@@ -149,8 +149,7 @@ namespace Shield024B
 
 			if (!TestWorld.Registry ||
 				!TestWorld.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, ShieldDef) ||
-				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5 ||
-				Party->PartyInventoryComponent->FindItemDefinition(ShieldDef.ItemId))
+				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5)
 				return false;
 			FGridItemInstance Shield;
 			Shield.RuntimeObjectId = FGuid::NewGuid();
@@ -257,8 +256,6 @@ bool FShield024BPartyRestorationTest::RunTest(const FString&)
 	TestTrue(TEXT("Post-restore UI summary exists"), Inv->GetCharacterSummary(1, Summary));
 	TestEqual(TEXT("UI sees complete target physical pool"), Summary.Resources.CurrentPhysicalArmor, 7);
 	TestEqual(TEXT("UI sees restored target magic"), Summary.Resources.CurrentMagicalArmor, 3);
-	TestNull(TEXT("Restoration does not register any historical shield definition"),
-		Inv->FindItemDefinition(Fixture.ShieldDef.ItemId));
 	return true;
 }
 

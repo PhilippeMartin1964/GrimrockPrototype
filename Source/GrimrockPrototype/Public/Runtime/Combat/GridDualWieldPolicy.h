@@ -9,10 +9,6 @@ class UGridItemSubsystem;
 struct FGridDualWieldSource
 {
 	FGridItemInstance Item;
-#if WITH_DEV_AUTOMATION_TESTS
-	/** Only worldless Automation fixtures may retain the historical source. */
-	const UGridItemDefinitionAsset* Definition = nullptr;
-#endif
 	bool bRegisteredIdentity = false;
 	TArray<FName> SourceTags;
 	FGridCombatActionDefinition Action;

@@ -61,6 +61,71 @@ struct FGridCanonicalLootTestScope
 		return Registry->RegisterItemSystem(Root, Errors);
 	}
 
+	// Compact ARM fixture using the real validators, action binding and presentation.
+	static void AddWeapon(UGridItemSystemAsset& Root, FName ItemId, FName ActionId, const FText& Name,
+		EGridEquipmentSlot Hand, EGridPhysicalDamageSubtype Subtype, EGridAttackScalingAttribute Scaling,
+		int32 DiceSides, int32 Range, int32 AP)
+	{
+		if (Root.WeaponCatalogue->GetOuter() != &Root)
+		{
+			Root.WeaponCatalogue = DuplicateObject<UGridCanonicalWeaponCatalogueAsset>(Root.WeaponCatalogue, &Root);
+			Root.WeaponVisualCatalogue = DuplicateObject<UGridCanonicalWeaponVisualCatalogueAsset>(Root.WeaponVisualCatalogue, &Root);
+			Root.ActionCatalogue = DuplicateObject<UGridActionCatalogueAsset>(Root.ActionCatalogue, &Root);
+		}
+		// The production schema reserves ARM001–ARM082. Replace a slot in
+		// this private catalogue and remove its original concrete definitions.
+		const FGridWeaponArchetype* Replaced = Root.WeaponCatalogue->Archetypes.FindByPredicate([&Root](const FGridWeaponArchetype& Row)
+		{
+			return Row.Kind == EGridArmamentKind::Weapon &&
+				!Root.ItemDefinitions.ContainsByPredicate([&Root, &Row](const auto& Entry)
+				{
+					const auto* Arm = Cast<UGridArmamentDefinitionAsset>(Entry.Get());
+					return Arm && Arm->GetOuter() == &Root && Arm->ArchetypeId == Row.ArchetypeId;
+				});
+		});
+		check(Replaced);
+		const FName ArchetypeId = Replaced->ArchetypeId;
+		Root.ItemDefinitions.RemoveAll([ArchetypeId](const auto& Entry)
+		{
+			const auto* Arm = Cast<UGridArmamentDefinitionAsset>(Entry.Get());
+			return Arm && Arm->ArchetypeId == ArchetypeId;
+		});
+		Root.WeaponCatalogue->Archetypes.RemoveAll([ArchetypeId](const auto& Row) { return Row.ArchetypeId == ArchetypeId; });
+		Root.WeaponVisualCatalogue->ArchetypeBindings.RemoveAll([ArchetypeId](const auto& Row) { return Row.ArchetypeId == ArchetypeId; });
+		auto* Item = NewObject<UGridArmamentDefinitionAsset>(&Root);
+		Item->ItemId = ItemId;
+		Item->ArchetypeId = ArchetypeId;
+		Item->DisplayName = Name;
+		Root.ItemDefinitions.Add(Item);
+
+		FGridWeaponArchetype& Archetype = Root.WeaponCatalogue->Archetypes.AddDefaulted_GetRef();
+		Archetype.ArchetypeId = ArchetypeId;
+		Archetype.bHandAndKindProven = true;
+		Archetype.HandPolicy = Hand == EGridEquipmentSlot::OffHand ? EGridHandPolicy::OffHand : EGridHandPolicy::MainHand;
+		Archetype.PhysicalSubtype = Subtype;
+		Archetype.ScalingAttribute = Scaling;
+		Archetype.ActionPointCost = AP;
+		Archetype.RangeCells = Range;
+		Archetype.DamageDiceN1.bEnabled = true;
+		Archetype.DamageDiceN1.DiceSides = DiceSides;
+		Archetype.PrimaryClassId = Root.WeaponCatalogue->ClassPreferences[0].ClassId;
+		Archetype.AttackSourceSlots.Add(Hand);
+		FGridItemActionBinding& Binding = Archetype.Actions.AddDefaulted_GetRef();
+		Binding.ActionId = ActionId;
+		Binding.PresentationId = Root.ActionPresentationCatalogue->Presentations[0].PresentationId;
+
+		FGridAction& Action = Root.ActionCatalogue->Actions.AddDefaulted_GetRef();
+		Action.ActionId = ActionId;
+		Action.Targeting = EGridCombatTargetingPolicy::FirstAxialTarget;
+		Action.bRangedAttack = Range > 1;
+
+		const FGridWeaponVisual* Visual = Root.WeaponVisualCatalogue->VisualProfiles.FindByPredicate(
+			[](const FGridWeaponVisual& Row) { return !Row.ProjectileAppearance.bEnabled; });
+		FGridWeaponVisualBinding& VisualBinding = Root.WeaponVisualCatalogue->ArchetypeBindings.AddDefaulted_GetRef();
+		VisualBinding.ArchetypeId = ArchetypeId;
+		VisualBinding.VisualId = Visual->VisualId;
+	}
+
 	// Keep authored action rows in an isolated copy of the global catalogue.
 	static void BindDetailedAction(UGridItemSystemAsset& Root, TArray<FGridItemActionBinding>& Bindings,
 		const FGridCombatActionDefinition& Definition)

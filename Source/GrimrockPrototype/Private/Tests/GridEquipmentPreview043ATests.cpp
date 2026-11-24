@@ -278,11 +278,6 @@ bool FEquipmentPreview043AProductionGreatAxeTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Canonical inventory bound to game world"), Inventory))
         return false;
     Inventory->InitializeDefaultPartyIfNeeded();
-    if (!TestNull(TEXT("No historical Great Axe registered"),
-            Inventory->FindItemDefinition(GreatAxe.ItemId)) ||
-        !TestNull(TEXT("No historical Round Shield registered"),
-            Inventory->FindItemDefinition(Shield.ItemId)))
-        return false;
 
     FGridItemInstance ShieldItem;
     ShieldItem.RuntimeObjectId = FGuid::NewGuid();

@@ -3,7 +3,6 @@
 #include "ProfilingDebugging/CpuProfilerTrace.h"
 
 #include "GridEquipmentSlotUtils.h"
-#include "GridLegacyInventoryRegistrationGate.h"
 #include "GridItemWeightReadModel.h"
 #include "GridItemInstanceMaterializationReadModel.h"
 #include "GridInventoryStackReadModel.h"
@@ -54,24 +53,6 @@ namespace
 			}
 		}
 		return nullptr;
-	}
-
-	bool RequiresResolvedInventoryDefinition(const UGridPartyInventoryComponent* Inventory,
-		const UGridItemDefinitionAsset* Definition, FName ItemId)
-	{
-#if WITH_DEV_AUTOMATION_TESTS
-		if (GIsAutomationTesting && !ResolvePartyWeightRegistry(Inventory))
-		{
-			// Only registry-less historical Automation fixtures may bypass
-			// canonical materialization. A configured GameInstance cannot
-			// grant unknown physical ItemIds via the legacy definition map.
-			return IsValid(Definition) && Definition->bUseWeaponCatalogue;
-		}
-#endif
-		(void)Inventory;
-		(void)Definition;
-		(void)ItemId;
-		return true; // Gameplay requires successful canonical materialization.
 	}
 
 	constexpr float InventoryHeavyWeightRatio = 0.8f;
@@ -1051,27 +1032,16 @@ bool UGridPartyInventoryComponent::IsValidCharacterIndex(int32 Index) const
 bool UGridPartyInventoryComponent::CanAcceptSingleInventoryItem(const FGridItemInstance& Item) const
 {
 	if (!Item.IsValid()) return false;
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(Item.ItemDefinitionId);
 	FGridItemInstance Candidate = Item;
-	if (!ApplyItemDefinitionToInstance(Candidate) &&
-		RequiresResolvedInventoryDefinition(this, Definition, Item.ItemDefinitionId))
-	{
-		return false;
-	}
-	const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-	// A single cursor/slot is not a multi-stack grant. Never discard units
-	// by accepting a canonical materialization that clamps its quantity.
-	return !(Registry && Registry->ContainsItem(Item.ItemDefinitionId)) ||
-		Candidate.Quantity == Item.Quantity;
+	// A single slot cannot discard units when materialization clamps quantity.
+	return ApplyItemDefinitionToInstance(Candidate) && Candidate.Quantity == Item.Quantity;
 }
 
 bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 CharacterIndex, const FGridItemInstance& Item) const
 {
 	FGridItemInstance ItemToAdd = Item;
 	const int32 InitialQuantity = ItemToAdd.Quantity;
-	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
-		RequiresResolvedInventoryDefinition(this, SourceDefinition, ItemToAdd.ItemDefinitionId))
+	if (!ApplyItemDefinitionToInstance(ItemToAdd))
 	{
 		// A failed resolution cannot grant an object from snapshot metadata.
 		return false;
@@ -1083,10 +1053,9 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory(int32 Characte
 		return false;
 	}
 
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
+			ResolvePartyWeightRegistry(this), ItemToAdd);
 	const bool bStackable = StackPolicy.IsStackable();
 	const int32 MaxStackSize = StackPolicy.MaxStackSize;
 
@@ -1137,9 +1106,7 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventoryInternal(int32 Cha
 {
 	FGridItemInstance ItemToAdd = Item;
 	const int32 InitialQuantity = ItemToAdd.Quantity;
-	const UGridItemDefinitionAsset* SourceDefinition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
-	if (!ApplyItemDefinitionToInstance(ItemToAdd) &&
-		RequiresResolvedInventoryDefinition(this, SourceDefinition, ItemToAdd.ItemDefinitionId))
+	if (!ApplyItemDefinitionToInstance(ItemToAdd))
 	{
 		// A failed resolution cannot grant an object from snapshot metadata.
 		return false;
@@ -1151,10 +1118,9 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventoryInternal(int32 Cha
 		return false;
 	}
 
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(ItemToAdd.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			ResolvePartyWeightRegistry(this), Definition, ItemToAdd);
+			ResolvePartyWeightRegistry(this), ItemToAdd);
 	const bool bStackable = StackPolicy.IsStackable();
 	const int32 MaxStackSize = StackPolicy.MaxStackSize;
 
@@ -1244,10 +1210,9 @@ bool UGridPartyInventoryComponent::TrySplitInventoryStackToFirstFreeSlot(int32 C
 	}
 
 	FGridInventorySlot& SourceSlot = CharacterState.InventorySlots[SourceSlotIndex];
-	const UGridItemDefinitionAsset* Definition = FindItemDefinition(SourceSlot.Item.ItemDefinitionId);
 	const FGridInventoryStackReadView StackPolicy =
 		FGridInventoryStackReadModel::Resolve(
-			ResolvePartyWeightRegistry(this), Definition, SourceSlot.Item);
+			ResolvePartyWeightRegistry(this), SourceSlot.Item);
 	if (!StackPolicy.IsStackable() || SourceSlot.Item.Quantity < 2)
 	{
 		UE_LOG(LogGridInventory, Warning, TEXT("GridInventory SplitStack Failed Character=%d SourceSlot=%d Item=%s Quantity=%d Reason=NotSplittable"),
@@ -1486,19 +1451,9 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
 
     const FName ItemId = SourceSlot->Item.ItemDefinitionId;
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-    const bool bCanonical = Registry && Registry->ContainsItem(ItemId);
-    const FGridQuickItemUseReadView Canonical = bCanonical
-        ? FGridQuickItemUseReadModel::Resolve(Registry, SourceSlot->Item)
-        : FGridQuickItemUseReadView();
-    const UGridItemDefinitionAsset* Definition = bCanonical ? nullptr : FindItemDefinition(ItemId);
-    FGridCombatActionDefinition Action;
-    const bool bHaveAction = bCanonical
-        ? (Canonical.bResolved && Canonical.bExplorationCompatible &&
-            (Action = Canonical.Action, true))
-        : (IsValid(Definition) &&
-            (Definition->ItemType == EGridItemType::Potion || Definition->ItemType == EGridItemType::Food) &&
-            Definition->BuildQuickItemCombatActionDefinition(Action));
-    if (!bHaveAction ||
+    const FGridQuickItemUseReadView Use = FGridQuickItemUseReadModel::Resolve(Registry, SourceSlot->Item);
+    const FGridCombatActionDefinition& Action = Use.Action;
+    if (!Use.bResolved || !Use.bExplorationCompatible ||
         Action.SourcePolicy != EGridCombatActionSourcePolicy::QuickItem ||
         Action.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
         Action.ResolutionProfile != EGridCombatActionResolutionProfile::Effect ||
@@ -1575,38 +1530,6 @@ bool UGridPartyInventoryComponent::TryConsumeSelfRestorativeQuickItem(
     return true;
 }
 
-#if WITH_DEV_AUTOMATION_TESTS
-bool UGridPartyInventoryComponent::RegisterItemDefinition(UGridItemDefinitionAsset* Definition)
-{
-	const UWorld* World = GetWorld();
-	if (!Definition || Definition->ItemDefinitionId.IsNone() ||
-		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting, World && World->GetGameInstance()))
-	{
-		return false;
-	}
-
-	if (const TObjectPtr<UGridItemDefinitionAsset>* ExistingDefinition = RuntimeItemDefinitionsById.Find(Definition->ItemDefinitionId))
-	{
-		if (ExistingDefinition->Get() == Definition)
-		{
-			return true;
-		}
-
-		UE_LOG(LogGridInventory, Warning,
-			TEXT("GridInventory ItemDefinition Registration Failed ItemDefinitionId=%s Existing=%s Incoming=%s Reason=DuplicateId"),
-			*Definition->ItemDefinitionId.ToString(), *GetPathNameSafe(ExistingDefinition->Get()), *GetPathNameSafe(Definition));
-		return false;
-	}
-
-	RuntimeItemDefinitionsById.Add(Definition->ItemDefinitionId, Definition);
-	NotifyPartyInventoryChanged(INDEX_NONE);
-
-	UE_LOG(LogGridInventory, Verbose, TEXT("GridInventory Registered ItemDefinition=%s Asset=%s"), *Definition->ItemDefinitionId.ToString(), *Definition->GetPathName());
-
-	return true;
-}
-#endif // WITH_DEV_AUTOMATION_TESTS
-
 bool UGridPartyInventoryComponent::RehydrateOwnedItems(FName& OutMissingDefinitionId)
 {
 	OutMissingDefinitionId = NAME_None;
@@ -1674,60 +1597,22 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItems(FName& OutMissingDefiniti
 		return false;
 
 	// Commit only after all physical items and shortcuts pass validation.
-#if WITH_DEV_AUTOMATION_TESTS
-	RuntimeItemDefinitionsById.Reset(); // Purge historical fixture entries only.
-#endif
 	NotifyPartyInventoryChanged(INDEX_NONE);
 	return true;
-}
-
-UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition(FName ItemDefinitionId) const
-{
-#if WITH_DEV_AUTOMATION_TESTS
-	const UWorld* World = GetWorld();
-	if (ItemDefinitionId.IsNone() ||
-		!FGridLegacyInventoryRegistrationGate::Allows(GIsAutomationTesting, World && World->GetGameInstance()))
-	{
-		return nullptr;
-	}
-
-	if (const TObjectPtr<UGridItemDefinitionAsset>* Definition = RuntimeItemDefinitionsById.Find(ItemDefinitionId))
-	{
-		return Definition->Get();
-	}
-#endif // WITH_DEV_AUTOMATION_TESTS
-
-	return nullptr;
 }
 
 bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstance& ItemInstance) const
 {
     const UGridItemSubsystem* Registry = ResolvePartyWeightRegistry(this);
-    const bool bCanonical = Registry && Registry->ContainsItem(ItemInstance.ItemDefinitionId);
-    const UGridItemDefinitionAsset* Definition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-    if (!Registry)
-    {
-        Definition = FindItemDefinition(ItemInstance.ItemDefinitionId);
-    }
-#endif
-    if (!bCanonical && !Definition)
-    {
-        UE_LOG(LogGridInventory, Verbose,
-            TEXT("GridInventory ItemDefinition Missing ItemDefinitionId=%s"),
-            *ItemInstance.ItemDefinitionId.ToString());
-        return false;
-    }
-
     // Stage mutations until both the canonical metadata AND stack policy
     // resolve. Known fixed-level instances no longer require any old asset.
     FGridItemInstance Candidate = ItemInstance;
-    if (!FGridItemInstanceMaterializationReadModel::TryApply(Registry, Definition, Candidate))
+    if (!FGridItemInstanceMaterializationReadModel::TryApply(Registry, Candidate))
     {
         return false;
     }
     const FGridInventoryStackReadView StackPolicy =
-        FGridInventoryStackReadModel::Resolve(Registry, Definition, Candidate);
+        FGridInventoryStackReadModel::Resolve(Registry, Candidate);
     if (!StackPolicy.bResolved)
     {
         return false;
@@ -1740,9 +1625,8 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
     float UnitWeight = 0.0f;
     FGridItemWeightReadModel::TryResolveUnitWeight(Registry, ItemInstance, UnitWeight);
     UE_LOG(LogGridInventory, Verbose,
-        TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Canonical=%s"),
-        *ItemInstance.ItemDefinitionId.ToString(), UnitWeight,
-        bCanonical ? TEXT("true") : TEXT("false"));
+        TEXT("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Canonical=true"),
+        *ItemInstance.ItemDefinitionId.ToString(), UnitWeight);
     return true;
 }
 

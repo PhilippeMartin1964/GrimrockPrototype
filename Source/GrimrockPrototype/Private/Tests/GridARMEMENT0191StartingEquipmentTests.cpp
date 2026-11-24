@@ -164,10 +164,6 @@ bool FARMEMENT0191TwoHandsKitTest::RunTest(const FString&)
 	FString OwnershipError;
 	TestTrue(TEXT("Kit items have unique valid ownership"),
 		Inventory->ValidateInventoryOwnership(OwnershipError));
-	TestNull(TEXT("Bow needs no old definition registration"),
-		Inventory->FindItemDefinition(BowId));
-	TestNull(TEXT("Dagger needs no old definition registration"),
-		Inventory->FindItemDefinition(DaggerId));
 	return !HasAnyErrors();
 }
 
@@ -230,8 +226,6 @@ bool FARMEMENT0191OneHandKitTest::RunTest(const FString&)
 	TestEqual(TEXT("Kit id persists on the created character"),
 		Inventory->PartyInventoryState.ActiveCharacters[0].StartingEquipmentKitId,
 		FName(TEXT("Warrior_Defender")));
-	TestNull(TEXT("No historic dagger registered"), Inventory->FindItemDefinition(DaggerId));
-	TestNull(TEXT("No historic shield registered"), Inventory->FindItemDefinition(ShieldId));
 	FString OwnershipError;
 	TestTrue(TEXT("One-hand kit ownership remains valid"),
 		Inventory->ValidateInventoryOwnership(OwnershipError));
@@ -290,7 +284,6 @@ bool FARMEMENT0191RollbackTest::RunTest(const FString&)
 		Inventory->IsEquipmentSlotOccupied(0, EGridEquipmentSlot::OffHand));
 	TestEqual(TEXT("No physical bow granted"), ARMEMENT0191::CountPhysicalItem(Inventory, BowId), 0);
 	TestEqual(TEXT("No physical shield granted"), ARMEMENT0191::CountPhysicalItem(Inventory, ShieldId), 0);
-	TestNull(TEXT("No obsolete bow definition registered"), Inventory->FindItemDefinition(BowId));
 
 	// An already staged item must also roll back when the bag has only one slot.
 	Kit.Items.Reset();
@@ -311,8 +304,6 @@ bool FARMEMENT0191RollbackTest::RunTest(const FString&)
 	TestEqual(TEXT("No physical dagger granted"), ARMEMENT0191::CountPhysicalItem(Inventory, DaggerId), 0);
 	TestEqual(TEXT("No physical shield granted after bag failure"),
 		ARMEMENT0191::CountPhysicalItem(Inventory, ShieldId), 0);
-	TestNull(TEXT("No obsolete dagger definition registered"),
-		Inventory->FindItemDefinition(DaggerId));
 	FString OwnershipError;
 	TestTrue(TEXT("Rejected kits leave party ownership valid"),
 		Inventory->ValidateInventoryOwnership(OwnershipError));

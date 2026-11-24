@@ -103,11 +103,7 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
     Class->HealthAtLevelOne = 20;
     Class->BasePhysicalArmor = 0;
     Class->BaseMagicalArmor = 3;
-    if (!TestTrue(TEXT("Valid synthetic class"), Class->IsValidDefinition()) ||
-        !TestNull(TEXT("No historical shield registered"),
-            Inventory->FindItemDefinition(Def.ItemId)) ||
-        !TestNull(TEXT("No historical Great Axe registered"),
-            Inventory->FindItemDefinition(Axe.ItemId))) return false;
+    if (!TestTrue(TEXT("Valid synthetic class"), Class->IsValidDefinition())) return false;
 
     FGridCharacterInventoryState Character;
     Character.CharacterId = FGuid::NewGuid();

@@ -73,8 +73,6 @@ bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
     TestTrue(TEXT("One arrow consumed"),
         FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Required));
     TestEqual(TEXT("Eleven arrows remain"), Inventory->CountItemDefinitionInCharacterInventory(0, ArrowId), 11);
-    TestNull(TEXT("No obsolete bow source registered"), Inventory->FindItemDefinition(BowId));
-    TestNull(TEXT("No obsolete arrow source registered"), Inventory->FindItemDefinition(ArrowId));
     FString OwnershipError;
     TestTrue(TEXT("Inventory ownership invariants"), Inventory->ValidateInventoryOwnership(OwnershipError));
 

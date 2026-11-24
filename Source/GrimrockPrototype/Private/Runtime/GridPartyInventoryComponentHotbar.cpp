@@ -187,15 +187,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 	const UGridItemSubsystem* Canonical = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	const bool bRegisteredIdentity = Canonical &&
 		Canonical->ContainsItem(SourceItem.ItemDefinitionId);
-	const UGridItemDefinitionAsset* Definition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Canonical && GIsAutomationTesting)
-	{
-		Definition = FindItemDefinition(SourceItem.ItemDefinitionId);
-	}
-#endif
-	if (!bRegisteredIdentity &&
-		(!IsValid(Definition) || !Definition->IsValidDefinition()))
+	if (!bRegisteredIdentity)
 	{
 		return false;
 	}
@@ -207,12 +199,6 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		{
 			return false;
 		}
-		#if WITH_DEV_AUTOMATION_TESTS
-		if (!bRegisteredIdentity && !Definition->CompatibleEquipmentSlots.Contains(SourceEquipmentSlot))
-		{
-			return false;
-		}
-#endif
 
 		FGridItemInstance EquippedItem;
 		if (!GetEquippedItem(CharacterIndex, SourceEquipmentSlot, EquippedItem) || EquippedItem.RuntimeObjectId != SourceItem.RuntimeObjectId ||
@@ -222,7 +208,6 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		FName PrimaryActionId = NAME_None;
-		if (bRegisteredIdentity)
 		{
 			// The actual owned hand, not the drag snapshot, supplies the level
 			// and all mutable source state for a new shortcut.
@@ -247,22 +232,6 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 				}
 			}
 		}
-		#if WITH_DEV_AUTOMATION_TESTS
-		else if (!Canonical && GIsAutomationTesting && Definition)
-		{
-			const FGridCombatActionDefinition* PrimaryAction =
-				Definition->CombatActions.FindByPredicate(
-					[](const FGridCombatActionDefinition& Candidate)
-					{
-						return Candidate.IsValid() &&
-							Candidate.SourcePolicy == EGridCombatActionSourcePolicy::Equipment;
-					});
-			if (PrimaryAction)
-			{
-				PrimaryActionId = PrimaryAction->ActionId;
-			}
-		}
-#endif
 
 		if (PrimaryActionId.IsNone())
 		{
@@ -289,7 +258,6 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			return false;
 		}
 		const FGridItemInstance& OwnedItem = OwnedSlot->Item;
-		if (bRegisteredIdentity)
 		{
 			FGridResolvedItem Physical;
 			if (!OwnedItem.IsValid() || OwnedItem.ItemLevel != SourceItem.ItemLevel ||
@@ -301,10 +269,9 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		const FGridItemInteractionReadView Capabilities =
-			FGridItemInteractionReadModel::Resolve(Canonical, Definition, OwnedItem);
+			FGridItemInteractionReadModel::Resolve(Canonical, nullptr, OwnedItem);
 		const FGridQuickItemUseReadView Use = Capabilities.bRegisteredIdentity
 			? FGridQuickItemUseReadModel::Resolve(Canonical, OwnedItem) : FGridQuickItemUseReadView();
-		FGridCombatActionDefinition InventoryAction;
 		if (Use.bResolved || Capabilities.bPhysicalThrowHotbar)
 		{
 			// Explicit consumable actions keep their existing shortcut.
@@ -313,21 +280,6 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
 			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
 		}
-		#if WITH_DEV_AUTOMATION_TESTS
-		else if (!Canonical && GIsAutomationTesting && Definition &&
-			Definition->BuildInventoryCombatActionDefinition(InventoryAction))
-		{
-			Binding.ActionId = InventoryAction.ActionId;
-			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
-		}
-		else if (!Canonical && GIsAutomationTesting && Definition && Definition->IsPhysicallyThrowable())
-		{
-			Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(SourceItem.ItemDefinitionId);
-			Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
-			Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
-		}
-#endif
 		else
 		{
 			return false;

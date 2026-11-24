@@ -113,8 +113,7 @@ bool FShield022VictoryRefillTest::RunTest(const FString&)
 	TestEqual(TEXT("Round shield grants five physical armor"), Shield.Weapon.PhysicalArmor, 5);
 	UGridPartyInventoryComponent* Inventory = Fixture.Inventory;
 	URPGClassAsset* Class = Shield022::MakeClass(Inventory, TEXT("Shield022VictoryClass"), 2, 3);
-	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()) ||
-		!TestNull(TEXT("No historical shield definition registered"), Inventory->FindItemDefinition(ShieldId)))
+	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()))
 		return false;
 
 	Inventory->PartyInventoryState.ActiveCharacters.Add(Shield022::MakeCharacter(Class, 14));
@@ -166,7 +165,6 @@ bool FShield022VictoryRefillTest::RunTest(const FString&)
 	TestEqual(TEXT("Next Victory returns physical armor"), Inventory->RefillArmorReservesAfterVictory(), 1);
 	TestEqual(TEXT("Second Victory restores full physical pool"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 7);
 	TestEqual(TEXT("Second Victory restores magic"), State.ActiveCharacters[0].Resources.CurrentMagicalArmor, 3);
-	TestNull(TEXT("Shield remains pointerless after both victories"), Inventory->FindItemDefinition(ShieldId));
 	return true;
 }
 
@@ -185,8 +183,7 @@ bool FShield022DownedNoRefillTest::RunTest(const FString&)
 		return false;
 	UGridPartyInventoryComponent* Inventory = Fixture.Inventory;
 	URPGClassAsset* Class = Shield022::MakeClass(Inventory, TEXT("Shield022DefeatClass"), 1, 4);
-	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()) ||
-		!TestNull(TEXT("No legacy shield registered"), Inventory->FindItemDefinition(ShieldId)))
+	if (!TestTrue(TEXT("Synthetic class valid"), Class->IsValidDefinition()))
 		return false;
 
 	Inventory->PartyInventoryState.ActiveCharacters.Add(Shield022::MakeCharacter(Class, 0));

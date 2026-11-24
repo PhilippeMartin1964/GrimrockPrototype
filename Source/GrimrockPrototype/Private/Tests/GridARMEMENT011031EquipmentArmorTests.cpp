@@ -133,9 +133,7 @@ bool FARMEMENT011031RealShieldDamage::RunTest(const FString&)
     TestEqual(TEXT("Canonical level-one round shield armor is five"), Shield.Weapon.PhysicalArmor, 5);
 
     UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(0);
-    if (!TestNotNull(TEXT("World inventory for canonical shield"), Inventory) ||
-        !TestNull(TEXT("No historical ARM075 definition registered"),
-            Inventory->FindItemDefinition(Shield.ItemId))) return false;
+    if (!TestNotNull(TEXT("World inventory for canonical shield"), Inventory)) return false;
     FGuid ShieldId;
     if (!TestTrue(TEXT("Real shield equipped in OffHand"),
         ARMEMENT011031::EquipShield(Inventory, Shield.ItemId, ShieldId))) return false;

@@ -52,8 +52,6 @@ bool FARMEMENT01151SelfRestoration::RunTest(const FString&)
     const FGuid HeroGuid = Hero.CharacterId;
     TestTrue(TEXT("Potion runtime GUID valid"), PotionGuid.IsValid());
     TestEqual(TEXT("One starting potion"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionId), 1);
-    TestNull(TEXT("No legacy healing potion definition registered"),
-        Inventory->FindItemDefinition(PotionId));
     FGridResolvedItem NativePotion;
     if (!TestTrue(TEXT("Exact N0 healing potion resolves from ItemSystem"),
         NativeWorld.Scope.Registry->ResolveItem(PotionId, 0, NativePotion)) ||

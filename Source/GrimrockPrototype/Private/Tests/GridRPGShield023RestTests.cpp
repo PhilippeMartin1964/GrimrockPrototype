@@ -81,8 +81,7 @@ namespace Shield023
 				return false;
 			Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
 			Party = TestWorld.World->SpawnActor<AGrimrockPartyPawn>();
-			if (!Runtime || !Party || !Party->PartyInventoryComponent ||
-				Party->PartyInventoryComponent->FindItemDefinition(Shield.ItemId))
+			if (!Runtime || !Party || !Party->PartyInventoryComponent)
 			{
 				return false;
 			}

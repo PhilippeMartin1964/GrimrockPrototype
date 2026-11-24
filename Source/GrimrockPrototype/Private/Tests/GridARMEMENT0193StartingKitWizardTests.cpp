@@ -327,8 +327,6 @@ bool FARMEMENT0193InvalidSelectionTest::RunTest(const FString&)
         Party->HasCompletedInitialCharacterCreation());
     TestEqual(TEXT("Previous hero identity retained"),
         Party->PartyInventoryState.ActiveCharacters[0].CharacterId, PreviousId);
-    TestNull(TEXT("No kit definition registered after failure"),
-        Party->FindItemDefinition(TEXT("Weapon_Dagger_01")));
 
     Error = FText::GetEmpty();
     FRPGCharacterCreationRequest Missing = ARMEMENT0193::Request(Ranger, TEXT("Unknown_Kit"));

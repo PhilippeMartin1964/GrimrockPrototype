@@ -58,7 +58,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
             Item.bLightsEnabled = true;
             const FGridItemInstance Before = Item;
             TestTrue(TEXT("Canonical materialization succeeds without old profile"),
-                FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Item));
+                FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Item));
             TestEqual(TEXT("Keeps actual fixed N-level"), Item.ItemLevel, Level);
             TestTrue(TEXT("All durable fields remain unchanged"),
                 FGridItemInstance::StaticStruct()->CompareScriptStruct(&Item, &Before, 0));
@@ -81,7 +81,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
                 FMath::IsNearlyEqual(Canonical.WeightKg, UnitWeight));
 
             TestTrue(TEXT("Canonical re-entry remains idempotent"),
-                FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Item));
+                FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Item));
             TestTrue(TEXT("Repeated materialization leaves physical state intact"),
                 FGridItemInstance::StaticStruct()->CompareScriptStruct(&Item, &Before, 0));
         }
@@ -93,7 +93,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         const FGridItemInstance BeforeFresh = Fresh;
         Old->bUseWeaponCatalogue = false;
         TestFalse(TEXT("Registered physical ARM N0 cannot inherit obsolete N6"),
-            FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Fresh));
+            FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Fresh));
         TestEqual(TEXT("Refused level stays N0"), Fresh.ItemLevel, 0);
         TestTrue(TEXT("Refused durable fields remain unchanged"),
             FGridItemInstance::StaticStruct()->CompareScriptStruct(&Fresh, &BeforeFresh, 0));
@@ -109,14 +109,14 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Bad.Quantity = 1;
     const FGridItemInstance Original = Bad;
     TestFalse(TEXT("Canonical ARM invalid default N0 rejects"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Bad));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Bad));
     TestEqual(TEXT("Rejected level unchanged"), Bad.ItemLevel, Original.ItemLevel);
     TestTrue(TEXT("Rejected durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Bad, &Original, 0));
     Old->DefaultWeaponItemLevel = 6;
     Bad.ItemLevel = 21;
     TestFalse(TEXT("N21 does not downgrade to legacy"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Bad));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Bad));
     TestEqual(TEXT("Rejected N21 input unchanged"), Bad.ItemLevel, 21);
 
     Old->ItemDefinitionId = TEXT("Item_Arrows_01");
@@ -130,7 +130,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     if (!TestTrue(TEXT("Real arrow N0 resolves"),
         Registry->ResolveItem(Ammo.ItemDefinitionId, 0, CanonicalArrow))) return false;
     TestTrue(TEXT("Canonical arrows do not require old weapon catalogue"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Ammo));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Ammo));
     TestEqual(TEXT("Arrows retain genuine N0"), Ammo.ItemLevel, 0);
     TestEqual(TEXT("Arrows quantity unchanged"), Ammo.Quantity, 12);
     const auto ArrowMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Old.Get(), Ammo);
@@ -142,7 +142,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Old->ItemDefinitionId = TEXT("UnrelatedHistorical_AG");
     FGridItemInstance Contradictory = Ammo;
     TestTrue(TEXT("Canonical item resolves despite unrelated old pointer"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Contradictory));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Contradictory));
     TestEqual(TEXT("Canonical identity remains unchanged"), Contradictory.ItemDefinitionId, Ammo.ItemDefinitionId);
     TestTrue(TEXT("Unrelated old definition cannot change durable state"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Contradictory, &Ammo, 0));
@@ -152,7 +152,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     InvalidAmmo.ItemLevel = 1;
     const FGridItemInstance BeforeInvalidAmmo = InvalidAmmo;
     TestFalse(TEXT("Non-armament physical N1 cannot use registry family alias"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), InvalidAmmo));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), InvalidAmmo));
     TestEqual(TEXT("Refused ammo level unchanged"), InvalidAmmo.ItemLevel, 1);
     TestTrue(TEXT("Refused ammo durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&InvalidAmmo, &BeforeInvalidAmmo, 0));
@@ -167,28 +167,13 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
     Legacy.Quantity = 1;
     const FGridItemInstance BeforeUnknown = Legacy;
     TestFalse(TEXT("Configured registry cannot materialize an unknown historical ID"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Old.Get(), Legacy));
+        FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Legacy));
     TestTrue(TEXT("Rejected unknown physical identity is unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeUnknown, 0));
-    TestTrue(TEXT("Registry-less Automation fixture retains historical materialization"),
-        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
-    const auto LegacyView = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Old.Get(), Legacy);
-    TestTrue(TEXT("Historical definition supplies its isolated metadata"),
-        LegacyView.bResolved && FMath::IsNearlyEqual(LegacyView.UnitWeightKg, 1.75f) &&
-        LegacyView.DisplayName.EqualTo(Old->DisplayName));
-    const FGridItemInstance BeforeReject = Legacy;
-    Old->Weight = -0.5f;
-    TestFalse(TEXT("Invalid registry-less fixture mass rejects materialization"),
-        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
-    TestTrue(TEXT("Rejected historical materialization preserves durable fields"),
-        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
-    Old->Weight = 1.75f;
-    Old->bUseWeaponCatalogue = true;
-    TestFalse(TEXT("Registry-less linked item without old profile still rejects"),
-        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Old.Get(), Legacy));
-    TestTrue(TEXT("Refused historical profile preserves durable fields"),
-        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeReject, 0));
-    TestEqual(TEXT("Rejected legacy GUID unchanged"), Legacy.RuntimeObjectId, BeforeReject.RuntimeObjectId);
+    TestFalse(TEXT("An absent ItemSystem cannot authorize any materialization"),
+        FGridItemInstanceMaterializationReadModel::TryApply(nullptr, Legacy));
+    TestTrue(TEXT("Refusal without ItemSystem preserves every durable field"),
+        FGridItemInstance::StaticStruct()->CompareScriptStruct(&Legacy, &BeforeUnknown, 0));
     return true;
 }
 

@@ -189,9 +189,7 @@ bool FWeaponTooltipSlotIntegrationTest::RunTest(const FString&)
             Dagger.bIsArmament && Dagger.Weapon.DamageDice.bEnabled))
         return false;
     UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
-    if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory) ||
-        !TestNull(TEXT("No old ARM002 definition registered"),
-            Inventory->FindItemDefinition(DaggerId)))
+    if (!TestNotNull(TEXT("World-bound canonical inventory"), Inventory))
         return false;
     FGridCharacterInventoryState Hero;
     Hero.CharacterId = FGuid::NewGuid();

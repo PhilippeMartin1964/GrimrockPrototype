@@ -190,8 +190,6 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
     TestEqual(TEXT("Elemental staff still equipped"),
         Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.ItemDefinitionId,
         FName(TEXT("Weapon_ElementalStaff_01")));
-    TestNull(TEXT("No historical catalyst registered in inventory"),
-        Inventory->FindItemDefinition(ARMEMENT01172B::CatalystId));
 
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
     Save->PartyInventoryState = Inventory->PartyInventoryState;
@@ -228,8 +226,6 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
     TestEqual(TEXT("Restored Mage has one catalyst"),
         Continued->CountItemDefinitionInCharacterInventory(0,
             ARMEMENT01172B::CatalystId), 1);
-    TestNull(TEXT("Restored Mage inventory has no old catalyst definition"),
-        Continued->FindItemDefinition(ARMEMENT01172B::CatalystId));
     FString OwnershipError;
     TestTrue(TEXT("Character and item ownership valid"),
         Continued->ValidateInventoryOwnership(OwnershipError));

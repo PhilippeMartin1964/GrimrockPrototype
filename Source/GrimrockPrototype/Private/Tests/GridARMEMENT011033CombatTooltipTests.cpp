@@ -77,7 +77,7 @@ namespace ARMEMENT011033
 	{
 		if (!Fixture.Ready()) return nullptr;
 		UGridPartyInventoryComponent* Inventory = Fixture.NewInventory(BaseArmor);
-		if (!Inventory || Inventory->FindItemDefinition(Fixture.Shield.ItemId)) return nullptr;
+		if (!Inventory) return nullptr;
 		FGridItemInstance Item;
 		Item.RuntimeObjectId = FGuid::NewGuid();
 		Item.ItemDefinitionId = Fixture.Shield.ItemId;

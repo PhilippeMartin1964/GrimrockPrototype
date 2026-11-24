@@ -30,14 +30,7 @@ namespace
 		const FGridItemInstance& Item)
 	{
 		const UGridItemSubsystem* Registry = ResolveGuardRegistry(Inventory);
-		const UGridItemDefinitionAsset* LegacyDefinition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!Registry && GIsAutomationTesting)
-		{
-			LegacyDefinition = Inventory->FindItemDefinition(Item.ItemDefinitionId);
-		}
-#endif
-		return FGridEquippedGuardItemReadModel::Resolve(Registry, LegacyDefinition, Item);
+		return FGridEquippedGuardItemReadModel::Resolve(Registry, nullptr, Item);
 	}
 }
 

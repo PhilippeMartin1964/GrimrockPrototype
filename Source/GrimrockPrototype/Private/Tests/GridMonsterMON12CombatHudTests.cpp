@@ -224,6 +224,7 @@ namespace
 	struct FGridCombatHudFixture
 	{
 		FGridCombatHudTestWorld TestWorld;
+		FGridCanonicalLootTestScope SwordRegistry;
 		AGridLevelRuntimeActor* Runtime = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
 		AGridMonsterActor* Monster = nullptr;
@@ -231,7 +232,7 @@ namespace
 		UGridCombatHudWidget* Hud = nullptr;
 		FGuid CharacterIds[4] = { FGuid(12, 7, 1, 1), FGuid(12, 7, 1, 2), FGuid(12, 7, 1, 3), FGuid(12, 7, 1, 4) };
 
-		FGridCombatHudFixture()
+		explicit FGridCombatHudFixture(int32 SwordAP = 2)
 		{
 			if (!TestWorld.World)
 			{
@@ -265,37 +266,25 @@ namespace
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(4);
 			Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded();
 
-			FGridItemInstance Weapon;
-			Weapon.RuntimeObjectId = FGuid(12, 7, 2, 1);
-			Weapon.ItemDefinitionId = TEXT("MON12_7_Sword");
-			Weapon.Quantity = 1;
-			Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
-			Weapon.OwnerCharacterIndex = 0;
-			Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
-			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
-
-			UGridItemDefinitionAsset* WeaponDefinition = NewObject<UGridItemDefinitionAsset>(Party);
-			WeaponDefinition->ItemDefinitionId = Weapon.ItemDefinitionId;
-			WeaponDefinition->DisplayName = FText::FromString(TEXT("Épée de test"));
-			WeaponDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-			FGridCombatActionDefinition WeaponAction;
-			WeaponAction.ActionId = TEXT("Attack_MON12_7_Sword");
-			WeaponAction.DisplayName = WeaponDefinition->DisplayName;
-			WeaponAction.ActionType = EGridCombatActionType::MeleeAttack;
-			WeaponAction.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-			WeaponAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-			WeaponAction.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-			WeaponAction.ActionPointCost = 2;
-			WeaponAction.RangeCells = 1;
-			WeaponAction.PresentationProfileId = WeaponAction.ActionId;
-			WeaponAction.OffensiveProfile.AttackId = WeaponAction.ActionId;
-			WeaponAction.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-			WeaponAction.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Slashing;
-			WeaponAction.OffensiveProfile.AttackDefinition.MinDamage = 1;
-			WeaponAction.OffensiveProfile.AttackDefinition.MaxDamage = 2;
-			WeaponAction.OffensiveProfile.RangeCells = 1;
-			WeaponDefinition->CombatActions.Add(WeaponAction);
-			Party->PartyInventoryComponent->RegisterItemDefinition(WeaponDefinition);
+			if (SwordAP > 0)
+			{
+				if (!SwordRegistry.AttachWithWeights(TestWorld.World, {}, [SwordAP](UGridItemSystemAsset& Root)
+				{
+					FGridCanonicalLootTestScope::AddWeapon(Root, TEXT("MON12_7_Sword"), TEXT("Attack_MON12_7_Sword"),
+						FText::FromString(TEXT("Épée de test")), EGridEquipmentSlot::MainHand,
+						EGridPhysicalDamageSubtype::Slashing, EGridAttackScalingAttribute::None, 4, 1, SwordAP);
+				})) return;
+				FGridItemInstance Weapon;
+				Weapon.RuntimeObjectId = FGuid(12, 7, 2, 1);
+				Weapon.ItemDefinitionId = TEXT("MON12_7_Sword");
+				Weapon.ItemLevel = 1;
+				Weapon.Quantity = 1;
+				Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
+				Weapon.OwnerGuid = CharacterIds[0];
+				Weapon.OwnerCharacterIndex = 0;
+				Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
+				Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
+			}
 
 			UGridMonsterDefinitionAsset* MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
 			MonsterDefinition->MonsterId = TEXT("MON12_7_Rat");
@@ -596,27 +585,26 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The translation cost remains one AP"), Fixture.TurnManager->PartyTranslationActionPointCost, 1);
 	TestEqual(TEXT("The shared translation cost remains one PAM"), Fixture.TurnManager->PartyTranslationMobilityActionPointCost, 1);
 
-	UGridItemDefinitionAsset* SwordDefinition = Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("MON12_7_Sword")));
-	TestNotNull(TEXT("The sword definition remains registered"), SwordDefinition);
-	if (SwordDefinition && !SwordDefinition->CombatActions.IsEmpty())
-	{
-		SwordDefinition->CombatActions[0].ActionPointCost = 3;
-	}
-	Fixture.Hud->RefreshFromSources();
-	const FGridCombatHudActionView* DisabledSwordAction = Fixture.Hud->View.Actions.FindByPredicate(
-		[](const FGridCombatHudActionView& Candidate)
-		{
-			return Candidate.Action.SourceDefinitionId == FName(TEXT("MON12_7_Sword"));
-		});
-	TestNotNull(TEXT("The unavailable action remains visible"), DisabledSwordAction);
-	if (DisabledSwordAction)
-	{
-		TestFalse(TEXT("The unavailable action is disabled"), DisabledSwordAction->Action.bEnabled);
-		TestFalse(TEXT("The unavailable action exposes a reason"), DisabledSwordAction->DisabledReason.IsEmpty());
-		FGridCombatActionRequestResult RejectedResult;
-		TestFalse(TEXT("The authoritative retry is refused"), Fixture.Hud->RequestHotbarSlot(0, RejectedResult));
-		TestEqual(TEXT("A refused action consumes no AP"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
-	}
+	FGridCombatHudFixture ExpensiveFixture(3);
+	if (!TestTrue(TEXT("The isolated three-AP sword fixture is ready"), ExpensiveFixture.IsReady())) return false;
+	TestEqual(TEXT("The configured action costs three real AP"), ExpensiveFixture.Hud->View.Actions[0].Action.CurrentActionPointCost, 3);
+	TestTrue(TEXT("A three-AP action is available with four AP"), ExpensiveFixture.Hud->View.Actions[0].Action.bEnabled);
+	const FGridCombatHotbarBinding Before = ExpensiveFixture.Hud->View.Actions[0].Binding;
+	TestTrue(TEXT("Two AP are spent before refreshing the same binding"),
+		ExpensiveFixture.TurnManager->SpendPlayerCharacterActionPoints(0, 2));
+	ExpensiveFixture.Hud->RefreshFromSources();
+	const FGridCombatHudActionView& Disabled = ExpensiveFixture.Hud->View.Actions[0];
+	TestTrue(TEXT("The unavailable action remains visible"), Disabled.bHasBinding && Disabled.bResolved);
+	TestEqual(TEXT("PrimaryAttack identity survives refresh"), Disabled.Binding.ActionId, Before.ActionId);
+	TestEqual(TEXT("The same sword remains resolved"), Disabled.Action.SourceDefinitionId, FName(TEXT("MON12_7_Sword")));
+	TestFalse(TEXT("The unavailable action is disabled"), Disabled.Action.bEnabled);
+	TestEqual(TEXT("The refusal reason is insufficient AP"), Disabled.Action.AvailabilityReason, EGridCombatActionAvailabilityReason::InsufficientActionPoints);
+	TestFalse(TEXT("The unavailable action exposes a reason"), Disabled.DisabledReason.IsEmpty());
+	FGridCombatActionRequestResult RejectedResult;
+	TestFalse(TEXT("The authoritative retry is refused"), ExpensiveFixture.TurnManager->RequestCharacterCombatAction(
+		0, Disabled.Action.Definition.ActionId, Disabled.Action.Definition.SourcePolicy,
+		Disabled.Action.SourceDefinitionId, Disabled.Action.SourceEquipmentSlot, RejectedResult));
+	TestEqual(TEXT("A refused action consumes no AP"), ExpensiveFixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 
 	Fixture.TurnManager->PlayerCharacterTurnStates[0].State = EGridCombatantTurnState::Completed;
 	Fixture.TurnManager->PlayerCharacterTurnStates[1].State = EGridCombatantTurnState::Active;
@@ -761,7 +749,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON1284QuickItemEffectTest, "Grimro
 bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("The MON12.8.4 effect fixture is ready"), Fixture.IsReady()))
 	{
 		return false;
@@ -850,7 +838,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON1284QuickItemScrollAttackTest, "
 bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("The MON12.8.4 scroll fixture is ready"), Fixture.IsReady()))
 	{
 		return false;
@@ -1279,7 +1267,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON1287InventoryThrowableTest, "Gri
 bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("The MON12.8.7 throwable fixture is ready"), Fixture.IsReady()))
 	{
 		return false;
@@ -1582,12 +1570,8 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Slot two now contains unarmed"), SwappedSecond.ActionId, FName(TEXT("Attack_Unarmed")));
 	TestTrue(TEXT("Slot three keeps the exact sword instance"), SwappedThird.PreferredSourceRuntimeId == EquippedSword.RuntimeObjectId);
 
-	UGridItemDefinitionAsset* SwordDefinition = Inventory->FindItemDefinition(EquippedSword.ItemDefinitionId);
-	TestNotNull(TEXT("The hotbar sword definition remains registered"), SwordDefinition);
-	if (SwordDefinition && !SwordDefinition->CombatActions.IsEmpty())
-	{
-		SwordDefinition->CombatActions[0].ActionPointCost = 5;
-	}
+	TestTrue(TEXT("Spending three AP makes the two-AP shortcut unavailable"),
+		Fixture.TurnManager->SpendPlayerCharacterActionPoints(0, 3));
 	Fixture.Hud->RefreshFromSources();
 	FGridPlayerCharacterTurnState TurnStateBeforeRefusal;
 	Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnStateBeforeRefusal);
@@ -1642,7 +1626,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON12ActionTransactionTest, "Grimro
 bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("The MON12 transaction fixture is ready"), Fixture.IsReady()))
 	{
 		return false;
@@ -1847,7 +1831,7 @@ bool FARMEMENT011714OilQuickItemRealPipeline::RunTest(const FString&)
 {
 	// Réutiliser la vraie fixture de combat avec action ciblée, personnage,
 	// inventaire, hotbar, occupant du donjon et TurnManager initialisé.
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("La scène de combat et son gestionnaire sont prêts"), Fixture.IsReady()))
 	{
 		return false;
@@ -1992,7 +1976,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT011717OilExplorationRealPipeline,
 
 bool FARMEMENT011717OilExplorationRealPipeline::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("Real dungeon, party, inventory, HUD and TurnManager"), Fixture.IsReady()))
 	{
 		return false;
@@ -2109,7 +2093,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01172BCombatCatalyst,
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT01172BCombatCatalyst::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("Real combat fixture ready"), Fixture.IsReady())) return false;
 	FGridCanonicalLootTestScope RegistryScope;
 	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
@@ -2238,7 +2222,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT01173BExplorationCatalyst,
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FARMEMENT01173BExplorationCatalyst::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("Real-world exploration fixture"), Fixture.IsReady())) return false;
 	FGridCanonicalLootTestScope RegistryScope;
 	if (!TestTrue(TEXT("Real canonical surface registry"), RegistryScope.Attach(Fixture.TestWorld.World))) return false;
@@ -2432,7 +2416,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02191ShadowCombat,
 
 bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("Combat world and HUD are ready"), Fixture.IsReady())) return false;
 	FGridCanonicalLootTestScope RegistryScope;
 	if (!TestTrue(TEXT("Production ItemSystem attached to MON12 world"),
@@ -2465,10 +2449,6 @@ bool FARMEMENTLOT02191ShadowCombat::RunTest(const FString&)
 	const FGridItemInstance Off = ItemFor(MainGauche, FGuid(19, 1, 2, 2), EGridEquipmentSlot::OffHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
-	if (!TestNull(TEXT("Dagger does not register old definition"),
-		Inventory->FindItemDefinition(Dagger.ItemId)) ||
-		!TestNull(TEXT("Main-gauche does not register old definition"),
-			Inventory->FindItemDefinition(MainGauche.ItemId))) return false;
 
 	Fixture.Hud->RefreshFromSources();
 	TArray<FGridAvailableCombatAction> Available;
@@ -2590,7 +2570,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT02192DualWield,
 
 bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("N1 dual strike has a live combat world"), Fixture.IsReady())) return false;
 	// Each real attack has a distinct presentation in the canonical catalogue.
 	// Audio variants are injected ONLY into a detached transient registry copy.
@@ -2700,14 +2680,6 @@ bool FARMEMENTLOT02192DualWield::RunTest(const FString&)
 	const FGridItemInstance Off = MakeEquipped(MainGauche.ItemId, FGuid(19,2,1,2), EGridEquipmentSlot::OffHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Main;
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Off;
-	if (!TestNull(TEXT("No historical main weapon definition registered"),
-		Inventory->FindItemDefinition(Dagger.ItemId)) ||
-		!TestNull(TEXT("No historical off weapon definition registered"),
-			Inventory->FindItemDefinition(MainGauche.ItemId)) ||
-		!TestNull(TEXT("No historical shield definition registered"),
-			Inventory->FindItemDefinition(Shield.ItemId)) ||
-		!TestNull(TEXT("No historical two-hand definition registered"),
-			Inventory->FindItemDefinition(GreatAxe.ItemId))) return false;
 	FGridDualWieldPair Pair;
 	if (!TestTrue(TEXT("Two different physical one-handed weapons are eligible"),
 			FGridDualWieldPolicy::TryResolve(Inventory, 0, Pair)) ||
@@ -2855,7 +2827,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENTLOT021921DualAttackIconViewTest,
 
 bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 {
-	FGridCombatHudFixture Fixture;
+	FGridCombatHudFixture Fixture(0);
 	if (!TestTrue(TEXT("HUD and combat fixture are ready"), Fixture.IsReady())) return false;
 
 	FGridCanonicalLootTestScope RegistryScope;
@@ -2894,12 +2866,6 @@ bool FARMEMENTLOT021921DualAttackIconViewTest::RunTest(const FString&)
 		MakeEquipped(Dagger, FGuid(19, 2, 11, 1), EGridEquipmentSlot::MainHand);
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand =
 		MakeEquipped(MainGauche, FGuid(19, 2, 11, 2), EGridEquipmentSlot::OffHand);
-	if (!TestNull(TEXT("No historical dagger definition registered"),
-		Inventory->FindItemDefinition(Dagger.ItemId)) ||
-		!TestNull(TEXT("No historical Main-gauche definition registered"),
-			Inventory->FindItemDefinition(MainGauche.ItemId)) ||
-		!TestNull(TEXT("No historical shield definition registered"),
-			Inventory->FindItemDefinition(Shield.ItemId))) return false;
 
 	Fixture.Hud->RefreshFromSources();
 	const FGridCombatHudActionView DualView = Fixture.Hud->View.Actions[0];
@@ -3128,7 +3094,7 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 	{
 		const FMeleeN1Case& Case = Cases[Index];
 		const FString Context = FString::Printf(TEXT("N1 %s"), Case.ArchetypeId);
-		FGridCombatHudFixture Fixture;
+		FGridCombatHudFixture Fixture(0);
 		if (!TestTrue(*FString::Printf(TEXT("%s: live combat fixture"), *Context), Fixture.IsReady()))
 			return false;
 		FGridCanonicalLootTestScope RegistryScope;
@@ -3164,8 +3130,6 @@ bool FARMEMENTLOT02161MeleeN1Execution::RunTest(const FString& Parameters)
 			Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Equipped;
 		else
 			Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = Equipped;
-		if (!TestNull(*FString::Printf(TEXT("%s: no old weapon definition registered"), *Context),
-			Inventory->FindItemDefinition(ItemId))) return false;
 
 		TArray<FGridAvailableCombatAction> Available;
 		Fixture.TurnManager->GetAvailableCombatActions(0, Available);
@@ -3264,11 +3228,6 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		int32 CaseIndex, int32 ArrowCount) -> bool
 	{
 		UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-		if (!TestNull(TEXT("No historical bow definition registered"),
-			Inventory->FindItemDefinition(Bow.ItemId)) ||
-			!TestNull(TEXT("No historical ammo definition registered"),
-				Inventory->FindItemDefinition(Arrows.ItemId)))
-			return false;
 		FGridItemInstance Weapon;
 		Weapon.RuntimeObjectId = FGuid(16, 2, CaseIndex + 1, 1);
 		Weapon.ItemDefinitionId = Bow.ItemId;
@@ -3316,7 +3275,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		// Accepted shot: real projectile created, exactly one physical arrow
 		// removed, the original bag stack GUID preserved and AP spent once.
 		{
-			FGridCombatHudFixture Fixture;
+			FGridCombatHudFixture Fixture(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Live ranged combat fixture"), Fixture.IsReady()) ||
 				!TestTrue(TEXT("Live ItemSystem attached to ranged world"),
@@ -3404,7 +3363,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 
 		// A solid wall is a refusal BEFORE projectile spawn and ammo/AP charge.
 		{
-			FGridCombatHudFixture Fixture;
+			FGridCombatHudFixture Fixture(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Wall refusal uses live combat world"), Fixture.IsReady()) ||
 				!TestTrue(TEXT("ItemSystem attached before wall-refusal test"),
@@ -3435,7 +3394,7 @@ bool FARMEMENTLOT02162BowN1Execution::RunTest(const FString& Parameters)
 		// A monster one cell beyond the REAL N1 range is rejected, even
 		// with line of sight and arrows. No fake range modifier is authored.
 		{
-			FGridCombatHudFixture Fixture;
+			FGridCombatHudFixture Fixture(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Range refusal uses live combat world"), Fixture.IsReady()) ||
 				!TestTrue(TEXT("ItemSystem attached before range-refusal test"),
@@ -3536,16 +3495,13 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 		// The equipped attack transfers its one physical item to a real
 		// projectile and never leaves an inventory duplicate.
 		{
-			FGridCombatHudFixture Fixture;
+			FGridCombatHudFixture Fixture(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Throwing test combat world"), Fixture.IsReady()) ||
 				!TestTrue(TEXT("ItemSystem attached to equipped throw world"),
 					RegistryScope.Attach(Fixture.TestWorld.World)))
 				return false;
 			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-			if (!TestNull(TEXT("No historical throwing weapon registered"),
-				Inventory->FindItemDefinition(ItemId)))
-				return false;
 			FGridItemInstance Equipped;
 			Equipped.RuntimeObjectId = FGuid(16, 3, Index + 1, 1);
 			Equipped.ItemDefinitionId = ItemId;
@@ -3614,16 +3570,13 @@ bool FARMEMENTLOT02163RealThrowingN1::RunTest(const FString&)
 		// Exercise the real native launcher here; cursor/HUD aiming is covered
 		// independently by Grimrock.TechnicalDebt.TD02_1.WorldItemsContract.
 		{
-			FGridCombatHudFixture Fixture;
+			FGridCombatHudFixture Fixture(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!TestTrue(TEXT("Canonical inventory throw combat world"), Fixture.IsReady()) ||
 				!TestTrue(TEXT("ItemSystem attached to inventory throw world"),
 					RegistryScope.Attach(Fixture.TestWorld.World)))
 				return false;
 			UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-			if (!TestNull(TEXT("No historical inventory throwing definition registered"),
-				Inventory->FindItemDefinition(ItemId)))
-				return false;
 			Inventory->PartyInventoryState.ActiveCharacters[0].Attributes.Strength = 20;
 			FGridItemInstance BagItem;
 			BagItem.RuntimeObjectId = FGuid(16, 3, Index + 1, 2);
@@ -3709,9 +3662,7 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 		{
 			if (!TestTrue(TEXT("Magic test combat fixture is ready"), F.IsReady()) ||
 				!TestTrue(TEXT("Production ItemSystem attached for magic combat"),
-					RegistryScope.Attach(F.TestWorld.World)) ||
-				!TestNull(TEXT("No old magic weapon definition registered"),
-					F.Party->PartyInventoryComponent->FindItemDefinition(Definition.ItemId)))
+					RegistryScope.Attach(F.TestWorld.World)))
 				return false;
 			FGridItemInstance Weapon;
 			Weapon.RuntimeObjectId = FGuid(16, 4, Index + 1, 1);
@@ -3729,7 +3680,7 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 		};
 
 		{
-			FGridCombatHudFixture F;
+			FGridCombatHudFixture F(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!Configure(F, RegistryScope))
 				return false;
@@ -3777,7 +3728,7 @@ bool FARMEMENTLOT02164MagicN1Execution::RunTest(const FString&)
 		}
 
 		{
-			FGridCombatHudFixture F;
+			FGridCombatHudFixture F(0);
 			FGridCanonicalLootTestScope RegistryScope;
 			if (!Configure(F, RegistryScope))
 				return false;
@@ -3820,7 +3771,7 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 	{
 		const FString Context(Cases[Index].Id);
 		const FName ItemId(*FString::Printf(TEXT("Weapon_%s_01"), Cases[Index].Asset));
-		FGridCombatHudFixture F;
+		FGridCombatHudFixture F(0);
 		FGridCanonicalLootTestScope RegistryScope;
 		if (!TestTrue(TEXT("Passive combat fixture"), F.IsReady()) ||
 			!TestTrue(TEXT("Real ItemSystem attached for passive equipment"),
@@ -3838,9 +3789,6 @@ bool FARMEMENTLOT02165PassiveN1Execution::RunTest(const FString&)
 				!Definition.Weapon.HasAttackSourceInHand(EGridEquipmentSlot::OffHand)))
 			return false;
 		UGridPartyInventoryComponent* Inventory = F.Party->PartyInventoryComponent;
-		if (!TestNull(TEXT("No old passive definition registered"),
-			Inventory->FindItemDefinition(ItemId)))
-			return false;
 		Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
 		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 		const int32 PhysicalBefore = Inventory->GetEffectiveCurrentPhysicalArmor(0);

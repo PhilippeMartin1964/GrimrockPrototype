@@ -47,22 +47,6 @@ namespace
         return GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
     }
 
-    const UGridItemDefinitionAsset* ResolveInventoryHistoricalDefinitionForAutomation(
-        const UGridInventoryWidget* Widget, FName ItemId)
-    {
-#if WITH_DEV_AUTOMATION_TESTS
-        if (IsValid(Widget) && IsValid(Widget->InventoryComponent) &&
-            !ResolveInventoryCanonicalRegistry(Widget) && GIsAutomationTesting)
-        {
-            return Widget->InventoryComponent->FindItemDefinition(ItemId);
-        }
-#else
-        (void)Widget;
-        (void)ItemId;
-#endif
-        return nullptr;
-    }
-
 	struct FGridInventoryProjectionEntry
 	{
 		int32 SourceSlotIndex = INDEX_NONE;
@@ -1040,17 +1024,16 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 				}
 
 				const FGridItemInstance& Item = InventorySlot.Item;
-				const UGridItemDefinitionAsset* Definition = ResolveInventoryHistoricalDefinitionForAutomation(this, Item.ItemDefinitionId);
 				const EGridItemType ItemType =
 					FGridInventoryItemTypeReadModel::Resolve(
-						Registry, Definition, Item).ItemType;
+						Registry, nullptr, Item).ItemType;
 				if (!DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 				{
 					continue;
 				}
 
 				const FGridInventorySortReadView SortSource =
-					FGridInventorySortReadModel::Resolve(Registry, Definition, Item);
+					FGridInventorySortReadModel::Resolve(Registry, nullptr, Item);
 				FGridInventoryProjectionEntry& Entry = Entries.AddDefaulted_GetRef();
 				Entry.SourceSlotIndex = SlotIndex;
 				Entry.DisplayName = SortSource.DisplayName;
@@ -1144,10 +1127,9 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 			continue;
 		}
 
-		const UGridItemDefinitionAsset* Definition = ResolveInventoryHistoricalDefinitionForAutomation(this, InventorySlot.Item.ItemDefinitionId);
 		const EGridItemType ItemType =
 			FGridInventoryItemTypeReadModel::Resolve(
-				Registry, Definition, InventorySlot.Item).ItemType;
+				Registry, nullptr, InventorySlot.Item).ItemType;
 		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 		{
 			++VisibleItems;
@@ -1509,7 +1491,7 @@ bool UGridInventoryWidget::BuildContextActionsForSlot(
 	}
 
 	ItemContext.Item = LastContextItem;
-	ItemContext.ItemDefinition = const_cast<UGridItemDefinitionAsset*>(ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId));
+	ItemContext.ItemDefinition = nullptr;
 	return UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, OutFacingTarget, OutActions);
 }
 
@@ -1635,9 +1617,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::Examine:
 		{
 			const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
-			const UGridItemDefinitionAsset* Definition =
-				InventoryComponent ? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
-			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, Definition, LastContextItem);
+			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, LastContextItem);
 			if (!Metadata.bResolved) break;
 			const UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
 			FText TooltipText = Metadata.DisplayName;
@@ -1654,11 +1634,9 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 		case EGridItemActionType::Read:
 		{
-			const UGridItemDefinitionAsset* ItemDefinition =
-				InventoryComponent ? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
 			const FGridItemInteractionReadView Read =
 				FGridItemInteractionReadModel::Resolve(
-					ResolveInventoryCanonicalRegistry(this), ItemDefinition, LastContextItem);
+					ResolveInventoryCanonicalRegistry(this), nullptr, LastContextItem);
 			if (!Read.bCanRead)
 			{
 				break; // The menu may be stale; never revive old readable flags.
@@ -1724,12 +1702,10 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
                 break;
             }
 
-            const UGridItemDefinitionAsset* Definition =
-                ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId);
             const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
             const FGridItemInteractionReadView Capabilities =
                 FGridItemInteractionReadModel::Resolve(
-                    Registry, Definition, LastContextItem);
+                    Registry, nullptr, LastContextItem);
             const FGridQuickItemUseReadView CanonicalUse =
                 FGridQuickItemUseReadModel::Resolve(Registry, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
@@ -1738,13 +1714,6 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             {
                 QuickItemAction = CanonicalUse.Action;
             }
-#if WITH_DEV_AUTOMATION_TESTS
-            else if (!Registry && GIsAutomationTesting &&
-                Capabilities.bCanConsumeLegacy && IsValid(Definition))
-            {
-                bHaveAction = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
-            }
-#endif
             if (!bHaveAction ||
                 QuickItemAction.TargetingPolicy != EGridCombatTargetingPolicy::Self ||
                 QuickItemAction.ResolutionProfile != EGridCombatActionResolutionProfile::Effect)
@@ -2033,11 +2002,9 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 
 		case EGridItemActionType::AddToHotbar:
 		{
-			const UGridItemDefinitionAsset* OldDefinition = InventoryComponent
-				? ResolveInventoryHistoricalDefinitionForAutomation(this, LastContextItem.ItemDefinitionId) : nullptr;
 			const FGridItemInteractionReadView Capabilities =
 				FGridItemInteractionReadModel::Resolve(
-					ResolveInventoryCanonicalRegistry(this), OldDefinition, LastContextItem);
+					ResolveInventoryCanonicalRegistry(this), nullptr, LastContextItem);
 			if (SourceSlotType != EGridInventoryUiSlotType::Inventory ||
 				!InventoryComponent || !Capabilities.bCanAddToHotbar)
 			{

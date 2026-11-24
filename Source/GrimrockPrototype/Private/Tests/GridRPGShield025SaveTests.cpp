@@ -161,8 +161,7 @@ namespace Shield025
 			}
 
 			if (!TestWorld.Registry->ResolveItem(TEXT("Weapon_RoundShield_01"), 1, ShieldDef) ||
-				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5 ||
-				Inventory->FindItemDefinition(ShieldDef.ItemId))
+				!ShieldDef.bIsArmament || ShieldDef.Weapon.PhysicalArmor != 5)
 			{
 				return false;
 			}
@@ -310,7 +309,6 @@ bool FShield025DiskRoundTrip::RunTest(const FString&)
 	TestEqual(TEXT("Loaded base pool was not refilled"), Restored.ActiveCharacters[0].Resources.CurrentPhysicalArmor, 1);
 	TestEqual(TEXT("Loaded magical pool was not refilled"), Restored.ActiveCharacters[0].Resources.CurrentMagicalArmor, 1);
 	TestEqual(TEXT("Effective pool after load is still 3/7"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 3);
-	TestNull(TEXT("Canonical shield restores without historical map"), Inventory->FindItemDefinition(F.ShieldDef.ItemId));
 	TestEqual(TEXT("Equipped GUID persisted"), Restored.ActiveEquipment[0].OffHand.RuntimeObjectId, F.EquippedId);
 	TestEqual(TEXT("Bag GUID persisted"), Restored.ActiveCharacters[0].InventorySlots[F.BagIndex].Item.RuntimeObjectId, F.BagId);
 	TestEqual(TEXT("Cursor GUID persisted"), Restored.CursorItem.RuntimeObjectId, F.CursorId);

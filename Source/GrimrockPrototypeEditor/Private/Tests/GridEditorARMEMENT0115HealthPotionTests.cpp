@@ -172,8 +172,6 @@ bool FARMEMENT0115ProductionKits::RunTest(const FString&)
         TestEqual(TEXT("Non-armament physical level is N0"), Item->ItemLevel, 0);
         TestTrue(TEXT("Unique object identity persists"), Item->RuntimeObjectId.IsValid());
         TestEqual(TEXT("Owner GUID is correct"), Item->OwnerGuid, Character.CharacterId);
-        TestNull(TEXT("No historical potion definition registered"),
-            Party->FindItemDefinition(Potion.ItemId));
         TestEqual(TEXT("Production class remains untouched"), Class->StartingEquipmentKits.Num(), BeforeCount);
         TestEqual(TEXT("Default kit remains untouched"), Class->DefaultStartingEquipmentKitId, BeforeDefault);
         FString OwnershipError;

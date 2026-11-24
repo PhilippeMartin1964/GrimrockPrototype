@@ -194,8 +194,6 @@ namespace ARMEMENTLOT022
         Test.TestEqual(TEXT("Primary physical N1 retained"), Gear.MainHand.ItemLevel, 1);
         Test.TestEqual(TEXT("One physical primary item, never duplicate"),
             CountPhysical(State, PrimaryId), 1);
-        Test.TestNull(TEXT("No historical primary definition registered"),
-            Party->FindItemDefinition(PrimaryId));
         if (Primary.Weapon.HandPolicy == EGridHandPolicy::TwoHanded)
             Test.TestFalse(TEXT("Two-handed primary leaves no second physical object"),
                 Gear.OffHand.IsValid());
@@ -204,8 +202,6 @@ namespace ARMEMENTLOT022
         {
             Test.TestEqual(TEXT("Secondary physical identity occurs once"),
                 CountPhysical(State, SecondaryId), 1);
-            Test.TestNull(TEXT("No historical secondary definition registered"),
-                Party->FindItemDefinition(SecondaryId));
             if (Spec.SecondarySlot == TEXT("OffHand"))
             {
                 Test.TestEqual(TEXT("OffHand item uses canonical ItemId"),
@@ -257,8 +253,6 @@ namespace ARMEMENTLOT022
         Test.TestEqual(TEXT("Secondary identity survives restore"),
             bHasSecondary ? CountPhysical(After, SecondaryId) : 0,
             bHasSecondary ? 1 : 0);
-        Test.TestNull(TEXT("Restored party has no historical primary definition"),
-            Restored->FindItemDefinition(PrimaryId));
         Test.TestTrue(TEXT("Restored ownership is valid"),
             Restored->ValidateInventoryOwnership(OwnershipError));
         Test.TestEqual(TEXT("Production kits not modified"),

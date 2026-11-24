@@ -206,8 +206,7 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 		if (!TestTrue(*FString::Printf(TEXT("%s canonical N1 definition"), *Row.ArchetypeId),
 			Fixture.Registry->ResolveItem(ItemId, 1, Definition) &&
 			Definition.IsValid() && Definition.bIsArmament &&
-			Definition.ItemId == ItemId && Definition.ArchetypeId == FName(*Row.ArchetypeId)) ||
-			!TestNull(TEXT("No historical definition registered"), Inventory->FindItemDefinition(ItemId)))
+			Definition.ItemId == ItemId && Definition.ArchetypeId == FName(*Row.ArchetypeId)))
 		{
 			return false;
 		}
@@ -313,9 +312,7 @@ bool FARMEMENTLOT0216DiskPersistence::RunTest(const FString&)
 					}
 				}
 			}
-			if (!TestEqual(*FString::Printf(TEXT("%s: %s exists exactly once"), *Phase, *Entry.Key.ToString()), Matches, 1) ||
-				!TestNull(*FString::Printf(TEXT("%s: %s no historical definition rehydrated"), *Phase, *Entry.Key.ToString()),
-					Inventory->FindItemDefinition(Entry.Key)))
+			if (!TestEqual(*FString::Printf(TEXT("%s: %s exists exactly once"), *Phase, *Entry.Key.ToString()), Matches, 1))
 			{
 				return false;
 			}

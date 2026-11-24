@@ -232,8 +232,6 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     Item->ItemLevel, Entry.ItemLevel);
                 TestNull(TEXT("Canonical recipe never embeds an obsolete definition"),
                     Entry.ItemDefinition.Get());
-                TestNull(TEXT("No legacy map entry for a canonical starting item"),
-                    Party->FindItemDefinition(Entry.ItemId));
                 if (Item->ItemDefinitionId == FName(TEXT("Item_Arrows_01")) && bBag)
                 {
                     if (Kit.KitId == FName(TEXT("Kit_Ranger_Marksman"))) bMarksmanArrows = Item->Quantity == 12;
@@ -335,8 +333,7 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     After->OwnerType == (Entry.TargetSlot == EGridEquipmentSlot::None
                         ? EGridItemOwnerType::CharacterInventory : EGridItemOwnerType::EquipmentSlot)) ||
                     !TestTrue(TEXT("Exact canonical ID available after disk load, without a legacy definition"),
-                        NativeWorld.Scope.Registry->ContainsItem(Entry.ItemId) &&
-                         Continued->FindItemDefinition(Entry.ItemId) == nullptr))
+                        NativeWorld.Scope.Registry->ContainsItem(Entry.ItemId)))
                 {
                     return false;
                 }
@@ -419,8 +416,6 @@ bool FARMEMENT01132Legacy::RunTest(const FString&)
         Party->HasCompletedInitialCharacterCreation());
     TestEqual(TEXT("No hero mutation after rejected selection"),
         Party->PartyInventoryState.ActiveCharacters[0].CharacterId, OriginalId);
-    TestNull(TEXT("No historical dagger registered on failed creation"),
-        Party->FindItemDefinition(TEXT("Weapon_Dagger_01")));
     return !HasAnyErrors();
 }
 

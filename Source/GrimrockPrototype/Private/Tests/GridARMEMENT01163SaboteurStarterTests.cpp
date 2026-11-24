@@ -211,8 +211,6 @@ bool FARMEMENT01163NewGameDisarmSave::RunTest(const FString&)
     TestEqual(TEXT("Tool belongs to inventory, not equipment"),
         Tools->OwnerType, EGridItemOwnerType::CharacterInventory);
     TestEqual(TEXT("Tool retains quantity one"), Tools->Quantity, 1);
-    TestNull(TEXT("Starter tool does not depend on historical inventory cache"),
-        Inventory->FindItemDefinition(ToolId));
     FGridResolvedItem CanonicalTool;
     if (!TestTrue(TEXT("Starter tool resolves from canonical ItemSystem"),
         Fixture.RegistryScope.Registry &&

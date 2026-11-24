@@ -126,7 +126,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     const FGridItemInstance Original = Incoming;
     FGridItemInstance Materialized = Incoming;
     if (!TestTrue(TEXT("Canonical N0 arrow materializes with nullptr old definition"),
-        FGridItemInstanceMaterializationReadModel::TryApply(Fixture.Registry, nullptr, Materialized))) return false;
+        FGridItemInstanceMaterializationReadModel::TryApply(Fixture.Registry, Materialized))) return false;
     TestEqual(TEXT("True N0 remains zero"), Materialized.ItemLevel, 0);
     TestTrue(TEXT("All materialized durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Materialized, &Original, 0));
@@ -140,7 +140,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestEqual(TEXT("Armor magic debt preserved"), Materialized.AbsorbedEquipmentMagicalArmor, 2);
     TestTrue(TEXT("Live light state preserved"), Materialized.bLightsEnabled);
 
-    const auto Policy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, nullptr, Materialized);
+    const auto Policy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, Materialized);
     TestTrue(TEXT("Stack reads canonical identity without old DA"), Policy.bRegisteredIdentity && Policy.bResolved);
     TestEqual(TEXT("Stack capacity from real root"), Policy.MaxStackSize, Ammo.MaxStack);
     TestTrue(TEXT("Inventory can accept full canonical ammo quantity"),
@@ -198,11 +198,11 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestTrue(TEXT("Contradictory old metadata does not affect canonical mass"), ConflictMeta.bResolved &&
         FMath::IsNearlyEqual(ConflictMeta.UnitWeightKg, Ammo.WeightKg));
     TestEqual(TEXT("Old max stack is ignored for registered ID"),
-        FGridInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, Conflict).MaxStackSize,
+        FGridInventoryStackReadModel::Resolve(Fixture.Registry, Conflict).MaxStackSize,
         Ammo.MaxStack);
 
     FGridItemInstance InvalidAmmo = ARMCLEAN063AS::MakeItem(AmmoId, 1, 1);
-    const auto InvalidPolicy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, WrongOld, InvalidAmmo);
+    const auto InvalidPolicy = FGridInventoryStackReadModel::Resolve(Fixture.Registry, InvalidAmmo);
     TestTrue(TEXT("Invalid ammo still recognized canonical"), InvalidPolicy.bRegisteredIdentity);
     TestFalse(TEXT("Physical ammo N1 stack policy rejected"), InvalidPolicy.bResolved);
     TestFalse(TEXT("Physical ammo N1 cannot materialize"), Fixture.Inventory->ApplyItemDefinitionToInstance(InvalidAmmo));
@@ -302,7 +302,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     Legacy->Weight = 1.5f;
     FGridItemInstance OldStack = ARMCLEAN063AS::MakeItem(Legacy->ItemDefinitionId, 0, 13);
     const auto RefusedPolicy =
-        FGridInventoryStackReadModel::Resolve(Fixture.Registry, Legacy, OldStack);
+        FGridInventoryStackReadModel::Resolve(Fixture.Registry, OldStack);
     TestFalse(TEXT("Configured registry refuses unknown legacy stack capacity"), RefusedPolicy.bResolved);
     TestFalse(TEXT("Unknown stack cannot enter canonical inventory"),
         Fixture.Inventory->CanAddItemToCharacterInventory(0, OldStack));
@@ -317,16 +317,9 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         Character.InventorySlots[0].IsEmpty() && Character.InventorySlots[1].IsEmpty());
     OldStack.Quantity = 13;
     const auto IsolatedPolicy =
-        FGridInventoryStackReadModel::Resolve(nullptr, Legacy, OldStack);
-    TestTrue(TEXT("Registry-less Automation fixture still has old stack limit"),
-        IsolatedPolicy.bResolved && IsolatedPolicy.MaxStackSize == 10 &&
-        IsolatedPolicy.IsStackable());
-    const auto HistoricalMetadata = FGridInventoryItemMetadataReadModel::Resolve(
-        nullptr, Legacy, OldStack);
-    TestTrue(TEXT("Isolated definition still owns its unit mass"),
-        HistoricalMetadata.bResolved && FMath::IsNearlyEqual(HistoricalMetadata.UnitWeightKg, 1.5f));
-    TestTrue(TEXT("Isolated definition still owns its name"),
-        HistoricalMetadata.DisplayName.EqualTo(Legacy->DisplayName));
+        FGridInventoryStackReadModel::Resolve(nullptr, OldStack);
+    TestFalse(TEXT("An absent ItemSystem cannot supply a capacity"), IsolatedPolicy.bResolved);
+    TestFalse(TEXT("The stack cannot be split without a registered definition"), IsolatedPolicy.IsStackable());
     return true;
 }
 #endif

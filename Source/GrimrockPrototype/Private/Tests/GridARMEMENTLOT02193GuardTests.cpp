@@ -25,7 +25,7 @@ namespace GridGuard193
 	UGridPartyInventoryComponent* MakeInventory(FGridCanonicalWeightTestWorld& Fixture, FName ItemId)
 	{
 		UGridPartyInventoryComponent* Inventory = Fixture.MakeInventory();
-		if (!Inventory || Inventory->FindItemDefinition(ItemId)) return nullptr;
+		if (!Inventory) return nullptr;
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(TEXT("Garde"));
