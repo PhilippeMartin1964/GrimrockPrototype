@@ -31,10 +31,10 @@ namespace ARMEMENT0162
 				return false;
 
 			Root.Reset(DuplicateObject<UGridItemSystemAsset>(Source, GetTransientPackage()));
-			Root->WeaponVisualCatalogue = DuplicateObject<UGridCanonicalWeaponVisualCatalogueAsset>(Source->WeaponVisualCatalogue, Root.Get());
+			Root->WeaponVisualCatalogue = DuplicateObject<UGridWeaponVisualCatalogueAsset>(Source->WeaponVisualCatalogue, Root.Get());
 			auto* Catalogue = Root->WeaponVisualCatalogue.Get();
 			int32 Redirected = 0;
-			for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+			for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
 			{
 				const auto* Arm = Cast<UGridArmamentDefinitionAsset>(Definition);
 				if (!Arm || (Arm->ItemId != Sword && Arm->ItemId != Shield))

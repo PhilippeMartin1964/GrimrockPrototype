@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"

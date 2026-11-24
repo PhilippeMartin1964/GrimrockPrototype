@@ -9,9 +9,9 @@
 
 namespace ARMEMENT0161
 {
-	TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> MakeActivePilot()
+	TStrongObjectPtr<UGridWeaponVisualCatalogueAsset> MakeActivePilot()
 	{
-		TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> Catalogue(NewObject<UGridCanonicalWeaponVisualCatalogueAsset>());
+		TStrongObjectPtr<UGridWeaponVisualCatalogueAsset> Catalogue(NewObject<UGridWeaponVisualCatalogueAsset>());
 		for (const FName Id : { FName(TEXT("VIS_Dagger_A")), FName(TEXT("VIS_Bow_A")), FName(TEXT("VIS_Shield_A")) })
 		{
 			FGridWeaponVisual& Profile = Catalogue->VisualProfiles.AddDefaulted_GetRef();
@@ -66,7 +66,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FARMEMENT0161DuplicateTest,
 
 bool FARMEMENT0161DuplicateTest::RunTest(const FString&)
 {
-	const auto CheckInvalid = [this](const TCHAR* Label, const UGridCanonicalWeaponVisualCatalogueAsset& Catalogue, const TCHAR* Diagnostic)
+	const auto CheckInvalid = [this](const TCHAR* Label, const UGridWeaponVisualCatalogueAsset& Catalogue, const TCHAR* Diagnostic)
 	{
 		TArray<FString> Errors;
 		TestFalse(Label, Catalogue.Validate(Errors));

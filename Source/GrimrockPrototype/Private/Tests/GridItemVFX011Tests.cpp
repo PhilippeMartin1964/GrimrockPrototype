@@ -8,7 +8,7 @@
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemActor.h"
 #include "GridCanonicalLootTestScope.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 
 namespace GridItemVFX011Tests

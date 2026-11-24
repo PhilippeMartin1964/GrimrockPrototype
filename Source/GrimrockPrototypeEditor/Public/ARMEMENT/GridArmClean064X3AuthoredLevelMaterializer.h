@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 
 /**
  * ARM-CLEAN06.4X.3: Editor-only conversion policy for a freshly authored
@@ -16,7 +16,7 @@
  */
 struct FGridArmClean064X3AuthoredLevelMaterializer
 {
-    static bool TryResolve(const UGridCanonicalItemDefinitionAsset* Canonical,
+    static bool TryResolve(const UGridItemDefinitionAsset* Canonical,
         int32 AuthoredLevel, int32 SourceDefaultWeaponLevel,
         int32& OutEffectiveLevel, bool& bOutInheritedFromSource)
     {

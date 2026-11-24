@@ -340,7 +340,7 @@ bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
 
     TArray<FName> Ids;
     TArray<FGridResolvedItem> Physical;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!IsValid(Definition)) continue;
         FGridResolvedItem Profile;

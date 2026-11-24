@@ -45,7 +45,7 @@ bool FGridLightCONFIG02SinglePointLightAuthorityTest::RunTest(const FString& Par
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	if (!TestNotNull(TEXT("Canonical production registry loads"), Root)) return false;
 	const UGridNonArmamentDefinitionAsset* TorchDefinition = nullptr;
-	for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Entry : Root->ItemDefinitions)
+	for (const TObjectPtr<UGridItemDefinitionAsset>& Entry : Root->ItemDefinitions)
 	{
 		if (IsValid(Entry.Get()) && Entry->ItemId == FName(TEXT("Item_Torch")))
 		{

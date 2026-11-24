@@ -2,6 +2,7 @@
 #include "Engine/AssetManager.h"
 #include "Misc/PackageName.h"
 #include "UObject/CoreRedirects.h"
+#include "UObject/SoftObjectPath.h"
 
 #include "Misc/AutomationTest.h"
 #include "../ARMEMENT/GridEditorRetirementAudit.h"
@@ -25,6 +26,67 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
         AddError(Error.IsEmpty() ? TEXT("Native read-only audit failed") : Error);
         return false;
     }
+    struct FRedirectCase
+    {
+        const TCHAR* FormerName;
+        const TCHAR* FinalName;
+        UClass* NativeClass;
+    };
+    const FRedirectCase Classes[] = {
+        {TEXT("GridCanonicalItemDefinitionAsset"), TEXT("GridItemDefinitionAsset"), UGridItemDefinitionAsset::StaticClass()},
+        {TEXT("GridCanonicalWeaponCatalogueAsset"), TEXT("GridWeaponCatalogueAsset"), UGridWeaponCatalogueAsset::StaticClass()},
+        {TEXT("GridCanonicalWeaponVisualCatalogueAsset"), TEXT("GridWeaponVisualCatalogueAsset"), UGridWeaponVisualCatalogueAsset::StaticClass()}
+    };
+    for (const auto& Entry : Classes)
+    {
+        UClass* Native = Entry.NativeClass;
+        const FString FormerPath = FString(TEXT("/Script/GrimrockPrototype.")) + Entry.FormerName;
+        const FString FinalPath = FString(TEXT("/Script/GrimrockPrototype.")) + Entry.FinalName;
+        TestEqual(TEXT("The live class has its final reflected path"), Native->GetPathName(), FinalPath);
+        TestNull(TEXT("No registered class object at the former name"),
+            FindObjectFast<UClass>(Native->GetOutermost(), FName(Entry.FormerName)));
+        TestTrue(TEXT("The final class owns its CDO"), Native->GetDefaultObject()->GetClass() == Native);
+        TestEqual(TEXT("Core Redirect resolves once to the live reflected name"),
+            FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Class,
+                FCoreRedirectObjectName(FormerPath)).ToString(), FinalPath);
+        TestEqual(TEXT("The final reflected name does not redirect"),
+            FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Class,
+                FCoreRedirectObjectName(FinalPath)).ToString(), FinalPath);
+        FSoftClassPath SerializedPath(FormerPath);
+        TestTrue(TEXT("The serialized soft class path accepts the Core Redirect"),
+            SerializedPath.FixupCoreRedirects());
+        TestTrue(TEXT("The redirected soft class path loads the live class"),
+            SerializedPath.TryLoadClass<UObject>() == Native);
+    }
+
+    const UClass* ItemBase = UGridItemDefinitionAsset::StaticClass();
+    TestTrue(TEXT("Item definition base remains abstract"), ItemBase->HasAnyClassFlags(CLASS_Abstract));
+    for (const FName Field : {FName(TEXT("ItemId")), FName(TEXT("DisplayName")), FName(TEXT("Description")),
+        FName(TEXT("WeightKg")), FName(TEXT("Tags"))})
+        TestNotNull(TEXT("Current definition field is reflected"), ItemBase->FindPropertyByName(Field));
+    for (const FName Field : {FName(TEXT("ItemDefinitionId")), FName(TEXT("Weight")), FName(TEXT("CombatActions")),
+        FName(TEXT("bUseWeaponCatalogue")), FName(TEXT("bUseWeaponVisualCatalogue"))})
+        TestNull(TEXT("Retired definition field stays absent"), ItemBase->FindPropertyByName(Field));
+    TestEqual(TEXT("Dungeon and inventory category enum preserves its script identity"),
+        StaticEnum<EGridItemType>()->GetPathName(), FString(TEXT("/Script/GrimrockPrototype.EGridItemType")));
+
+    const auto* ItemSystem = LoadObject<UGridItemSystemAsset>(nullptr, RootPath());
+    if (!TestNotNull(TEXT("Live ItemSystem root"), ItemSystem)) return false;
+    TestEqual(TEXT("Numeric catalogue preserves the complete Primary Asset ID"),
+        ItemSystem->WeaponCatalogue->GetPrimaryAssetId().ToString(),
+        FString(TEXT("GridCanonicalWeaponCatalogueAsset:DA_WeaponCatalogue")));
+    TestEqual(TEXT("Visual catalogue preserves the complete Primary Asset ID"),
+        ItemSystem->WeaponVisualCatalogue->GetPrimaryAssetId().ToString(),
+        FString(TEXT("GridCanonicalWeaponVisualCatalogueAsset:DA_WeaponVisualCatalogue")));
+    for (const auto& Definition : ItemSystem->ItemDefinitions)
+    {
+        const UClass* Concrete = Definition->GetClass();
+        TestTrue(TEXT("Registered item is a concrete child of the final definition base"),
+            Concrete->IsChildOf(ItemBase) && !Concrete->HasAnyClassFlags(CLASS_Abstract));
+        TestEqual(TEXT("Concrete item keeps its historic Primary Asset Type and name"),
+            Definition->GetPrimaryAssetId(), FPrimaryAssetId(Concrete->GetFName(), Definition->GetFName()));
+    }
+
     TestEqual(TEXT("Final canonical count"), Audit.ItemIds.Num(), 48);
     TestEqual(TEXT("Historical definitions fully retired"), int32(Audit.Report->GetNumberField(TEXT("legacy_definition_count"))), 0);
     TestEqual(TEXT("Canonical resolutions: 22 x 20 + 26 N0"),

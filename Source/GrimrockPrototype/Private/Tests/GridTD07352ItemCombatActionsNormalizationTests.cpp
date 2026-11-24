@@ -124,8 +124,8 @@ bool FGridTD07352RuntimeFallbackRemovalTest::RunTest(const FString& Parameters)
 	FString PlayerActionsSource;
 	FString HotbarSource;
 
-	TestTrue(TEXT("Item header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/GridItemDefinitionAsset.h"), ItemHeader));
-	TestTrue(TEXT("Item source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/GridItemDefinitionAsset.cpp"), ItemSource));
+	TestTrue(TEXT("Item header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Items/GridItemDefinitionAsset.h"), ItemHeader));
+	TestTrue(TEXT("Item source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Items/GridItemDefinitionAsset.cpp"), ItemSource));
 	TestTrue(TEXT("Catalog header loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Runtime/Combat/GridCombatActionCatalog.h"), CatalogHeader));
 	TestTrue(TEXT("Catalog source loads"), LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp"), CatalogSource));
 	TestTrue(TEXT("Player catalog source loads"),

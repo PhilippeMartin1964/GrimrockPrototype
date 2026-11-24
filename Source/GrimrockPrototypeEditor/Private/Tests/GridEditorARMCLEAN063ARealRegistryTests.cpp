@@ -66,7 +66,7 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	TestTrue(TEXT("22 ARM + arrow baseline remains registered"),
 		GridCanonicalLootRegistryTestUtils::HasExactRegistryShape(*Root.Get()));
 	TSet<FName> UniqueIds;
-	for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+	for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
 	{
 		if (!TestNotNull(TEXT("Saved canonical item is materialized"), Definition))
 		{

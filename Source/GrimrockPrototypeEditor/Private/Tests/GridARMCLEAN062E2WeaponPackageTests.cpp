@@ -25,7 +25,7 @@ bool FGridClean062E2WeaponPackageRegistryTest::RunTest(const FString&)
             Root->ItemDefinitions.Num(), 48))
         return false;
     int32 CanonicalArms = 0;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!TestNotNull(TEXT("Registered native definition is materialized"), Definition))
             return false;

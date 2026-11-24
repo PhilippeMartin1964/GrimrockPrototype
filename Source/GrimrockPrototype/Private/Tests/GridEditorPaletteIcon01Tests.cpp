@@ -3,7 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Engine/Texture2D.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorPaletteIcon01,

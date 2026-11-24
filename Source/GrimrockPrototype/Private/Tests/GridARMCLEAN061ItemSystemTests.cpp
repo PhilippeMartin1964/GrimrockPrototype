@@ -29,8 +29,8 @@ namespace Clean061
 		// UGameInstanceSubsystem is Within=GameInstance in UE 5.5.4.
 		// Keep a real owner rooted for the lifetime of each isolated fixture.
 		F.GameInstance.Reset(NewObject<UGameInstance>());
-		F.System->WeaponCatalogue = NewObject<UGridCanonicalWeaponCatalogueAsset>(F.System);
-		F.System->WeaponVisualCatalogue = NewObject<UGridCanonicalWeaponVisualCatalogueAsset>(F.System);
+		F.System->WeaponCatalogue = NewObject<UGridWeaponCatalogueAsset>(F.System);
+		F.System->WeaponVisualCatalogue = NewObject<UGridWeaponVisualCatalogueAsset>(F.System);
 		F.System->ActionCatalogue = NewObject<UGridActionCatalogueAsset>(F.System);
 		F.System->ActionPresentationCatalogue = NewObject<UGridActionPresentationCatalogueAsset>(F.System);
 
@@ -124,7 +124,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061CanonicalSchemaTest,
 bool FGridClean061CanonicalSchemaTest::RunTest(const FString&)
 {
 	int32 BaseFields = 0;
-	for (TFieldIterator<FProperty> Property(UGridCanonicalItemDefinitionAsset::StaticClass(),
+	for (TFieldIterator<FProperty> Property(UGridItemDefinitionAsset::StaticClass(),
 		EFieldIteratorFlags::ExcludeSuper); Property; ++Property)
 	{
 		++BaseFields;
@@ -288,7 +288,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean061AmmoTypeTest,
 bool FGridClean061AmmoTypeTest::RunTest(const FString&)
 {
 	const Clean061::FFixture F = Clean061::Make();
-	const UGridCanonicalItemDefinitionAsset* Last =
+	const UGridItemDefinitionAsset* Last =
 		F.System->ItemDefinitions.IsEmpty() ? nullptr : F.System->ItemDefinitions.Last();
 	TestNotNull(TEXT("Last registry item exists"), Last);
 	TestNotNull(TEXT("Registered ammo retains subclass"), Cast<UGridAmmoDefinitionAsset>(Last));

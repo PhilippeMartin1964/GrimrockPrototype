@@ -4,7 +4,7 @@
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -59,7 +59,7 @@ bool FGridClean064VEquippedNonArm::RunTest(const FString&)
             return false;
         }
         int32 Owners = 0;
-        for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+        for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
         {
             const UGridOtherEquipmentDefinitionAsset* Equipment =
                 Cast<UGridOtherEquipmentDefinitionAsset>(Definition);

@@ -1,10 +1,10 @@
-# Modèle relationnel des objets — CLEANUP02
+# Modèle relationnel des objets — CLEANUP04-D
 
-Référence fonctionnelle et recette ARM-CLEAN06 : `420dce2ee4f55c3630e8a99fa7ae9d77299a461e`, `master`, 22 novembre 2026. Nomenclature actualisée dans CLEANUP02. [Diagramme SVG](DataModel.svg) · [Consolidation et preuves](../Technical/Consolidation.md).
+Référence fonctionnelle et recette ARM-CLEAN06 : `420dce2ee4f55c3630e8a99fa7ae9d77299a461e`, `master`, 22 novembre 2026. Nomenclature actualisée dans CLEANUP02 et finalisée pour les trois classes d’objets dans CLEANUP04-D.16. [Diagramme SVG](DataModel.svg) · [Consolidation et preuves](../Technical/Consolidation.md).
 
 ## Lecture du modèle
 
-Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. 24 types réfléchis et dix propriétés portent désormais des noms métier avec redirections de compatibilité. Les trois classes dont le nom cible reste occupé sont conservées ; les 53 assets sont organisés sous `Items/`, avec conservation des 53 anciens chemins par redirecteurs natifs et de 50 Primary Asset IDs dérivés par alias. Les identités métier restent inchangées. Les anciens chemins restent aussi couverts en Shipping par 53 Core Asset Redirects exacts (chemins d’objet), car les `UObjectRedirector` ne sont pas embarqués comme packages IoStore.
+Mise à jour CLEANUP02 : noms internes simplifiés, sans évolution du schéma ou des identités. La référence fonctionnelle reste `420dce2e`. 24 types réfléchis et dix propriétés portent désormais des noms métier avec redirections de compatibilité. Les 53 assets sont organisés sous `Items/`, avec conservation des 53 anciens chemins par redirecteurs natifs et de 50 Primary Asset IDs dérivés par alias. Les identités métier restent inchangées. Les anciens chemins restent aussi couverts en Shipping par 53 Core Asset Redirects exacts (chemins d’objet), car les `UObjectRedirector` ne sont pas embarqués comme packages IoStore.
 
 Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces 29 entités sont conservées, corrigées ou identifiées comme projections de champs embarqués. Le modèle enrichi comprend 47 entités ou sous-ensembles, répartis en six panneaux. Ce découpage ne change pas le modèle relationnel : les références `FK → [panneau]` relient les domaines sans faire traverser les autres entités par des traits.
 
@@ -18,7 +18,7 @@ Le SVG initial était un modèle relationnel de 29 entités et 37 relations. Ces
 
 `UGridItemSystemAsset`, matérialisé par `DA_ItemSystem`, référence les définitions et quatre catalogues globaux. `UGridItemSubsystem` charge cette racine depuis `ConfiguredItemSystem`, la valide une fois par GameInstance et construit `ItemIndex`. Les vues `FGridResolvedItem` et `FGridResolvedBoundAction` sont transitoires. Une identité ou un niveau inconnu échoue explicitement ; aucune ancienne définition ne doit compléter un objet enregistré.
 
-La base abstraite `UGridCanonicalItemDefinitionAsset` contient exactement les cinq champs communs `ItemId`, `DisplayName`, `Description`, `WeightKg`, `Tags`. Le nom C++ actuel est conservé jusqu’à résolution de sa collision dans CLEANUP03/CLEANUP04. Une définition d'armement ajoute seulement `ArchetypeId`. La racine référence aujourd'hui **48 définitions**, dont **22 armements** ; ce n'est pas le nombre d'archétypes du catalogue.
+La base abstraite `UGridItemDefinitionAsset` contient exactement les cinq champs communs `ItemId`, `DisplayName`, `Description`, `WeightKg`, `Tags`. Une définition d'armement ajoute seulement `ArchetypeId`. La racine référence aujourd'hui **48 définitions**, dont **22 armements** ; ce n'est pas le nombre d'archétypes du catalogue.
 
 | Classe concrète actuelle | Assets | Champs propres / rôle |
 | --- | ---: | --- |
@@ -32,7 +32,7 @@ La base abstraite `UGridCanonicalItemDefinitionAsset` contient exactement les ci
 
 Les quatre dernières classes héritent de `UGridNonArmamentDefinitionAsset`. `GENERIC_ITEM_VISUAL` de l'ancien SVG correspond donc à des champs de cette classe, pas à une table indépendante 1:1 attachée à tous les objets. Les visuels non ARM n'appartiennent pas au catalogue visuel ARM. Les consommables disposent encore de `UseActions` ; la validation interdit de remplir simultanément cette liste et `ActionBindings` héritée.
 
-Les assets sont organisés sous `Content/GrimrockPrototype/Core/DataAssets/Items/` : racine `DA_ItemSystem`, quatre catalogues dans `Catalogues/` (`DA_WeaponCatalogue`, `DA_WeaponVisualCatalogue`, `DA_ActionCatalogue`, `DA_ActionPresentationCatalogue`) et 48 définitions dans `Definitions/`, notamment `DA_Weapon_ThrowingKnife_01`. `CanonicalStage/` ne contient plus que les 53 redirecteurs de compatibilité ; aucune seconde définition n’y est conservée. Le Cook inclut les deux arborescences ainsi que les deux Readables protégés dans `Tests/Readables/`. Les Primary Asset IDs dérivés du nom ont 50 redirections ; aucun ItemId, ActionId, ArchetypeId ou GUID n’est renommé. Les classes C++ en collision gardent leur nom actuel, ce qui ne rend pas les anciens catalogues historiques actifs.
+Les assets sont organisés sous `Content/GrimrockPrototype/Core/DataAssets/Items/` : racine `DA_ItemSystem`, quatre catalogues dans `Catalogues/` (`DA_WeaponCatalogue`, `DA_WeaponVisualCatalogue`, `DA_ActionCatalogue`, `DA_ActionPresentationCatalogue`) et 48 définitions dans `Definitions/`, notamment `DA_Weapon_ThrowingKnife_01`. `CanonicalStage/` ne contient plus que les 53 redirecteurs de compatibilité ; aucune seconde définition n’y est conservée. Le Cook inclut les assets actifs et les deux Readables protégés dans `Tests/Readables/`. Les anciens chemins cuisinés passent par les redirections d’objet. Les Primary Asset IDs dérivés du nom ont 50 redirections ; aucun ItemId, ActionId, ArchetypeId ou GUID n’est renommé. Les trois noms définitifs appartiennent aux classes actives. Les anciens noms actifs se résolvent par trois Core Redirects de classe. Les types Asset Manager des deux catalogues restent `GridCanonicalWeaponCatalogueAsset` et `GridCanonicalWeaponVisualCatalogueAsset`.
 
 ## B — Armement, progression et classes
 
@@ -126,7 +126,7 @@ Le niveau physique non ARM est aujourd'hui strictement zéro : appliquer une pro
 
 Les chemins suivants sont relatifs à la racine du dépôt :
 
-- `Source/GrimrockPrototype/Public/Runtime/Items/GridCanonicalItemDefinitionAsset.h` : héritage, cinq champs, spécialisations et slots.
+- `Source/GrimrockPrototype/Public/Runtime/Items/GridItemDefinitionAsset.h` : héritage, cinq champs, spécialisations et slots.
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridItemCatalogues.h` et son `.cpp` privé : catalogues, structures, validations et jointures.
 - `Source/GrimrockPrototype/Public/Runtime/Items/GridItemSubsystem.h` et son `.cpp` privé : configuration, niveaux, projection et actions détaillées.
 - `Source/GrimrockPrototype/Public/Runtime/GridInventoryTypes.h` : instance, possession, résistances, bonus et 18 slots.
@@ -134,20 +134,20 @@ Les chemins suivants sont relatifs à la racine du dépôt :
 - `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h`, `GridLevelPlacementTypes.h`, `Runtime/GridDungeonRuntimeState.h` : placements et snapshots.
 - `Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h` et son `.cpp` privé : version et contrôles de chargement.
 - `Source/GrimrockPrototype/Public/RPG/StatusEffects/GridStatusEffectDefinitionAsset.h` : identité `EffectId` et payloads de statut.
-- `Config/DefaultGame.ini` : chemin de `DA_ItemSystem` ; assets sous `Content/GrimrockPrototype/Core/DataAssets/CanonicalStage/`.
+- `Config/DefaultGame.ini` : chemin de `DA_ItemSystem` et alias des Primary Asset IDs. Les assets actifs résident sous `Content/GrimrockPrototype/Core/DataAssets/Items/`.
 
-Les binaires présents ont une signature de package Unreal, et leurs noms de classes/imports concordent avec les déclarations. L'inspection binaire statique seule ne prouve pas les valeurs de chaque propriété : la suite native réussie sur le SHA de référence et le rapport natif privé complètent cette vérification. Aucun commandlet de conversion ou de réparation n'a été exécuté pour CLEANUP01.
+Les packages source de la racine et des deux catalogues conservent leurs anciens imports actifs. Unreal les résout par Core Redirects au chargement. Les packages cuisinés utilisent les noms réfléchis définitifs des deux catalogues. L'inspection binaire statique seule ne prouve pas les valeurs de chaque propriété : la suite native réussie sur le SHA de référence et le rapport natif privé complètent cette vérification. Aucun commandlet de conversion ou de réparation n'a été exécuté pour CLEANUP01.
 
 ## Traçabilité des 29 entités du SVG initial
 
-Les noms relationnels sont conservés comme repères documentaires ; les types ci-dessous sont les noms actuels, sans renommage C++. Les champs obsolètes sont expliqués dans les sections A à E.
+Les noms relationnels sont conservés comme repères documentaires ; les types ci-dessous portent les noms C++ actuels. Les champs obsolètes sont expliqués dans les sections A à E.
 
 | Entité initiale | Correspondance actuelle / porteur |
 | --- | --- |
 | `ITEM_SYSTEM` | UGridItemSystemAsset · DA_ItemSystem |
-| `ITEM_DEFINITION` | UGridCanonicalItemDefinitionAsset · abstraite |
-| `WEAPON_CATALOGUE` | UGridCanonicalWeaponCatalogueAsset |
-| `WEAPON_VISUAL_CATALOGUE` | UGridCanonicalWeaponVisualCatalogueAsset |
+| `ITEM_DEFINITION` | UGridItemDefinitionAsset · abstraite |
+| `WEAPON_CATALOGUE` | UGridWeaponCatalogueAsset |
+| `WEAPON_VISUAL_CATALOGUE` | UGridWeaponVisualCatalogueAsset |
 | `ACTION_CATALOGUE` | UGridActionCatalogueAsset · DA_ActionCatalogue |
 | `PRESENTATION_CATALOGUE` | UGridActionPresentationCatalogueAsset |
 | `ARMAMENT_DEFINITION` | UGridArmamentDefinitionAsset · 22 assets |

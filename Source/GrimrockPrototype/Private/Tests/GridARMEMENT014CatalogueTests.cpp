@@ -31,9 +31,9 @@ namespace ARMEMENT014
 		return P;
 	}
 
-	TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> MakeCatalogue()
+	TStrongObjectPtr<UGridWeaponCatalogueAsset> MakeCatalogue()
 	{
-		TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> Catalogue(NewObject<UGridCanonicalWeaponCatalogueAsset>());
+		TStrongObjectPtr<UGridWeaponCatalogueAsset> Catalogue(NewObject<UGridWeaponCatalogueAsset>());
 		for (int32 Ordinal = 1; Ordinal <= 82; ++Ordinal)
 		{
 			FGridWeaponArchetype& Weapon = Catalogue->Archetypes.AddDefaulted_GetRef();
@@ -163,7 +163,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridARMEMENT014InvalidCatalogueTest,
 
 bool FGridARMEMENT014InvalidCatalogueTest::RunTest(const FString&)
 {
-	const auto CheckInvalid = [this](const TCHAR* Label, const UGridCanonicalWeaponCatalogueAsset& Catalogue)
+	const auto CheckInvalid = [this](const TCHAR* Label, const UGridWeaponCatalogueAsset& Catalogue)
 	{
 		TArray<FString> Errors;
 		TestFalse(Label, Catalogue.Validate(Errors));

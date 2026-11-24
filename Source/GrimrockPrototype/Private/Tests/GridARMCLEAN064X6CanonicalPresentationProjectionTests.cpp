@@ -4,7 +4,7 @@
 #include "Tests/GridCanonicalLootRegistryTestUtils.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "UObject/StrongObjectPtr.h"
 
@@ -39,7 +39,7 @@ bool FGridClean064X6CanonicalPresentation::RunTest(const FString&)
     int32 NonArmCount = 0;
     int32 ArmCount = 0;
     int32 AmmoCount = 0;
-    for (const UGridCanonicalItemDefinitionAsset* Definition :
+    for (const UGridItemDefinitionAsset* Definition :
         Root->ItemDefinitions)
     {
         if (!TestNotNull(TEXT("Canonical item definition"), Definition))
@@ -194,7 +194,7 @@ bool RunX6Probe(FAutomationTestBase& Test, EGridProjectionProbe Mode)
     if (!Test.TestTrue(TEXT("Configure item resolver"),
         Registry->RegisterItemSystem(Root, Errors))) { return false; }
     int32 Arm = 0, NonArm = 0;
-    for (const UGridCanonicalItemDefinitionAsset* Def : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Def : Root->ItemDefinitions)
     {
         if (!Test.TestNotNull(TEXT("Concrete definition"), Def)) { return false; }
         const bool bArm = Cast<UGridArmamentDefinitionAsset>(Def) != nullptr;

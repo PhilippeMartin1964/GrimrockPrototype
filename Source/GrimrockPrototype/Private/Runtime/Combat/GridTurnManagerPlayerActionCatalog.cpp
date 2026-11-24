@@ -334,7 +334,7 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 			{
 				// The physical hand and full action policy come from the concrete
 				// non-ARM definition and the ONE canonical action catalogue.
-				// Never read old UGridItemDefinitionAsset::CombatActions here.
+				// Gameplay actions come from the registered binding.
 				for (const FGridItemActionBinding& Binding : Resolved.AvailableActions)
 				{
 					FGridCombatActionDefinition Definition;

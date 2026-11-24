@@ -8,7 +8,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 /**
@@ -31,8 +31,8 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
         return false;
     }
 
-    TMap<FName, const UGridCanonicalItemDefinitionAsset*> Registry;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    TMap<FName, const UGridItemDefinitionAsset*> Registry;
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!IsValid(Definition) || Definition->ItemId.IsNone() ||
             Registry.Contains(Definition->ItemId))
@@ -56,7 +56,7 @@ bool FGridArmClean064X2AuthoredSourceEvidence::RunTest(const FString&)
     auto CheckSource = [&](FName CanonicalId,
         int32 AuthoredLevel, int32 Quantity) -> bool
     {
-        const UGridCanonicalItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
+        const UGridItemDefinitionAsset* const* Found = Registry.Find(CanonicalId);
         if (CanonicalId.IsNone() || !Found || !IsValid(*Found) ||
             Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)
         {

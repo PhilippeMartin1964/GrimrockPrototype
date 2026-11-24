@@ -7,7 +7,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Engine/GameInstance.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/Package.h"
 #include "UObject/StrongObjectPtr.h"
@@ -49,8 +49,8 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
         return false;
     }
 
-    TMap<FName, const UGridCanonicalItemDefinitionAsset*> Definitions;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    TMap<FName, const UGridItemDefinitionAsset*> Definitions;
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!IsValid(Definition) || Definition->ItemId.IsNone() ||
             Definitions.Contains(Definition->ItemId))
@@ -80,7 +80,7 @@ bool FGridClean064X4RealAuthoredLevels::RunTest(const FString&)
             const FName AuthoredItemId,
             int32 AuthoredLevel, int32 Quantity) -> bool
     {
-        const UGridCanonicalItemDefinitionAsset* const* Found =
+        const UGridItemDefinitionAsset* const* Found =
             Definitions.Find(AuthoredItemId);
         if (AuthoredItemId.IsNone() || !Found || !IsValid(*Found) ||
             Quantity < 1 || AuthoredLevel < 0 || AuthoredLevel > 20)

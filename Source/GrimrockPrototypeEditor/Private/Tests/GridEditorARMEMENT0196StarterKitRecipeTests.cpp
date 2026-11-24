@@ -125,7 +125,7 @@ namespace ARMEMENT0196
         return LoadObject<URPGClassAsset>(nullptr, *Path);
     }
 
-    const UGridCanonicalWeaponCatalogueAsset* LoadWeapons()
+    const UGridWeaponCatalogueAsset* LoadWeapons()
     {
         UGridItemSystemAsset* Root =
             GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
@@ -205,7 +205,7 @@ bool FARMEMENT0196Catalogue::RunTest(const FString&)
     FGridCanonicalRegistryFixture Fixture;
     if (!TestTrue(TEXT("Production ItemSystem is configured"), Fixture.bReady))
         return false;
-    const UGridCanonicalWeaponCatalogueAsset* Catalogue = ARMEMENT0196::LoadWeapons();
+    const UGridWeaponCatalogueAsset* Catalogue = ARMEMENT0196::LoadWeapons();
     if (!TestNotNull(TEXT("Single canonical authoring weapon catalogue"), Catalogue))
         return false;
     TArray<FString> Errors;

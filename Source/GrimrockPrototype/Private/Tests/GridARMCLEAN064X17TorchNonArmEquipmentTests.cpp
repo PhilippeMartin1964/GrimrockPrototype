@@ -11,7 +11,7 @@
 #include "Runtime/GridPartyIlluminationComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../Runtime/GridEquipmentSlots.h"
 

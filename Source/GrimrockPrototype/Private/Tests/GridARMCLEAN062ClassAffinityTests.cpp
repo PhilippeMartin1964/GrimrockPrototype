@@ -12,7 +12,7 @@ bool FGridClean062ClassParityTest::RunTest(const FString&)
     UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
     if (!TestNotNull(TEXT("Real production root"), Root) ||
         !TestNotNull(TEXT("Real canonical weapon catalogue"), Root->WeaponCatalogue.Get())) return false;
-    const UGridCanonicalWeaponCatalogueAsset* Catalogue = Root->WeaponCatalogue.Get();
+    const UGridWeaponCatalogueAsset* Catalogue = Root->WeaponCatalogue.Get();
     TArray<FString> Errors;
     if (!TestTrue(TEXT("Full canonical class and numeric source valid"),
         Catalogue->Validate(Errors))) return false;
@@ -35,8 +35,8 @@ bool FGridClean062ClassParityTest::RunTest(const FString&)
     TestEqual(TEXT("Six different canonical class advices"), SeenClasses.Num(), 6);
     TestEqual(TEXT("82 different canonical numeric/affinity rows"), SeenArms.Num(), 82);
 
-    UGridCanonicalWeaponCatalogueAsset* Bad =
-        DuplicateObject<UGridCanonicalWeaponCatalogueAsset>(Catalogue, GetTransientPackage());
+    UGridWeaponCatalogueAsset* Bad =
+        DuplicateObject<UGridWeaponCatalogueAsset>(Catalogue, GetTransientPackage());
     if (!TestNotNull(TEXT("Transient canonical catalogue clone"), Bad)) return false;
     const FName FirstClassId = Bad->ClassPreferences[0].ClassId;
     Bad->ClassPreferences[1].ClassId = FirstClassId;

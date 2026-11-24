@@ -227,7 +227,18 @@ bool FGridWeaponArchetype::IsValidArchetypeId(FName Id)
 	return Number >= 1 && Number <= 82;
 }
 
-const FGridWeaponVisual* UGridCanonicalWeaponVisualCatalogueAsset::FindForArchetype(
+FPrimaryAssetId UGridWeaponVisualCatalogueAsset::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId Id = Super::GetPrimaryAssetId();
+	if (Id.PrimaryAssetType == FPrimaryAssetType(StaticClass()->GetFName()))
+	{
+		// Asset Manager identities predate the reflected class rename.
+		Id.PrimaryAssetType = FPrimaryAssetType(TEXT("GridCanonicalWeaponVisualCatalogueAsset"));
+	}
+	return Id;
+}
+
+const FGridWeaponVisual* UGridWeaponVisualCatalogueAsset::FindForArchetype(
 	FName ArchetypeId) const
 {
 	const FGridWeaponVisualBinding* Binding = ArchetypeBindings.FindByPredicate(
@@ -242,7 +253,7 @@ const FGridWeaponVisual* UGridCanonicalWeaponVisualCatalogueAsset::FindForArchet
 		}) : nullptr;
 }
 
-bool UGridCanonicalWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
+bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 {
 	bool bValid = true;
 	TSet<FName> SeenProfiles;
@@ -406,7 +417,18 @@ bool FGridWeaponArchetype::TryResolve(int32 Level, FGridResolvedWeapon& Out) con
 	return true;
 }
 
-const FGridWeaponArchetype* UGridCanonicalWeaponCatalogueAsset::Find(
+FPrimaryAssetId UGridWeaponCatalogueAsset::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId Id = Super::GetPrimaryAssetId();
+	if (Id.PrimaryAssetType == FPrimaryAssetType(StaticClass()->GetFName()))
+	{
+		// Asset Manager identities predate the reflected class rename.
+		Id.PrimaryAssetType = FPrimaryAssetType(TEXT("GridCanonicalWeaponCatalogueAsset"));
+	}
+	return Id;
+}
+
+const FGridWeaponArchetype* UGridWeaponCatalogueAsset::Find(
 	FName ArchetypeId) const
 {
 	return Archetypes.FindByPredicate([ArchetypeId](const FGridWeaponArchetype& Entry)
@@ -415,7 +437,7 @@ const FGridWeaponArchetype* UGridCanonicalWeaponCatalogueAsset::Find(
 	});
 }
 
-bool UGridCanonicalWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
+bool UGridWeaponCatalogueAsset::Validate(TArray<FString>& Errors) const
 {
 	bool bValid = true;
 	if (Archetypes.Num() != 82)
@@ -579,7 +601,7 @@ bool UGridItemSystemAsset::Validate(TArray<FString>& Errors) const
 
 	TSet<FName> Ids;
 	TSet<FName> AmmoKinds;
-	for (const UGridCanonicalItemDefinitionAsset* Item : ItemDefinitions)
+	for (const UGridItemDefinitionAsset* Item : ItemDefinitions)
 	{
 		if (!IsValid(Item) || !Item->HasValidIdentity() ||
 			Ids.Contains(Item->ItemId))

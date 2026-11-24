@@ -25,7 +25,7 @@ bool FGridFlask04ProductionMeshes::RunTest(const FString&)
 	const auto CheckFlask = [this, Root](FName ItemId, const TCHAR* Description)
 	{
 		const auto* Entry = Root->ItemDefinitions.FindByPredicate(
-			[ItemId](const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Candidate)
+			[ItemId](const TObjectPtr<UGridItemDefinitionAsset>& Candidate)
 			{
 				return IsValid(Candidate.Get()) && Candidate->ItemId == ItemId;
 			});

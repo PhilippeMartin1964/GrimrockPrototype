@@ -165,7 +165,7 @@ bool FGridClean064X24PointerlessKits::RunTest(const FString&)
 
 
 	// WeaponCatalogue hand policy remains authoritative without an old
-	// UGridItemDefinitionAsset (offhand-only shield and two-handed bow).
+	// definition pointer (offhand-only shield and two-handed bow).
 	TStrongObjectPtr<URPGClassAsset> Hands(NewObject<URPGClassAsset>());
 	Hands->ClassId = TEXT("Warrior");
 	FRPGStartingEquipmentKit& HandKit = Hands->StartingEquipmentKits.AddDefaulted_GetRef();

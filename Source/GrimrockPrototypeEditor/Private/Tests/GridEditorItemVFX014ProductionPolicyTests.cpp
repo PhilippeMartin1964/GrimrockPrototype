@@ -5,7 +5,7 @@
 #include "UObject/StrongObjectPtr.h"
 #include "Misc/AutomationTest.h"
 #include "NiagaraSystem.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "UObject/UnrealType.h"
 
 namespace GridItemVFX014Policy

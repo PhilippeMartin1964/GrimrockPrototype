@@ -48,7 +48,7 @@ bool UGridItemSubsystem::RegisterItemSystem(UGridItemSystemAsset* System, TArray
 	}
 	// Strong UPROPERTY ownership prevents collection of definitions after boot.
 	RootRegistry = System;
-	for (UGridCanonicalItemDefinitionAsset* Item : System->ItemDefinitions)
+	for (UGridItemDefinitionAsset* Item : System->ItemDefinitions)
 	{
 		ItemIndex.Add(Item->ItemId, Item);
 	}
@@ -70,14 +70,14 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.Error = EGridItemResolveError::InvalidItemLevel;
 		return false;
 	}
-	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
+	const TObjectPtr<UGridItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
 	if (!Found || !IsValid(Found->Get()))
 	{
 		OutItem.Error = EGridItemResolveError::UnknownItemId;
 		return false;
 	}
 
-	const UGridCanonicalItemDefinitionAsset* Definition = Found->Get();
+	const UGridItemDefinitionAsset* Definition = Found->Get();
 	const bool bArmament = Definition->IsA<UGridArmamentDefinitionAsset>();
 	if ((bArmament && ItemLevel == 0) || (!bArmament && ItemLevel != 0))
 	{
@@ -95,7 +95,6 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 
 	// Project non-ARM physical presentation BEFORE the ammunition fast path:
 	// arrows and other ammo must retain their canonical Niagara/physics data.
-	// Never use historical UGridItemDefinitionAsset as a second authority.
 	if (const UGridNonArmamentDefinitionAsset* Other =
 		Cast<UGridNonArmamentDefinitionAsset>(Definition))
 	{
@@ -249,7 +248,7 @@ bool UGridItemSubsystem::ResolveAmmoKind(FName AmmoKindId, FGridResolvedItem& Ou
 
 	// RegisterItemSystem validates AmmoKindId uniqueness and requires every
 	// weapon's RequiredAmmoKindId to resolve. No secondary runtime index.
-	for (const TPair<FName, TObjectPtr<UGridCanonicalItemDefinitionAsset>>& Pair : ItemIndex)
+	for (const TPair<FName, TObjectPtr<UGridItemDefinitionAsset>>& Pair : ItemIndex)
 	{
 		const UGridAmmoDefinitionAsset* Ammo = Cast<UGridAmmoDefinitionAsset>(Pair.Value.Get());
 		if (IsValid(Ammo) && Ammo->AmmoKindId == AmmoKindId)
@@ -438,7 +437,7 @@ bool UGridItemSubsystem::ResolveDetailedNonArmEquippedAction(
 	{
 		return false;
 	}
-	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found =
+	const TObjectPtr<UGridItemDefinitionAsset>* Found =
 		ItemIndex.Find(Instance.ItemDefinitionId);
 	const UGridOtherEquipmentDefinitionAsset* Equipment =
 		Found ? Cast<UGridOtherEquipmentDefinitionAsset>(Found->Get()) : nullptr;
@@ -476,7 +475,7 @@ bool UGridItemSubsystem::ResolveDetailedNonArmEquippedPresentation(
 	{
 		return false;
 	}
-	const TObjectPtr<UGridCanonicalItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
+	const TObjectPtr<UGridItemDefinitionAsset>* Found = ItemIndex.Find(ItemId);
 	const UGridOtherEquipmentDefinitionAsset* Equipment =
 		Found ? Cast<UGridOtherEquipmentDefinitionAsset>(Found->Get()) : nullptr;
 	if (!IsValid(Equipment) || !Equipment->EquipmentSlots.Contains(SourceHand) ||

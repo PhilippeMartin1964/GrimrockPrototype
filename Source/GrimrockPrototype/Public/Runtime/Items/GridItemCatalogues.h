@@ -5,7 +5,7 @@
 #include "Runtime/Combat/GridWeaponProgressionTypes.h"
 #include "Runtime/Combat/GridProjectileGeometry.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridEquippedWeaponActionIconTypes.h"
 #include "GridItemCatalogues.generated.h"
 
@@ -447,11 +447,13 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 };
 
 UCLASS(BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridCanonicalWeaponVisualCatalogueAsset : public UPrimaryDataAsset
+class GRIMROCKPROTOTYPE_API UGridWeaponVisualCatalogueAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FGridWeaponVisualBinding> ArchetypeBindings;
 
@@ -748,11 +750,13 @@ struct GRIMROCKPROTOTYPE_API FGridClassPreference
 };
 
 UCLASS(BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridCanonicalWeaponCatalogueAsset : public UPrimaryDataAsset
+class GRIMROCKPROTOTYPE_API UGridWeaponCatalogueAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Catalogue")
 	TArray<FGridWeaponArchetype> Archetypes;
 
@@ -772,13 +776,13 @@ class GRIMROCKPROTOTYPE_API UGridItemSystemAsset : public UPrimaryDataAsset
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item System")
-	TArray<TObjectPtr<UGridCanonicalItemDefinitionAsset>> ItemDefinitions;
+	TArray<TObjectPtr<UGridItemDefinitionAsset>> ItemDefinitions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item System")
-	TObjectPtr<UGridCanonicalWeaponCatalogueAsset> WeaponCatalogue;
+	TObjectPtr<UGridWeaponCatalogueAsset> WeaponCatalogue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item System")
-	TObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> WeaponVisualCatalogue;
+	TObjectPtr<UGridWeaponVisualCatalogueAsset> WeaponVisualCatalogue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item System")
 	TObjectPtr<UGridActionCatalogueAsset> ActionCatalogue;

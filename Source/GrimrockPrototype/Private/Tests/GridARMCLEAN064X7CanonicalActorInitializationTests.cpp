@@ -11,7 +11,7 @@
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 namespace
@@ -82,7 +82,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
     int32 Arms = 0;
     int32 NonArms = 0;
     int32 Ammo = 0;
-    for (const UGridCanonicalItemDefinitionAsset* Definition :
+    for (const UGridItemDefinitionAsset* Definition :
         Root->ItemDefinitions)
     {
         if (!TestNotNull(TEXT("Real canonical definition"), Definition))

@@ -68,8 +68,8 @@ struct FGridCanonicalLootTestScope
 	{
 		if (Root.WeaponCatalogue->GetOuter() != &Root)
 		{
-			Root.WeaponCatalogue = DuplicateObject<UGridCanonicalWeaponCatalogueAsset>(Root.WeaponCatalogue, &Root);
-			Root.WeaponVisualCatalogue = DuplicateObject<UGridCanonicalWeaponVisualCatalogueAsset>(Root.WeaponVisualCatalogue, &Root);
+			Root.WeaponCatalogue = DuplicateObject<UGridWeaponCatalogueAsset>(Root.WeaponCatalogue, &Root);
+			Root.WeaponVisualCatalogue = DuplicateObject<UGridWeaponVisualCatalogueAsset>(Root.WeaponVisualCatalogue, &Root);
 			Root.ActionCatalogue = DuplicateObject<UGridActionCatalogueAsset>(Root.ActionCatalogue, &Root);
 		}
 		// The production schema reserves ARM001–ARM082. Replace a slot in

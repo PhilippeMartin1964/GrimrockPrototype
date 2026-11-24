@@ -6,7 +6,7 @@
 #include "Runtime/Items/GridNonArmamentThrowPolicy.h"
 #include "Runtime/GridLightEmitterTypes.h"
 #include "Runtime/GridItemVisualEffectsTypes.h"
-#include "GridCanonicalItemDefinitionAsset.generated.h"
+#include "GridItemDefinitionAsset.generated.h"
 
 class UTexture2D;
 class UStaticMesh;
@@ -25,13 +25,9 @@ struct GRIMROCKPROTOTYPE_API FGridItemActionBinding
 	FName PresentationId = NAME_None;
 };
 
-/**
- * ARM-CLEAN06.1 canonical five-field base. Its temporary class name avoids
- * changing the serialized pre-migration UGridItemDefinitionAsset.
- * Replaced by the normative name only at the verified binary cutover.
- */
+/** Shared identity, text, unit mass and tags for every registered item definition. */
 UCLASS(Abstract, BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridCanonicalItemDefinitionAsset : public UPrimaryDataAsset
+class GRIMROCKPROTOTYPE_API UGridItemDefinitionAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -65,7 +61,7 @@ enum class EGridNonArmamentHandPolicy : uint8
 
 /** Exactly one additional editable property; no catalogue, icon or N1 copy. */
 UCLASS(BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridArmamentDefinitionAsset : public UGridCanonicalItemDefinitionAsset
+class GRIMROCKPROTOTYPE_API UGridArmamentDefinitionAsset : public UGridItemDefinitionAsset
 {
 	GENERATED_BODY()
 
@@ -76,7 +72,7 @@ public:
 
 /** Visual data for NON-armament items, never a fallback for a weapon. */
 UCLASS(BlueprintType)
-class GRIMROCKPROTOTYPE_API UGridNonArmamentDefinitionAsset : public UGridCanonicalItemDefinitionAsset
+class GRIMROCKPROTOTYPE_API UGridNonArmamentDefinitionAsset : public UGridItemDefinitionAsset
 {
 	GENERATED_BODY()
 

@@ -126,12 +126,12 @@ namespace
 		return Definition;
 	}
 
-	const UGridCanonicalItemDefinitionAsset* LoadMON176ProductionStone(FAutomationTestBase& Test)
+	const UGridItemDefinitionAsset* LoadMON176ProductionStone(FAutomationTestBase& Test)
 	{
 		const UGridItemSystemAsset* Root = GetDefault<UGridItemSubsystem>()->LoadConfiguredItemSystemForPreview();
 		if (Root)
 		{
-			for (const UGridCanonicalItemDefinitionAsset* Item : Root->ItemDefinitions)
+			for (const UGridItemDefinitionAsset* Item : Root->ItemDefinitions)
 			{
 				if (IsValid(Item) && Item->ItemId == FName(TEXT("Stone"))) return Item;
 			}
@@ -266,7 +266,7 @@ bool FGridMonsterMON1761ProductionRewardContractTest::RunTest(const FString& Par
 	(void)Parameters;
 
 	UGridMonsterDefinitionAsset* ProductionGoblin = LoadMON176ProductionGoblin(*this);
-	const UGridCanonicalItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
+	const UGridItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
 	if (!ProductionGoblin || !ProductionStone)
 	{
 		return false;
@@ -445,7 +445,7 @@ bool FGridMonsterMON1761PersistenceNoReplayTest::RunTest(const FString& Paramete
 	UGridLevelAsset* Level = MakeMON176Floor(Runtime);
 	AGrimrockPartyPawn* Party = SpawnMON176Party(TestWorld.World, Runtime);
 	UGridMonsterDefinitionAsset* ProductionGoblin = LoadMON176ProductionGoblin(*this);
-	const UGridCanonicalItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
+	const UGridItemDefinitionAsset* ProductionStone = LoadMON176ProductionStone(*this);
 	if (!Runtime || !Level || !Party || !ProductionGoblin || !ProductionStone)
 	{
 		return false;

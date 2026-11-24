@@ -195,9 +195,9 @@ bool FGridTD0737RatLootDefinitionsNormalizedTest::RunTest(const FString& Paramet
 	{
 		return false;
 	}
-	const UGridCanonicalItemDefinitionAsset* RatMeat = nullptr;
-	const UGridCanonicalItemDefinitionAsset* RatTooth = nullptr;
-	for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Definition : Root->ItemDefinitions)
+	const UGridItemDefinitionAsset* RatMeat = nullptr;
+	const UGridItemDefinitionAsset* RatTooth = nullptr;
+	for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : Root->ItemDefinitions)
 	{
 		if (!IsValid(Definition)) continue;
 		if (Definition->ItemId == FName(TEXT("Item_RatMeat"))) RatMeat = Definition;

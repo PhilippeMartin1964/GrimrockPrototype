@@ -15,7 +15,7 @@
 #include "Modules/ModuleManager.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridReceptacleTypes.h"
@@ -204,7 +204,7 @@ bool FGridTD0738LegacySymbolsAbsentTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("bPlaceOnEdge is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceOnEdge")));
 	TestNull(TEXT("bPlaceAtCellCenter is absent"), DefinitionClass->FindPropertyByName(TEXT("bPlaceAtCellCenter")));
 
-	UClass* ItemClass = UGridCanonicalItemDefinitionAsset::StaticClass();
+	UClass* ItemClass = UGridItemDefinitionAsset::StaticClass();
 	TestNull(TEXT("Legacy item bProvidesAttack is absent"), ItemClass->FindPropertyByName(TEXT("bProvidesAttack")));
 	TestNull(TEXT("Legacy item-level OffensiveProfile is absent"), ItemClass->FindPropertyByName(TEXT("OffensiveProfile")));
 

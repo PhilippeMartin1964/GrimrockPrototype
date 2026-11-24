@@ -24,7 +24,7 @@ bool FGridArmClean064X3AuthoredLevelRules::RunTest(const FString&)
     Weapon->ArchetypeId = TEXT("X3_ValidArchetype");
     Generic->ItemId = TEXT("X3_SourceGeneric");
 
-    auto Try = [](const UGridCanonicalItemDefinitionAsset* Item,
+    auto Try = [](const UGridItemDefinitionAsset* Item,
         int32 InputLevel, int32 HistoricalDefault,
         int32& OutLevel, bool& bInherited) -> bool
     {
@@ -68,7 +68,7 @@ bool FGridArmClean064X3AuthoredLevelRules::RunTest(const FString&)
     }
 
     const auto MustReject = [this, &Try](const TCHAR* Reason,
-        const UGridCanonicalItemDefinitionAsset* Item, int32 Authored,
+        const UGridItemDefinitionAsset* Item, int32 Authored,
         int32 DefaultLevel) -> bool
     {
         int32 RejectedLevel = 99;

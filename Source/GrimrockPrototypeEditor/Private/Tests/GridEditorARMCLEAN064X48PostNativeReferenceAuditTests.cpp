@@ -9,7 +9,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/Package.h"
@@ -32,7 +32,7 @@ bool FGridEditorARMCLEAN064X48PostNativeRefs::RunTest(const FString&)
     }
 
     TSet<FName> Known;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!IsValid(Definition) || Definition->ItemId.IsNone() ||
             Known.Contains(Definition->ItemId))

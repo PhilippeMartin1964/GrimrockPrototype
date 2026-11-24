@@ -1,6 +1,6 @@
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 
-bool UGridCanonicalItemDefinitionAsset::HasValidIdentity() const
+bool UGridItemDefinitionAsset::HasValidIdentity() const
 {
 	if (ItemId.IsNone() || !FMath::IsFinite(WeightKg) || WeightKg < 0.0f)
 	{

@@ -5,7 +5,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
-#include "Runtime/Items/GridCanonicalItemDefinitionAsset.h"
+#include "Runtime/Items/GridItemDefinitionAsset.h"
 #include "UObject/StrongObjectPtr.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridClean064WRealReferences,
@@ -22,7 +22,7 @@ bool FGridClean064WRealReferences::RunTest(const FString&)
         return false;
     }
     TSet<FName> ValidIds;
-    for (const UGridCanonicalItemDefinitionAsset* Definition : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Definition : Root->ItemDefinitions)
     {
         if (!TestNotNull(TEXT("Concrete item definition"), Definition))
         {

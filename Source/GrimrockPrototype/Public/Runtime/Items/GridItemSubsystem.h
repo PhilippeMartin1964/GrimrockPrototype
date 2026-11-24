@@ -260,7 +260,7 @@ public:
 		FGridCombatActionDefinition& OutAction) const;
 
 	/** The ONE detailed non-ARM presentation attached to a physically held
-	 * equipment source. Never reads the old UGridItemDefinitionAsset. */
+	 * equipment source. */
 	bool ResolveDetailedNonArmEquippedPresentation(FName ItemId,
 		EGridEquipmentSlot SourceHand,
 		FGridPlayerAttackPresentationProfile& OutPresentation) const;
@@ -328,7 +328,7 @@ private:
 	TObjectPtr<UGridItemSystemAsset> RootRegistry;
 
 	UPROPERTY(Transient)
-	TMap<FName, TObjectPtr<UGridCanonicalItemDefinitionAsset>> ItemIndex;
+	TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> ItemIndex;
 
 	bool bConfigurationAttempted = false;
 };

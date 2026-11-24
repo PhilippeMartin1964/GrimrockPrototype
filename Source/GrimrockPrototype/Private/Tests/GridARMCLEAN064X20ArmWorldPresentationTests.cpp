@@ -26,8 +26,8 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
     TStrongObjectPtr<UGridItemSystemAsset> Root(
         DuplicateObject<UGridItemSystemAsset>(Actual.Get(), GetTransientPackage()));
     if (!TestNotNull(TEXT("Transient root"), Root.Get())) { return false; }
-    TStrongObjectPtr<UGridCanonicalWeaponVisualCatalogueAsset> Visuals(
-        DuplicateObject<UGridCanonicalWeaponVisualCatalogueAsset>(
+    TStrongObjectPtr<UGridWeaponVisualCatalogueAsset> Visuals(
+        DuplicateObject<UGridWeaponVisualCatalogueAsset>(
             Actual->WeaponVisualCatalogue.Get(), Root.Get()));
     if (!TestNotNull(TEXT("Transient visual catalogue"), Visuals.Get()) ||
         !TestTrue(TEXT("A real ARM visual exists"), !Visuals->VisualProfiles.IsEmpty()))
@@ -35,8 +35,8 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
         return false;
     }
     Root->WeaponVisualCatalogue = Visuals.Get();
-    TStrongObjectPtr<UGridCanonicalWeaponCatalogueAsset> Rules(
-        DuplicateObject<UGridCanonicalWeaponCatalogueAsset>(
+    TStrongObjectPtr<UGridWeaponCatalogueAsset> Rules(
+        DuplicateObject<UGridWeaponCatalogueAsset>(
             Actual->WeaponCatalogue.Get(), Root.Get()));
     if (!TestNotNull(TEXT("Transient physics catalogue"), Rules.Get()))
     {
@@ -77,7 +77,7 @@ bool FGridClean064X20ArmWorldPresentation::RunTest(const FString&)
     if (!TestNotNull(TEXT("Edited visual has a bound ARM"), Binding)) { return false; }
 
     const UGridArmamentDefinitionAsset* Item = nullptr;
-    for (const UGridCanonicalItemDefinitionAsset* Def : Root->ItemDefinitions)
+    for (const UGridItemDefinitionAsset* Def : Root->ItemDefinitions)
     {
         const UGridArmamentDefinitionAsset* Arm = Cast<UGridArmamentDefinitionAsset>(Def);
         if (Arm && Arm->ArchetypeId == Binding->ArchetypeId)

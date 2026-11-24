@@ -21,14 +21,14 @@ namespace MON177Balance
 		return Definition;
 	}
 
-	const UGridCanonicalItemDefinitionAsset* FindCanonicalItemDefinition(
+	const UGridItemDefinitionAsset* FindCanonicalItemDefinition(
 		FAutomationTestBase& Test, const UGridItemSystemAsset* Root,
 		FName ItemId)
 	{
-		const UGridCanonicalItemDefinitionAsset* Found = nullptr;
+		const UGridItemDefinitionAsset* Found = nullptr;
 		if (Root)
 		{
-			for (const TObjectPtr<UGridCanonicalItemDefinitionAsset>& Definition : Root->ItemDefinitions)
+			for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : Root->ItemDefinitions)
 			{
 				if (IsValid(Definition) && Definition->ItemId == ItemId)
 				{
@@ -118,9 +118,9 @@ bool FGridMonsterMON177ProductionLootBaselineTest::RunTest(const FString& Parame
 	UGridItemSystemAsset* Root = LoadObject<UGridItemSystemAsset>(nullptr,
 		TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/DA_ItemSystem.DA_ItemSystem"));
 	if (!TestNotNull(TEXT("Canonical production item registry loads"), Root) || !Goblin) return false;
-	const UGridCanonicalItemDefinitionAsset* Knife = FindCanonicalItemDefinition(*this, Root, TEXT("GoblinKnife"));
-	const UGridCanonicalItemDefinitionAsset* Stone = FindCanonicalItemDefinition(*this, Root, TEXT("Stone"));
-	const UGridCanonicalItemDefinitionAsset* Vial = FindCanonicalItemDefinition(*this, Root, TEXT("EmptyVial"));
+	const UGridItemDefinitionAsset* Knife = FindCanonicalItemDefinition(*this, Root, TEXT("GoblinKnife"));
+	const UGridItemDefinitionAsset* Stone = FindCanonicalItemDefinition(*this, Root, TEXT("Stone"));
+	const UGridItemDefinitionAsset* Vial = FindCanonicalItemDefinition(*this, Root, TEXT("EmptyVial"));
 	if (!Knife || !Stone || !Vial) return false;
 
 	TestTrue(TEXT("GoblinKnife canonical identity valid"), Knife->HasValidIdentity());
