@@ -7,6 +7,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "Runtime/GridItemActor.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/GridLightEmitterComponent.h"
@@ -138,25 +139,29 @@ bool FGridItemVFX014BRuntimeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    UGridItemDefinitionAsset* Torch = NewObject<UGridItemDefinitionAsset>();
-    Torch->ItemDefinitionId = TEXT("VFX014B_Torch");
-    Torch->ItemType = EGridItemType::Torch;
-    Torch->LightEmitter.bUsePointLight = true;
-    Torch->LightEmitter.bDefaultEnabled = true;
-    Torch->LightEmitter.LightIntensity = 474.f;
-    Torch->LightEmitter.LightRadius = 385.f;
-    Torch->LightEmitter.bEnableLightFlicker = false;
-    Torch->LightEmitter.bEnableLightColorFlicker = false;
-    Torch->LightEmitter.bEnableLightPositionFlicker = false;
+    FGridCanonicalLootTestScope Scope;
+    if (!TestTrue(TEXT("Isolated item system registered"), Scope.AttachWithWeights(TestWorld.World, {},
+        [&](UGridItemSystemAsset& Root)
+        {
+            auto* Torch = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+            Torch->ItemId = TEXT("VFX014B_Torch");
+            Torch->LightEmitter.bUsePointLight = true;
+            Torch->LightEmitter.bDefaultEnabled = true;
+            Torch->LightEmitter.LightIntensity = 474.f;
+            Torch->LightEmitter.LightRadius = 385.f;
+            Torch->LightEmitter.bEnableLightFlicker = false;
+            Torch->LightEmitter.bEnableLightColorFlicker = false;
+            Torch->LightEmitter.bEnableLightPositionFlicker = false;
 
-    FGridItemNiagaraEffectConfig Flame;
-    Flame.EffectId = TEXT("TorchFlame");
-    Flame.NiagaraSystem = FlameSystem;
-    Flame.ActivationMode = EGridItemVfxActivationMode::WhenLightEnabled;
-    Flame.RelativeTransform = FTransform(FRotator(0.f, 25.f, 0.f), FVector(4.f, 6.f, 8.f));
-    Torch->VisualEffects.Effects.Add(Flame);
-
-    if (!TestTrue(TEXT("Torch light and visual effect config are valid"), Torch->IsValidDefinition()))
+            FGridItemNiagaraEffectConfig Flame;
+            Flame.EffectId = TEXT("TorchFlame");
+            Flame.NiagaraSystem = FlameSystem;
+            Flame.ActivationMode = EGridItemVfxActivationMode::WhenLightEnabled;
+            Flame.RelativeTransform = FTransform(FRotator(0.f, 25.f, 0.f), FVector(4.f, 6.f, 8.f));
+            Torch->VisualEffects.Effects.Add(Flame);
+            Torch->DisplayName = FText::FromName(Torch->ItemId);
+            Root.ItemDefinitions.Add(Torch);
+        })))
     {
         return false;
     }
@@ -171,7 +176,12 @@ bool FGridItemVFX014BRuntimeTest::RunTest(const FString& Parameters)
         return false;
     }
 
-    Item->InitializeFromItemDefinition(Torch, FGuid::NewGuid());
+    FGridItemInstance Instance;
+    Instance.ItemDefinitionId = TEXT("VFX014B_Torch");
+    Instance.RuntimeObjectId = FGuid::NewGuid();
+    Instance.Quantity = 1;
+    Instance.OwnerType = EGridItemOwnerType::World;
+    if (!TestTrue(TEXT("Physical item initializes from the registry"), Item->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
     TestFalse(TEXT("Initialization respects the instance-owned light state"),
         Item->AreItemLightsEnabled());
     TestNull(TEXT("Conditional flame is initially absent"),

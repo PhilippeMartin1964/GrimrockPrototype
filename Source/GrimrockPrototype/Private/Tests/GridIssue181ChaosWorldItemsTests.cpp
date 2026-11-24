@@ -495,9 +495,7 @@ bool FGridIssue181FlyingProjectilePassage::RunTest(const FString&)
 	// X.39: already-placed ARM actors and thrown ARM instances require only
 	// ItemId + physical N20. Do not read or attach any DA_Weapon_*.
 	AGridItemActor* PlacedDagger = F.Find(Item.ItemDefinitionId);
-	if (!TestNotNull(TEXT("Real authored dagger exists"), PlacedDagger) ||
-		!TestNull(TEXT("Placed canonical dagger has no historical definition pointer"),
-			PlacedDagger->GetItemDefinitionAsset()))
+	if (!TestNotNull(TEXT("Real authored dagger exists"), PlacedDagger))
 		return false;
 	const UGridItemSubsystem* Registry = F.GI ? F.GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 	FGridResolvedItem Canonical;

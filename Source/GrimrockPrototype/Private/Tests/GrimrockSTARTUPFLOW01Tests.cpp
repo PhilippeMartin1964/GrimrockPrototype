@@ -212,8 +212,7 @@ bool FGrimrockSTARTUPFLOW01StarterVisualsHandoffTest::RunTest(const FString&)
 			for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
 			{
 				FGridResolvedItem Resolved;
-				if (!TestNull(TEXT("No legacy definition in approved recipe"), Entry.ItemDefinition.Get()) ||
-					!TestTrue(TEXT("Real recipe identity resolves"),
+				if (!TestTrue(TEXT("Real recipe identity resolves"),
 						Fixture.Registry->ResolveItem(Entry.ItemId, Entry.ItemLevel, Resolved)))
 				{
 					return false;

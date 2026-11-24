@@ -128,8 +128,6 @@ bool FARMEMENT0192CatalogTest::RunTest(const FString&)
             TestTrue(TEXT("Approved kit has physical starter entries"), !Kit.Items.IsEmpty());
             for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
             {
-                TestNull(TEXT("No obsolete ItemDefinition pointer"),
-                    Entry.ItemDefinition.Get());
                 TestFalse(TEXT("Canonical source ItemId is explicit"),
                     Entry.ItemId.IsNone());
                 FGridResolvedItem Native;

@@ -4,7 +4,6 @@
 #include "Engine/GameInstance.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemCatalogues.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UObject/StrongObjectPtr.h"
@@ -137,12 +136,9 @@ bool FGridClean064X24PointerlessKits::RunTest(const FString&)
 	}
 	Kit.Items[2].ItemLevel = 0;
 
-	// A valid-looking historical pointer must not grant an unregistered item
-	// after canonical entries have already been staged.
-	TStrongObjectPtr<UGridItemDefinitionAsset> Unknown(NewObject<UGridItemDefinitionAsset>());
-	Unknown->ItemDefinitionId = TEXT("X24_UnregisteredFixture");
+	// Staging valid entries must not allow an unknown identity to mutate the kit owner.
 	FRPGStartingEquipmentEntry& UnknownEntry = Kit.Items.AddDefaulted_GetRef();
-	UnknownEntry.ItemDefinition = Unknown.Get();
+	UnknownEntry.ItemId = TEXT("X24_UnregisteredFixture");
 	UnknownEntry.Quantity = 1;
 	Rejected = ARMCLEAN064X24::NewCharacter();
 	RejectedGear = FGridCharacterEquipmentState();
@@ -167,19 +163,6 @@ bool FGridClean064X24PointerlessKits::RunTest(const FString&)
 		return false;
 	}
 
-	// Never grant a different item just because an obsolete UObject was set.
-	TStrongObjectPtr<UGridItemDefinitionAsset> Conflicting(NewObject<UGridItemDefinitionAsset>());
-	Conflicting->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-	Kit.Items[0].ItemDefinition = Conflicting.Get();
-	if (!TestFalse(TEXT("Mismatched historical pointer rejected by class"),
-			Class->IsValidDefinition()) ||
-		!TestFalse(TEXT("Mismatched historical pointer rejected by builder"),
-			FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
-				Rejected, RejectedGear, Error, Registry.Get())))
-	{
-		return false;
-	}
-	Kit.Items[0].ItemDefinition = nullptr;
 
 	// WeaponCatalogue hand policy remains authoritative without an old
 	// UGridItemDefinitionAsset (offhand-only shield and two-handed bow).
@@ -264,31 +247,9 @@ bool FGridClean064X43CanonicalStarterAuthority::RunTest(const FString&)
     FRPGStartingEquipmentKit& Kit = Class->StartingEquipmentKits.AddDefaulted_GetRef();
     Kit.KitId = TEXT("X43_MixedExplicitNative");
 
-    TStrongObjectPtr<UGridItemDefinitionAsset> OldSword(NewObject<UGridItemDefinitionAsset>());
-    OldSword->ItemDefinitionId = Sword.ItemId;
-    OldSword->LightEmitter.bUsePointLight = !Sword.LightEmitter.bUsePointLight;
-    OldSword->LightEmitter.bDefaultEnabled = !Sword.LightEmitter.bDefaultEnabled;
-    FRPGStartingEquipmentEntry& SwordEntry = ARMCLEAN064X24::Add(
-        Class.Get(), Sword.ItemId, 20);
-    SwordEntry.ItemDefinition = OldSword.Get();
-
-    TStrongObjectPtr<UGridItemDefinitionAsset> OldArrows(NewObject<UGridItemDefinitionAsset>());
-    OldArrows->ItemDefinitionId = Arrows.ItemId;
-    OldArrows->bStackable = false;
-    OldArrows->MaxStackSize = 1;
-    FRPGStartingEquipmentEntry& ArrowEntry = ARMCLEAN064X24::Add(
-        Class.Get(), Arrows.ItemId, 0, EGridEquipmentSlot::None, 3);
-    ArrowEntry.ItemDefinition = OldArrows.Get();
-
-    TStrongObjectPtr<UGridItemDefinitionAsset> OldTorch(NewObject<UGridItemDefinitionAsset>());
-    OldTorch->ItemDefinitionId = Torch.ItemId;
-    OldTorch->LightEmitter.bUsePointLight = false;
-    OldTorch->LightEmitter.bDefaultEnabled = false;
-    OldTorch->HandUsage = EGridItemHandUsage::NotHandHeld;
-    OldTorch->CompatibleEquipmentSlots.Reset();
-    FRPGStartingEquipmentEntry& TorchEntry = ARMCLEAN064X24::Add(
-        Class.Get(), Torch.ItemId, 0, EGridEquipmentSlot::OffHand);
-    TorchEntry.ItemDefinition = OldTorch.Get();
+    ARMCLEAN064X24::Add(Class.Get(), Sword.ItemId, 20);
+    ARMCLEAN064X24::Add(Class.Get(), Arrows.ItemId, 0, EGridEquipmentSlot::None, 3);
+    ARMCLEAN064X24::Add(Class.Get(), Torch.ItemId, 0, EGridEquipmentSlot::OffHand);
 
     FGridCharacterInventoryState Character = ARMCLEAN064X24::NewCharacter();
     FGridCharacterEquipmentState Equipment;

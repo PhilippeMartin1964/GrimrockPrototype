@@ -17,7 +17,6 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentPresetCatalog.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGCustomRecruitService.h"
 #include "RPG/RPGRaceAsset.h"
@@ -567,8 +566,7 @@ FText URPGCharacterCreationWizardWidget::GetSelectedStartingEquipmentKitDescript
         TArray<FText> Rows;
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
-            const UGridItemDefinitionAsset* Item = Entry.ItemDefinition.Get();
-            if (Entry.ItemId.IsNone() || (IsValid(Item) && Item->ItemDefinitionId != Entry.ItemId))
+            if (Entry.ItemId.IsNone())
             {
                 continue;
             }

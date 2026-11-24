@@ -194,8 +194,6 @@ bool FARMEMENT0193WizardHunterDescriptionTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Hunter recipe exists"), Hunter) ||
         !TestTrue(TEXT("Hunter recipe has physical items"), !Hunter->Items.IsEmpty()))
         return false;
-    TestNull(TEXT("Hunter item has no historic ItemDefinition"),
-        Hunter->Items[0].ItemDefinition.Get());
     FGridResolvedItem Item;
     if (!TestTrue(TEXT("Hunter spear N1 resolves canonically"),
         Fixture.Scope.Registry->ResolveItem(

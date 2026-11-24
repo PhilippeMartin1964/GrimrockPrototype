@@ -9,7 +9,6 @@
 #include "EngineUtils.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -139,13 +138,7 @@ namespace ARMCLEAN063BD
         if (!Test.TestNotNull(TEXT("Real world pickup spawned"), Actor))
             return false;
 
-        UGridItemDefinitionAsset* Old = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-        Old->ItemDefinitionId = TEXT("Legacy_Contradictory_WorldPickup");
-        Old->Weight = 1200.0f;
-        Actor->ItemDefinitionAsset = Old;
-        // Actor materialized ItemId and level must prevail over an attached
-        // historical definition that has a different ID.
-        Test.TestEqual(TEXT("Canonical getter ignores stale DA_Item identity"),
+        Test.TestEqual(TEXT("Canonical getter retains the physical identity"),
             Actor->GetItemDefinitionId(), ArrowId);
         Test.TestEqual(TEXT("Shared pickup/save identity uses real ItemId"),
             FGridWorldPickupIdentityReadModel::Resolve(Actor, ArrowId, 0), ArrowId);
@@ -200,8 +193,6 @@ namespace ARMCLEAN063BD
                 return false;
             Test.TestEqual(TEXT("Canonical actor preserves its requested identity"),
                 CanonicalSpawn->GetItemDefinitionId(), ArrowId);
-            Test.TestNull(TEXT("Identity-only spawn carries no historical definition"),
-                CanonicalSpawn->GetItemDefinitionAsset());
             CanonicalSpawn->Destroy();
             return !Test.HasAnyErrors();
         }
@@ -209,24 +200,16 @@ namespace ARMCLEAN063BD
         {
             AGridItemActor* LegacyActor = F.World->SpawnActor<AGridItemActor>();
             if (!Test.TestNotNull(TEXT("Unregistered actor spawned"), LegacyActor)) return false;
-            UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-            Legacy->ItemDefinitionId = TEXT("Legacy_WorldPickup_BD");
-            LegacyActor->InitializeFromItemDefinition(Legacy, FGuid::NewGuid());
-            // This GI-backed world is an explicit Automation fixture.
-            // It must still be able to characterize a historical item before
-            // verifying that canonical pickup/persistence reject its identity.
-            Test.TestEqual(TEXT("Automation-only fixture keeps historical UObject"),
-                LegacyActor->GetItemDefinitionAsset(), Legacy);
-            Test.TestEqual(TEXT("Historical identity is materialized for negative guards"),
-                LegacyActor->GetItemDefinitionId(), Legacy->ItemDefinitionId);
+            FGridItemInstance Unknown = Arrow;
+            Unknown.ItemDefinitionId = TEXT("Legacy_WorldPickup_BD");
+            Test.TestFalse(TEXT("Unregistered physical instance cannot initialize"),
+                LegacyActor->InitializeFromItemInstance(Unknown, F.Registry));
+            Test.TestTrue(TEXT("Failed initialization leaves identity and GUID unset"),
+                LegacyActor->GetItemDefinitionId().IsNone() && !LegacyActor->GetRuntimeObjectId().IsValid());
+            LegacyActor->InitializeFromItemDefinitionId(Unknown.ItemDefinitionId, Unknown.RuntimeObjectId);
             Test.TestTrue(TEXT("Configured registry rejects unknown physical identity"),
-                FGridWorldPickupIdentityReadModel::Resolve(
-                    LegacyActor, TEXT("Legacy_Entry_BD"), 0).IsNone());
-            const FName Physical = LegacyActor->ItemDefinitionId;
-            Legacy->ItemDefinitionId = ArrowId;
-            Test.TestEqual(TEXT("Historical definition cannot rename physical identity"),
-                LegacyActor->GetItemDefinitionId(), Physical);
-            Test.TestTrue(TEXT("Registered old pointer cannot rescue unknown actor"),
+                FGridWorldPickupIdentityReadModel::Resolve(LegacyActor, Unknown.ItemDefinitionId, 0).IsNone());
+            Test.TestTrue(TEXT("Registered placement entry cannot rescue unknown actor"),
                 FGridWorldPickupIdentityReadModel::Resolve(LegacyActor, ArrowId, 0).IsNone());
             return !Test.HasAnyErrors();
         }
@@ -286,9 +269,9 @@ namespace ARMCLEAN063BD
                 return false;
             Test.TestEqual(TEXT("One canonical arrow added to character bag"),
                 F.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(0, ArrowId), 1);
-            Test.TestEqual(TEXT("Old fake item never added"),
+            Test.TestEqual(TEXT("Unknown item never added"),
                 F.Party->PartyInventoryComponent->CountItemDefinitionInCharacterInventory(
-                    0, Old->ItemDefinitionId), 0);
+                    0, TEXT("Unknown_5G54")), 0);
             return !Test.HasAnyErrors();
         }
         return false;

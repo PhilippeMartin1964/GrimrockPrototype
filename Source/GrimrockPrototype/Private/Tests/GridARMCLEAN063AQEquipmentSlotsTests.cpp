@@ -6,7 +6,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -86,21 +85,8 @@ namespace ARMCLEAN063AQ
 		return Item;
 	}
 
-	UGridItemDefinitionAsset* MakeContradictoryDefinition(
-		UGridPartyInventoryComponent* Inventory, FName Id, EGridItemHandUsage Usage,
-		EGridEquipmentSlot WrongSlot)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromName(Id);
-		Definition->ItemType = EGridItemType::Weapon;
-		Definition->HandUsage = Usage;
-		Definition->CompatibleEquipmentSlots.Add(WrongSlot);
-		return Definition;
-	}
-
 	TArray<EGridEquipmentSlot> MenuSlots(AGrimrockPartyPawn* Pawn,
-		const FGridItemInstance& Item, UGridItemDefinitionAsset* Definition,
+		const FGridItemInstance& Item,
 		int32& OutTwoHandLabels)
 	{
 		FGridItemActionContext Context;
@@ -108,7 +94,6 @@ namespace ARMCLEAN063AQ
 		Context.CharacterIndex = 0;
 		Context.InventorySlotIndex = 0;
 		Context.Item = Item;
-		Context.ItemDefinition = Definition;
 		FGridFacingTargetContext Facing;
 		TArray<FGridItemContextAction> Actions;
 		UGridItemContextActionLibrary::BuildItemContextActions(Context, Facing, Actions);
@@ -148,28 +133,14 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 		Fixture.Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	if (!TestTrue(TEXT("Character GUID is valid"), CharacterId.IsValid())) return false;
 
-	// Genuine canonical weapons with intentionally FALSE obsolete hand flags.
-	UGridItemDefinitionAsset* Axe = ARMCLEAN063AQ::MakeContradictoryDefinition(
-		Fixture.Inventory, TEXT("Weapon_GreatAxe_01"),
-		EGridItemHandUsage::OneHanded, EGridEquipmentSlot::OffHand);
-	UGridItemDefinitionAsset* Shield = ARMCLEAN063AQ::MakeContradictoryDefinition(
-		Fixture.Inventory, TEXT("Weapon_RoundShield_01"),
-		EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::MainHand);
-	UGridItemDefinitionAsset* Sword = ARMCLEAN063AQ::MakeContradictoryDefinition(
-		Fixture.Inventory, TEXT("Weapon_StraightSword_01"),
-		EGridItemHandUsage::TwoHanded, EGridEquipmentSlot::Head);
-	UGridItemDefinitionAsset* Ammo = ARMCLEAN063AQ::MakeContradictoryDefinition(
-		Fixture.Inventory, TEXT("Item_Arrows_01"),
-		EGridItemHandUsage::OneHanded, EGridEquipmentSlot::MainHand);
-	Ammo->bUseWeaponCatalogue = true;
 	const FGridItemInstance AxeN12 =
-		ARMCLEAN063AQ::MakeItem(Axe->ItemDefinitionId, 12, CharacterId);
+		ARMCLEAN063AQ::MakeItem(TEXT("Weapon_GreatAxe_01"), 12, CharacterId);
 	const FGridItemInstance ShieldN20 =
-		ARMCLEAN063AQ::MakeItem(Shield->ItemDefinitionId, 20, CharacterId);
+		ARMCLEAN063AQ::MakeItem(TEXT("Weapon_RoundShield_01"), 20, CharacterId);
 	const FGridItemInstance SwordN4 =
-		ARMCLEAN063AQ::MakeItem(Sword->ItemDefinitionId, 4, CharacterId);
+		ARMCLEAN063AQ::MakeItem(TEXT("Weapon_StraightSword_01"), 4, CharacterId);
 	const FGridItemInstance AmmoN0 =
-		ARMCLEAN063AQ::MakeItem(Ammo->ItemDefinitionId, 0, CharacterId);
+		ARMCLEAN063AQ::MakeItem(TEXT("Item_Arrows_01"), 0, CharacterId);
 
 	const FGridEquipmentSlotsView AxeSlots =
 		FGridEquipmentSlots::Resolve(Fixture.Registry, AxeN12);
@@ -213,11 +184,8 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 
 	int32 TwoHandLabels = 0;
 	// Unknown IDs must never inherit old equipment grants in a canonical world.
-	UGridItemDefinitionAsset* Legacy = ARMCLEAN063AQ::MakeContradictoryDefinition(
-		Fixture.Inventory, TEXT("ARM063AQ_Legacy"),
-		EGridItemHandUsage::OneHanded, EGridEquipmentSlot::Head);
 	FGridItemInstance LegacyItem =
-		ARMCLEAN063AQ::MakeItem(Legacy->ItemDefinitionId, 0, CharacterId);
+		ARMCLEAN063AQ::MakeItem(TEXT("ARM063AQ_Legacy"), 0, CharacterId);
 	const auto OldSlots = FGridEquipmentSlots::Resolve(Fixture.Registry, LegacyItem);
 	TestFalse(TEXT("Unknown ID remains outside canonical registry"), OldSlots.bRegisteredIdentity);
 	TestFalse(TEXT("Configured registry forbids unknown legacy equipment"), OldSlots.bResolved);
@@ -230,8 +198,7 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	TestFalse(TEXT("Executor refuses unknown obsolete Head slot in canonical world"),
 		Fixture.Inventory->CanEquipItemToSlot(0, LegacyItem, EGridEquipmentSlot::Head));
 	TestTrue(TEXT("Unknown ID does not gain equip context menu actions"),
-		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, LegacyItem, Legacy, TwoHandLabels).IsEmpty());
-	Legacy->HandUsage = EGridItemHandUsage::TwoHanded;
+		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, LegacyItem, TwoHandLabels).IsEmpty());
 	FGridCharacterEquipmentState& EquipmentState = Fixture.Inventory->PartyInventoryState.ActiveEquipment[0];
 	const FGridItemInstance PreviousMainHand = EquipmentState.MainHand;
 	EquipmentState.MainHand = LegacyItem;
@@ -242,25 +209,22 @@ bool FGridClean063AQEquipmentSlots::RunTest(const FString& Stage)
 	if (Stage == TEXT("Policy")) return !HasAnyErrors();
 
 	// Actual context menu uses the same canonical read model.
-	const auto AxeMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, AxeN12, Axe, TwoHandLabels);
+	const auto AxeMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, AxeN12, TwoHandLabels);
 	TestEqual(TEXT("Axe contextual action count"), AxeMenu.Num(), 1);
 	TestEqual(TEXT("Axe contextual two-handed label count"), TwoHandLabels, 1);
 	if (!AxeMenu.IsEmpty()) TestEqual(TEXT("Axe menu targets MainHand"), AxeMenu[0], EGridEquipmentSlot::MainHand);
-	const auto ShieldMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, ShieldN20, Shield, TwoHandLabels);
+	const auto ShieldMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, ShieldN20, TwoHandLabels);
 	TestEqual(TEXT("Shield contextual action count"), ShieldMenu.Num(), 1);
 	TestEqual(TEXT("Shield contextual two-handed label count"), TwoHandLabels, 0);
 	if (!ShieldMenu.IsEmpty()) TestEqual(TEXT("Shield menu targets OffHand"), ShieldMenu[0], EGridEquipmentSlot::OffHand);
-	const auto SwordMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, SwordN4, Sword, TwoHandLabels);
+	const auto SwordMenu = ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, SwordN4, TwoHandLabels);
 	TestEqual(TEXT("Sword menu matches canonical slot choices"), SwordMenu.Num(), SwordSlots.AllowedSlots.Num());
 	for (const EGridEquipmentSlot Slot : SwordMenu)
 		TestTrue(TEXT("Sword menu has no invented slot"), SwordSlots.AllowedSlots.Contains(Slot));
 	TestTrue(TEXT("Registered ammo has no equip menu action"),
-		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, AmmoN0, Ammo, TwoHandLabels).IsEmpty());
+		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, AmmoN0, TwoHandLabels).IsEmpty());
 	TestTrue(TEXT("Registered invalid ARM has no equip menu action"),
-		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, InvalidAxe, Axe, TwoHandLabels).IsEmpty());
-	TestEqual(TEXT("Canonical sword works with NO legacy definition"),
-		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, SwordN4, nullptr, TwoHandLabels).Num(),
-		SwordSlots.AllowedSlots.Num());
+		ARMCLEAN063AQ::MenuSlots(Fixture.Pawn, InvalidAxe, TwoHandLabels).IsEmpty());
 
 	if (Stage == TEXT("ContextMenu")) return !HasAnyErrors();
 

@@ -447,9 +447,7 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
             !TestEqual(TEXT("One actor per weapon"), Count, 1) ||
             !TestTrue(TEXT("Weapon starts with complete canonical presentation"),
                 Actor->ResolvedWorldPresentation.IsValid() && Actor->MeshComponent &&
-                Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()) ||
-            !TestNull(TEXT("No legacy weapon definition on ground actor"),
-                Actor->GetItemDefinitionAsset()))
+                Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))
             return false;
         if (i == 1 && Actor->MeshComponent)
         {
@@ -556,7 +554,6 @@ bool FGridPit03CanonicalARMPersistedFall::RunTest(const FString&)
                 Actor->GetActorLocation().Equals(ExpectedCenter, 80.f)) ||
             !TestEqual(TEXT("ItemId below"), Actor->GetItemDefinitionId(), W.Id) ||
             !TestEqual(TEXT("Exact N-level below"), Actor->WorldItemLevel, W.Level) ||
-            !TestNull(TEXT("No obsolete item pointer below"), Actor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Canonical physical weapon mesh below"),
                 Actor->ResolvedWorldPresentation.IsValid() && Actor->MeshComponent &&
                 Actor->MeshComponent->GetStaticMesh() == W.Resolved.WorldMesh.LoadSynchronous()))

@@ -135,8 +135,6 @@ bool FARMEMENT01172BStarterSave::RunTest(const FString&)
             if (Entry.ItemId == ARMEMENT01172B::CatalystId)
             {
                 ++CatalystEntries;
-                TestNull(TEXT("No old catalyst pointer in canonical recipe"),
-                    Entry.ItemDefinition.Get());
                 TestEqual(TEXT("One catalyst in the kit"), Entry.Quantity, 1);
                 TestEqual(TEXT("Catalyst goes into the bag"),
                     Entry.TargetSlot, EGridEquipmentSlot::None);

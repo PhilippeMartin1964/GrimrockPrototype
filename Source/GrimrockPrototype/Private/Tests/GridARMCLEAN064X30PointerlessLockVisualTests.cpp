@@ -100,8 +100,7 @@ bool FGridClean064X30PointerlessLockVisual::RunTest(const FString&)
 		bOk &= TestNotNull(TEXT("Inserted key actor exists"), Visual);
 		if (Visual)
 		{
-			bOk &= TestNull(TEXT("Inserted key has no historical asset"),
-				Visual->GetItemDefinitionAsset());
+
 			bOk &= TestTrue(TEXT("Inserted key has full canonical presentation"),
 				Visual->ResolvedWorldPresentation.IsValid());
 			bOk &= TestEqual(TEXT("Inserted item keeps real ItemId"),

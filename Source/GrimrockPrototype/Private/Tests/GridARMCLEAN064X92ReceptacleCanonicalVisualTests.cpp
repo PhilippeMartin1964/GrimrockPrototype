@@ -151,8 +151,6 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         !TestEqual(TEXT("Logical identity retained"), Entry.ItemDefinitionId, NonArm.ItemId) ||
         !TestEqual(TEXT("Actual quantity retained"), Entry.Quantity, NonArm.Quantity) ||
         !TestEqual(TEXT("Physical N0 retained"), Entry.ItemLevel, NonArm.ItemLevel) ||
-        !TestNull(TEXT("Physical actor no longer reads legacy definition"),
-            Actor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Physical actor projects canonical family"),
             Actor->ResolvedWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Actor ItemId"), Actor->GetItemDefinitionId(), NonArm.ItemId) ||
@@ -176,7 +174,6 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
         return false;
     AGridItemActor* PA = PR->GetContainedItemActor(0);
     if (!TestNotNull(TEXT("Pointerless physical actor"), PA) ||
-        !TestNull(TEXT("No source on pointerless physical actor"), PA->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Exact item quantity, level, light and identity"),
             PR->ContainedItems[0].Quantity == Entry.Quantity &&
             PR->ContainedItems[0].ItemLevel == Entry.ItemLevel &&
@@ -210,9 +207,7 @@ bool FGridClean064X92RealInitialPresentation::RunTest(const FString&)
             !TestEqual(TEXT("ARM initial count unchanged"), AR->GetContainedItemCount(), 1) ||
             !TestNotNull(TEXT("ARM physical actor"), AR->GetContainedItemActor(0)))
             {return false;}
-        if (!TestNull(TEXT("Migrated ARM actor retains no historical source"),
-                AR->GetContainedItemActor(0)->GetItemDefinitionAsset()) ||
-            !TestTrue(TEXT("Migrated ARM has full canonical presentation"),
+        if (!TestTrue(TEXT("Migrated ARM has full canonical presentation"),
                 AR->GetContainedItemActor(0)->ResolvedWorldPresentation.IsValid()))
             return false;
         if (!TestEqual(TEXT("Native ARM physical level"), AR->ContainedItems[0].ItemLevel, Arm.ItemLevel))

@@ -230,13 +230,9 @@ namespace ARMCLEAN063BA
             });
         if (!Test.TestNotNull(TEXT("Physical source stack exists"), Source)) return false;
 
-        // A deliberately misleading old Potion must not produce an exploration Consume.
-        UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-        Legacy->ItemDefinitionId = ItemId();
-        Legacy->ItemType = EGridItemType::Potion;
+
         FGridItemActionContext Context;
         Context.PartyPawn = F.Pawn;
-        Context.ItemDefinition = Legacy;
         Context.Item = Source->Item;
         Context.CharacterIndex = 0;
         Context.InventorySlotIndex = 0;

@@ -8,7 +8,6 @@
 #include "Core/GridWorldObjectDefinitionAsset.h"
 #include "RPG/RPGSkillAsset.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -101,21 +100,14 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     Trap.CellY = 1;
     Level->WorldObjectInstances.Add(Trap);
 
-    UGridItemDefinitionAsset* Tool = NewObject<UGridItemDefinitionAsset>(Runtime);
-    Tool->ItemDefinitionId = TEXT("Item_DisarmTools_01");
-    Tool->DisplayName = FText::FromString(TEXT("Disarm Tools"));
-    Tool->ItemType = EGridItemType::Misc;
-    Tool->ItemTags = { TEXT("Tool.Disarm") };
-
     FGridItemInstance Instance;
     Instance.RuntimeObjectId = FGuid::NewGuid();
-    Instance.ItemDefinitionId = Tool->ItemDefinitionId;
+    Instance.ItemDefinitionId = TEXT("Item_DisarmTools_01");
     Instance.Quantity = 1;
 
     FGridItemActionContext ItemContext;
     ItemContext.PartyPawn = Party;
     ItemContext.Item = Instance;
-    ItemContext.ItemDefinition = nullptr; // Production item has no historical source.
     ItemContext.CharacterIndex = 0;
     ItemContext.InventorySlotIndex = 0;
 
@@ -160,11 +152,6 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
         return Actions.ContainsByPredicate([](const FGridItemContextAction& A)
             { return A.ActionType == EGridItemActionType::DisarmTrap; });
     };
-    Tool->ItemTags.Reset();
-    ItemContext.ItemDefinition = Tool;
-    UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
-    TestTrue(TEXT("Contradictory old tag cannot revoke pointerless disarm"), HasDisarm());
-    Tool->ItemTags.Add(TEXT("Tool.Disarm"));
     ItemContext.Item.ItemLevel = 1;
     UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
     TestFalse(TEXT("Invalid physical level cannot offer disarm"), HasDisarm());
@@ -174,11 +161,9 @@ bool FARMEMENT01162BDisarmContext::RunTest(const FString&)
     TestFalse(TEXT("Over-capacity tool cannot offer disarm"), HasDisarm());
     ItemContext.Item.Quantity = 1;
     ItemContext.Item.ItemDefinitionId = TEXT("Unknown_Disarm_Context");
-    Tool->ItemDefinitionId = ItemContext.Item.ItemDefinitionId;
     UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, Facing, Actions);
-    TestFalse(TEXT("Unknown item cannot borrow old disarm tag"), HasDisarm());
+    TestFalse(TEXT("Unknown item cannot offer disarm"), HasDisarm());
     ItemContext.Item.ItemDefinitionId = TEXT("Item_DisarmTools_01");
-    ItemContext.ItemDefinition = nullptr;
 
     Level->GetCellMutable(0, 0).NorthWall = EGridWallType::Solid;
     TestFalse(TEXT("Solid wall prevents adjacent trap selection"),

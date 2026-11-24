@@ -8,7 +8,6 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "RPGClassAsset.generated.h"
 
-class UGridItemDefinitionAsset;
 
 /** Automatic class progression granted when a character reaches one level. */
 USTRUCT(BlueprintType)
@@ -162,13 +161,9 @@ struct FRPGStartingEquipmentEntry
 {
 	GENERATED_BODY()
 
-	/** Explicit canonical identity for newly authored kits. Existing pre-cutover
-	 * kits retain ItemDefinition until their native content is migrated. */
+	/** Registered identity granted by this kit. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
 	FName ItemId = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Starting Equipment", meta = (ClampMin = "0", ClampMax = "20"))
 	int32 ItemLevel = 0;

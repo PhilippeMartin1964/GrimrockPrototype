@@ -135,8 +135,6 @@ bool FARMEMENT01163SaboteurKitOnly::RunTest(const FString&)
             if (Entry.ItemId == ToolId)
             {
                 ++ToolCount;
-                TestNull(TEXT("Saboteur recipe has no historical tool pointer"),
-                    Entry.ItemDefinition.Get());
                 TestEqual(TEXT("Tool is in bag, not an equipment hand"),
                     Entry.TargetSlot, EGridEquipmentSlot::None);
                 TestEqual(TEXT("One actual disarm tool is granted"), Entry.Quantity, 1);

@@ -182,8 +182,6 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     FGridResolvedItem NonArmResolved;
     if (!TestTrue(TEXT("NonARM physical N0 resolves"),
         F.Registry->ResolveItem(NonArm.ItemId, NonArm.ItemLevel, NonArmResolved)) ||
-        !TestNull(TEXT("NonARM actor no longer attaches legacy ItemDefinition"),
-            NonArmActor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("NonARM actor owns a transient canonical projection"),
             NonArmActor->ResolvedWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Physical N0 remains N0"),
@@ -222,8 +220,6 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
     }
     if (!TestNotNull(TEXT("Real authored ARM actor spawned from canonical ItemId"),
             ArmActor) ||
-        !TestNull(TEXT("Real ARM actor must never inherit the historic pointer"),
-            ArmActor->GetItemDefinitionAsset()) ||
         !TestTrue(TEXT("Real authored ARM has full canonical world presentation"),
             ArmActor->ResolvedWorldPresentation.IsValid()) ||
         !TestEqual(TEXT("Persisted ARM physical level is never invented"),
@@ -268,8 +264,6 @@ bool FGridClean064X8LooseCutover::RunTest(const FString&)
         if (!TestNotNull(TEXT("Pointerless ARM actor is spawned"), Canonical) ||
             !TestTrue(TEXT("Pointerless ARM physical level is registered"),
                 F.Registry->ResolveItem(Pointerless.ItemId, Level, Projection)) ||
-            !TestNull(TEXT("Canonical ARM actor has no legacy definition"),
-                Canonical->GetItemDefinitionAsset()) ||
             !TestEqual(TEXT("Canonical ARM runtime GUID unchanged"),
                 Canonical->GetRuntimeObjectId(), Pointerless.InstanceId) ||
             !TestEqual(TEXT("Canonical ARM N level unchanged"),

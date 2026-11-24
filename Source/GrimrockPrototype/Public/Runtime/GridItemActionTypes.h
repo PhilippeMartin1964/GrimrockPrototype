@@ -7,7 +7,6 @@
 
 class AActor;
 class AGrimrockPartyPawn;
-class UGridItemDefinitionAsset;
 class UPrimitiveComponent;
 
 UENUM(BlueprintType)
@@ -85,9 +84,6 @@ struct FGridItemActionContext
 
 	UPROPERTY(BlueprintReadWrite, Category = "Item Actions")
 	FGridItemInstance Item;
-
-	UPROPERTY(BlueprintReadWrite, Category = "Item Actions")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Item Actions")
 	int32 CharacterIndex = INDEX_NONE;

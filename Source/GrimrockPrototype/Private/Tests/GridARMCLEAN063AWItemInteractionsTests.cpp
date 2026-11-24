@@ -5,7 +5,6 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemContextActionLibrary.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -79,12 +78,11 @@ namespace ARMCLEAN063AW
         }
 
         bool HasAction(const FGridItemInstance& Item,
-            UGridItemDefinitionAsset* Definition, EGridItemActionType Type, bool* OutEnabled = nullptr) const
+            EGridItemActionType Type, bool* OutEnabled = nullptr) const
         {
             FGridItemActionContext Source;
             Source.PartyPawn = Pawn;
             Source.Item = Item;
-            Source.ItemDefinition = Definition;
             Source.CharacterIndex = 0;
             Source.InventorySlotIndex = 0;
             FGridFacingTargetContext Facing;
@@ -108,38 +106,23 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     if (!TestTrue(TEXT("Production canonical ItemSystem and party"), F.Ready())) return false;
 
     const FName KnifeId(TEXT("Weapon_ThrowingKnife_01"));
-    UGridItemDefinitionAsset* Contradictory = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    Contradictory->ItemDefinitionId = KnifeId;
-    Contradictory->ItemType = EGridItemType::Potion;
-    Contradictory->ReadText = FText::FromString(TEXT("Obsolete readable text"));
-    Contradictory->Weight = 1500.0f;
-    Contradictory->ThrowSpeed = 0.0f;
-    Contradictory->bProvidesQuickItemCombatAction = true;
-
     for (int32 Level : {1, 20})
     {
         const FGridItemInstance Knife = F.Make(KnifeId, Level);
         const auto Canonical =
             FGridItemInteractionReadModel::Resolve(F.Registry, Knife);
-        const auto Wrong =
-            FGridItemInteractionReadModel::Resolve(F.Registry, Knife);
         TestTrue(TEXT("Actual N1/N20 armament has canonical identity"),
             Canonical.bRegisteredIdentity && Canonical.bResolved);
         TestTrue(TEXT("Specialized throwing ARM supports physical utility hotbar"),
             Canonical.bCanAddToHotbar && Canonical.bPhysicalThrowHotbar);
-        TestTrue(TEXT("Contradictory legacy asset cannot add Consume or Read"),
-            !Wrong.bCanRead);
-        TestTrue(TEXT("Contradictory legacy asset cannot revoke the physical throw"),
-            Wrong.bCanAddToHotbar && Wrong.bPhysicalThrowHotbar);
-        TestEqual(TEXT("Canonical item name ignores old asset"),
-            Wrong.DisplayName.ToString(), Canonical.DisplayName.ToString());
+        TestFalse(TEXT("Registered armament has no default read capability"), Canonical.bCanRead);
         TestFalse(TEXT("Context menu never adds Consume for registered ARM"),
-            F.HasAction(Knife, Contradictory, EGridItemActionType::Consume));
+            F.HasAction(Knife, EGridItemActionType::Consume));
         TestFalse(TEXT("Context menu never reads old registered ARM ReadText"),
-            F.HasAction(Knife, Contradictory, EGridItemActionType::Read));
+            F.HasAction(Knife, EGridItemActionType::Read));
         bool Enabled = false;
         TestTrue(TEXT("Context menu offers physical throw shortcut without legacy"),
-            F.HasAction(Knife, nullptr, EGridItemActionType::AddToHotbar, &Enabled) && Enabled);
+            F.HasAction(Knife, EGridItemActionType::AddToHotbar, &Enabled) && Enabled);
     }
 
     for (int32 InvalidLevel : {0, 21})
@@ -162,35 +145,28 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
         F.Registry, WithText);
     TestTrue(TEXT("Canonical item retains truly authored instance text"), GenuineRead.bCanRead);
     TestTrue(TEXT("Context offers Read only for genuine canonical instance content"),
-        F.HasAction(WithText, Contradictory, EGridItemActionType::Read));
+        F.HasAction(WithText, EGridItemActionType::Read));
 
-    UGridItemDefinitionAsset* Book = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    Book->ItemDefinitionId = TEXT("ARM063AW_UnregisteredBook");
-    Book->ItemType = EGridItemType::Book;
-    Book->ReadText = FText::FromString(TEXT("Legacy readable body"));
-    Book->DisplayName = FText::FromString(TEXT("Legacy book"));
+    const FName UnknownBook(TEXT("ARM063AW_UnregisteredBook"));
     const auto Legacy = FGridItemInteractionReadModel::Resolve(
-        F.Registry, F.Make(Book->ItemDefinitionId, 0));
+        F.Registry, F.Make(UnknownBook, 0));
     TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bRegisteredIdentity);
     TestFalse(TEXT("Configured registry refuses unknown readable source"),
         Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeItem || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
     TestTrue(TEXT("Unknown reader exposes no historical presentation"),
         Legacy.DisplayName.IsEmpty() && Legacy.DefaultReadText.IsEmpty());
-    FGridItemInstance UnknownWithText = F.Make(Book->ItemDefinitionId, 0);
+    FGridItemInstance UnknownWithText = F.Make(UnknownBook, 0);
     UnknownWithText.ReadTextOverride = FText::FromString(TEXT("Unknown source text"));
     TestFalse(TEXT("Instance text cannot authorize an unknown identity"),
         FGridItemInteractionReadModel::Resolve(F.Registry, UnknownWithText).bCanRead);
     TestFalse(TEXT("Real menu refuses unknown Read"),
-        F.HasAction(UnknownWithText, Book, EGridItemActionType::Read));
-    Book->ItemType = EGridItemType::Potion;
-    Book->bProvidesQuickItemCombatAction = true;
+        F.HasAction(UnknownWithText, EGridItemActionType::Read));
     TestFalse(TEXT("Historical potion cannot grant unknown Consume"),
         FGridItemInteractionReadModel::Resolve(F.Registry, UnknownWithText).bCanConsumeItem);
     TestFalse(TEXT("Real menu refuses unknown Consume"),
-        F.HasAction(UnknownWithText, Book, EGridItemActionType::Consume));
-    Book->ItemType = EGridItemType::Book;
+        F.HasAction(UnknownWithText, EGridItemActionType::Consume));
     const auto FixtureRead = FGridItemInteractionReadModel::Resolve(
-        nullptr, F.Make(Book->ItemDefinitionId, 0));
+        nullptr, F.Make(UnknownBook, 0));
     TestTrue(TEXT("Registry-less item cannot authorize Read"),
         !FixtureRead.bResolved && !FixtureRead.bCanRead);
 
@@ -205,7 +181,7 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
         });
     if (!TestNotNull(TEXT("N20 physical inventory slot"), Slot)) return false;
     if (!TestTrue(TEXT("Context menu can bind the real inventory item"),
-        F.HasAction(Slot->Item, nullptr, EGridItemActionType::AddToHotbar))) return false;
+        F.HasAction(Slot->Item, EGridItemActionType::AddToHotbar))) return false;
     FGridItemInstance Stale = Slot->Item;
     Stale.ItemLevel = 1;
     TestFalse(TEXT("Same GUID and ID cannot bind a stale N1 drag of an N20 knife"),
@@ -236,7 +212,7 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     }
     bool CanBindAgain = true;
     TestTrue(TEXT("Menu detects already-bound canonical physical throw"),
-        F.HasAction(Slot->Item, nullptr, EGridItemActionType::AddToHotbar, &CanBindAgain));
+        F.HasAction(Slot->Item, EGridItemActionType::AddToHotbar, &CanBindAgain));
     TestFalse(TEXT("Duplicate shortcut is disabled"), CanBindAgain);
 
     FText ConsumeError;

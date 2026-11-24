@@ -247,7 +247,6 @@ namespace ARMCLEAN063BB
                 Arrow, Spawn, Velocity, 0, 0, true);
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
-            Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());
             const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, Projectile->ThrownItemInstance);
             Test.TestTrue(TEXT("In-flight ammo name and mass resolve from ItemSystem"), FlightMetadata.bResolved &&
                 FlightMetadata.DisplayName.EqualTo(Ammo.DisplayName) &&

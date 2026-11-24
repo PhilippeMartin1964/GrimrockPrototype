@@ -269,7 +269,6 @@ namespace ARMCLEAN064X1610
         if (!Test.TestNotNull(TEXT("Restored torch exists"), Actor)) return false;
         Test.TestEqual(TEXT("Same runtime GUID"), Actor->GetRuntimeObjectId(), Guid);
         Test.TestEqual(TEXT("Same canonical ItemId"), Actor->GetItemDefinitionId(), TorchId);
-        Test.TestNull(TEXT("No historical item definition pointer"), Actor->GetItemDefinitionAsset());
         Test.TestEqual(TEXT("Light state survives"), Actor->AreItemLightsEnabled(), bLit);
         Test.TestTrue(TEXT("Canonical point-light profile"), Actor->LightEmitterComponent &&
             Actor->LightEmitterComponent->RuntimeConfig.bUsePointLight &&

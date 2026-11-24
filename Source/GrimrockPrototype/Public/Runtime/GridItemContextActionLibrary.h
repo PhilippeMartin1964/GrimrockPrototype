@@ -21,7 +21,7 @@ public:
 		const FGridItemActionContext& ItemContext, FGridFacingTargetContext& OutFacingTarget, TArray<FGridItemContextAction>& OutActions);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Context Actions")
-	static bool ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem, UGridItemDefinitionAsset* ItemDefinition,
+	static bool ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem,
 		FGridFacingTargetContext& OutFacingTarget, float TraceDistance = 300.f);
 
 };

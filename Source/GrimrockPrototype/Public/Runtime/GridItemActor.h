@@ -10,7 +10,6 @@ class UGridLightEmitterComponent;
 class UGridItemVisualEffectsComponent;
 class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
-class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
 struct FGridItemInstance;
 
@@ -32,7 +31,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> SparkleMeshComponent;
 
-	/** ITEM-LIGHT01 generic runtime light/flame executor configured exclusively from ItemDefinitionAsset. */
+	/** ITEM-LIGHT01 generic runtime light/flame executor configured from the resolved item. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UGridLightEmitterComponent> LightEmitterComponent;
 
@@ -45,9 +44,6 @@ public:
 
 	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|World Sparkle")
 	bool bWorldSparkleActive = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	FName ItemDefinitionId = NAME_None;
@@ -85,8 +81,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
 	int32 RuntimeCellY = INDEX_NONE;
-
-	void InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	void InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId);
@@ -138,8 +132,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Item|World Sparkle")
 	bool IsWorldSparkleActive() const { return bWorldSparkleActive; }
-
-	UGridItemDefinitionAsset* GetItemDefinitionAsset() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Item")
 	FName GetItemDefinitionId() const;

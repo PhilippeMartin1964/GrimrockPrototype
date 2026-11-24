@@ -59,8 +59,6 @@ bool FGridClean065H6EditorStarterParity::RunTest(const FString&)
             TestTrue(TEXT("All starter kits contain actual items"), !Kit.Items.IsEmpty());
             for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
             {
-                TestFalse(TEXT("No legacy item authority in an approved recipe"),
-                    Entry.ItemDefinition.Get() != nullptr);
                 TestFalse(TEXT("Stable canonical physical ItemId"),
                     Entry.ItemId.IsNone());
                 FGridResolvedItem Item;

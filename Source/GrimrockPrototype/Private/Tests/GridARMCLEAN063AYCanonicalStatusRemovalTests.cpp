@@ -235,12 +235,9 @@ bool FGridClean063AYStatusCombat::RunTest(const FString&)
         });
     if (!TestNotNull(TEXT("Physical inventory source exists"), Slot)) return false;
 
-    UGridItemDefinitionAsset* Contradictory = NewObject<UGridItemDefinitionAsset>(F.Inventory);
-    Contradictory->ItemDefinitionId = ARMCLEAN063AY::ItemId();
-    Contradictory->ItemType = EGridItemType::Potion;
+
     FGridItemActionContext Context;
     Context.PartyPawn = F.Pawn;
-    Context.ItemDefinition = Contradictory;
     Context.Item = Slot->Item;
     Context.InventorySlotIndex = 0;
     Context.CharacterIndex = 0;

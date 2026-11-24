@@ -187,8 +187,6 @@ bool FARMEMENT01171StarterAndSave::RunTest(const FString&)
             if (Entry.ItemId == OilId)
             {
                 ++OilEntries;
-                TestNull(TEXT("Approved Oil kit entry has no historical pointer"),
-                    Entry.ItemDefinition.Get());
                 TestEqual(TEXT("A single finished oil flask is granted"), Entry.Quantity, 1);
                 TestEqual(TEXT("Starter oil item stays in bag"), Entry.TargetSlot,
                     EGridEquipmentSlot::None);

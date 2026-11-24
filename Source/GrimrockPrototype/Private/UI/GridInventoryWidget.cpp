@@ -1491,7 +1491,6 @@ bool UGridInventoryWidget::BuildContextActionsForSlot(
 	}
 
 	ItemContext.Item = LastContextItem;
-	ItemContext.ItemDefinition = nullptr;
 	return UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, OutFacingTarget, OutActions);
 }
 

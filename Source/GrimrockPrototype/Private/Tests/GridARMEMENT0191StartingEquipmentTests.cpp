@@ -47,7 +47,6 @@ namespace ARMEMENT0191
 	{
 		FRPGStartingEquipmentEntry& Entry = Kit.Items.AddDefaulted_GetRef();
 		Entry.ItemId = ItemId;
-		Entry.ItemDefinition = nullptr;
 		Entry.ItemLevel = Level;
 		Entry.TargetSlot = Slot;
 		Entry.Quantity = 1;

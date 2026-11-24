@@ -9,7 +9,7 @@
 #include "Engine/World.h"
 #include "Materials/Material.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalLootTestScope.h"
 
 namespace
 {
@@ -75,24 +75,52 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(ItemActor);
-	Definition->ItemDefinitionId = TEXT("Item_Gem_Sparkle_Test");
-	Definition->ItemType = EGridItemType::Gem;
-	Definition->bEnableWorldSparkle = true;
-	Definition->WorldSparkleColor = FLinearColor(0.78f, 0.38f, 0.12f, 1.0f);
-	Definition->WorldSparkleIntensity = 2.0f;
-	Definition->WorldSparkleSpeed = 1.2f;
-	Definition->WorldSparkleVariation = 0.35f;
+	UStaticMesh* WorldMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	UMaterialInterface* SparkleMaterial = LoadObject<UMaterialInterface>(nullptr,
+		TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+	if (!TestNotNull(TEXT("Fixture mesh"), WorldMesh) || !TestNotNull(TEXT("Fixture material"), SparkleMaterial))
+		return false;
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Isolated item system registered"), Scope.AttachWithWeights(TestWorld.World, {},
+		[&](UGridItemSystemAsset& Root)
+		{
+			auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			Definition->ItemId = TEXT("Item_Gem_Sparkle_Test");
+			Definition->bEnableWorldSparkle = true;
+			Definition->WorldSparkleColor = FLinearColor(0.78f, 0.38f, 0.12f, 1.0f);
+			Definition->WorldSparkleIntensity = 2.0f;
+			Definition->WorldSparkleSpeed = 1.2f;
+			Definition->WorldSparkleVariation = 0.35f;
+			Definition->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
+			Definition->WorldSparkleMaterial = TSoftObjectPtr<UMaterialInterface>(SparkleMaterial);
+			Definition->DisplayName = FText::FromName(Definition->ItemId);
+			Root.ItemDefinitions.Add(Definition);
+			auto* DisabledDefinition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			DisabledDefinition->ItemId = TEXT("Item_Quest_NoSparkle_Test");
+			DisabledDefinition->bEnableWorldSparkle = false;
+			DisabledDefinition->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
+			DisabledDefinition->WorldSparkleMaterial = TSoftObjectPtr<UMaterialInterface>(SparkleMaterial);
+			DisabledDefinition->DisplayName = FText::FromName(DisabledDefinition->ItemId);
+			Root.ItemDefinitions.Add(DisabledDefinition);
 
-	UStaticMesh* WorldMesh = NewObject<UStaticMesh>(Definition, TEXT("SM_Gem_Sparkle_Test"));
-	UMaterial* SparkleMaterial = NewObject<UMaterial>(Definition, TEXT("M_ItemWorldSparkle_Test"));
-	Definition->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
-	Definition->WorldSparkleMaterial = TSoftObjectPtr<UMaterialInterface>(SparkleMaterial);
-
-	TestTrue(TEXT("Enabled sparkle definition with material is valid"), Definition->IsValidDefinition());
+			auto* MissingMaterial = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			MissingMaterial->ItemId = TEXT("Item_Key_Iron_InvalidSparkle");
+			MissingMaterial->DisplayName = FText::FromName(MissingMaterial->ItemId);
+			MissingMaterial->bEnableWorldSparkle = true;
+			MissingMaterial->WorldMesh = WorldMesh;
+			Root.ItemDefinitions.Add(MissingMaterial);
+		})))
+	{
+		return false;
+	}
 
 	const FGuid RuntimeId = FGuid::NewGuid();
-	ItemActor->InitializeFromItemDefinition(Definition, RuntimeId);
+	FGridItemInstance Instance;
+	Instance.ItemDefinitionId = TEXT("Item_Gem_Sparkle_Test");
+	Instance.RuntimeObjectId = RuntimeId;
+	Instance.Quantity = 1;
+	Instance.OwnerType = EGridItemOwnerType::World;
+	if (!TestTrue(TEXT("Sparkle item initializes"), ItemActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 
 	TestNotNull(TEXT("Sparkle component exists"), ItemActor->SparkleMeshComponent.Get());
 	TestTrue(TEXT("Sparkle component mirrors the item world mesh"),
@@ -104,7 +132,8 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Sparkle phase is normalized"), InitialPhase >= 0.0f && InitialPhase < 1.0f);
 
 	AGridItemActor* SameRuntimeIdActor = TestWorld.World->SpawnActor<AGridItemActor>();
-	SameRuntimeIdActor->InitializeFromItemDefinition(Definition, RuntimeId);
+	if (!TestNotNull(TEXT("Second actor"), SameRuntimeIdActor) ||
+		!TestTrue(TEXT("Same identity initializes"), SameRuntimeIdActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 	TestEqual(TEXT("Sparkle phase is deterministic for the same runtime id"), SameRuntimeIdActor->BuildWorldSparklePhase(), InitialPhase);
 
 	ItemActor->ConfigureAsWorldPickup();
@@ -130,40 +159,30 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Removing item from world disables sparkle"), ItemActor->IsWorldSparkleActive());
 	TestFalse(TEXT("Removing item from world hides sparkle mesh"), ItemActor->SparkleMeshComponent->IsVisible());
 
-	UGridItemDefinitionAsset* DisabledDefinition = NewObject<UGridItemDefinitionAsset>(ItemActor);
-	DisabledDefinition->ItemDefinitionId = TEXT("Item_Quest_NoSparkle_Test");
-	DisabledDefinition->ItemType = EGridItemType::Quest;
-	DisabledDefinition->bEnableWorldSparkle = false;
-	DisabledDefinition->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
-	DisabledDefinition->WorldSparkleMaterial = TSoftObjectPtr<UMaterialInterface>(SparkleMaterial);
 	AGridItemActor* DisabledActor = TestWorld.World->SpawnActor<AGridItemActor>();
-	DisabledActor->InitializeFromItemDefinition(DisabledDefinition, FGuid::NewGuid());
+	Instance.ItemDefinitionId = TEXT("Item_Quest_NoSparkle_Test");
+	Instance.RuntimeObjectId = FGuid::NewGuid();
+	if (!TestNotNull(TEXT("Non-sparkling actor"), DisabledActor) ||
+		!TestTrue(TEXT("Non-sparkling item initializes"), DisabledActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 	DisabledActor->ConfigureAsWorldPickup();
 	TestFalse(TEXT("Disabled world sparkle remains inactive on a world pickup"), DisabledActor->IsWorldSparkleActive());
 	TestFalse(TEXT("Disabled world sparkle keeps overlay hidden"), DisabledActor->SparkleMeshComponent->IsVisible());
 
-	UGridItemDefinitionAsset* MissingMaterialDefinition = NewObject<UGridItemDefinitionAsset>(ItemActor);
-	MissingMaterialDefinition->ItemDefinitionId = TEXT("Item_Key_Iron_InvalidSparkle");
-	MissingMaterialDefinition->ItemType = EGridItemType::Key;
-	MissingMaterialDefinition->bEnableWorldSparkle = true;
-	MissingMaterialDefinition->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
-	TestFalse(TEXT("Enabled sparkle without material is invalid"), MissingMaterialDefinition->IsValidDefinition());
-
 	AGridItemActor* MissingMaterialActor = TestWorld.World->SpawnActor<AGridItemActor>();
-	MissingMaterialActor->InitializeFromItemDefinition(MissingMaterialDefinition, FGuid::NewGuid());
+	Instance.ItemDefinitionId = TEXT("Item_Key_Iron_InvalidSparkle");
+	Instance.RuntimeObjectId = FGuid::NewGuid();
+	if (!TestNotNull(TEXT("Actor without a sparkle material"), MissingMaterialActor) ||
+		!TestTrue(TEXT("Missing sparkle material does not prevent materialization"),
+			MissingMaterialActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 	MissingMaterialActor->ConfigureAsWorldPickup();
 	TestFalse(TEXT("Missing sparkle material never activates presentation"), MissingMaterialActor->IsWorldSparkleActive());
 	TestFalse(TEXT("Missing sparkle material keeps overlay hidden"), MissingMaterialActor->SparkleMeshComponent->IsVisible());
 
-	// A configured production registry must not reuse a historical opt-in,
-	// even when an old actor already holds a mesh and a valid material.
-	UGameInstance* GI = NewObject<UGameInstance>(GetTransientPackage());
-	GI->Init();
-	TestWorld.World->SetGameInstance(GI);
-	const UGridItemSubsystem* Registry = GI->GetSubsystem<UGridItemSubsystem>();
+	const UGridItemSubsystem* Registry = Scope.Registry;
 	if (TestNotNull(TEXT("Configured registry for sparkle cutover"), Registry))
 	{
 		TestTrue(TEXT("Real registry configured"), Registry->IsConfigured());
+		ItemActor->ItemDefinitionId = TEXT("Unregistered_Sparkle_Identity");
 		ItemActor->SetWorldSparkleEnabled(true);
 		TestFalse(TEXT("Unknown ID cannot enable historical sparkle"), ItemActor->IsWorldSparkleActive());
 		TestFalse(TEXT("Unknown overlay hidden"), ItemActor->SparkleMeshComponent->IsVisible());
@@ -184,9 +203,6 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 				const bool Expected = Canonical.bEnableWorldSparkle &&
 					Canonical.WorldSparkleMaterial.LoadSynchronous() != nullptr &&
 					CanonicalActor->MeshComponent->GetStaticMesh() != nullptr;
-				// Contradictory old material and flag cannot override the registry.
-				Definition->bEnableWorldSparkle = !Canonical.bEnableWorldSparkle;
-				CanonicalActor->ItemDefinitionAsset = Definition;
 				CanonicalActor->SetWorldSparkleEnabled(true);
 				TestEqual(TEXT("Canonical sparkle policy wins"), CanonicalActor->IsWorldSparkleActive(), Expected);
 				TestEqual(TEXT("Canonical overlay visibility"), CanonicalActor->SparkleMeshComponent->IsVisible(), Expected);
@@ -197,8 +213,6 @@ bool FGridItemWorldSparklePresentationTest::RunTest(const FString& Parameters)
 			}
 		}
 	}
-	TestWorld.World->SetGameInstance(nullptr);
-	GI->Shutdown();
 	return !HasAnyErrors();
 }
 

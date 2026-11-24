@@ -168,7 +168,6 @@ namespace ARMCLEAN063AV
         Valid, Start, Velocity, 0, 0);
     if (!Test.TestNotNull(TEXT("Real canonical specialized projectile spawns without old asset"),
         Projectile)) return false;
-    Test.TestNull(TEXT("Projectile has no obsolete item asset"), Projectile->GetItemDefinitionAsset());
     Test.TestTrue(TEXT("Input durable instance is unmodified"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Valid, &BeforeLaunch, 0));
     Test.TestEqual(TEXT("Projectile retains its ID"), Projectile->GetItemDefinitionId(), Valid.ItemDefinitionId);
@@ -212,7 +211,6 @@ namespace ARMCLEAN063AV
     }
     if (!Test.TestNotNull(TEXT("Landing created an addressable pickup with original GUID"),
         Pickup)) return false;
-    Test.TestNull(TEXT("Pickup has no legacy definition"), Pickup->GetItemDefinitionAsset());
     Test.TestTrue(TEXT("Pickup has the canonical world mesh"),
         Pickup->MeshComponent && Pickup->MeshComponent->GetStaticMesh() != nullptr);
     Test.TestTrue(TEXT("Canonical pickup weight is independent of old serialized mass"),
@@ -358,7 +356,6 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
             ++HandheldCount;
             auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Item, Start, Velocity, 0, 0);
             if (!TestNotNull(TEXT("Registered non-ARM launches without old asset"), Projectile)) return false;
-            TestNull(TEXT("Stale definition was discarded"), Projectile->GetItemDefinitionAsset());
             TestTrue(TEXT("Native world mesh in flight"), Projectile->MeshComponent &&
                 Projectile->MeshComponent->GetStaticMesh() == Native->WorldMesh.LoadSynchronous());
             Projectile->Destroy();
@@ -410,7 +407,6 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
                 const FVector Start = F.Runtime->GetCellCenterWorld(0, 0, 100.f);
                 auto* Projectile = F.Runtime->SpawnThrownItemProjectile(Instance, Start, FVector(1200,0,100), 0,0);
                 if (!TestNotNull(TEXT("Ordinary ARM spawns without old definition"), Projectile)) return false;
-                TestNull(TEXT("Old definition discarded"), Projectile->GetItemDefinitionAsset());
                 TestTrue(TEXT("Complete canonical world presentation"), Projectile->ResolvedWorldPresentation.IsValid());
                 TestEqual(TEXT("Physical N preserved"), Projectile->WorldItemLevel, N);
                 TestTrue(TEXT("Ordinary flight mesh is real world mesh"), Projectile->MeshComponent->GetStaticMesh() == Item.WorldMesh.LoadSynchronous());
@@ -519,7 +515,6 @@ bool FGridClean065G59InFlightTravel::RunTest(const FString&)
         TestEqual(TEXT("Restored actual ItemId"), Actor->ItemDefinitionId, Item.ItemDefinitionId);
         TestEqual(TEXT("Restored readable metadata"), Actor->ReadableContentId, Item.ReadableContentId);
         TestFalse(TEXT("Restored light state"), Actor->AreItemLightsEnabled());
-        TestNull(TEXT("Restored pickup is pointerless"), Actor->GetItemDefinitionAsset());
     }
     TestEqual(TEXT("Exactly one recoverable physical item"), Pickups, 1);
     return !HasAnyErrors();

@@ -9,7 +9,6 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
@@ -153,8 +152,6 @@ bool FGridClean064X21PointerlessInitialArm::RunTest(const FString&)
                 Item.ItemDefinitionId, FName(TEXT("Weapon_Dagger_01"))) ||
             !TestEqual(TEXT("Contained physical ARM level"),
                 Item.ItemLevel, Level) ||
-            !TestNull(TEXT("No legacy UObject attached to contained actor"),
-                ItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Canonical presentation exists"),
                 ItemActor->ResolvedWorldPresentation.IsValid()) ||
             !TestTrue(TEXT("Canonical mesh from visual catalogue"),
@@ -253,8 +250,7 @@ bool FGridClean064X22PointerlessArmRestore::RunTest(const FString&)
         return false;
     }
     const FGridContainedReceptacleItem& Item = Receptacle->ContainedItems[0];
-    return TestNull(TEXT("Restored actor remains canonical"), Prebuilt->GetItemDefinitionAsset()) &&
-        TestTrue(TEXT("Full canonical world presentation retained"),
+    return TestTrue(TEXT("Full canonical world presentation retained"),
             Prebuilt->ResolvedWorldPresentation.IsValid()) &&
         TestEqual(TEXT("Stable GUID preserved"), Item.RuntimeObjectId, ItemState.ObjectId) &&
         TestEqual(TEXT("ItemId preserved"), Item.ItemDefinitionId, ItemState.ItemDefinitionId) &&
@@ -278,17 +274,14 @@ bool FGridClean065D2CanonicalReceptacleInsertRestore::RunTest(const FString&)
     if (!TestEqual(TEXT("Initial N20 row"), Saved.ContainedItems.Num(), 1)) return false;
     FGridRuntimeItemState State = Saved.ContainedItems[0];
     R->ForceClearRuntimeContents(false);
-    auto* Old = NewObject<UGridItemDefinitionAsset>(F.Runtime);
-    Old->ItemDefinitionId = State.ItemDefinitionId;
     auto* Actor = F.World->SpawnActor<AGridItemActor>();
-    if (!TestNotNull(TEXT("An old-style actor"), Actor)) return false;
-    Actor->InitializeFromItemDefinition(Old, State.ObjectId);
-    TestNotNull(TEXT("Fixture initially carries a historical pointer"), Actor->GetItemDefinitionAsset());
+    if (!TestNotNull(TEXT("An identity-only actor"), Actor)) return false;
+    Actor->InitializeFromItemDefinitionId(State.ItemDefinitionId, State.ObjectId);
+    TestFalse(TEXT("Identity-only actor has no resolved presentation"), Actor->ResolvedWorldPresentation.IsValid());
     State.ReadTitleOverride = FText::FromString(TEXT("Preserved instance text"));
     State.bLightsEnabled = false;
-    if (!TestTrue(TEXT("Restore upgrades an old-style actor to canonical presentation"),
+    if (!TestTrue(TEXT("Restore materializes the exact saved presentation"),
         R->RestoreRuntimeContainedItem(State, Actor))) return false;
-    TestNull(TEXT("Actor no longer references old definition"), Actor->GetItemDefinitionAsset());
     TestTrue(TEXT("Complete canonical presentation"), Actor->ResolvedWorldPresentation.IsValid());
     TestEqual(TEXT("N20 persists"), Actor->WorldItemLevel, 20);
     TestEqual(TEXT("GUID persists"), Actor->GetRuntimeObjectId(), State.ObjectId);
@@ -298,7 +291,6 @@ bool FGridClean065D2CanonicalReceptacleInsertRestore::RunTest(const FString&)
     auto* Restored = R->GetContainedItemActor(0);
     if (!TestNotNull(TEXT("Physical N20 actor spawned"), Restored)) return false;
     TestTrue(TEXT("Pointerless restore has complete presentation"), Restored->ResolvedWorldPresentation.IsValid());
-    TestNull(TEXT("Pointerless restore never attaches legacy"), Restored->GetItemDefinitionAsset());
     R->ForceClearRuntimeContents(false);
     State.ItemLevel = 0;
     TestFalse(TEXT("Persisted N0 ARM rejected"), R->RestoreRuntimeContainedItem(State, nullptr));

@@ -91,7 +91,6 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
     if (!TestTrue(TEXT("Production registry and real receptacle"), F.Ready()))
         return false;
     const FName ArrowId(TEXT("Item_Arrows_01"));
-    UGridItemDefinitionAsset* Old = F.Contradictory();
     FGridItemInstance Accepted;
     TestFalse(TEXT("Empty physical ID cannot be inserted"), F.Insert(NAME_None, 0, Accepted));
     TestFalse(TEXT("Unknown physical ID cannot be inserted"), F.Insert(TEXT("CLEAN06_5G49_Unknown"), 0, Accepted));
@@ -108,7 +107,6 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
     if (!TestNotNull(TEXT("Actual contained item actor"), Physical)) return false;
     TestEqual(TEXT("Physical actor has canonical identity"),
         Physical->GetItemDefinitionId(), ArrowId);
-    TestNull(TEXT("Standalone actor never stores obsolete definition"), Physical->GetItemDefinitionAsset());
     TestTrue(TEXT("Standalone materialization has full canonical presentation"),
         Physical->ResolvedWorldPresentation.IsValid());
     TestEqual(TEXT("Standalone item-level remains N0"), Physical->WorldItemLevel, 0);
@@ -126,13 +124,11 @@ bool FGridBGPhysicalInsertion::RunTest(const FString&)
     TestTrue(TEXT("Saved GUID is real contained GUID"),
         Snapshot.ContainedItems[0].ObjectId == Contained.RuntimeObjectId);
     const FName FakeTag(TEXT("CLEAN06_5G49_FakeTag"));
-    Old->ItemTags.Add(FakeTag);
-    Physical->ItemDefinitionAsset = Old; // Deliberately stale presentation pointer.
-    TestFalse(TEXT("Contradictory historical tag cannot authorize registered item"),
+    Physical->ItemTags.Add(FakeTag); // Deliberately stale presentation.
+    TestFalse(TEXT("Contradictory visual tag cannot authorize registered item"),
         F.Receptacle->ContainsItemTag(FakeTag));
     F.Receptacle->ContainedItems[0].ItemDefinitionId = TEXT("CLEAN06_5G49_Unknown");
-    Old->ItemDefinitionId = F.Receptacle->ContainedItems[0].ItemDefinitionId;
-    TestFalse(TEXT("Even matching old pointer cannot authorize an unknown tag condition"),
+    TestFalse(TEXT("Even a populated visual cannot authorize an unknown tag condition"),
         F.Receptacle->ContainsItemTag(FakeTag));
     return !HasAnyErrors();
 }

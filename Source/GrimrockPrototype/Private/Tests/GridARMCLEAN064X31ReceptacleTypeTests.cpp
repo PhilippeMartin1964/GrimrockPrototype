@@ -4,7 +4,6 @@
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/Items/GridItemSubsystem.h"
@@ -56,16 +55,15 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
             if (GEngine) GEngine->DestroyWorldContext(World);
             return false;
         }
-        auto Contain = [Receptacle, StaleVisual](FName Id, int32 Level, UGridItemDefinitionAsset* Old)
+        auto Contain = [Receptacle, StaleVisual](FName Id, int32 Level, bool bAttachVisual)
         {
             Receptacle->ContainedItems.Reset();
             FGridContainedReceptacleItem& Item = Receptacle->ContainedItems.AddDefaulted_GetRef();
             Item.ItemDefinitionId = Id;
             Item.ItemLevel = Level;
             Item.RuntimeObjectId = FGuid::NewGuid();
-            if (Old)
+            if (bAttachVisual)
             {
-                StaleVisual->ItemDefinitionAsset = Old;
                 StaleVisual->ItemDefinitionId = Id;
                 StaleVisual->WorldItemLevel = Level;
                 StaleVisual->SetRuntimeObjectId(Item.RuntimeObjectId);
@@ -73,54 +71,47 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
             }
         };
 
-        Contain(Dagger, 1, nullptr);
+        Contain(Dagger, 1, false);
         bOk &= TestTrue(TEXT("Pointerless N1 weapon satisfies type condition"),
             Receptacle->ContainsItemType(EGridItemType::Weapon));
         bOk &= TestFalse(TEXT("Pointerless weapon is not shield"),
             Receptacle->ContainsItemType(EGridItemType::Shield));
-        Contain(Dagger, 20, nullptr);
+        Contain(Dagger, 20, false);
         bOk &= TestTrue(TEXT("Pointerless N20 weapon remains recognized"),
             Receptacle->ContainsItemType(EGridItemType::Weapon));
-        Contain(Shield, 1, nullptr);
+        Contain(Shield, 1, false);
         bOk &= TestTrue(TEXT("Pointerless shield uses canonical weapon kind"),
             Receptacle->ContainsItemType(EGridItemType::Shield));
         bOk &= TestFalse(TEXT("Shield is not weapon for link conditions"),
             Receptacle->ContainsItemType(EGridItemType::Weapon));
 
-        UGridItemDefinitionAsset* Contradictory = NewObject<UGridItemDefinitionAsset>(Receptacle);
-        Contradictory->ItemDefinitionId = Dagger;
-        Contradictory->ItemType = EGridItemType::Potion;
-        Contain(Dagger, 1, Contradictory);
-        bOk &= TestTrue(TEXT("Canonical weapon overrides contradictory old type"),
+        Contain(Dagger, 1, true);
+        bOk &= TestTrue(TEXT("A visual actor does not change the canonical category"),
             Receptacle->ContainsItemType(EGridItemType::Weapon));
-        bOk &= TestFalse(TEXT("Old potion type cannot authorize ARM link"),
+        bOk &= TestFalse(TEXT("An attached visual cannot authorize a potion condition"),
             Receptacle->ContainsItemType(EGridItemType::Potion));
-        Contain(Dagger, 0, Contradictory);
+        Contain(Dagger, 0, true);
         bOk &= TestFalse(TEXT("Registered ARM N0 cannot borrow old category"),
             Receptacle->ContainsItemType(EGridItemType::Potion));
         bOk &= TestFalse(TEXT("Registered ARM N0 cannot pass canonical category"),
             Receptacle->ContainsItemType(EGridItemType::Weapon));
-        Contain(Dagger, 21, Contradictory);
+        Contain(Dagger, 21, true);
         bOk &= TestFalse(TEXT("Registered ARM N21 fails closed"),
             Receptacle->ContainsItemType(EGridItemType::Potion));
 
-        UGridItemDefinitionAsset* OldKey = NewObject<UGridItemDefinitionAsset>(Receptacle);
-        OldKey->ItemDefinitionId = Key;
-        OldKey->ItemType = EGridItemType::Key;
-        Contain(Key, 0, OldKey);
+        Contain(Key, 0, true);
         bOk &= TestTrue(TEXT("Registered non-ARM has canonical puzzle category"),
             Receptacle->ContainsItemType(EGridItemType::Key));
-        Contain(Key, 1, OldKey);
+        Contain(Key, 1, true);
         bOk &= TestFalse(TEXT("Invalid non-ARM N1 never falls back"),
             Receptacle->ContainsItemType(EGridItemType::Key));
-        Contain(Key, 0, nullptr);
+        Contain(Key, 0, false);
         bOk &= TestTrue(TEXT("Pointerless non-ARM uses authored puzzle category"),
             Receptacle->ContainsItemType(EGridItemType::Key));
-        OldKey->ItemType = EGridItemType::Gem;
-        Contain(Key, 0, OldKey);
-        bOk &= TestTrue(TEXT("Contradictory historical type cannot change key"),
+        Contain(Key, 0, true);
+        bOk &= TestTrue(TEXT("An attached visual preserves the key category"),
             Receptacle->ContainsItemType(EGridItemType::Key));
-        bOk &= TestFalse(TEXT("Contradictory historical Gem cannot satisfy puzzle"),
+        bOk &= TestFalse(TEXT("A key visual cannot satisfy a gem condition"),
             Receptacle->ContainsItemType(EGridItemType::Gem));
         Receptacle->ContainedItems[0].Quantity = 0;
         bOk &= TestFalse(TEXT("Empty physical quantity is refused"),
@@ -147,17 +138,14 @@ bool FGridClean064X31ReceptacleTypeConditions::RunTest(const FString&)
         };
         for (const auto& Row : Cases)
         {
-            Contain(Row.Key, 0, nullptr);
+            Contain(Row.Key, 0, false);
             bOk &= TestTrue(FString::Printf(TEXT("Native pointerless category: %s"), *Row.Key.ToString()),
                 Receptacle->ContainsItemType(Row.Value));
             bOk &= TestFalse(TEXT("None never matches"), Receptacle->ContainsItemType(EGridItemType::None));
             bOk &= TestFalse(TEXT("Malformed enum never matches"), Receptacle->ContainsItemType(static_cast<EGridItemType>(255)));
         }
 
-        UGridItemDefinitionAsset* Unknown = NewObject<UGridItemDefinitionAsset>(Receptacle);
-        Unknown->ItemDefinitionId = FName(TEXT("ARM_CLEAN064X31_UnregisteredGem"));
-        Unknown->ItemType = EGridItemType::Gem;
-        Contain(Unknown->ItemDefinitionId, 0, Unknown);
+        Contain(TEXT("ARM_CLEAN064X31_UnregisteredGem"), 0, true);
         bOk &= TestFalse(TEXT("Unregistered historic gem cannot authorize a puzzle"),
             Receptacle->ContainsItemType(EGridItemType::Gem));
         bOk &= TestFalse(TEXT("Unregistered gem does not become a key"),

@@ -179,8 +179,6 @@ bool FWeaponIndustrial05LegacyExceptions::RunTest(const FString&)
             Assassin->Items[1].ItemId, FName(TEXT("Weapon_ThrowingKnife_01")));
         TestEqual(TEXT("Throwing knife not equipped"),
             Assassin->Items[1].TargetSlot, EGridEquipmentSlot::None);
-        TestNull(TEXT("No old item pointer in canonical starter"),
-            Assassin->Items[1].ItemDefinition.Get());
     }
     TestEqual(TEXT("Production Rogue remained unchanged"),
         Rogue->GetOutermost()->IsDirty(), bOriginalDirty);

@@ -148,7 +148,6 @@ bool FARMLot02134RangedArrow::RunTest(const FString&)
             {
                 ++PickupCount;
                 TestEqual(TEXT("Recovered item identity"), Item->GetItemDefinitionId(), Unit.ItemDefinitionId);
-                TestNull(TEXT("Recovered item has no historical definition pointer"), Item->GetItemDefinitionAsset());
                 TestEqual(TEXT("Recovered in monster cell X"), Item->RuntimeCellX, 1);
                 TestEqual(TEXT("Recovered in monster cell Y"), Item->RuntimeCellY, 2);
             }

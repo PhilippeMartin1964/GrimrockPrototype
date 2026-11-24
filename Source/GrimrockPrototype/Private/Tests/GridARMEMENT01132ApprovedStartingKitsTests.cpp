@@ -230,8 +230,6 @@ bool FARMEMENT01132Creation::RunTest(const FString&)
                     Item->ItemDefinitionId, Entry.ItemId);
                 TestEqual(TEXT("Persisted explicit N1/N0 physical level"),
                     Item->ItemLevel, Entry.ItemLevel);
-                TestNull(TEXT("Canonical recipe never embeds an obsolete definition"),
-                    Entry.ItemDefinition.Get());
                 if (Item->ItemDefinitionId == FName(TEXT("Item_Arrows_01")) && bBag)
                 {
                     if (Kit.KitId == FName(TEXT("Kit_Ranger_Marksman"))) bMarksmanArrows = Item->Quantity == 12;
@@ -386,8 +384,6 @@ bool FARMEMENT01132Legacy::RunTest(const FString&)
             ++NativeKits;
             for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
             {
-                TestNull(TEXT("A canonical kit never retains an old definition pointer"),
-                    Entry.ItemDefinition.Get());
                 FGridResolvedItem Resolved;
                 TestTrue(TEXT("Every approved physical item resolves at the exact level"),
                     Canonical.Resolve(Entry.ItemId, Entry.ItemLevel, Resolved));

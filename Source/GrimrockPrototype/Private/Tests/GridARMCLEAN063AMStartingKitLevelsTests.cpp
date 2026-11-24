@@ -4,7 +4,6 @@
 #include "Engine/GameInstance.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../UI/GridInventoryItemMetadataReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -31,33 +30,18 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     FRPGStartingEquipmentKit& Kit = Class->StartingEquipmentKits.AddDefaulted_GetRef();
     Kit.KitId = TEXT("CanonicalStarter_063AM");
 
-    TStrongObjectPtr<UGridItemDefinitionAsset> Sword(NewObject<UGridItemDefinitionAsset>());
-    Sword->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-    Sword->bUseWeaponCatalogue = false; // Intentionally contradicts the real ARM family.
-    Sword->DefaultWeaponItemLevel = 6;
-    Sword->DisplayName = FText::FromString(TEXT("WRONG OLD SWORD NAME"));
-    Sword->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Inherited = Kit.Items.AddDefaulted_GetRef();
-    Inherited.ItemDefinition = Sword.Get();
-    Inherited.ItemId = Sword->ItemDefinitionId;
+    Inherited.ItemId = TEXT("Weapon_StraightSword_01");
     Inherited.ItemLevel = 6;
     Inherited.Quantity = 1;
 
     FRPGStartingEquipmentEntry& Explicit = Kit.Items.AddDefaulted_GetRef();
-    Explicit.ItemDefinition = Sword.Get();
-    Explicit.ItemId = Sword->ItemDefinitionId;
+    Explicit.ItemId = TEXT("Weapon_StraightSword_01");
     Explicit.ItemLevel = 20;
     Explicit.Quantity = 1;
 
-    TStrongObjectPtr<UGridItemDefinitionAsset> Arrows(NewObject<UGridItemDefinitionAsset>());
-    Arrows->ItemDefinitionId = TEXT("Item_Arrows_01");
-    Arrows->bUseWeaponCatalogue = true; // Intentionally contradicts non-ARM family.
-    Arrows->DefaultWeaponItemLevel = 6;
-    Arrows->DisplayName = FText::FromString(TEXT("WRONG OLD AMMO NAME"));
-    Arrows->Weight = 9999.0f;
     FRPGStartingEquipmentEntry& Ammunition = Kit.Items.AddDefaulted_GetRef();
-    Ammunition.ItemDefinition = Arrows.Get();
-    Ammunition.ItemId = Arrows->ItemDefinitionId;
+    Ammunition.ItemId = TEXT("Item_Arrows_01");
     Ammunition.ItemLevel = 0;
     Ammunition.Quantity = 1;
 
@@ -104,13 +88,8 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
 
     // An invalid registered level must reject the ENTIRE kit, including the
     // preceding legitimate sword grants, without mutating the caller's state.
-    TStrongObjectPtr<UGridItemDefinitionAsset> Invalid(NewObject<UGridItemDefinitionAsset>());
-    Invalid->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-    Invalid->DefaultWeaponItemLevel = 0;
-    Invalid->bUseWeaponCatalogue = false;
     FRPGStartingEquipmentEntry& Bad = Kit.Items.AddDefaulted_GetRef();
-    Bad.ItemDefinition = Invalid.Get();
-    Bad.ItemId = Invalid->ItemDefinitionId;
+    Bad.ItemId = TEXT("Weapon_RoundShield_01");
     Bad.ItemLevel = 0;
     Bad.Quantity = 1;
     FGridCharacterInventoryState Rejected;
@@ -129,9 +108,8 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
     TestTrue(TEXT("Rejected kit ID is not recorded"), Rejected.StartingEquipmentKitId.IsNone());
     TestEqual(TEXT("Character identity is unchanged"), Rejected.CharacterId, OriginalCharacterId);
 
-    // Non-ARM N1 must not be accepted merely because a legacy flag says ARM.
-    Bad.ItemDefinition = Arrows.Get();
-    Bad.ItemId = Arrows->ItemDefinitionId;
+    // Non-ARM instances are valid only at N0.
+    Bad.ItemId = TEXT("Item_Arrows_01");
     Bad.ItemLevel = 1;
     Failure.Reset();
     TestFalse(TEXT("Canonical ammunition N1 is invalid"),
@@ -139,15 +117,13 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
             Rejected, RejectedGear, Failure, Registry.Get()));
     TestTrue(TEXT("A failed ammo kit still grants nothing"), Rejected.InventorySlots[0].IsEmpty());
 
-    // A pointer-only registered entry must no longer promote N0 to the
-    // previous default level (6), even though its old asset still exists.
-    Bad.ItemDefinition = Sword.Get();
+    // A kit entry without an explicit ItemId is invalid.
     Bad.ItemId = NAME_None;
     Bad.ItemLevel = 0;
-    TestFalse(TEXT("Pointer-only registered ARM rejected"),
+    TestFalse(TEXT("Missing identity registered ARM rejected"),
         FRPGStartingEquipmentService::TryBuildKit(Class.Get(), Kit.KitId,
             Rejected, RejectedGear, Failure, Registry.Get()));
-    TestTrue(TEXT("Pointer-only refusal leaves kit uncommitted"),
+    TestTrue(TEXT("Missing identity refusal leaves kit uncommitted"),
         Rejected.StartingEquipmentKitId.IsNone() && Rejected.InventorySlots[0].IsEmpty());
     return !HasAnyErrors();
 }

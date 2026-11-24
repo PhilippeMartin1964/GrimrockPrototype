@@ -269,8 +269,6 @@ bool FGridClean064X23PointerlessHeldTorch::RunTest(const FString&)
         if (!TestEqual(TEXT("Pointerless held torch is visible from either hand"),
                 F.Pawn->GetHeldItemDefinitionId(), TorchId) ||
             !TestNotNull(TEXT("Visual item actor exists"), F.Pawn->HeldItemActor.Get()) ||
-            !TestNull(TEXT("Held visual never references a legacy torch definition"),
-                F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Held actor retains canonical presentation"),
                 F.Pawn->HeldItemActor->ResolvedWorldPresentation.IsValid()) ||
             !TestTrue(TEXT("Party illumination works with pointerless torch"),
@@ -482,8 +480,6 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
         if (!TestTrue(TEXT("Pointerless real ARM held visual spawns"),
                 F.Pawn->EquipHeldItemFromInstance(Item)) ||
             !TestNotNull(TEXT("Held actor exists"), F.Pawn->HeldItemActor.Get()) ||
-            !TestNull(TEXT("Held actor does not retain DA_Weapon"),
-                F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
             !TestTrue(TEXT("Held actor owns complete canonical projection"),
                 F.Pawn->HeldItemActor->ResolvedWorldPresentation.IsValid()) ||
             !TestEqual(TEXT("Physical equipped level retained in visual"),
@@ -530,8 +526,6 @@ bool FGridClean064X42HeldPhysicalArm::RunTest(const FString&)
             F.Pawn->EquipHeldItemFromInstance(Torch)) ||
         !TestNotNull(TEXT("Canonical torch held actor exists"),
             F.Pawn->HeldItemActor.Get()) ||
-        !TestNull(TEXT("Registered torch has no old UObject"),
-            F.Pawn->HeldItemActor->GetItemDefinitionAsset()) ||
         !TestEqual(TEXT("Torch N0 remains unchanged"),
             F.Pawn->HeldItemActor->WorldItemLevel, 0))
     {

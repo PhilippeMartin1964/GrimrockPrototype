@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 namespace
@@ -65,13 +66,26 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
-	Definition->ItemDefinitionId = TEXT("Gem_Blue_Physics_Test");
-	Definition->ItemType = EGridItemType::Gem;
-	Definition->Weight = 0.10f;
-	Definition->bUseItemWeightAsWorldPhysicsMass = true;
-	Definition->WorldPhysicsInitialTiltDegrees = 2.0f;
-	TestTrue(TEXT("Opt-in gem world physics definition is valid"), Definition->IsValidDefinition());
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Isolated item system registered"), Scope.AttachWithWeights(TestWorld.World, {},
+		[&](UGridItemSystemAsset& Root)
+		{
+			auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			Definition->ItemId = TEXT("Gem_Blue_Physics_Test");
+			Definition->WeightKg = 0.10f;
+			Definition->bUseItemWeightAsWorldPhysicsMass = true;
+			Definition->WorldPhysicsInitialTiltDegrees = 2.0f;
+			Definition->DisplayName = FText::FromName(Definition->ItemId);
+			Root.ItemDefinitions.Add(Definition);
+			auto* NoTilt = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			NoTilt->ItemId = TEXT("WorldPhysics_NoTilt");
+			NoTilt->DisplayName = FText::FromName(NoTilt->ItemId);
+			NoTilt->WeightKg = 1.f;
+			Root.ItemDefinitions.Add(NoTilt);
+		})))
+	{
+		return false;
+	}
 
 	const FGuid RuntimeId = FGuid::NewGuid();
 	AGridItemActor* FirstActor = TestWorld.World->SpawnActor<AGridItemActor>();
@@ -79,7 +93,12 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	FirstActor->InitializeFromItemDefinition(Definition, RuntimeId);
+	FGridItemInstance Instance;
+	Instance.ItemDefinitionId = TEXT("Gem_Blue_Physics_Test");
+	Instance.RuntimeObjectId = RuntimeId;
+	Instance.Quantity = 1;
+	Instance.OwnerType = EGridItemOwnerType::World;
+	if (!TestTrue(TEXT("Tilt fixture initializes"), FirstActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 	const FQuat BeforeNudge = FirstActor->GetActorQuat();
 	FirstActor->ApplyWorldPhysicsInitialNudge();
 	const FQuat AfterNudge = FirstActor->GetActorQuat();
@@ -91,19 +110,19 @@ bool FGridItemWorldPhysicsSettlingTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	SameIdActor->InitializeFromItemDefinition(Definition, RuntimeId);
+	if (!TestTrue(TEXT("Same identity initializes"), SameIdActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
 	SameIdActor->ApplyWorldPhysicsInitialNudge();
 	TestTrue(TEXT("Fresh-placement tilt direction is deterministic for the same runtime identity"),
 		SameIdActor->GetActorQuat().Equals(AfterNudge, 0.0001f));
 
-	UGridItemDefinitionAsset* LegacyDefinition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
-	LegacyDefinition->ItemDefinitionId = TEXT("Legacy_Item_No_Nudge");
-	LegacyDefinition->Weight = 1.0f;
-	AGridItemActor* LegacyActor = TestWorld.World->SpawnActor<AGridItemActor>();
-	LegacyActor->InitializeFromItemDefinition(LegacyDefinition, FGuid::NewGuid());
-	const FQuat LegacyRotation = LegacyActor->GetActorQuat();
-	LegacyActor->ApplyWorldPhysicsInitialNudge();
-	TestTrue(TEXT("Legacy definitions remain unchanged when initial tilt is zero"), LegacyActor->GetActorQuat().Equals(LegacyRotation));
+	AGridItemActor* ZeroTiltActor = TestWorld.World->SpawnActor<AGridItemActor>();
+	Instance.ItemDefinitionId = TEXT("WorldPhysics_NoTilt");
+	Instance.RuntimeObjectId = FGuid::NewGuid();
+	if (!TestNotNull(TEXT("Zero tilt actor"), ZeroTiltActor) ||
+		!TestTrue(TEXT("Zero tilt fixture initializes"), ZeroTiltActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
+	const FQuat ZeroTiltRotation = ZeroTiltActor->GetActorQuat();
+	ZeroTiltActor->ApplyWorldPhysicsInitialNudge();
+	TestTrue(TEXT("Rotation remains unchanged when initial tilt is zero"), ZeroTiltActor->GetActorQuat().Equals(ZeroTiltRotation));
 
 	UGridItemDefinitionAsset* InvalidMassDefinition = NewObject<UGridItemDefinitionAsset>(TestWorld.World);
 	InvalidMassDefinition->ItemDefinitionId = TEXT("Invalid_Zero_Mass");

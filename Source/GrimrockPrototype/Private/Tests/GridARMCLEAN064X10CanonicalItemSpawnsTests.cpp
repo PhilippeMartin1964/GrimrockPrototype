@@ -255,7 +255,6 @@ bool FGridClean064X10DWorld::RunTest(const FString&)
     }
     if (!TestNotNull(TEXT("Spawned physical actor"), Actor)) {return false;}
     return TestEqual(TEXT("World actor identity"), Actor->GetItemDefinitionId(), Spawn.ItemId) &&
-        TestNull(TEXT("World actor uses no old definition"), Actor->GetItemDefinitionAsset()) &&
         TestTrue(TEXT("Actor has canonical projection"), Actor->ResolvedWorldPresentation.IsValid());
 }
 

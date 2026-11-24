@@ -124,8 +124,6 @@ namespace ARMCLEAN063BC
                     ++Count;
                     Test.TestEqual(TEXT("Original ItemId preserved"), Item->GetItemDefinitionId(),
                         Unit.ItemDefinitionId);
-                    Test.TestNull(TEXT("Registered arrow has no stale definition in world"),
-                        Item->GetItemDefinitionAsset());
                     Test.TestTrue(TEXT("Actual canonical world mesh"),
                         Item->MeshComponent && Item->MeshComponent->GetStaticMesh() != nullptr);
                 }
@@ -173,8 +171,6 @@ namespace ARMCLEAN063BC
                     ++Pickups;
                     Test.TestEqual(TEXT("Reconstituted ItemId"), Item->GetItemDefinitionId(),
                         Unit.ItemDefinitionId);
-                    Test.TestNull(TEXT("No old definition on restored ammo pickup"),
-                        Item->GetItemDefinitionAsset());
                 }
             }
             Test.TestEqual(TEXT("One GUID materializes exactly one pickup"), Pickups, 1);
@@ -234,8 +230,6 @@ namespace ARMCLEAN063BC
                         ++Embedded;
                         Test.TestEqual(TEXT("Attachment retains actual ItemId"),
                             Arrow->ThrownItemInstance.ItemDefinitionId, Unit.ItemDefinitionId);
-                        Test.TestNull(TEXT("Reattached ammo has no old item asset"),
-                            Arrow->GetItemDefinitionAsset());
                         Test.TestEqual(TEXT("Restored ammunition retains N0"), Arrow->ThrownItemInstance.ItemLevel, 0);
                         Test.TestEqual(TEXT("Restored ammunition retains one physical unit"), Arrow->ThrownItemInstance.Quantity, 1);
                     }

@@ -363,7 +363,6 @@ bool FGridClean064X1611CanonicalPitTransfer::RunTest(const FString&)
         return false;
     TestEqual(TEXT("ItemId survives inter-level Save/Continue"),
         Restored->GetItemDefinitionId(), Torch.ItemDefinitionId);
-    TestNull(TEXT("Landing has no legacy asset"), Restored->GetItemDefinitionAsset());
     TestTrue(TEXT("Landing retains lit state"), Restored->AreItemLightsEnabled());
     TestTrue(TEXT("Landing restores canonical PointLight"),
         Restored->LightEmitterComponent &&

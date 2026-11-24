@@ -70,7 +70,6 @@ bool FGridEditorARMCLEAN064X65AlchemyStarterAuthoring::RunTest(const FString&)
                 return Row.ItemId == ItemIds[I];
             });
         if (!TestNotNull(TEXT("Explicit canonical consumable identity"), Entry)) continue;
-        TestNull(TEXT("No historical pointer in approved starter"), Entry->ItemDefinition.Get());
         TestEqual(TEXT("Physical N0 starter"), Entry->ItemLevel, 0);
         TestEqual(TEXT("One starter consumable"), Entry->Quantity, 1);
         TestEqual(TEXT("Bag target only"), Entry->TargetSlot, EGridEquipmentSlot::None);

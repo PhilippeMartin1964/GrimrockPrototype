@@ -106,9 +106,7 @@ bool FGridItemVFX013TorchRuntimeTest::RunTest(const FString& Parameters)
     WorldTorchItem.Quantity = 1;
     WorldTorchItem.OwnerType = EGridItemOwnerType::World;
     if (!TestTrue(TEXT("Canonical world torch initializes"),
-            WorldTorch->InitializeFromItemInstance(WorldTorchItem, Registry)) ||
-        !TestNull(TEXT("Canonical world torch holds no legacy definition"),
-            WorldTorch->GetItemDefinitionAsset()))
+            WorldTorch->InitializeFromItemInstance(WorldTorchItem, Registry)))
         return false;
     UGridItemVisualEffectsComponent* Visuals = WorldTorch->VisualEffectsComponent;
     if (!TestNotNull(TEXT("Independent Niagara executor exists"), Visuals))

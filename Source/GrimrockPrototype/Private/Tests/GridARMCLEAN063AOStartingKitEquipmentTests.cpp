@@ -4,7 +4,6 @@
 #include "Engine/GameInstance.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGStartingEquipmentService.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "../RPG/GridStartingKitEquipmentPolicyReadModel.h"
 #include "UObject/StrongObjectPtr.h"
@@ -19,13 +18,12 @@ namespace ARMCLEAN063AO
 		return Character;
 	}
 
-	static void Add(URPGClassAsset* Class, UGridItemDefinitionAsset* Definition,
+	static void Add(URPGClassAsset* Class, FName ItemId, int32 ItemLevel,
 		EGridEquipmentSlot Slot)
 	{
 		FRPGStartingEquipmentEntry& Entry = Class->StartingEquipmentKits[0].Items.AddDefaulted_GetRef();
-		Entry.ItemDefinition = Definition;
-		Entry.ItemId = Definition->ItemDefinitionId;
-		Entry.ItemLevel = Definition->DefaultWeaponItemLevel; // Explicit test fixture authoring.
+		Entry.ItemId = ItemId;
+		Entry.ItemLevel = ItemLevel;
 		Entry.Quantity = 1;
 		Entry.TargetSlot = Slot;
 	}
@@ -66,61 +64,44 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 		return false;
 	}
 
-	// Intentionally contradictory obsolete assets: a real bow claims it is
-	// not handheld, while a real shield claims it needs both hands.
-	TStrongObjectPtr<UGridItemDefinitionAsset> Bow(NewObject<UGridItemDefinitionAsset>());
-	Bow->ItemDefinitionId = TEXT("Weapon_ShortBow_01");
-	Bow->DefaultWeaponItemLevel = 6;
-	Bow->HandUsage = EGridItemHandUsage::NotHandHeld;
-	Bow->bUseWeaponCatalogue = false;
-	TStrongObjectPtr<UGridItemDefinitionAsset> Shield(NewObject<UGridItemDefinitionAsset>());
-	Shield->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
-	Shield->DefaultWeaponItemLevel = 7;
-	Shield->HandUsage = EGridItemHandUsage::TwoHanded;
-	Shield->bUseWeaponCatalogue = false;
-	TStrongObjectPtr<UGridItemDefinitionAsset> Sword(NewObject<UGridItemDefinitionAsset>());
-	Sword->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
-	Sword->DefaultWeaponItemLevel = 4;
-	Sword->HandUsage = EGridItemHandUsage::TwoHanded;
-	Sword->bUseWeaponCatalogue = false;
+	const FName Bow(TEXT("Weapon_ShortBow_01"));
+	const FName Shield(TEXT("Weapon_RoundShield_01"));
+	const FName Sword(TEXT("Weapon_StraightSword_01"));
 
 	FGridResolvedItem RealBow, RealShield, RealSword;
-	if (!TestTrue(TEXT("Real ARM045 N6"), Registry->ResolveItem(Bow->ItemDefinitionId, 6, RealBow)) ||
-		!TestTrue(TEXT("Real ARM075 N7"), Registry->ResolveItem(Shield->ItemDefinitionId, 7, RealShield)) ||
-		!TestTrue(TEXT("Real ARM014 N4"), Registry->ResolveItem(Sword->ItemDefinitionId, 4, RealSword)))
+	if (!TestTrue(TEXT("Real ARM045 N6"), Registry->ResolveItem(Bow, 6, RealBow)) ||
+		!TestTrue(TEXT("Real ARM075 N7"), Registry->ResolveItem(Shield, 7, RealShield)) ||
+		!TestTrue(TEXT("Real ARM014 N4"), Registry->ResolveItem(Sword, 4, RealSword)))
 	{
 		return false;
 	}
 	TestEqual(TEXT("Actual bow is two handed"), RealBow.Weapon.HandPolicy, EGridHandPolicy::TwoHanded);
 	TestEqual(TEXT("Actual shield is offhand only"), RealShield.Weapon.HandPolicy, EGridHandPolicy::OffHand);
 	TestTrue(TEXT("Actual sword equips MainHand"), RealSword.Weapon.CanEquipInHand(EGridEquipmentSlot::MainHand));
-	TestTrue(TEXT("Old bow would incorrectly reject both hands"), !Bow->CanEquipToSlot(EGridEquipmentSlot::OffHand));
-	TestTrue(TEXT("Old shield would incorrectly reserve two hands"),
-		Shield->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded);
 
 	const FGridStartingKitEquipmentPolicyReadView BowPolicy =
 		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-			Registry.Get(), Bow->ItemDefinitionId, 6, EGridEquipmentSlot::OffHand);
+			Registry.Get(), Bow, 6, EGridEquipmentSlot::OffHand);
 	TestTrue(TEXT("Canonical bow permitted from authored OffHand"), BowPolicy.bRegisteredIdentity && BowPolicy.bResolved);
 	TestTrue(TEXT("Canonical bow reserves both hands"), BowPolicy.bTwoHanded);
 	TestEqual(TEXT("Two-handed bow physical storage is MainHand"),
 		BowPolicy.PhysicalSlot, EGridEquipmentSlot::MainHand);
 	const auto ShieldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-		Registry.Get(), Shield->ItemDefinitionId, 7, EGridEquipmentSlot::OffHand);
-	TestTrue(TEXT("Shield OffHand accepted despite historical TwoHanded"),
+		Registry.Get(), Shield, 7, EGridEquipmentSlot::OffHand);
+	TestTrue(TEXT("Shield OffHand does not reserve both hands"),
 		ShieldPolicy.bResolved && !ShieldPolicy.bTwoHanded);
 	TestEqual(TEXT("Shield keeps its own OffHand slot"), ShieldPolicy.PhysicalSlot, EGridEquipmentSlot::OffHand);
 	TestFalse(TEXT("Shield MainHand rejected by actual policy"),
 		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-			Registry.Get(), Shield->ItemDefinitionId, 7, EGridEquipmentSlot::MainHand).bResolved);
+			Registry.Get(), Shield, 7, EGridEquipmentSlot::MainHand).bResolved);
 	TestFalse(TEXT("Known ARM level N0 cannot fall back to old hand data"),
 		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-			Registry.Get(), Bow->ItemDefinitionId, 0, EGridEquipmentSlot::OffHand).bResolved);
+			Registry.Get(), Bow, 0, EGridEquipmentSlot::OffHand).bResolved);
 
 	// Build an actual kit, ensuring the physical instance and stored fixed
 	// level are exactly what the existing combat/equipment runtime expects.
 	TStrongObjectPtr<URPGClassAsset> BowClass(ARMCLEAN063AO::NewClass());
-	ARMCLEAN063AO::Add(BowClass.Get(), Bow.Get(), EGridEquipmentSlot::OffHand);
+	ARMCLEAN063AO::Add(BowClass.Get(), Bow, 6, EGridEquipmentSlot::OffHand);
 	FGridCharacterInventoryState BowCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState BowEquipment;
 
@@ -136,7 +117,7 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestEqual(TEXT("Physical bow has real N6 level"), BowEquipment.MainHand.ItemLevel, 6);
 
 	// The second item cannot steal the virtual OffHand of a two-handed bow.
-	ARMCLEAN063AO::Add(BowClass.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);
+	ARMCLEAN063AO::Add(BowClass.Get(), Shield, 7, EGridEquipmentSlot::OffHand);
 	FGridCharacterInventoryState FailedCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState FailedEquipment;
 	const FGuid OriginalCharacterId = FailedCharacter.CharacterId;
@@ -154,8 +135,8 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	// Reverse order is also transactional: a shield already in OffHand
 	// must prevent an afterwards authored two-handed bow.
 	TStrongObjectPtr<URPGClassAsset> Reverse(ARMCLEAN063AO::NewClass());
-	ARMCLEAN063AO::Add(Reverse.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);
-	ARMCLEAN063AO::Add(Reverse.Get(), Bow.Get(), EGridEquipmentSlot::MainHand);
+	ARMCLEAN063AO::Add(Reverse.Get(), Shield, 7, EGridEquipmentSlot::OffHand);
+	ARMCLEAN063AO::Add(Reverse.Get(), Bow, 6, EGridEquipmentSlot::MainHand);
 
 	Error.Reset();
 	TestFalse(TEXT("Two-handed bow cannot follow equipped shield"),
@@ -165,8 +146,8 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	// The obsolete two-handed flag on a shield must not hide the player's
 	// MainHand: the sword and shield remain two separate physical objects.
 	TStrongObjectPtr<URPGClassAsset> Normal(ARMCLEAN063AO::NewClass());
-	ARMCLEAN063AO::Add(Normal.Get(), Shield.Get(), EGridEquipmentSlot::OffHand);
-	ARMCLEAN063AO::Add(Normal.Get(), Sword.Get(), EGridEquipmentSlot::MainHand);
+	ARMCLEAN063AO::Add(Normal.Get(), Shield, 7, EGridEquipmentSlot::OffHand);
+	ARMCLEAN063AO::Add(Normal.Get(), Sword, 4, EGridEquipmentSlot::MainHand);
 	FGridCharacterInventoryState NormalCharacter = ARMCLEAN063AO::NewCharacter();
 	FGridCharacterEquipmentState NormalEquipment;
 
@@ -184,16 +165,13 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TestTrue(TEXT("Distinct physical GUIDs"),
 		NormalEquipment.MainHand.RuntimeObjectId != NormalEquipment.OffHand.RuntimeObjectId);
 
-	// The historical hand rules are now isolated to worldless fixtures.
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->ItemDefinitionId = TEXT("LegacyStarter_AO");
-	Old->HandUsage = EGridItemHandUsage::OneHanded;
+	const FName Unknown(TEXT("LegacyStarter_AO"));
 	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-		Registry.Get(), Old->ItemDefinitionId, 0, EGridEquipmentSlot::MainHand);
+		Registry.Get(), Unknown, 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown entry cannot equip in configured world"), OldPolicy.bResolved);
 	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
-		nullptr, Old->ItemDefinitionId, 0, EGridEquipmentSlot::MainHand);
+		nullptr, Unknown, 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Registry-less entry cannot select an equipment slot"), FixturePolicy.bResolved);
 	return true;
 }

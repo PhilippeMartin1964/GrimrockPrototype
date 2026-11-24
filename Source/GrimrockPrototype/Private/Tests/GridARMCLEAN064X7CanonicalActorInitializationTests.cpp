@@ -116,9 +116,7 @@ bool FGridClean064X7ActorProjection::RunTest(const FString&)
             return false;
         }
 
-        if (!TestTrue(TEXT("No historical UObject source attached"),
-                Actor->GetItemDefinitionAsset() == nullptr) ||
-            !TestEqual(TEXT("Stable identity"), Actor->GetItemDefinitionId(),
+        if (!TestEqual(TEXT("Stable identity"), Actor->GetItemDefinitionId(),
                 Instance.ItemDefinitionId) ||
             !TestEqual(TEXT("Stable runtime GUID"), Actor->GetRuntimeObjectId(),
                 Instance.RuntimeObjectId) ||

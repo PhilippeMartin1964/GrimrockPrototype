@@ -193,7 +193,7 @@ namespace StartingKitAudit
         for (const FRPGStartingEquipmentEntry& Entry : Kit.Items)
         {
             if (Entry.ItemId.IsNone() || Entry.Quantity != 1 ||
-                Entry.ItemLevel != 0 || Entry.ItemDefinition.Get() != nullptr)
+                Entry.ItemLevel != 0)
             {
                 OutError = FString::Printf(TEXT("Corrupt archived two-item review: %s"),
                     *Kit.KitId.ToString());

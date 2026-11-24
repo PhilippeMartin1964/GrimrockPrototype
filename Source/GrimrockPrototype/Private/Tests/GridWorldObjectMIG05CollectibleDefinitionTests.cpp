@@ -11,6 +11,7 @@
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
+#include "GridCanonicalLootTestScope.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "UObject/UnrealType.h"
@@ -147,18 +148,13 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 {
 	(void)Parameters;
 
-	UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-	Definition->ItemDefinitionId = TEXT("BlueGem");
-	Definition->DisplayName = FText::FromString(TEXT("Blue Gem"));
-	Definition->ItemType = EGridItemType::Gem;
-	UStaticMesh* WorldMesh = NewObject<UStaticMesh>(Definition);
-	Definition->WorldMesh = WorldMesh;
-	UTexture2D* DefinitionIcon = NewObject<UTexture2D>(Definition);
-	Definition->Icon = DefinitionIcon;
+	const FName ItemId(TEXT("BlueGem"));
+	UStaticMesh* WorldMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+	if (!TestNotNull(TEXT("Fixture world mesh"), WorldMesh)) return false;
 
 	FGridObjectPaletteEntry Entry;
 	Entry.EntryId = TEXT("BlueGem");
-	Entry.ItemId = Definition->ItemDefinitionId;
+	Entry.ItemId = ItemId;
 
 	TestTrue(TEXT("Direct collectible palette entry is valid without an object definition"), Entry.IsValidEntry());
 	TestTrue(TEXT("Direct collectible entry owns no companion definition"), Entry.DefaultWorldObjectDefinition == nullptr);
@@ -167,8 +163,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	TestTrue(TEXT("Direct collectible entry has no effective WorldObjectDefinitionId"), Entry.GetEffectiveWorldObjectDefinitionId().IsNone());
 	Entry.PaletteCategory = FName(TEXT("Items"));
 	TestEqual(TEXT("Direct collectible entry uses its palette category"), Entry.GetPaletteCategory(), FName(TEXT("Items")));
-	TestEqual(TEXT("Direct collectible context-free name uses ItemId"), Entry.GetEffectiveDisplayName().ToString(), Definition->ItemDefinitionId.ToString());
-	TestTrue(TEXT("Collectible icon lives on the ItemDefinition"), Definition->Icon.Get() == DefinitionIcon);
+	TestEqual(TEXT("Direct collectible context-free name uses ItemId"), Entry.GetEffectiveDisplayName().ToString(), ItemId.ToString());
 
 	UGridObjectPaletteAsset* Palette = NewObject<UGridObjectPaletteAsset>();
 	Palette->Entries.Add(Entry);
@@ -184,6 +179,21 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	FMIG05ItemTestWorld TestWorld;
 	TestNotNull(TEXT("MIG05 runtime world exists"), TestWorld.World);
 	if (!TestWorld.World)
+	{
+		return false;
+	}
+
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("Isolated item system registered"), Scope.AttachWithWeights(TestWorld.World, {},
+		[&](UGridItemSystemAsset& Root)
+		{
+			auto* Definition = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+			Definition->ItemId = ItemId;
+			Definition->DisplayName = FText::FromString(TEXT("Blue Gem"));
+			Definition->WorldMesh = WorldMesh;
+			Definition->Icon = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture"));
+			Root.ItemDefinitions.Add(Definition);
+		})))
 	{
 		return false;
 	}
@@ -204,7 +214,7 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	ItemData.InstanceId = FGuid::NewGuid();
 	ItemData.CellX = 0;
 	ItemData.CellY = 0;
-	ItemData.ItemId = Definition->ItemDefinitionId;
+	ItemData.ItemId = ItemId;
 
 	FTransform PlacementTransform;
 	TestTrue(TEXT("Loose item placement transform resolves without any WorldObjectDefinition"), GridPlacementTransformResolver::ResolveLooseItem(*Runtime, ItemData, PlacementTransform));
@@ -215,14 +225,21 @@ bool FGridWorldObjectMIG05DirectCollectibleDefinitionTest::RunTest(const FString
 	TestNotNull(TEXT("Generic item actor exists"), ItemActor);
 	if (ItemActor)
 	{
-		ItemActor->InitializeFromItemDefinition(Definition, ItemData.InstanceId);
-		TestTrue(TEXT("Generic item actor keeps the canonical definition asset"), ItemActor->GetItemDefinitionAsset() == Definition);
+		FGridItemInstance Instance;
+		Instance.ItemDefinitionId = ItemId;
+		Instance.RuntimeObjectId = ItemData.InstanceId;
+		Instance.Quantity = 1;
+		Instance.OwnerType = EGridItemOwnerType::World;
+		if (!TestTrue(TEXT("Physical gem initializes"), ItemActor->InitializeFromItemInstance(Instance, Scope.Registry))) return false;
+		FGridResolvedItem Resolved;
+		TestTrue(TEXT("Collectible icon lives in the registry"),
+			Scope.Registry->ResolveItem(ItemId, 0, Resolved) &&
+			Resolved.ItemIcon.ToSoftObjectPath().ToString() == TEXT("/Engine/EngineResources/WhiteSquareTexture.WhiteSquareTexture"));
 		TestEqual(TEXT("Generic item actor identity is ItemDefinitionId"), ItemActor->GetItemDefinitionId(), FName(TEXT("BlueGem")));
 		TestTrue(TEXT("Generic item actor presentation uses ItemDefinition WorldMesh"), ItemActor->MeshComponent->GetStaticMesh() == WorldMesh);
 
 		ItemActor->ItemTags.Add(TEXT("LegacyTag"));
 		ItemActor->InitializeFromItemDefinitionId(TEXT("LegacyOnly"), FGuid());
-		TestNull(TEXT("ID-only initialization clears the definition asset"), ItemActor->GetItemDefinitionAsset());
 		TestEqual(TEXT("ID-only initialization owns the canonical identity"), ItemActor->GetItemDefinitionId(), FName(TEXT("LegacyOnly")));
 		TestEqual(TEXT("ID-only initialization clears stale definition tags"), ItemActor->ItemTags.Num(), 0);
 		TestTrue(TEXT("ID-only initialization preserves Blueprint/item presentation when no definition mesh is available"),

@@ -1,7 +1,6 @@
 #include "RPG/RPGStartingEquipmentService.h"
 
 #include "RPG/RPGClassAsset.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridStartingKitEquipmentPolicyReadModel.h"
 
@@ -43,14 +42,12 @@ bool FRPGStartingEquipmentService::TryBuildKit(
 	for (const FRPGStartingEquipmentEntry& Entry : Kit->Items)
 	{
 		const FName ItemId = Entry.ItemId;
-		const UGridItemDefinitionAsset* HistoricalDefinition = Entry.ItemDefinition.Get();
 		if (!CanonicalRegistry->ContainsItem(ItemId))
 		{
 			OutError = TEXT("Starting kit item is not registered in the canonical ItemSystem.");
 			return false;
 		}
-		if (Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1 ||
-			(IsValid(HistoricalDefinition) && HistoricalDefinition->ItemDefinitionId != ItemId))
+		if (Entry.ItemLevel < 0 || Entry.ItemLevel > 20 || Entry.Quantity < 1)
 		{
 			OutError = TEXT("Starting kit contains an invalid item definition, canonical ID, level or quantity.");
 			return false;

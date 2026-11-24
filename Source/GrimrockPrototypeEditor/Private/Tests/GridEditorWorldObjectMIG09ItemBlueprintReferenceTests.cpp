@@ -7,6 +7,8 @@
 #include "Engine/Blueprint.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemContextActionLibrary.h"
+#include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -135,6 +137,18 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		return IsTarget(PinType.PinSubCategoryObject.Get()) ||
 			IsTarget(PinType.PinValueType.TerminalSubCategoryObject.Get());
 	};
+	TArray<FString> ItemContractReferences;
+	const auto ReferencesHistoricalItemContract = [](const FEdGraphPinType& PinType)
+	{
+		const auto Matches = [](const UObject* Type)
+		{
+			return Type == FGridItemActionContext::StaticStruct() ||
+				Type == FRPGStartingEquipmentEntry::StaticStruct() ||
+				(Type && Type->GetFName() == TEXT("GridItemDefinitionAsset"));
+		};
+		return Matches(PinType.PinSubCategoryObject.Get()) ||
+			Matches(PinType.PinValueType.TerminalSubCategoryObject.Get());
+	};
 	int32 LoadedBlueprintCount = 0;
 	TArray<TSharedPtr<FJsonValue>> InstanceCacheRows;
 
@@ -163,6 +177,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 		// including split/Make/Break pins, not just connected old fields.
 		for (const FBPVariableDescription& Variable : Blueprint->NewVariables)
 		{
+			if (ReferencesHistoricalItemContract(Variable.VarType))
+				ItemContractReferences.Add(BlueprintAssetData.PackageName.ToString() +
+					TEXT(" :: Variable=") + Variable.VarName.ToString());
 			if (ReferencesContainedStruct(Variable.VarType))
 				ContainedStructReferences.Add(BlueprintAssetData.PackageName.ToString() +
 					TEXT(" :: Variable=") + Variable.VarName.ToString());
@@ -189,6 +206,10 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 					Row->SetStringField(TEXT("kind"), bConnected ? TEXT("Connected") : bAuthored ? TEXT("AuthoredDefault") : TEXT("Surface"));
 					InstanceCacheRows.Add(MakeShared<FJsonValueObject>(Row));
 				}
+				if (Pin && (ReferencesHistoricalItemContract(Pin->PinType) ||
+					Pin->PinName == TEXT("ItemDefinitionAsset")))
+					ItemContractReferences.Add(FString::Printf(TEXT("%s :: Node=%s :: Pin=%s"),
+						*BlueprintAssetData.PackageName.ToString(), *GetNameSafe(Node), *Pin->PinName.ToString()));
 				if (Pin && ReferencesContainedStruct(Pin->PinType))
 					ContainedStructReferences.Add(FString::Printf(TEXT("%s :: Node=%s :: Pin=%s"),
 						*BlueprintAssetData.PackageName.ToString(), *GetNameSafe(Node), *Pin->PinName.ToString()));
@@ -208,6 +229,9 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 			}
 
 			const FName FunctionName = CallFunction->FunctionReference.GetMemberName();
+			if (FunctionName == TEXT("ResolveFacingTarget") && CallFunction->FindPin(TEXT("ItemDefinition")))
+				ItemContractReferences.Add(BlueprintAssetData.PackageName.ToString() +
+					TEXT(" :: ResolveFacingTarget still has the historical parameter"));
 			if (!LegacyFunctionNames.Contains(FunctionName))
 			{
 				continue;
@@ -238,14 +262,27 @@ bool FGridEditorWorldObjectMIG09ItemLegacyBlueprintReferenceAuditTest::RunTest(c
 	for (const FString& Reference : WorldSaveStructReferences)
 		AddError(FString::Printf(TEXT("5G85 serialized world struct usage requires review: %s"), *Reference));
 	TestEqual(TEXT("No native Blueprint directly uses the two serialized world structs"), WorldSaveStructReferences.Num(), 0);
+	for (const FString& Reference : ItemContractReferences)
+		AddError(FString::Printf(TEXT("D.14 historical item Blueprint reference: %s"), *Reference));
+	TestEqual(TEXT("No Blueprint variable, pin or call uses a historical item contract"), ItemContractReferences.Num(), 0);
 	TestTrue(TEXT("Native Blueprint inventory is not empty"), BlueprintAssets.Num() > 0);
 	TestEqual(TEXT("No Blueprint calls retired item identity APIs, historical inventory registry or weight-bearing pawn grant"), LegacyReferences.Num(), 0);
-	TestNull(TEXT("Historic world initializer is native only"),
+	TestNull(TEXT("Historic world initializer is absent"),
 		AGridItemActor::StaticClass()->FindFunctionByName(TEXT("InitializeFromItemDefinition")));
-	TestNull(TEXT("Historic world definition getter is native only"),
+	TestNull(TEXT("Historic world definition getter is absent"),
 		AGridItemActor::StaticClass()->FindFunctionByName(TEXT("GetItemDefinitionAsset")));
-	TestNotNull(TEXT("Persisted actor definition field is retained"),
+	TestNull(TEXT("Actor has no reflected historical definition field"),
 		AGridItemActor::StaticClass()->FindPropertyByName(TEXT("ItemDefinitionAsset")));
+	TestNull(TEXT("Action context has no historical definition"),
+		FGridItemActionContext::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+	TestNull(TEXT("Starting kit entries have no historical definition"),
+		FRPGStartingEquipmentEntry::StaticStruct()->FindPropertyByName(TEXT("ItemDefinition")));
+	const UFunction* FacingTarget = UGridItemContextActionLibrary::StaticClass()->FindFunctionByName(TEXT("ResolveFacingTarget"));
+	if (TestNotNull(TEXT("Facing target lookup remains reflected"), FacingTarget))
+	{
+		TestNull(TEXT("Facing target lookup has no historical definition parameter"),
+			FacingTarget->FindPropertyByName(TEXT("ItemDefinition")));
+	}
 	TestNull(TEXT("Retired setter is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SetSelectedObjectItemDefinitionAsset")));
 	TestNull(TEXT("Retired sync is no longer reflected"), AGridLevelEditorActor::StaticClass()->FindFunctionByName(TEXT("SyncSelectedItemDefinitionIdFromAsset")));
 	TestNull(TEXT("Historical inventory registration is no longer reflected"), UGridPartyInventoryComponent::StaticClass()->FindFunctionByName(TEXT("RegisterItemDefinition")));

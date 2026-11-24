@@ -5,7 +5,6 @@
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "GridPhysicalThrowPreflightReadModel.h"
@@ -236,7 +235,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	const FGridItemInteractionReadView Capabilities =
 		FGridItemInteractionReadModel::Resolve(ItemRegistry, ItemContext.Item);
 
-	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, nullptr, OutFacingTarget);
+	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, OutFacingTarget);
 
 	AddAction(OutActions, EGridItemActionType::Examine, NSLOCTEXT("GridItemActions", "Examine", "Examiner"));
 
@@ -484,7 +483,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 }
 
 bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem,
-	UGridItemDefinitionAsset*, FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
+	FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
 {
 	OutFacingTarget = FGridFacingTargetContext();
 	if (!PartyPawn || !PartyPawn->GetWorld())

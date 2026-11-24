@@ -5,10 +5,8 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "Runtime/GridInteractionUtils.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemMeshResolver.h"
-#include "GridLegacyWorldActorInitGate.h"
 #include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -82,54 +80,6 @@ void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 	}
 }
 
-void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
-{
-#if WITH_DEV_AUTOMATION_TESTS
-	// Retained only to characterize historic world visuals and receptacle
-	// upgrades in real Automation runs, including GI-backed test worlds.
-	// Shipping and ordinary Editor sessions never materialize legacy actors.
-	if (!FGridLegacyWorldActorInitGate::Allows(GIsAutomationTesting) || !IsValid(InDefinition))
-	{
-		return;
-	}
-
-	ResolvedWorldPresentation = FGridResolvedItem();
-	ItemDefinitionAsset = InDefinition;
-	ItemDefinitionId = InDefinition->ItemDefinitionId;
-	WorldItemLevel = 0;
-	ItemTags = InDefinition->ItemTags;
-	SetRuntimeObjectId(InRuntimeObjectId);
-	if (!RuntimeObjectId.IsValid())
-	{
-		RuntimeObjectId = FGuid::NewGuid();
-	}
-
-	if (MeshComponent)
-	{
-		// Direct mesh of a non-catalogue Automation fixture. Historical
-		// weapon catalogues are no longer read by actor materialization.
-		MeshComponent->SetStaticMesh(InDefinition->bUseWeaponVisualCatalogue
-			? nullptr : InDefinition->WorldMesh.LoadSynchronous());
-		MeshComponent->SetRelativeTransform(FTransform::Identity);
-	}
-	if (LightEmitterComponent)
-	{
-		LightEmitterComponent->ApplyConfig(InDefinition->LightEmitter);
-		LightEmitterComponent->SetLightEnabled(false);
-	}
-	if (VisualEffectsComponent)
-	{
-		VisualEffectsComponent->SetItemLightState(false);
-		VisualEffectsComponent->ApplyConfig(InDefinition->VisualEffects);
-	}
-	RefreshWorldSparklePresentation();
-#else
-	// Legacy DataAsset projection is not compiled into a game build.
-	(void)InDefinition;
-	(void)InRuntimeObjectId;
-#endif
-}
-
 bool AGridItemActor::InitializeFromItemInstance(
 	const FGridItemInstance& Instance, const UGridItemSubsystem* Registry)
 {
@@ -153,7 +103,6 @@ bool AGridItemActor::InitializeFromItemInstance(
 		return false; // Leave any preexisting actor state completely unchanged.
 	}
 
-	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = Projected.ItemId;
 	WorldItemLevel = Projected.ItemLevel;
 	ItemTags = Projected.Tags;
@@ -189,7 +138,7 @@ bool AGridItemActor::ApplyResolvedWorldVisual(const FGridItemInstance& Instance)
 		FGridItemMeshResolver::Resolve(Registry, Instance);
 	if (!Visual.bRegisteredIdentity)
 	{
-		return false; // Unregistered identities preserve historical pickup visual behavior.
+		return false; // An unregistered identity cannot replace the current presentation.
 	}
 	WorldItemLevel = Instance.ItemLevel;
 	// Explicitly clear rather than reusing an old DA_Weapon_* mesh if N0 is invalid.
@@ -220,7 +169,6 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 	}
 
 	ResolvedWorldPresentation = FGridResolvedItem();
-	ItemDefinitionAsset = nullptr;
 	ItemDefinitionId = InItemDefinitionId;
 	WorldItemLevel = 0;
 	ItemTags.Reset();
@@ -300,13 +248,6 @@ void AGridItemActor::RefreshWorldPickupMass()
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolveProjected(
 			ResolvedWorldPresentation, MassKg);
 	}
-#if WITH_DEV_AUTOMATION_TESTS
-	else if (!GameInstance && GIsAutomationTesting)
-	{
-		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
-			nullptr, MassInstance, MassKg);
-	}
-#endif
 	MeshComponent->SetMassOverrideInKg(NAME_None, bOverrideMass ? MassKg : 0.0f, bOverrideMass);
 }
 
@@ -353,12 +294,6 @@ void AGridItemActor::ApplyWorldPhysicsInitialNudge()
 	{
 		AuthoredTilt = ResolvedWorldPresentation.WorldPhysicsInitialTiltDegrees;
 	}
-#if WITH_DEV_AUTOMATION_TESTS
-	else if (!GameInstance && GIsAutomationTesting && IsValid(ItemDefinitionAsset))
-	{
-		AuthoredTilt = ItemDefinitionAsset->WorldPhysicsInitialTiltDegrees;
-	}
-#endif
 	if (!FMath::IsFinite(AuthoredTilt)) return;
 	const float TiltDegrees = FMath::Clamp(AuthoredTilt, 0.0f, 45.0f);
 	if (TiltDegrees <= KINDA_SMALL_NUMBER)
@@ -450,20 +385,6 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 		Profile = ResolvedWorldPresentation;
 		bResolved = true;
 	}
-#if WITH_DEV_AUTOMATION_TESTS
-	else if (!GI && GIsAutomationTesting && IsValid(ItemDefinitionAsset) &&
-		Instance.IsValid() && ItemDefinitionAsset->ItemDefinitionId == Instance.ItemDefinitionId)
-	{
-		// Only the isolated historical sparkle fixture can project these fields.
-		Profile.bEnableWorldSparkle = ItemDefinitionAsset->bEnableWorldSparkle;
-		Profile.WorldSparkleMaterial = ItemDefinitionAsset->WorldSparkleMaterial;
-		Profile.WorldSparkleColor = ItemDefinitionAsset->WorldSparkleColor;
-		Profile.WorldSparkleIntensity = ItemDefinitionAsset->WorldSparkleIntensity;
-		Profile.WorldSparkleSpeed = ItemDefinitionAsset->WorldSparkleSpeed;
-		Profile.WorldSparkleVariation = ItemDefinitionAsset->WorldSparkleVariation;
-		bResolved = true;
-	}
-#endif
 	if (!bResolved || !Profile.bEnableWorldSparkle || Profile.WorldSparkleMaterial.IsNull())
 	{
 		Disable();
@@ -503,11 +424,6 @@ void AGridItemActor::RefreshWorldSparklePresentation()
 	}
 
 	SparkleMeshComponent->SetVisibility(true, true);
-}
-
-UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const
-{
-	return ItemDefinitionAsset;
 }
 
 FName AGridItemActor::GetItemDefinitionId() const

@@ -61,10 +61,6 @@ bool FGridEditorARMCLEAN065CanonicalStarterKits::RunTest(const FString&)
             {
                 const auto& Entry = Kit.Items[I];
                 const auto& Source = Old->Items[I];
-                TestNull(TEXT("Independent native reference contains no old ItemDefinition"),
-                    Source.ItemDefinition.Get());
-                TestNull(TEXT("Native test entry has no obsolete ItemDefinition"),
-                    Entry.ItemDefinition.Get());
                 TestFalse(TEXT("Stable native ItemId is explicit"),
                     Entry.ItemId.IsNone());
                 TestEqual(TEXT("Reference and native ItemId are identical"),
