@@ -364,8 +364,13 @@ bool UGridPartyInventoryComponent::IsEquipmentSlotOccupied(int32 CharacterIndex,
 bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FGuid& ExpectedRuntimeObjectId, int32 Quantity)
 {
-	if (IsCharacterMutationReserved(CharacterIndex))
-		return false;
+	return !IsCharacterMutationReserved(CharacterIndex) &&
+		ConsumeEquippedItemQuantityInternal(CharacterIndex, SourceSlot, ExpectedItemDefinitionId, ExpectedRuntimeObjectId, Quantity);
+}
+
+bool UGridPartyInventoryComponent::ConsumeEquippedItemQuantityInternal(
+	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FGuid& ExpectedRuntimeObjectId, int32 Quantity)
+{
 	EnsureEquipmentCountMatchesActiveCharacters();
 	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex) ||
 		!GridEquipmentSlotUtils::IsHandSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() || Quantity <= 0)

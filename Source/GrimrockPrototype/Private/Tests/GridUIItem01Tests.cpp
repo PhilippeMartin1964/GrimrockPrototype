@@ -4,7 +4,7 @@
 #include "GridCanonicalWeightTestWorld.h"
 
 #include "../Runtime/GridItemInteractionReadModel.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -26,18 +26,6 @@ namespace
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
 		Inventory->PartyInventoryState.MaxActiveCharacters = 6;
 		return Inventory;
-	}
-
-	UGridItemDefinitionAsset* MakeBeltDefinition(FName Id, const TCHAR* Name)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>();
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromString(Name);
-		Definition->Description = FText::FromString(TEXT("Un objet de test pour le tooltip."));
-		Definition->ItemType = EGridItemType::Jewelry;
-		Definition->Weight = 1.5f;
-		Definition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::Belt);
-		return Definition;
 	}
 
 	UGridOtherEquipmentDefinitionAsset* DefineBelt(UGridItemSystemAsset& Root, FName Id, const TCHAR* Name)
@@ -68,13 +56,20 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = MakeInventory();
-	UGridItemDefinitionAsset* CandidateDefinition = MakeBeltDefinition(TEXT("Item_TooltipBelt"), TEXT("Ceinture du voyageur"));
-	CandidateDefinition->EquipmentStatBonus.StrengthBonus = 3;
-	CandidateDefinition->EquipmentStatBonus.CarryWeightBonus = 5.0f;
-	CandidateDefinition->EquipmentResistanceBonus.FireResistance = 8;
-	CandidateDefinition->LightEmitter.bUsePointLight = true;
-	TestTrue(TEXT("Candidate definition registers"), Inventory->RegisterItemDefinition(CandidateDefinition));
+	const FName BeltId(TEXT("Item_TooltipBelt"));
+	FGridCanonicalWeightTestWorld World({}, [BeltId](UGridItemSystemAsset& Root)
+	{
+		auto* Belt = DefineBelt(Root, BeltId, TEXT("Ceinture du voyageur"));
+		Belt->Description = FText::FromString(TEXT("Un objet de test pour le tooltip."));
+		Belt->Tags.Add(GridInventoryCategoryTags::Jewelry());
+		Belt->MaxStack = 2;
+		Belt->Bonuses.StrengthBonus = 3;
+		Belt->Bonuses.CarryWeightBonus = 5.0f;
+		Belt->Resistances.FireResistance = 8;
+		Belt->LightEmitter.bUsePointLight = true;
+	});
+	UGridPartyInventoryComponent* Inventory = MakeInventory(&World);
+	if (!TestNotNull(TEXT("Inventory with a registered belt"), Inventory)) return false;
 
 	UGridInventoryWidget* OwnerWidget = NewObject<UGridInventoryWidget>();
 	OwnerWidget->InventoryComponent = Inventory;
@@ -85,7 +80,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 
 	FGridItemInstance Candidate;
 	Candidate.RuntimeObjectId = FGuid::NewGuid();
-	Candidate.ItemDefinitionId = CandidateDefinition->ItemDefinitionId;
+	Candidate.ItemDefinitionId = BeltId;
 	Candidate.Quantity = 2;
 	Candidate.bLightsEnabled = true;
 	Candidate.OwnerType = EGridItemOwnerType::CharacterInventory;

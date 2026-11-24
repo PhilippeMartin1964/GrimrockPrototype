@@ -1389,8 +1389,12 @@ int32 UGridPartyInventoryComponent::CountItemDefinitionInSelectedCharacterInvent
 
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity)
 {
-	if (IsCharacterMutationReserved(CharacterIndex))
-		return false;
+	return !IsCharacterMutationReserved(CharacterIndex) &&
+		RemoveItemDefinitionFromCharacterInventoryInternal(CharacterIndex, ItemDefinitionId, Quantity);
+}
+
+bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventoryInternal(int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity)
+{
 	if (!IsValidCharacterIndex(CharacterIndex) || ItemDefinitionId.IsNone() || Quantity <= 0)
 	{
 		return false;

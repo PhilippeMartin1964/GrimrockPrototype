@@ -408,6 +408,12 @@ public:
 
 private:
 	friend class FGridPartyTransactionScope;
+	friend class UGridTurnManagerComponent;
+
+	// Callers must already own the character reservation or use the public guarded entry points.
+	bool RemoveItemDefinitionFromCharacterInventoryInternal(int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity);
+	bool ConsumeEquippedItemQuantityInternal(int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ItemDefinitionId,
+		const FGuid& RuntimeObjectId, int32 Quantity);
 	friend class UGridItemTransferService;
 	TSet<FGuid> ReservedTransactionCharacters;
 	TSet<FGuid> ReservedTransactionItems;

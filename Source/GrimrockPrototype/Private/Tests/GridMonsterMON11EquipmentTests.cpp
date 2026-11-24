@@ -1,12 +1,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -551,11 +553,44 @@ bool FGridMonsterMON11ElementalOffensiveEquipmentTest::RunTest(const FString& Pa
 
 	const FGridOffensiveEquipmentProfile FireProfile = MakeOffensiveProfile(
 		TEXT("Attack_FireFocus"), EGridDamageType::Fire, EGridPhysicalDamageSubtype::None, 1, 6, EGridAttackScalingAttribute::Intelligence, 3, 2);
-	UGridItemDefinitionAsset* FocusDefinition =
-		MakeEquipmentDefinition(Fixture.Runtime, TEXT("Item_FireFocus"), EGridItemType::Misc, FireProfile, EGridEquipmentSlot::MainHand);
-	FocusDefinition->EquipmentStatBonus.IntelligenceBonus = 2;
-	Fixture.Equip(FocusDefinition, EGridEquipmentSlot::MainHand);
-	TestTrue(TEXT("A non-Weapon item can provide an attack"), FocusDefinition->CanProvideAttackFromSlot(EGridEquipmentSlot::MainHand));
+	const FName FocusId(TEXT("Item_FireFocus"));
+	FGridCombatActionDefinition FireAction;
+	FireAction.ActionId = FireProfile.AttackId;
+	FireAction.DisplayName = FText::FromName(FocusId);
+	FireAction.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+	FireAction.ActionType = EGridCombatActionType::RangedAttack;
+	FireAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
+	FireAction.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
+	FireAction.ActionPointCost = 2;
+	FireAction.RangeCells = 3;
+	FireAction.OffensiveProfile = FireProfile;
+	FGridCanonicalLootTestScope Registry;
+	if (!TestTrue(TEXT("The elemental focus has an explicit registered action"),
+		Registry.AttachWithWeights(Fixture.TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+		{
+			auto* Focus = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Focus->ItemId = FocusId;
+			Focus->DisplayName = FireAction.DisplayName;
+			Focus->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+			Focus->Bonuses.IntelligenceBonus = 2;
+			FGridCanonicalLootTestScope::BindDetailedAction(Root, Focus->ActionBindings, FireAction);
+			Root.ItemDefinitions.Add(Focus);
+		}))) return false;
+	auto* Inventory = Fixture.Party->PartyInventoryComponent.Get();
+	auto* TestClass = NewObject<URPGClassAsset>(Fixture.Party);
+	TestClass->ClassId = TEXT("MON11_FocusTestClass");
+	TestClass->DisplayName = FText::FromName(TestClass->ClassId);
+	TestClass->HealthAtLevelOne = 20;
+	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
+	Character.ClassId = TestClass->ClassId;
+	Character.ClassDefinition = TestClass;
+	FGridItemInstance Focus = MakeEquippedItem(FocusId, 0, EGridEquipmentSlot::MainHand);
+	Focus.OwnerGuid = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
+	Inventory->PartyInventoryState.ActiveEquipment[0].MainHand = Focus;
+
+	FGridCombatActionDefinition FocusAction;
+	TestTrue(TEXT("The non-ARM focus authorizes its bound action in MainHand"),
+		Registry.Registry->ResolveDetailedNonArmEquippedAction(Focus, EGridEquipmentSlot::MainHand, FireAction.ActionId, FocusAction));
 
 	FGridMonsterDamageModifier FireModifier;
 	FireModifier.DamageType = EGridDamageType::Fire;
@@ -580,11 +615,13 @@ bool FGridMonsterMON11ElementalOffensiveEquipmentTest::RunTest(const FString& Pa
 	const int32 PhysicalArmorBefore = Fixture.Monster->CurrentPhysicalArmor;
 	const int32 MagicalArmorBefore = Fixture.Monster->CurrentMagicalArmor;
 	const int32 HealthBefore = Fixture.Monster->CurrentHealth;
-	FGridPlayerAttackRequest Request;
-	FGridAttackResult Result;
-	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
-	TestTrue(TEXT("The Fire focus attack resolves"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
-	TestEqual(TEXT("The request retains the focus id"), Request.OffensiveItemDefinitionId, FocusDefinition->ItemDefinitionId);
+	FGridCombatActionRequestResult Accepted;
+	if (!TestTrue(TEXT("The Fire focus attack resolves"),
+		Fixture.TurnManager->RequestCharacterCombatAction(0, FireAction.ActionId,
+			EGridCombatActionSourcePolicy::Equipment, FocusId, EGridEquipmentSlot::MainHand, Accepted))) return false;
+	const FGridPlayerAttackRequest& Request = Accepted.AttackRequest;
+	const FGridAttackResult& Result = Accepted.AttackResult;
+	TestEqual(TEXT("The request retains the focus id"), Request.OffensiveItemDefinitionId, FocusId);
 	TestEqual(TEXT("The request retains MainHand"), Request.OffensiveEquipmentSlot, EGridEquipmentSlot::MainHand);
 	TestEqual(TEXT("The request retains Attack_FireFocus"), Request.AttackId, FireProfile.AttackId);
 	TestEqual(TEXT("Physical armor is unchanged by Fire"), Fixture.Monster->CurrentPhysicalArmor, PhysicalArmorBefore);
@@ -592,7 +629,7 @@ bool FGridMonsterMON11ElementalOffensiveEquipmentTest::RunTest(const FString& Pa
 	TestEqual(TEXT("Only remaining Fire damage reaches health"), Fixture.Monster->CurrentHealth, HealthBefore - Result.HealthDamage);
 	TestTrue(TEXT("The structured log retains the equipment identity"),
 		!Fixture.TurnManager->CombatLogEntries.IsEmpty() &&
-			Fixture.TurnManager->CombatLogEntries.Last().OffensiveItemDefinitionId == FocusDefinition->ItemDefinitionId);
+			Fixture.TurnManager->CombatLogEntries.Last().OffensiveItemDefinitionId == FocusId);
 	TestEqual(TEXT("The structured log retains the slot"), Fixture.TurnManager->CombatLogEntries.Last().OffensiveEquipmentSlot, EGridEquipmentSlot::MainHand);
 	return true;
 }

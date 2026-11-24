@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "GridCanonicalLootTestScope.h"
 
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
@@ -12,7 +13,6 @@
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -98,35 +98,19 @@ namespace
 		return Item;
 	}
 
-	UGridItemDefinitionAsset* MakeItemDefinition(UObject* Outer, FName ItemDefinitionId, const TCHAR* DisplayName, bool bStackable, UTexture2D* Icon)
+	FGridCombatActionDefinition MakeShurikenAction()
 	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Outer);
-		Definition->ItemDefinitionId = ItemDefinitionId;
-		Definition->DisplayName = FText::FromString(DisplayName);
-		Definition->bStackable = bStackable;
-		Definition->MaxStackSize = bStackable ? 20 : 1;
-		Definition->Icon = Icon;
-		return Definition;
-	}
-
-	void ConfigureOffensiveDefinition(UGridItemDefinitionAsset* Definition, FName AttackId, EGridEquipmentSlot EquipmentSlot, int32 RangeCells = 1)
-	{
-		if (!Definition)
-		{
-			return;
-		}
-
-		Definition->CompatibleEquipmentSlots.AddUnique(EquipmentSlot);
+		const FName AttackId(TEXT("Attack_Shuriken"));
+		constexpr int32 RangeCells = 2;
 		FGridCombatActionDefinition Action;
-		Action.ActionId = AttackId;
-		Action.DisplayName = Definition->DisplayName;
-		Action.ActionType = RangeCells > 1 ? EGridCombatActionType::RangedAttack : EGridCombatActionType::MeleeAttack;
+		Action.ActionId = TEXT("Action_MON12_TestShuriken");
+		Action.DisplayName = FText::FromString(TEXT("Shuriken"));
+		Action.ActionType = EGridCombatActionType::RangedAttack;
 		Action.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
 		Action.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
 		Action.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
 		Action.ActionPointCost = 2;
 		Action.RangeCells = RangeCells;
-		Action.PresentationProfileId = AttackId;
 		Action.OffensiveProfile.AttackId = AttackId;
 		Action.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
 		Action.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
@@ -134,12 +118,14 @@ namespace
 		Action.OffensiveProfile.AttackDefinition.MaxDamage = 2;
 		Action.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::Dexterity;
 		Action.OffensiveProfile.RangeCells = RangeCells;
-		Definition->CombatActions = { Action };
+		return Action;
 	}
 
 	struct FGridMON12Fixture
 	{
 		FGridMON12TestWorld TestWorld;
+		FGridCanonicalLootTestScope ItemRegistry;
+		UGridActionCatalogueAsset* FixtureActions = nullptr;
 		AGridLevelRuntimeActor* Runtime = nullptr;
 		UGridLevelAsset* LevelAsset = nullptr;
 		AGrimrockPartyPawn* Party = nullptr;
@@ -154,7 +140,7 @@ namespace
 		FGuid EliasId = FGuid(12, 1, 0, 1);
 		FGuid MinaId = FGuid(12, 1, 0, 2);
 
-		FGridMON12Fixture()
+		explicit FGridMON12Fixture(bool bAlternativeActions = false)
 		{
 			if (!TestWorld.World)
 			{
@@ -204,13 +190,39 @@ namespace
 			}
 
 			FGridCharacterEquipmentState& EliasEquipment = Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0];
-			EliasEquipment.MainHand = MakeEquippedItem(FGuid(12, 2, 0, 1), TEXT("Shuriken"), TEXT("Shuriken"), 3, 0, EGridEquipmentSlot::MainHand);
+			EliasEquipment.MainHand = MakeEquippedItem(FGuid(12, 2, 0, 1), TEXT("Shuriken_MON12_Panel"), TEXT("Shuriken"), 3, 0, EGridEquipmentSlot::MainHand);
 			EliasEquipment.OffHand = MakeEquippedItem(FGuid(12, 2, 0, 2), TEXT("Item_Torch"), TEXT("Torche"), 1, 0, EGridEquipmentSlot::OffHand);
 
-			UGridItemDefinitionAsset* ShurikenDefinition = MakeItemDefinition(Party, TEXT("Shuriken"), TEXT("Shuriken"), true, nullptr);
-			ConfigureOffensiveDefinition(ShurikenDefinition, TEXT("Attack_Shuriken"), EGridEquipmentSlot::MainHand, 2);
-			Party->PartyInventoryComponent->RegisterItemDefinition(ShurikenDefinition);
-			Party->PartyInventoryComponent->RegisterItemDefinition(MakeItemDefinition(Party, TEXT("Item_Torch"), TEXT("Torche"), false, nullptr));
+			if (!ItemRegistry.AttachWithWeights(TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+			{
+				auto* Shuriken = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+				Shuriken->ItemId = TEXT("Shuriken_MON12_Panel");
+				Shuriken->DisplayName = FText::FromString(TEXT("Shuriken"));
+				Shuriken->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+				Shuriken->MaxStack = 20;
+				FGridCombatActionDefinition Attack = MakeShurikenAction();
+				if (bAlternativeActions)
+				{
+					Attack.ActionId = TEXT("Action_QuickThrow");
+					Attack.DisplayName = FText::FromString(TEXT("Lancer rapide"));
+					Attack.OffensiveProfile.AttackId = TEXT("Attack_QuickThrow");
+				}
+				FGridCanonicalLootTestScope::BindDetailedAction(Root, Shuriken->ActionBindings, Attack);
+				if (bAlternativeActions)
+				{
+					FGridCombatActionDefinition Precise = Attack;
+					Precise.ActionId = TEXT("Action_PreciseThrow");
+					Precise.DisplayName = FText::FromString(TEXT("Lancer précis"));
+					Precise.ActionPointCost = 3;
+					Precise.OffensiveProfile.AttackId = TEXT("Attack_PreciseThrow");
+					Precise.OffensiveProfile.AttackDefinition.AccuracyBonus = 2;
+					FGridCanonicalLootTestScope::BindDetailedAction(Root, Shuriken->ActionBindings, Precise);
+				}
+				FixtureActions = Root.ActionCatalogue;
+				Root.ItemDefinitions.Add(Shuriken);
+			})) return;
+			EliasEquipment.MainHand.OwnerGuid = EliasId;
+			EliasEquipment.OffHand.OwnerGuid = EliasId;
 
 			MonsterDefinition = NewObject<UGridMonsterDefinitionAsset>(Runtime);
 			MonsterDefinition->MonsterId = TEXT("MON12_Rat");
@@ -383,6 +395,9 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest(const FString& 
 	TestTrue(TEXT("Mina has an independent turn state"), Fixture.TurnManager->GetPlayerCharacterTurnState(1, MinaTurn));
 	TestEqual(TEXT("Mina also begins with four action points"), MinaTurn.RemainingActionPoints, 4);
 
+	// Exercise the direct attack entry point with its canonical unarmed
+	// action; detailed bound item actions are tested through the catalogue.
+	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment[0].MainHand = FGridItemInstance();
 	FGridPlayerAttackRequest Request;
 	FGridAttackResult Result;
 	EGridPlayerAttackRejectReason RejectReason = EGridPlayerAttackRejectReason::None;
@@ -693,36 +708,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON12ActionCatalogContributionsTest
 bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	FGridMON12Fixture Fixture;
+	FGridMON12Fixture Fixture(true);
 	if (!TestTrue(TEXT("The MON12 action-catalogue fixture is ready"), Fixture.IsReady()))
 	{
 		return false;
 	}
-
-	UGridItemDefinitionAsset* Shuriken = Fixture.Party->PartyInventoryComponent->FindItemDefinition(TEXT("Shuriken"));
-	TestNotNull(TEXT("The shuriken definition is registered"), Shuriken);
-	if (!Shuriken)
-	{
-		return false;
-	}
-
-	TestTrue(TEXT("The Shuriken fixture exposes a current CombatAction"), !Shuriken->CombatActions.IsEmpty());
-	if (Shuriken->CombatActions.IsEmpty())
-	{
-		return false;
-	}
-	FGridCombatActionDefinition QuickThrow = Shuriken->CombatActions[0];
-	QuickThrow.ActionId = TEXT("Action_QuickThrow");
-	QuickThrow.DisplayName = FText::FromString(TEXT("Lancer rapide"));
-	QuickThrow.OffensiveProfile.AttackId = TEXT("Attack_QuickThrow");
-
-	FGridCombatActionDefinition PreciseThrow = QuickThrow;
-	PreciseThrow.ActionId = TEXT("Action_PreciseThrow");
-	PreciseThrow.DisplayName = FText::FromString(TEXT("Lancer précis"));
-	PreciseThrow.ActionPointCost = 3;
-	PreciseThrow.OffensiveProfile.AttackId = TEXT("Attack_PreciseThrow");
-	PreciseThrow.OffensiveProfile.AttackDefinition.AccuracyBonus = 2;
-	Shuriken->CombatActions = { QuickThrow, PreciseThrow };
 
 	URPGClassAsset* MageClass = NewObject<URPGClassAsset>(Fixture.Party);
 	MageClass->ClassId = TEXT("Mage");
@@ -789,7 +779,7 @@ bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest(const FString& Par
 	}
 
 	TestEqual(TEXT("The quick throw keeps MainHand provenance"), Quick->SourceEquipmentSlot, EGridEquipmentSlot::MainHand);
-	TestEqual(TEXT("The quick throw keeps the concrete item source"), Quick->SourceDefinitionId, FName(TEXT("Shuriken")));
+	TestEqual(TEXT("The quick throw keeps the concrete item source"), Quick->SourceDefinitionId, FName(TEXT("Shuriken_MON12_Panel")));
 	TestEqual(TEXT("The precise throw carries its own AP cost"), Precise->CurrentActionPointCost, 3);
 	TestTrue(TEXT("The current axial monster is suggested to both throws"),
 		Quick->SuggestedTargetId == Fixture.Monster->ResolvePersistenceId() && Precise->SuggestedTargetId == Fixture.Monster->ResolvePersistenceId());
@@ -824,14 +814,14 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest(const FString& P
 	const FGridAvailableCombatAction* ShurikenActionPtr = Actions.FindByPredicate(
 		[](const FGridAvailableCombatAction& Candidate)
 		{
-			return Candidate.Definition.ActionId == FName(TEXT("Attack_Shuriken"));
+			return Candidate.Definition.ActionId == FName(TEXT("Action_MON12_TestShuriken"));
 		});
 	if (!TestNotNull(TEXT("The current shuriken CombatAction is present"), ShurikenActionPtr))
 	{
 		return false;
 	}
 	const FGridAvailableCombatAction ShurikenAction = *ShurikenActionPtr;
-	TestEqual(TEXT("The current CombatAction preserves the MON11 attack id"), ShurikenAction.Definition.ActionId, FName(TEXT("Attack_Shuriken")));
+	TestEqual(TEXT("The current CombatAction preserves its explicit catalogue id"), ShurikenAction.Definition.ActionId, FName(TEXT("Action_MON12_TestShuriken")));
 	TestTrue(TEXT("The shuriken CombatAction is currently enabled"), ShurikenAction.bEnabled);
 
 	FGridCombatActionRequestResult Execution;
@@ -839,26 +829,18 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest(const FString& P
 		Fixture.TurnManager->RequestCharacterCombatAction(0, ShurikenAction.Definition.ActionId, ShurikenAction.Definition.SourcePolicy,
 			ShurikenAction.SourceDefinitionId, ShurikenAction.SourceEquipmentSlot, Execution));
 	TestTrue(TEXT("The generic result reports acceptance"), Execution.bAccepted);
-	TestEqual(TEXT("The resolved request keeps the offensive item"), Execution.AttackRequest.OffensiveItemDefinitionId, FName(TEXT("Shuriken")));
+	TestEqual(TEXT("The detailed action keeps the original offensive profile id"), Execution.AttackRequest.AttackId, FName(TEXT("Attack_Shuriken")));
+	TestEqual(TEXT("The resolved request keeps the offensive item"), Execution.AttackRequest.OffensiveItemDefinitionId, FName(TEXT("Shuriken_MON12_Panel")));
 	TestEqual(TEXT("The generic action pays its definition AP cost"), Execution.AttackRequest.ActionPointCost, 2);
 
 	FGridPlayerCharacterTurnState TurnState;
 	TestTrue(TEXT("The turn state remains available after the generic attack"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnState));
 	TestEqual(TEXT("The generic attack leaves two of four AP"), TurnState.RemainingActionPoints, 2);
 
-	UGridItemDefinitionAsset* ShurikenDefinition = Fixture.Party->PartyInventoryComponent->FindItemDefinition(FName(TEXT("Shuriken")));
-	TestNotNull(TEXT("The current shuriken definition remains registered"), ShurikenDefinition);
-	if (ShurikenDefinition)
-	{
-		if (FGridCombatActionDefinition* CurrentShurikenAction = ShurikenDefinition->CombatActions.FindByPredicate(
-				[](const FGridCombatActionDefinition& Candidate)
-				{
-					return Candidate.ActionId == FName(TEXT("Attack_Shuriken"));
-				}))
-		{
-			CurrentShurikenAction->ActionPointCost = 3;
-		}
-	}
+	FGridRuntimeAction* CurrentAction = Fixture.FixtureActions->DetailedActions.FindByPredicate(
+		[](const FGridRuntimeAction& Row) { return Row.Definition.ActionId == FName(TEXT("Action_MON12_TestShuriken")); });
+	if (!TestNotNull(TEXT("The Shuriken action remains in the test catalogue"), CurrentAction)) return false;
+	CurrentAction->Definition.ActionPointCost = 3;
 
 	FGridCombatActionRequestResult RejectedExecution;
 	TestFalse(TEXT("The catalogue is revalidated from the current CombatAction before a second request"),

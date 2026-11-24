@@ -754,11 +754,16 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			const bool bEquipped = Inventory->GetEquippedItem(
 				CharacterIndex, Action.SourceEquipmentSlot, Equipped) &&
 				Equipped.ItemDefinitionId == Action.SourceDefinitionId;
+			FGridCombatActionDefinition DetailedAction;
+			const bool bUsesBoundNonArmAttack = bEquipped && AmmoRegistry &&
+				AmmoRegistry->ResolveDetailedNonArmEquippedAction(Equipped, Action.SourceEquipmentSlot,
+					Action.Definition.ActionId, DetailedAction) &&
+				DetailedAction.ResolutionProfile == EGridCombatActionResolutionProfile::Attack;
 			const FGridRangedAmmunitionRequirement Ammo =
 				FGridRangedAmmunitionPolicy::ResolveForAttack(
 					AmmoRegistry, Action.SourceDefinitionId,
 					bEquipped ? Equipped.ItemLevel : 0, LegacyWeapon,
-					Action.Definition.ActionType == EGridCombatActionType::RangedAttack);
+					Action.Definition.ActionType == EGridCombatActionType::RangedAttack && !bUsesBoundNonArmAttack);
 			if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 					*Inventory, CharacterIndex, Ammo))
 			{

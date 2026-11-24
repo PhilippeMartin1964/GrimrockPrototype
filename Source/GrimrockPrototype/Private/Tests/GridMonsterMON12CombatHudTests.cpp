@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "GridCanonicalLootTestScope.h"
+#include "../Runtime/GridPartyTransactionScope.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -116,15 +117,11 @@ namespace
 	{
 		return Registry.AttachWithWeights(World, {}, [&](UGridItemSystemAsset& Root)
 		{
-			Root.ActionCatalogue = DuplicateObject<UGridActionCatalogueAsset>(Root.ActionCatalogue, &Root);
-			Root.ActionCatalogue->DetailedActions.AddDefaulted_GetRef().Definition = Definition;
 			auto* Item = NewObject<UGridConsumableDefinitionAsset>(&Root);
 			Item->ItemId = ItemId;
 			Item->DisplayName = Definition.DisplayName;
 			Item->MaxStack = 10;
-			FGridItemActionBinding& Binding = Item->UseActions.AddDefaulted_GetRef();
-			Binding.ActionId = Definition.ActionId;
-			Binding.PresentationId = Root.ActionPresentationCatalogue->Presentations[0].PresentationId;
+			FGridCanonicalLootTestScope::BindDetailedAction(Root, Item->UseActions, Definition);
 			Root.ItemDefinitions.Add(Item);
 		});
 	}
@@ -860,14 +857,12 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parame
 	}
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-	UGridItemDefinitionAsset* ScrollDefinition = NewObject<UGridItemDefinitionAsset>(Fixture.Party);
-	ScrollDefinition->ItemDefinitionId = TEXT("Scroll_MON1284_Fire");
-	ScrollDefinition->DisplayName = FText::FromString(TEXT("Parchemin de feu MON12.8.4"));
-	ScrollDefinition->ItemType = EGridItemType::Scroll;
-	ScrollDefinition->bStackable = true;
-	ScrollDefinition->MaxStackSize = 10;
-	ScrollDefinition->bProvidesQuickItemCombatAction = true;
-	FGridCombatActionDefinition& ScrollAction = ScrollDefinition->QuickItemCombatAction;
+	const FName ScrollId(TEXT("Scroll_MON1284_Fire"));
+	FGridCombatActionDefinition ScrollAction;
+	ScrollAction.ActionId = FGridCombatHotbarBinding::MakeQuickItemActionId(ScrollId);
+	ScrollAction.DisplayName = FText::FromString(TEXT("Parchemin de feu MON12.8.4"));
+	ScrollAction.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+	ScrollAction.ResourceCosts.SourceItemQuantityCost = 1;
 	ScrollAction.ActionType = EGridCombatActionType::RangedAttack;
 	ScrollAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
 	ScrollAction.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
@@ -880,14 +875,13 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parame
 	ScrollAction.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
 	ScrollAction.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::None;
 	ScrollAction.OffensiveProfile.RangeCells = 2;
-	if (!TestTrue(TEXT("The combat scroll definition is registered"), Inventory->RegisterItemDefinition(ScrollDefinition)))
-	{
-		return false;
-	}
+	FGridCanonicalLootTestScope Registry;
+	if (!TestTrue(TEXT("The scroll is bound to a detailed action in the canonical registry"),
+		AttachDetailedQuickItem(Registry, Fixture.TestWorld.World, ScrollId, ScrollAction))) return false;
 
 	FGridItemInstance Scroll;
 	Scroll.RuntimeObjectId = FGuid(12, 8, 4, 3);
-	Scroll.ItemDefinitionId = ScrollDefinition->ItemDefinitionId;
+	Scroll.ItemDefinitionId = ScrollId;
 	Scroll.Quantity = 2;
 	TestTrue(TEXT("Two scroll units enter the inventory"), Inventory->AddItemToCharacterInventory(0, Scroll));
 	TestTrue(TEXT("The scroll configures shortcut two"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 1, Scroll, EGridEquipmentSlot::None));
@@ -896,18 +890,55 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest(const FString& Parame
 	Fixture.Hud->RefreshFromSources();
 	FGridCombatActionRequestResult RejectedScroll;
 	TestFalse(TEXT("A scroll attack without a target is rejected"), Fixture.Hud->RequestHotbarSlot(1, RejectedScroll));
-	TestEqual(TEXT("A rejected scroll consumes no unit"), Inventory->CountItemDefinitionInCharacterInventory(0, ScrollDefinition->ItemDefinitionId), 2);
+	TestEqual(TEXT("A rejected scroll consumes no unit"), Inventory->CountItemDefinitionInCharacterInventory(0, ScrollId), 2);
 	TestEqual(TEXT("A rejected scroll consumes no action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
 
+	FGridInventorySlot* Source = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.FindByPredicate(
+		[&Scroll](const FGridInventorySlot& Slot) { return Slot.Item.RuntimeObjectId == Scroll.RuntimeObjectId; });
+	if (!TestNotNull(TEXT("The owned scroll stack exists"), Source)) return false;
+	const FGridItemInstance OwnedScroll = Source->Item;
 	Fixture.Party->Facing = EGridEdge::North;
+	Source->Item.OwnerGuid = FGuid::NewGuid();
+	const FGridPartyInventoryState BeforeBadOwner = Inventory->PartyInventoryState;
+	FGridCombatActionRequestResult RejectedOwner;
+	TestFalse(TEXT("A scroll with a mismatched owner cannot attack"), Fixture.Hud->RequestHotbarSlot(1, RejectedOwner));
+	TestTrue(TEXT("A source refusal leaves the inventory untouched"), FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+		&BeforeBadOwner, &Inventory->PartyInventoryState, 0));
+	TestEqual(TEXT("A source refusal spends no AP"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
+	Source->Item = OwnedScroll;
+	{
+		FGridPartyTransactionScope ExistingTransfer(Inventory, {0});
+		if (!TestTrue(TEXT("The existing transfer reserves the owner and stack"),
+			ExistingTransfer.IsAcquired() && ExistingTransfer.ReserveItem(Scroll.RuntimeObjectId))) return false;
+		const FGridPartyInventoryState BeforeConflict = Inventory->PartyInventoryState;
+		FGridCombatActionRequestResult RejectedConflict;
+		TestFalse(TEXT("An offensive scroll cannot use a source reserved by a transfer"),
+			Fixture.Hud->RequestHotbarSlot(1, RejectedConflict));
+		TestTrue(TEXT("The rejected request preserves the reserved source"), FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
+			&BeforeConflict, &Inventory->PartyInventoryState, 0));
+		TestEqual(TEXT("A reservation conflict spends no AP"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
+	}
+
+	const int32 MonsterHealthBefore = Fixture.Monster->CurrentHealth;
 	FGridCombatActionRequestResult AcceptedScroll;
 	TestTrue(TEXT("The axial scroll attack is accepted"), Fixture.Hud->RequestHotbarSlot(1, AcceptedScroll));
 	TestTrue(TEXT("The generic result records acceptance"), AcceptedScroll.bAccepted);
 	TestTrue(TEXT("The quick-item attack request is structurally valid"), AcceptedScroll.AttackRequest.IsValid());
-	TestEqual(TEXT("The scroll source is recorded on the attack"), AcceptedScroll.AttackRequest.OffensiveItemDefinitionId, ScrollDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The authored fire profile identifies the attack"), AcceptedScroll.AttackRequest.AttackId, ScrollAction.OffensiveProfile.AttackId);
+	TestEqual(TEXT("The offensive scroll deals fire damage"), AcceptedScroll.AttackResult.DamageType, EGridDamageType::Fire);
+	TestTrue(TEXT("The scroll damages the target"), Fixture.Monster->CurrentHealth < MonsterHealthBefore);
+	TestEqual(TEXT("The scroll source is recorded on the attack"), AcceptedScroll.AttackRequest.OffensiveItemDefinitionId, ScrollId);
 	TestEqual(TEXT("A scroll never claims an equipment slot"), AcceptedScroll.AttackRequest.OffensiveEquipmentSlot, EGridEquipmentSlot::None);
-	TestEqual(TEXT("Exactly one accepted scroll is consumed"), Inventory->CountItemDefinitionInCharacterInventory(0, ScrollDefinition->ItemDefinitionId), 1);
+	TestEqual(TEXT("Exactly one accepted scroll is consumed"), Inventory->CountItemDefinitionInCharacterInventory(0, ScrollId), 1);
 	TestEqual(TEXT("The scroll result records the remaining unit"), AcceptedScroll.QuickItemResult.SourceQuantityAfter, 1);
+	TestNull(TEXT("A scroll never prepares a weapon projectile"), AcceptedScroll.AttackRequest.PreparedThrownItemActor.Get());
+	const FGridInventorySlot* Remaining = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots.FindByPredicate(
+		[&Scroll](const FGridInventorySlot& Slot) { return Slot.Item.RuntimeObjectId == Scroll.RuntimeObjectId; });
+	if (TestNotNull(TEXT("The remaining scroll preserves the stack GUID"), Remaining))
+	{
+		TestEqual(TEXT("The remaining stack stays with its owner"), Remaining->Item.OwnerGuid, OwnedScroll.OwnerGuid);
+		TestEqual(TEXT("The remaining stack stays in inventory"), Remaining->Item.OwnerType, EGridItemOwnerType::CharacterInventory);
+	}
 	TestEqual(TEXT("The accepted scroll spends two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 	FGridCombatHotbarBinding ConsumedScrollBinding;
 	TestTrue(TEXT("The partially consumed scroll shortcut remains readable"), Inventory->GetCharacterCombatHotbarBinding(0, 1, ConsumedScrollBinding));
@@ -1255,84 +1286,71 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest(const FString& Parameter
 	}
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
-	UGridItemDefinitionAsset* ShurikenDefinition = NewObject<UGridItemDefinitionAsset>(Fixture.Party);
-	ShurikenDefinition->ItemDefinitionId = TEXT("Shuriken_MON1287");
-	ShurikenDefinition->DisplayName = FText::FromString(TEXT("Shuriken"));
-	ShurikenDefinition->Description = FText::FromString(TEXT("Arme de jet rapide."));
-	ShurikenDefinition->ItemType = EGridItemType::Weapon;
-	ShurikenDefinition->bCombatThrowWeapon = true;
-	ShurikenDefinition->bProvidesAttackPresentation = true;
-	ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle = EGridPlayerAttackMotionStyle::Throw;
-	ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem = true;
-	ShurikenDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
-	FGridCombatActionDefinition MisconfiguredThrow;
-	MisconfiguredThrow.ActionId = TEXT("Attack_Shuriken_MON1287_Configured");
-	MisconfiguredThrow.ActionType = EGridCombatActionType::RangedAttack;
-	MisconfiguredThrow.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
-	MisconfiguredThrow.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
-	MisconfiguredThrow.ResolutionProfile = EGridCombatActionResolutionProfile::Attack;
-	MisconfiguredThrow.ActionPointCost = 2;
-	MisconfiguredThrow.ResourceCosts.SourceItemQuantityCost = 2;
-	MisconfiguredThrow.RangeCells = 3;
-	MisconfiguredThrow.PresentationProfileId = TEXT("Attack_Shuriken_MON1287");
-	MisconfiguredThrow.OffensiveProfile.AttackId = TEXT("Attack_Shuriken_MON1287");
-	MisconfiguredThrow.OffensiveProfile.AttackDefinition.DamageType = EGridDamageType::Physical;
-	MisconfiguredThrow.OffensiveProfile.AttackDefinition.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
-	MisconfiguredThrow.OffensiveProfile.AttackDefinition.MinDamage = 2;
-	MisconfiguredThrow.OffensiveProfile.AttackDefinition.MaxDamage = 2;
-	MisconfiguredThrow.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
-	MisconfiguredThrow.OffensiveProfile.RangeCells = 3;
-	ShurikenDefinition->CombatActions.Add(MisconfiguredThrow);
-	TestTrue(TEXT("The throwable definition is registered"), Inventory->RegisterItemDefinition(ShurikenDefinition));
+	const FName StoneId(TEXT("Stone_MON1287"));
+	FGridCanonicalLootTestScope Scope;
+	if (!TestTrue(TEXT("The registry includes a generic throwable"),
+		Scope.AttachWithWeights(Fixture.TestWorld.World, {}, [StoneId](UGridItemSystemAsset& Root)
+		{
+			auto* Stone = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Stone->ItemId = StoneId;
+			Stone->DisplayName = FText::FromName(StoneId);
+			Stone->WeightKg = 1.0f;
+			Stone->HandPolicy = EGridNonArmamentHandPolicy::OneHanded;
+			Stone->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+			Stone->GenericThrow.InitialSpeed = 800.0f;
+			Root.ItemDefinitions.Add(Stone);
+		}))) return false;
 
-	FGridItemInstance Shuriken;
-	Shuriken.RuntimeObjectId = FGuid::NewGuid();
-	Shuriken.ItemDefinitionId = ShurikenDefinition->ItemDefinitionId;
-	Shuriken.Quantity = 1;
-	Shuriken.OwnerType = EGridItemOwnerType::CharacterInventory;
-	Shuriken.OwnerCharacterIndex = 0;
-	FGridInventorySlot& InventorySlot = Inventory->PartyInventoryState.ActiveCharacters[0].InventorySlots[0];
+	FGridCharacterInventoryState& Owner = Inventory->PartyInventoryState.ActiveCharacters[0];
+	Owner.Attributes.Strength = 20;
+	FGridItemInstance Stone;
+	Stone.RuntimeObjectId = FGuid::NewGuid();
+	Stone.ItemDefinitionId = StoneId;
+	Stone.Quantity = 1;
+	Stone.OwnerType = EGridItemOwnerType::CharacterInventory;
+	Stone.OwnerGuid = Owner.CharacterId;
+	Stone.OwnerCharacterIndex = 0;
+	FGridInventorySlot& InventorySlot = Owner.InventorySlots[0];
 	InventorySlot.bOccupied = true;
-	InventorySlot.Item = Shuriken;
+	InventorySlot.Item = Stone;
 
-	UGridInventoryDragDropOperation* ShurikenDrag = NewObject<UGridInventoryDragDropOperation>(Fixture.Hud);
-	ShurikenDrag->InitializeFromSlot(EGridInventoryUiSlotType::Inventory, 0, Shuriken);
-	TestTrue(TEXT("The inventory shuriken configures slot seven"), Fixture.Hud->HandleHotbarDrop(6, ShurikenDrag));
+	UGridInventoryDragDropOperation* StoneDrag = NewObject<UGridInventoryDragDropOperation>(Fixture.Hud);
+	StoneDrag->InitializeFromSlot(EGridInventoryUiSlotType::Inventory, 0, Stone);
+	TestTrue(TEXT("The generic throwable configures slot seven"), Fixture.Hud->HandleHotbarDrop(6, StoneDrag));
 
 	FGridCombatHotbarBinding Binding;
-	TestTrue(TEXT("The shuriken binding is persisted"), Inventory->GetCharacterCombatHotbarBinding(0, 6, Binding));
+	TestTrue(TEXT("The throw binding is persisted"), Inventory->GetCharacterCombatHotbarBinding(0, 6, Binding));
 	TestEqual(TEXT("The inventory throw uses a quick-item source"), Binding.SourcePolicy, EGridCombatActionSourcePolicy::QuickItem);
-	TestEqual(TEXT("The throw keeps the stable item definition"), Binding.SourceDefinitionId, ShurikenDefinition->ItemDefinitionId);
+	TestEqual(TEXT("The throw keeps the stable item definition"), Binding.SourceDefinitionId, StoneId);
 	TestEqual(TEXT("The inventory source is not moved by assignment"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, ShurikenDefinition->ItemDefinitionId), 1);
-	TestTrue(TEXT("The configured shuriken resolves immediately"), Fixture.Hud->View.Actions[6].bResolved);
-	TestTrue(TEXT("The configured shuriken is usable in combat"), Fixture.Hud->View.Actions[6].Action.bEnabled);
+		Inventory->CountItemDefinitionInCharacterInventory(0, StoneId), 1);
+	TestTrue(TEXT("The generic throwable resolves immediately"), Fixture.Hud->View.Actions[6].bResolved);
+	TestTrue(TEXT("The generic throwable is usable in combat"), Fixture.Hud->View.Actions[6].Action.bEnabled);
 
-	// Retain the historical shortcut setup as a hostile input: an old action
-	// row cannot authorize a physical attack without a registered projectile.
 	const FVector Target = Fixture.Monster->GetActorLocation();
 	const FIntPoint Cell(1, 1);
-	TestNull(TEXT("An old unregistered definition does not authorize a projectile"),
-		Fixture.Party->TryLaunchInventoryItemForAttack(0, Shuriken.ItemDefinitionId, Target, Cell));
-	TestEqual(TEXT("Unknown source refusal does not consume the bag item"),
-		Inventory->CountItemDefinitionInCharacterInventory(0, Shuriken.ItemDefinitionId), 1);
+	TestNull(TEXT("A generic throwable cannot launch as a specialized projectile"),
+		Fixture.Party->TryLaunchInventoryItemForAttack(0, StoneId, Target, Cell));
+	TestEqual(TEXT("Specialized launch refusal preserves the generic throwable"),
+		Inventory->CountItemDefinitionInCharacterInventory(0, StoneId), 1);
 
-	FGridCanonicalLootTestScope Scope;
-	if (!TestTrue(TEXT("Registered projectile authority is attached"), Scope.Attach(Fixture.TestWorld.World)))
-		return false;
-
-
-	// A saved physical row and the historical binding can survive a reload,
-	// but neither makes an unknown item a registered action source.
-	TestFalse(TEXT("The physical row's ID is absent from the canonical registry"),
-		Scope.Registry->ContainsItem(Shuriken.ItemDefinitionId));
+	// Model a save row and shortcut whose definition disappeared. An older
+	// shortcut cannot grant either the generic or specialized attack.
+	FGridItemInstance UnknownItem = Stone;
+	UnknownItem.ItemDefinitionId = TEXT("Unknown_MON1287");
+	InventorySlot.Item = UnknownItem;
+	Binding.SourceDefinitionId = UnknownItem.ItemDefinitionId;
+	Binding.ActionId = FGridCombatHotbarBinding::MakePhysicalThrowItemActionId(UnknownItem.ItemDefinitionId);
+	Owner.CombatHotbarSlots[6] = Binding;
+	TestFalse(TEXT("The saved row's ID is absent from the canonical registry"),
+		Scope.Registry->ContainsItem(UnknownItem.ItemDefinitionId));
 	FGridPlayerCharacterTurnState BeforeRefusal;
 	if (!TestTrue(TEXT("Turn state before refusal"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, BeforeRefusal))) return false;
 	const FGridPartyInventoryState BeforeUnknown = Inventory->PartyInventoryState;
 	TestFalse(TEXT("Unknown source cannot bind through the canonical inventory"),
-		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 7, Shuriken, EGridEquipmentSlot::None));
+		Inventory->SetCharacterCombatHotbarBindingFromItem(0, 7, UnknownItem, EGridEquipmentSlot::None));
 	TestNull(TEXT("Unknown source cannot launch in a game with a configured registry"),
-		Fixture.Party->TryLaunchInventoryItemForAttack(0, Shuriken.ItemDefinitionId, Target, Cell));
+		Fixture.Party->TryLaunchInventoryItemForAttack(0, UnknownItem.ItemDefinitionId, Target, Cell));
 	TestTrue(TEXT("Refusal preserves quantities, GUIDs, ownership and bindings"),
 		FGridPartyInventoryState::StaticStruct()->CompareScriptStruct(
 			&BeforeUnknown, &Inventory->PartyInventoryState, 0));
@@ -1637,17 +1655,11 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	TurnManager->CurrentPhase = TurnManager->PhaseState.GetPhase();
 	TurnManager->RoundNumber = TurnManager->PhaseState.GetRoundNumber();
 
-	UGridItemDefinitionAsset* ShurikenDefinition = NewObject<UGridItemDefinitionAsset>(Fixture.Party);
-	ShurikenDefinition->ItemDefinitionId = TEXT("Shuriken_MON12_Transaction");
-	ShurikenDefinition->DisplayName = FText::FromString(TEXT("Shuriken transactionnel"));
-	ShurikenDefinition->ItemType = EGridItemType::Weapon;
-	ShurikenDefinition->bStackable = true;
-	ShurikenDefinition->MaxStackSize = 10;
-	ShurikenDefinition->CompatibleEquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+	const FName ShurikenId(TEXT("Shuriken_MON12_Transaction"));
 
 	FGridCombatActionDefinition ShurikenAction;
 	ShurikenAction.ActionId = TEXT("Attack_MON12_Transaction");
-	ShurikenAction.DisplayName = ShurikenDefinition->DisplayName;
+	ShurikenAction.DisplayName = FText::FromString(TEXT("Shuriken transactionnel"));
 	ShurikenAction.ActionType = EGridCombatActionType::MeleeAttack;
 	ShurikenAction.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
 	ShurikenAction.TargetingPolicy = EGridCombatTargetingPolicy::FirstAxialTarget;
@@ -1666,13 +1678,22 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	ShurikenAction.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
 	ShurikenAction.OffensiveProfile.DamageScalingAttribute = EGridAttackScalingAttribute::None;
 	ShurikenAction.OffensiveProfile.RangeCells = 1;
-	ShurikenDefinition->CombatActions.Add(ShurikenAction);
-	TestTrue(TEXT("The transactional weapon definition is valid"), ShurikenDefinition->IsValidDefinition());
-	TestTrue(TEXT("The transactional weapon is registered"), Inventory->RegisterItemDefinition(ShurikenDefinition));
+	FGridCanonicalLootTestScope Registry;
+	if (!TestTrue(TEXT("The transactional equipment and its action are registered"),
+		Registry.AttachWithWeights(Fixture.TestWorld.World, {}, [&](UGridItemSystemAsset& Root)
+		{
+			auto* Item = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+			Item->ItemId = ShurikenId;
+			Item->DisplayName = ShurikenAction.DisplayName;
+			Item->MaxStack = 10;
+			Item->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+			FGridCanonicalLootTestScope::BindDetailedAction(Root, Item->ActionBindings, ShurikenAction);
+			Root.ItemDefinitions.Add(Item);
+		}))) return false;
 
 	FGridItemInstance EquippedShuriken;
 	EquippedShuriken.RuntimeObjectId = FGuid(12, 12, 1, 1);
-	EquippedShuriken.ItemDefinitionId = ShurikenDefinition->ItemDefinitionId;
+	EquippedShuriken.ItemDefinitionId = ShurikenId;
 	EquippedShuriken.Quantity = 2;
 	EquippedShuriken.OwnerType = EGridItemOwnerType::EquipmentSlot;
 	EquippedShuriken.OwnerGuid = Fixture.CharacterIds[0];
@@ -1693,7 +1714,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 
 	FGridCombatActionRequestResult Accepted;
 	TestTrue(TEXT("The equipment action is accepted"),
-		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenDefinition->ItemDefinitionId,
+		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenId,
 			EGridEquipmentSlot::MainHand, Accepted));
 	TestEqual(TEXT("The action commits one equipment unit"), Accepted.Action.CurrentSourceItemQuantityCost, 1);
 	TestTrue(TEXT("The accepted attack is structurally valid"), Accepted.AttackRequest.IsValid());
@@ -1745,7 +1766,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	const int32 MonsterHealthBeforeRefusal = Fixture.Monster->CurrentHealth;
 	FGridCombatActionRequestResult Rejected;
 	TestFalse(TEXT("An action without enough mana is rejected"),
-		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenDefinition->ItemDefinitionId,
+		TurnManager->RequestCharacterCombatAction(0, ShurikenAction.ActionId, EGridCombatActionSourcePolicy::Equipment, ShurikenId,
 			EGridEquipmentSlot::MainHand, Rejected));
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	TestEqual(TEXT("A rejected action keeps AP"), TurnState.RemainingActionPoints, ActionPointsBeforeRefusal);

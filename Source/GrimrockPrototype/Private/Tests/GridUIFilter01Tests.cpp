@@ -5,6 +5,7 @@
 #include "../UI/GridInventoryItemTypeReadModel.h"
 
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/Items/GridInventoryCategoryTags.h"
 #include "UI/GridInventoryBagWidget.h"
 #include "UI/GridInventoryUiTypes.h"
 #include "UI/GridInventoryWidget.h"
@@ -48,7 +49,6 @@ bool FGridUIFilter01CategoryMappingTest::RunTest(const FString& Parameters)
 		DoesGridItemTypeMatchInventoryFilter(EGridItemType::Potion, EGridInventoryFilterCategory::Equipment));
 	TestFalse(TEXT("Book does not match Magic"),
 		DoesGridItemTypeMatchInventoryFilter(EGridItemType::Book, EGridInventoryFilterCategory::Magic));
-
 
 	// Registered items follow the active category projection, independently of readability or slots.
 	const FName BookId(TEXT("FilterCanonicalBook"));
@@ -103,7 +103,22 @@ bool FGridUIFilter01GridProjectionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld World({}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Potion = NewObject<UGridConsumableDefinitionAsset>(&Root);
+		Potion->ItemId = TEXT("FilterPotion");
+		Potion->DisplayName = FText::FromName(Potion->ItemId);
+		Potion->Tags.Add(GridInventoryCategoryTags::Potion());
+		Root.ItemDefinitions.Add(Potion);
+
+		auto* Book = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+		Book->ItemId = TEXT("FilterBook");
+		Book->DisplayName = FText::FromName(Book->ItemId);
+		Book->bReadable = true;
+		Book->Tags.Add(GridInventoryCategoryTags::Book());
+		Root.ItemDefinitions.Add(Book);
+	});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
 	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
 	if (!TestNotNull(TEXT("Party inventory exists"), Inventory) || !TestNotNull(TEXT("Inventory widget exists"), Widget))
 	{
@@ -115,28 +130,17 @@ bool FGridUIFilter01GridProjectionTest::RunTest(const FString& Parameters)
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.InventorySlots.SetNum(6);
 
-	auto RegisterDefinition = [Inventory](FName Id, EGridItemType Type)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromName(Id);
-		Definition->ItemType = Type;
-		Inventory->RegisterItemDefinition(Definition);
-	};
-
-	auto PutItem = [&Character](int32 SlotIndex, FName Id)
+	auto PutItem = [&Character](int32 SlotIndex, FName Id, int32 Level = 0)
 	{
 		FGridInventorySlot& Slot = Character.InventorySlots[SlotIndex];
 		Slot.bOccupied = true;
 		Slot.Item.RuntimeObjectId = FGuid::NewGuid();
 		Slot.Item.ItemDefinitionId = Id;
+		Slot.Item.ItemLevel = Level;
 		Slot.Item.Quantity = 1;
 	};
 
-	RegisterDefinition(TEXT("FilterWeapon"), EGridItemType::Weapon);
-	RegisterDefinition(TEXT("FilterPotion"), EGridItemType::Potion);
-	RegisterDefinition(TEXT("FilterBook"), EGridItemType::Book);
-	PutItem(0, TEXT("FilterWeapon"));
+	PutItem(0, TEXT("Weapon_Dagger_01"), 1);
 	PutItem(2, TEXT("FilterPotion"));
 	PutItem(4, TEXT("FilterBook"));
 	PutItem(5, TEXT("FilterMissingDefinition"));

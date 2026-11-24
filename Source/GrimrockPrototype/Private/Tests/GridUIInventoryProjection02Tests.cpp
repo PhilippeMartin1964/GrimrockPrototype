@@ -37,7 +37,40 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridUIInventoryProjection02Private;
 
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld World({}, [](UGridItemSystemAsset& Root)
+	{
+		auto* Torch = NewObject<UGridOtherEquipmentDefinitionAsset>(&Root);
+		Torch->ItemId = TEXT("SortTorch");
+		Torch->DisplayName = FText::FromString(TEXT("Zeta Torche"));
+		Torch->WeightKg = 0.5f;
+		Torch->EquipmentSlots.Add(EGridEquipmentSlot::MainHand);
+		Torch->LightEmitter.bUsePointLight = true;
+		Torch->Tags.Add(GridInventoryCategoryTags::Torch());
+		Root.ItemDefinitions.Add(Torch);
+
+		auto* Potion = NewObject<UGridConsumableDefinitionAsset>(&Root);
+		Potion->ItemId = TEXT("SortPotion");
+		Potion->DisplayName = FText::FromString(TEXT("Alpha Potion"));
+		Potion->WeightKg = 1.0f;
+		Potion->MaxStack = 3;
+		Potion->Tags.Add(GridInventoryCategoryTags::Potion());
+		Root.ItemDefinitions.Add(Potion);
+
+		auto* Sword = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+		Sword->ItemId = TEXT("SortSword");
+		Sword->DisplayName = FText::FromString(TEXT("Beta Épée"));
+		Sword->WeightKg = 2.0f;
+		Sword->Tags.Add(GridInventoryCategoryTags::Weapon());
+		Root.ItemDefinitions.Add(Sword);
+
+		auto* Book = NewObject<UGridNonArmamentDefinitionAsset>(&Root);
+		Book->ItemId = TEXT("SortBook");
+		Book->DisplayName = FText::FromString(TEXT("Gamma Livre"));
+		Book->WeightKg = 0.1f;
+		Book->Tags.Add(GridInventoryCategoryTags::Book());
+		Root.ItemDefinitions.Add(Book);
+	});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
 	UGridInventoryWidget* Widget = NewObject<UGridInventoryWidget>();
 	if (!TestNotNull(TEXT("Party inventory exists"), Inventory) || !TestNotNull(TEXT("Inventory widget exists"), Widget))
 	{
@@ -49,16 +82,6 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	Character.InventorySlots.SetNum(6);
 
-	auto RegisterDefinition = [Inventory](FName Id, const TCHAR* DisplayName, EGridItemType Type, float Weight)
-	{
-		UGridItemDefinitionAsset* Definition = NewObject<UGridItemDefinitionAsset>(Inventory);
-		Definition->ItemDefinitionId = Id;
-		Definition->DisplayName = FText::FromString(DisplayName);
-		Definition->ItemType = Type;
-		Definition->Weight = Weight;
-		Inventory->RegisterItemDefinition(Definition);
-	};
-
 	auto PutItem = [&Character](int32 SlotIndex, FName Id, int32 Quantity)
 	{
 		FGridInventorySlot& Slot = Character.InventorySlots[SlotIndex];
@@ -67,11 +90,6 @@ bool FGridUIInventory02SortingProjectionTest::RunTest(const FString& Parameters)
 		Slot.Item.ItemDefinitionId = Id;
 		Slot.Item.Quantity = Quantity;
 	};
-
-	RegisterDefinition(TEXT("SortTorch"), TEXT("Zeta Torche"), EGridItemType::Torch, 0.5f);
-	RegisterDefinition(TEXT("SortPotion"), TEXT("Alpha Potion"), EGridItemType::Potion, 1.0f);
-	RegisterDefinition(TEXT("SortSword"), TEXT("Beta Épée"), EGridItemType::Weapon, 2.0f);
-	RegisterDefinition(TEXT("SortBook"), TEXT("Gamma Livre"), EGridItemType::Book, 0.1f);
 
 	PutItem(0, TEXT("SortTorch"), 1);
 	PutItem(2, TEXT("SortPotion"), 3);

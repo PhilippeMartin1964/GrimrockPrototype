@@ -13,9 +13,14 @@ namespace GridInventoryCategoryTags
     inline FName Component() { return FName(TEXT("InventoryCategory.Component")); }
     inline FName Potion() { return FName(TEXT("InventoryCategory.Potion")); }
 
+    inline FName Torch() { return FName(TEXT("InventoryCategory.Torch")); }
+    inline FName Book() { return FName(TEXT("InventoryCategory.Book")); }
+    inline FName Jewelry() { return FName(TEXT("InventoryCategory.Jewelry")); }
+
     inline int32 Count(const TArray<FName>& Tags)
     {
         return int32(Tags.Contains(Weapon())) + int32(Tags.Contains(Food())) +
-            int32(Tags.Contains(Component())) + int32(Tags.Contains(Potion()));
+            int32(Tags.Contains(Component())) + int32(Tags.Contains(Potion())) +
+            int32(Tags.Contains(Torch())) + int32(Tags.Contains(Book())) + int32(Tags.Contains(Jewelry()));
     }
 }

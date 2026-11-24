@@ -10,6 +10,8 @@
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 #include "GridCombatPhysicalThrowSourceReadModel.h"
+#include "../GridQuickItemUseReadModel.h"
+#include "../GridPartyTransactionScope.h"
 #include "GridEquippedAttackReadModel.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridQuickItemResolver.h"
@@ -385,6 +387,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	const bool bRegisteredAttackSource = AttackRegistry &&
 		AttackRegistry->ContainsItem(OffensiveItemDefinitionId);
 	FGridCombatActionDefinition DirectCanonicalAction;
+	bool bRegisteredDetailedEquipmentAttack = false;
 	if (bRegisteredAttackSource)
 	{
 		if (OffensiveEquipmentSlot != EGridEquipmentSlot::None)
@@ -400,6 +403,23 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 			}
 			ResolvedAttackSourceTags = ResolvedSource.Tags;
+			if (!ResolvedSource.bIsArmament && CombatActionOverride)
+			{
+				FGridCombatActionDefinition AuthoredAction;
+				if (bUsesEquippedWeaponAction ||
+					!AttackRegistry->ResolveDetailedNonArmEquippedAction(ActualSource, OffensiveEquipmentSlot,
+						CombatActionOverride->Definition.ActionId, AuthoredAction) ||
+					AuthoredAction.ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+					AuthoredAction.ResourceCosts.SourceItemQuantityCost != CombatActionOverride->CurrentSourceItemQuantityCost ||
+					ActualSource.Quantity > ResolvedSource.MaxStack ||
+					ActualSource.OwnerType != EGridItemOwnerType::EquipmentSlot ||
+					ActualSource.OwnerGuid != Attacker.CharacterId || ActualSource.OwnerCharacterIndex != AttackerCharacterIndex ||
+					ActualSource.RuntimeObjectId != CombatActionOverride->SourceRuntimeId)
+				{
+					return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+				}
+				bRegisteredDetailedEquipmentAttack = true;
+			}
 			if (!CombatActionOverride &&
 				!FGridEquippedAttackReadModel::TryResolve(AttackRegistry, ActualSource,
 					OffensiveEquipmentSlot, OffensiveProfile.AttackId, DirectCanonicalAction))
@@ -746,9 +766,39 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 			AmmoSourceInstance = SourceSlot->Item;
 		}
 	}
+	// A bound offensive consumable uses the ordinary attack transaction. Its
+	// inventory debit is the source cost; it supplies neither a weapon
+	// projectile nor ammunition. Check every matching stack before the
+	// definition-based debit, which can consume from any of those stacks.
+	const bool bRegisteredQuickItemAttack =
+		AmmoRegistry && SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+	if (bRegisteredQuickItemAttack)
+	{
+		FGridResolvedItem Resolved;
+		const FGridQuickItemUseReadView Use = FGridQuickItemUseReadModel::Resolve(AmmoRegistry, AmmoSourceInstance);
+		if (bUsesEquippedWeaponAction || !Use.bResolved || Use.Action.ActionId != CombatActionOverride->Definition.ActionId ||
+			Use.Action.ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+			SourceItemQuantityCost != 1 || Use.Action.ResourceCosts.SourceItemQuantityCost != SourceItemQuantityCost ||
+			!AmmoRegistry->ResolveItem(AmmoSourceInstance.ItemDefinitionId, AmmoSourceInstance.ItemLevel, Resolved) ||
+			Resolved.bIsArmament || AmmoSourceInstance.ItemLevel != 0)
+		{
+			return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+		}
+		for (const FGridInventorySlot& Slot : Attacker.InventorySlots)
+		{
+			if (Slot.bOccupied && Slot.Item.ItemDefinitionId == OffensiveItemDefinitionId &&
+				(!Slot.Item.IsValid() || Slot.Item.ItemLevel != 0 || Slot.Item.Quantity > Resolved.MaxStack ||
+				 Slot.Item.OwnerType != EGridItemOwnerType::CharacterInventory ||
+				 Slot.Item.OwnerGuid != Attacker.CharacterId || Slot.Item.OwnerCharacterIndex != AttackerCharacterIndex))
+			{
+				return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+			}
+		}
+	}
 	const bool bItemSourceAttack =
-		(SourcePolicy == EGridCombatActionSourcePolicy::Equipment && OffensiveEquipmentSlot != EGridEquipmentSlot::None) ||
-		SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+		(SourcePolicy == EGridCombatActionSourcePolicy::Equipment && OffensiveEquipmentSlot != EGridEquipmentSlot::None &&
+			!bRegisteredDetailedEquipmentAttack) ||
+		(SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && !bRegisteredQuickItemAttack);
 	const FGridCombatPhysicalThrowSourceReadView ThrowSource = bItemSourceAttack
 		? FGridCombatPhysicalThrowSourceReadModel::Resolve(
 			AmmoRegistry, SourceItemDefinition, AmmoSourceInstance,
@@ -792,6 +842,18 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 				(SourceItemQuantityCost > 0 && bPhysicalCombatThrow && SourceItemQuantityCost != 1))))
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+	}
+
+	// Protect the canonical source across synchronous AP, inventory and
+	// resolution notifications. Only this transaction may debit it.
+	TUniquePtr<FGridPartyTransactionScope> SourceTransaction;
+	if (bRegisteredQuickItemAttack || bRegisteredDetailedEquipmentAttack)
+	{
+		SourceTransaction = MakeUnique<FGridPartyTransactionScope>(Inventory, TArray<int32>{AttackerCharacterIndex});
+		if (!SourceTransaction->IsAcquired() || !SourceTransaction->ReserveItem(AmmoSourceInstance.RuntimeObjectId))
+		{
+			return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
+		}
 	}
 
 	FGridPlayerCharacterTurnState TurnStateBefore;
@@ -857,8 +919,12 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		}
 		else
 		{
-			bSourceCommitted = Inventory->TryConsumeEquippedItemQuantityForCombatAction(AttackerCharacterIndex, OffensiveEquipmentSlot,
-				OffensiveItemDefinitionId, CombatActionOverride ? CombatActionOverride->SourceRuntimeId : FGuid(), SourceItemQuantityCost);
+			const FGuid RuntimeId = CombatActionOverride ? CombatActionOverride->SourceRuntimeId : FGuid();
+			bSourceCommitted = SourceTransaction
+				? Inventory->ConsumeEquippedItemQuantityInternal(AttackerCharacterIndex, OffensiveEquipmentSlot,
+					OffensiveItemDefinitionId, RuntimeId, SourceItemQuantityCost)
+				: Inventory->TryConsumeEquippedItemQuantityForCombatAction(AttackerCharacterIndex, OffensiveEquipmentSlot,
+					OffensiveItemDefinitionId, RuntimeId, SourceItemQuantityCost);
 		}
 	}
 	else if (bSourceCommitted && SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
@@ -871,7 +937,9 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		}
 		if (bSourceCommitted)
 		{
-			bSourceCommitted = Inventory->RemoveItemDefinitionFromCharacterInventory(AttackerCharacterIndex, OffensiveItemDefinitionId, SourceItemQuantityCost);
+			bSourceCommitted = SourceTransaction
+				? Inventory->RemoveItemDefinitionFromCharacterInventoryInternal(AttackerCharacterIndex, OffensiveItemDefinitionId, SourceItemQuantityCost)
+				: Inventory->RemoveItemDefinitionFromCharacterInventory(AttackerCharacterIndex, OffensiveItemDefinitionId, SourceItemQuantityCost);
 		}
 	}
 
@@ -1195,6 +1263,7 @@ AGridThrownItemActor* PreparedThrownItem = nullptr;
 		Inventory->NotifyPartyInventoryChanged(AttackerCharacterIndex);
 	}
 
+	SourceTransaction.Reset();
 	if (bPendingVictoryAfterPlayerAttack)
 	{
 		bPendingVictoryAfterPlayerAttack = false;

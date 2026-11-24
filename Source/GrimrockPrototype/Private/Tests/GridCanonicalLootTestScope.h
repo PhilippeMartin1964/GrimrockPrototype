@@ -61,6 +61,17 @@ struct FGridCanonicalLootTestScope
 		return Registry->RegisterItemSystem(Root, Errors);
 	}
 
+	// Keep authored action rows in an isolated copy of the global catalogue.
+	static void BindDetailedAction(UGridItemSystemAsset& Root, TArray<FGridItemActionBinding>& Bindings,
+		const FGridCombatActionDefinition& Definition)
+	{
+		Root.ActionCatalogue = DuplicateObject<UGridActionCatalogueAsset>(Root.ActionCatalogue, &Root);
+		Root.ActionCatalogue->DetailedActions.AddDefaulted_GetRef().Definition = Definition;
+		FGridItemActionBinding& Binding = Bindings.AddDefaulted_GetRef();
+		Binding.ActionId = Definition.ActionId;
+		Binding.PresentationId = Root.ActionPresentationCatalogue->Presentations[0].PresentationId;
+	}
+
 	void Detach()
 	{
 		if (World) World->SetGameInstance(nullptr);
