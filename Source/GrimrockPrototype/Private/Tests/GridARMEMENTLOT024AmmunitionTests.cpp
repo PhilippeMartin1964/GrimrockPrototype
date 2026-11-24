@@ -2,7 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
-#include "Runtime/GridItemDefinitionAsset.h"
+#include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLOT024AmmunitionInventory,
@@ -11,25 +11,28 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLOT024AmmunitionInventory,
 
 bool FLOT024AmmunitionInventory::RunTest(const FString&)
 {
-	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	FGridCanonicalWeightTestWorld World({});
+	UGridPartyInventoryComponent* Inventory = World.MakeInventory();
+	if (!TestNotNull(TEXT("Configured item inventory"), Inventory)) return false;
 	Inventory->InitializeDefaultPartyIfNeeded();
-	UGridItemDefinitionAsset* Weapon = NewObject<UGridItemDefinitionAsset>();
-	Weapon->ItemDefinitionId = TEXT("Weapon_AmmunitionContract_Test");
-	Weapon->RequiredAmmunitionItemDefinitionId = TEXT("Item_Arrow_Contract");
-	const FName ArrowId = Weapon->RequiredAmmunitionItemDefinitionId;
+	const FName ArrowId(TEXT("Item_Arrows_01"));
+	const FName BowId(TEXT("Weapon_ShortBow_01"));
+	const auto Ranged = FGridRangedAmmunitionPolicy::ResolveForAttack(World.Scope.Registry, BowId, 1, true);
+	const auto Melee = FGridRangedAmmunitionPolicy::ResolveForAttack(World.Scope.Registry, BowId, 1, false);
+	TestTrue(TEXT("Short bow uses the registered arrow"), Ranged.bRegisteredAmmunition && Ranged.AmmunitionItemId == ArrowId);
 
 	TestFalse(TEXT("Ammo-requiring weapon cannot fire with an empty bag"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestFalse(TEXT("Cannot consume absent ammo"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestTrue(TEXT("Non-ranged action never requires an arrow"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Melee));
 	TestTrue(TEXT("Non-ranged action with no ammo is a no-op"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Melee));
 	TestFalse(TEXT("Actual ranged attack still requires ammunition"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestFalse(TEXT("Actual ranged attack cannot consume absent ammunition"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	const FGuid HeroId = Inventory->PartyInventoryState.ActiveCharacters[0].CharacterId;
 	FGridCharacterInventoryState& Hero = Inventory->PartyInventoryState.ActiveCharacters[0];
 	FGridInventorySlot& Slot = Hero.InventorySlots[0];
@@ -44,33 +47,34 @@ bool FLOT024AmmunitionInventory::RunTest(const FString&)
 	const FGuid StackId = Slot.Item.RuntimeObjectId;
 
 	TestTrue(TEXT("Three arrows are available"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestTrue(TEXT("Non-ranged attack is still usable with arrows in the bag"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, false));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Melee));
 	TestEqual(TEXT("Non-ranged action cannot deduct an arrow"), Slot.Item.Quantity, 3);
 	TestTrue(TEXT("Ranged action can see real arrows"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestTrue(TEXT("First ranged arrow consumed"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, *Weapon, true));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestEqual(TEXT("Quantity reduced to two"), Slot.Item.Quantity, 2);
 	TestEqual(TEXT("Stack GUID retained on partial consumption"),
 		Slot.Item.RuntimeObjectId, StackId);
 	TestTrue(TEXT("Second arrow consumed"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestTrue(TEXT("Final arrow consumed"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestTrue(TEXT("Last arrow removes empty stack"), Slot.IsEmpty());
 	TestFalse(TEXT("Further shots refused without ammo"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 	TestFalse(TEXT("No underflow or extra consumption"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Ranged));
 
-	Weapon->RequiredAmmunitionItemDefinitionId = NAME_None;
-	TestTrue(TEXT("Legacy weapon without required ammo is usable"),
-		FGridRangedAmmunitionPolicy::HasRequiredAmmunition(*Inventory, 0, *Weapon));
-	TestTrue(TEXT("Legacy weapon never consumes ammunition"),
-		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(*Inventory, 0, *Weapon));
-	TestFalse(TEXT("No arrows generated by legacy path"),
+	const auto Sword = FGridRangedAmmunitionPolicy::ResolveForAttack(
+		World.Scope.Registry, TEXT("Weapon_StraightSword_01"), 1, false);
+	TestTrue(TEXT("Melee weapon without required ammo is usable"),
+		FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(*Inventory, 0, Sword));
+	TestTrue(TEXT("Melee weapon never consumes ammunition"),
+		FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(*Inventory, 0, Sword));
+	TestFalse(TEXT("No arrows generated by the no-ammo action"),
 		Inventory->HasItemDefinitionInCharacterInventory(0, ArrowId));
 	return true;
 }

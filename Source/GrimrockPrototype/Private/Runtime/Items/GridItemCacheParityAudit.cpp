@@ -30,16 +30,16 @@ bool GridItemCacheParityAudit::HasCanonicalProjection(
 
     const FText Name = Canonical.DisplayName.IsEmpty()
         ? FText::FromName(Instance.ItemDefinitionId) : Canonical.DisplayName;
-    const auto Meta = FGridInventoryItemMetadataReadModel::Resolve(&Registry, nullptr, Instance);
+    const auto Meta = FGridInventoryItemMetadataReadModel::Resolve(&Registry, Instance);
     if (!Meta.bResolved || !Meta.bRegisteredIdentity || Meta.UnitWeightKg != Canonical.WeightKg ||
         !Meta.DisplayName.EqualTo(Name) || !Meta.Description.EqualTo(Canonical.Description)) return false;
-    const auto Sort = FGridInventorySortReadModel::Resolve(&Registry, nullptr, Instance);
+    const auto Sort = FGridInventorySortReadModel::Resolve(&Registry, Instance);
     if (Sort.TotalWeight != Total || Sort.DisplayName != Name.ToString()) return false;
 
     float Mass = 0.f;
     const bool bExpectedMass = Canonical.bUseItemWeightAsWorldPhysicsMass &&
         Canonical.WeightKg > KINDA_SMALL_NUMBER;
-    if (FGridWorldPhysicsMassReadModel::TryResolve(&Registry, nullptr, Instance, Mass) != bExpectedMass ||
+    if (FGridWorldPhysicsMassReadModel::TryResolve(&Registry, Instance, Mass) != bExpectedMass ||
         Mass != (bExpectedMass ? Canonical.WeightKg : 0.f)) return false;
 
     const bool bAuthoredFlight = !Canonical.bIsArmament || Canonical.Weapon.Projectile.bEnabled ||
@@ -57,7 +57,7 @@ bool GridItemCacheParityAudit::HasCanonicalProjection(
 
     for (const int32 Strength : {0, 1, 5, 10, 20, 40, 100})
     {
-        const auto View = FGridPhysicalThrowPreflightReadModel::Resolve(&Registry, nullptr, Instance, Strength);
+        const auto View = FGridPhysicalThrowPreflightReadModel::Resolve(&Registry, Instance, Strength);
         const float Limit = Strength * 0.25f;
         const bool bStrengthAllows = Strength > 0 && bOneHanded && bAuthoredFlight &&
             FMath::IsFinite(Speed) && Speed > KINDA_SMALL_NUMBER &&

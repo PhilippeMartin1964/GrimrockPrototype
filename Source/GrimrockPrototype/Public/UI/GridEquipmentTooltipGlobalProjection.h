@@ -4,7 +4,6 @@
 #include "UI/GridInventoryUiTypes.h"
 
 class UGridPartyInventoryComponent;
-class UGridItemDefinitionAsset;
 class UGridItemSubsystem;
 
 /**
@@ -18,14 +17,12 @@ struct GRIMROCKPROTOTYPE_API FGridEquipmentTooltipGlobalProjection
         int32 CharacterIndex,
         int32 InventorySlotIndex,
         EGridEquipmentSlot RequestedSlot,
-        const UGridItemDefinitionAsset* CandidateDefinition,
         const FGridItemInstance& Candidate,
         FGridItemTooltipEquipmentComparison& OutScenario);
 
     /** Real ItemInstance level and canonical registry decide all shown slots. */
     static void GatherAllowedSlots(
         const UGridItemSubsystem* Registry,
-        const UGridItemDefinitionAsset* CandidateDefinition,
         const FGridItemInstance& Candidate,
         TArray<EGridEquipmentSlot>& OutSlots);
 };

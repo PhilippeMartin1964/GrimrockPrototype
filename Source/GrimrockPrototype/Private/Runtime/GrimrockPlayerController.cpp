@@ -95,7 +95,7 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		return FGridPhysicalThrowStrengthReadModel::Resolve(
-			Registry, nullptr, Item, Summary.Attributes.Strength).bCanThrow;
+			Registry, Item, Summary.Attributes.Strength).bCanThrow;
 	}
 
 	bool ResolvePhysicalThrowEquippedMainHand(const AGrimrockPartyPawn* PartyPawn, int32 ExpectedCharacterIndex, const FGuid& ExpectedRuntimeId,
@@ -135,7 +135,7 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, nullptr, OutItem, Summary.Attributes.Strength);
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, OutItem, Summary.Attributes.Strength);
 		if (!Gate.bResolved)
 		{
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));
@@ -204,7 +204,7 @@ namespace
 		UGameInstance* GI = PartyPawn->GetWorld() ? PartyPawn->GetWorld()->GetGameInstance() : nullptr;
 		const UGridItemSubsystem* Registry = GI ? GI->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridPhysicalThrowStrengthReadView Gate =
-			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, nullptr, ItemSlot->Item, Summary.Attributes.Strength);
+			FGridPhysicalThrowStrengthReadModel::Resolve(Registry, ItemSlot->Item, Summary.Attributes.Strength);
 		if (!Gate.bResolved)
 		{
 			OutReason = FUILocalizationText::Get(TEXT("Interaction.Throw.DefinitionOrCharacterUnavailable"));

@@ -317,7 +317,7 @@ void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics() c
 
 			// Same canonical projection as gameplay, including non-ARM equipment.
 			const FGridDamageResistanceSet Resistances =
-				FGridEquipmentContributionReadModel::ResolveResistances(Registry, nullptr, Item);
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry, Item);
 			if (Resistances.IsEmpty())
 			{
 				return;

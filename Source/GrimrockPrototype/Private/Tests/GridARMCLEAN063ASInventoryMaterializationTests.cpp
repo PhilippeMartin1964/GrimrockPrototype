@@ -130,7 +130,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestEqual(TEXT("True N0 remains zero"), Materialized.ItemLevel, 0);
     TestTrue(TEXT("All materialized durable fields unchanged"),
         FGridItemInstance::StaticStruct()->CompareScriptStruct(&Materialized, &Original, 0));
-    const auto MaterializedMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, nullptr, Materialized);
+    const auto MaterializedMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, Materialized);
     TestTrue(TEXT("Canonical metadata resolves"), MaterializedMeta.bResolved);
     TestTrue(TEXT("Mass comes from canonical"), FMath::IsNearlyEqual(MaterializedMeta.UnitWeightKg, Ammo.WeightKg));
     TestEqual(TEXT("Canonical name from root"), MaterializedMeta.DisplayName.ToString(), Ammo.DisplayName.ToString());
@@ -156,7 +156,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestTrue(TEXT("Second stack owns a fresh GUID"),
         Character.InventorySlots[1].Item.RuntimeObjectId != OriginalGuid);
     TestEqual(TEXT("Canonical arrow stays N0 in bag"), Character.InventorySlots[0].Item.ItemLevel, 0);
-    const auto StackMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, nullptr, Character.InventorySlots[1].Item);
+    const auto StackMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, Character.InventorySlots[1].Item);
     TestTrue(TEXT("Canonical stack has matching source weight"), StackMeta.bResolved &&
         FMath::IsNearlyEqual(StackMeta.UnitWeightKg, Ammo.WeightKg));
     TestTrue(TEXT("Gameplay still offers split action without old definition"),
@@ -194,7 +194,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
     TestTrue(TEXT("Canonical materialization ignores old unstackable flag"),
         Fixture.Inventory->ApplyItemDefinitionToInstance(Conflict));
     TestEqual(TEXT("Canonical capacity still allows seven"), Conflict.Quantity, 7);
-    const auto ConflictMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, WrongOld, Conflict);
+    const auto ConflictMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, Conflict);
     TestTrue(TEXT("Contradictory old metadata does not affect canonical mass"), ConflictMeta.bResolved &&
         FMath::IsNearlyEqual(ConflictMeta.UnitWeightKg, Ammo.WeightKg));
     TestEqual(TEXT("Old max stack is ignored for registered ID"),
@@ -230,7 +230,7 @@ bool FGridClean063ASNoLegacyInventory::RunTest(const FString&)
         Fixture.Inventory->AddItemToCharacterInventory(0, Sword));
     TestEqual(TEXT("N19 level preserved"), Character.InventorySlots[0].Item.ItemLevel, 19);
     TestEqual(TEXT("ARM remains nonstackable"), Character.InventorySlots[0].Item.Quantity, 1);
-    const auto SwordMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, nullptr, Character.InventorySlots[0].Item);
+    const auto SwordMeta = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, Character.InventorySlots[0].Item);
     TestTrue(TEXT("ARM N19 weight from canonical root"), SwordMeta.bResolved &&
         FMath::IsNearlyEqual(SwordMeta.UnitWeightKg, Sword19.WeightKg));
     TestFalse(TEXT("ARM cannot gain a SplitStack menu"),

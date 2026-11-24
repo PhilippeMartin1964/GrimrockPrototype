@@ -290,7 +290,7 @@ void AGridItemActor::RefreshWorldPickupMass()
 	if (Registry)
 	{
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
-			Registry, nullptr, MassInstance, MassKg);
+			Registry, MassInstance, MassKg);
 	}
 	else if (!GameInstance && ResolvedWorldPresentation.IsValid() &&
 		ResolvedWorldPresentation.ItemId == MassInstance.ItemDefinitionId &&
@@ -304,7 +304,7 @@ void AGridItemActor::RefreshWorldPickupMass()
 	else if (!GameInstance && GIsAutomationTesting)
 	{
 		bOverrideMass = FGridWorldPhysicsMassReadModel::TryResolve(
-			nullptr, ItemDefinitionAsset, MassInstance, MassKg);
+			nullptr, MassInstance, MassKg);
 	}
 #endif
 	MeshComponent->SetMassOverrideInKg(NAME_None, bOverrideMass ? MassKg : 0.0f, bOverrideMass);

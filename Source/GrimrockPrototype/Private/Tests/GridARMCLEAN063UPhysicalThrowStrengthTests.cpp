@@ -23,16 +23,11 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->bUseWeaponCatalogue = true;
-	Old->Weight = 100000.0f; // Historical copy contradicts canonical data.
-	Old->ThrowSpeed = 1500.0f;
 	const FName Ids[] = {TEXT("Weapon_ThrowingKnife_01"), TEXT("Weapon_Javelin_01"),
 		TEXT("Weapon_Dart_01")};
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Ids)
 	{
-		Old->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridItemInstance Item;
@@ -44,13 +39,13 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 			if (!TestTrue(TEXT("Real thrown ARM N1/N20 exists"), Registry->ResolveItem(Id, Level, Canonical)))
 				return false;
 			const FGridPhysicalThrowStrengthReadView Gate =
-				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Item, 100);
+				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Item, 100);
 			TestTrue(TEXT("Registered ARM StrengthGate identity"), Gate.bRegisteredIdentity);
 			TestTrue(TEXT("Registered ARM level resolves"), Gate.bResolved);
 			TestTrue(TEXT("One-handed thrown ARM is one-handed"), Gate.bOneHanded);
 			TestTrue(TEXT("Gate mass is canonical despite old contradictory definition"),
 				FMath::IsNearlyEqual(Gate.UnitWeightKg, Canonical.WeightKg));
-			const float ExpectedMax = Old->GetMaxThrowableWeightForStrength(100);
+			const float ExpectedMax = 25.0f;
 			TestTrue(TEXT("Weight threshold preserved"), FMath::IsNearlyEqual(Gate.MaxWeightKg, ExpectedMax));
 			const bool ExpectedPermission = Canonical.WeightKg <= ExpectedMax + KINDA_SMALL_NUMBER;
 			TestEqual(TEXT("Permission uses canonical unit mass"), Gate.bCanThrow, ExpectedPermission);
@@ -60,28 +55,24 @@ bool FGridClean063UPhysicalThrowStrength::RunTest(const FString&)
 			}
 			Item.ItemLevel = 0;
 			const FGridPhysicalThrowStrengthReadView Invalid =
-				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Item, 100);
+				FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Item, 100);
 			TestTrue(TEXT("Invalid registered level stays canonical"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Invalid N0 refuses thrown item"), Invalid.bCanThrow);
 			TestFalse(TEXT("Invalid N0 cannot expose stale mass"), Invalid.bResolved);
 		}
 	}
-	Old->ItemDefinitionId = TEXT("LegacyPhysicalThrow_063U");
-	Old->bUseWeaponCatalogue = false;
-	Old->Weight = 0.25f;
 	FGridItemInstance Other;
 	Other.RuntimeObjectId = FGuid::NewGuid();
-	Other.ItemDefinitionId = Old->ItemDefinitionId;
+	Other.ItemDefinitionId = TEXT("LegacyPhysicalThrow_063U");
 	Other.Quantity = 1;
 	TestFalse(TEXT("Configured registry rejects unknown strength gate"),
-		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Old.Get(), Other, 10).bResolved);
+		FGridPhysicalThrowStrengthReadModel::Resolve(Registry.Get(), Other, 10).bResolved);
 	const FGridPhysicalThrowStrengthReadView Legacy =
-		FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Old.Get(), Other, 10);
+		FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Other, 10);
 	TestFalse(TEXT("Legacy item is never classified as canonical"), Legacy.bRegisteredIdentity);
-	TestEqual(TEXT("Legacy speed modifier unchanged"),
-		Legacy.SpeedScale, Old->GetThrowSpeedScaleForStrength(10));
-	TestEqual(TEXT("Legacy throw permission unchanged"),
-		Legacy.bCanThrow, Old->CanBeThrownByStrength(10));
+	TestEqual(TEXT("Registry-less throw has no speed modifier"),
+		Legacy.SpeedScale, 0.0f);
+	TestFalse(TEXT("Registry-less throw is forbidden"), Legacy.bCanThrow);
 	return true;
 }
 

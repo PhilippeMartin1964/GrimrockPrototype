@@ -23,10 +23,6 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
-	Legacy->DisplayName = FText::FromString(TEXT("FAKE OLD NAME"));
-	Legacy->Description = FText::FromString(TEXT("FAKE OLD DESCRIPTION"));
-	Legacy->Weight = 888.0f;
 
 	const FName ItemIds[] =
 	{
@@ -36,7 +32,6 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 	const int32 Levels[] = {1, 20};
 	for (const FName ItemId : ItemIds)
 	{
-		Legacy->ItemDefinitionId = ItemId;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Expected;
@@ -48,7 +43,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 			Instance.ItemLevel = Level;
 			Instance.Quantity = 1;
 			const FGridInventoryItemMetadata Metadata =
-				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Instance);
+				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Instance);
 			TestTrue(TEXT("Registered ARM metadata is canonical"), Metadata.bRegisteredIdentity);
 			TestTrue(TEXT("Authored N1/N20 identity resolves"), Metadata.bResolved);
 			TestEqual(TEXT("DisplayName comes from item definition"), Metadata.DisplayName.ToString(),
@@ -60,7 +55,7 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 
 			Instance.ItemLevel = 0;
 			const FGridInventoryItemMetadata Invalid =
-				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Instance);
+				FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Instance);
 			TestTrue(TEXT("Known canonical identity stays classified canonical"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Level zero does not silently rehydrate legacy fields"), Invalid.bResolved);
 			TestEqual(TEXT("Invalid canonical weight never falls back"), Invalid.UnitWeightKg, 0.0f);
@@ -70,23 +65,17 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 		}
 	}
 
-	Legacy->ItemDefinitionId = TEXT("LegacyNonCanonical_063K");
 	FGridItemInstance Outside;
-	Outside.ItemDefinitionId = Legacy->ItemDefinitionId;
+	Outside.ItemDefinitionId = TEXT("LegacyNonCanonical_063K");
 	Outside.RuntimeObjectId = FGuid::NewGuid();
 	Outside.Quantity = 1;
 	const FGridInventoryItemMetadata Old =
-		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), Outside);
+		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Outside);
 	TestFalse(TEXT("Unregistered source is not resolved"), Old.bRegisteredIdentity || Old.bResolved);
 	TestEqual(TEXT("Unknown source shows only technical identity"), Old.DisplayName.ToString(), Outside.ItemDefinitionId.ToString());
 	TestEqual(TEXT("Unknown source has no mass projection"), Old.UnitWeightKg, 0.0f);
 	TestTrue(TEXT("Unknown source has no old description"), Old.Description.IsEmpty());
-	const auto Fixture = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Legacy.Get(), Outside);
-	TestTrue(TEXT("Isolated fixture resolved"), Fixture.bResolved);
-	TestEqual(TEXT("Isolated fixture name"), Fixture.DisplayName.ToString(), FString(TEXT("FAKE OLD NAME")));
-	TestEqual(TEXT("Isolated fixture mass"), Fixture.UnitWeightKg, 888.0f);
-	TestEqual(TEXT("Isolated fixture description"), Fixture.Description.ToString(), FString(TEXT("FAKE OLD DESCRIPTION")));
-	const auto NoDefinition = FGridInventoryItemMetadataReadModel::Resolve(nullptr, nullptr, Outside);
+	const auto NoDefinition = FGridInventoryItemMetadataReadModel::Resolve(nullptr, Outside);
 	TestFalse(TEXT("Fixture without definition cannot project static metadata"),
 		NoDefinition.bResolved);
 	TestEqual(TEXT("Definition-less fixture exposes only technical name"),
@@ -95,9 +84,9 @@ bool FGridClean063KInventoryMetadata::RunTest(const FString&)
 	TestEqual(TEXT("Definition-less fixture has zero mass"), NoDefinition.UnitWeightKg, 0.0f);
 	Outside.ItemDefinitionId = TEXT("Item_Arrows_01");
 	Outside.ItemLevel = 1;
-	TestFalse(TEXT("Non-ARM N1 refused"), FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Outside).bResolved);
+	TestFalse(TEXT("Non-ARM N1 refused"), FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Outside).bResolved);
 	TestTrue(TEXT("Invalid instance returns empty metadata"),
-		!FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Legacy.Get(), FGridItemInstance()).bResolved);
+		!FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), FGridItemInstance()).bResolved);
 	return true;
 }
 

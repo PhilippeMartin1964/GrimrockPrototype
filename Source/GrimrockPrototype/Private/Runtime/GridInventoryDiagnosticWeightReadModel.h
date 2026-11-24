@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridItemWeightReadModel.h"
 
@@ -23,28 +22,20 @@ struct FGridInventoryDiagnosticWeightReadModel
 	}
 
 	static FString FormatDefinitionWeight(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Definition)
+		const UGridItemSubsystem* Registry, FName ItemId)
 	{
-		if (!IsValid(Definition))
+		if (!Registry || !Registry->ContainsItem(ItemId))
 		{
-			return TEXT("INVALID");
-		}
-		if (!Registry || !Registry->ContainsItem(Definition->ItemDefinitionId))
-		{
-#if WITH_DEV_AUTOMATION_TESTS
-			if (!Registry && GIsAutomationTesting && FMath::IsFinite(Definition->Weight) && Definition->Weight >= 0.0f)
-				return FString::Printf(TEXT("%.1f"), Definition->Weight);
-#endif
 			return TEXT("INVALID");
 		}
 		FGridResolvedItem Unlevelled;
-		if (Registry->ResolveItem(Definition->ItemDefinitionId, 0, Unlevelled))
+		if (Registry->ResolveItem(ItemId, 0, Unlevelled))
 		{
 			return FString::Printf(TEXT("N0:%.1f"), Unlevelled.WeightKg);
 		}
 		FGridResolvedItem First, Last;
-		if (Registry->ResolveItem(Definition->ItemDefinitionId, 1, First) &&
-			Registry->ResolveItem(Definition->ItemDefinitionId, 20, Last))
+		if (Registry->ResolveItem(ItemId, 1, First) &&
+			Registry->ResolveItem(ItemId, 20, Last))
 		{
 			return FString::Printf(TEXT("N1:%.1f,N20:%.1f"), First.WeightKg, Last.WeightKg);
 		}

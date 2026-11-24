@@ -99,23 +99,23 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 		Shield->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded);
 
 	const FGridStartingKitEquipmentPolicyReadView BowPolicy =
-		FGridStartingKitEquipmentPolicyReadModel::Resolve(
-			Registry.Get(), Bow.Get(), 6, EGridEquipmentSlot::OffHand);
+		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+			Registry.Get(), Bow->ItemDefinitionId, 6, EGridEquipmentSlot::OffHand);
 	TestTrue(TEXT("Canonical bow permitted from authored OffHand"), BowPolicy.bRegisteredIdentity && BowPolicy.bResolved);
 	TestTrue(TEXT("Canonical bow reserves both hands"), BowPolicy.bTwoHanded);
 	TestEqual(TEXT("Two-handed bow physical storage is MainHand"),
 		BowPolicy.PhysicalSlot, EGridEquipmentSlot::MainHand);
-	const auto ShieldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
-		Registry.Get(), Shield.Get(), 7, EGridEquipmentSlot::OffHand);
+	const auto ShieldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		Registry.Get(), Shield->ItemDefinitionId, 7, EGridEquipmentSlot::OffHand);
 	TestTrue(TEXT("Shield OffHand accepted despite historical TwoHanded"),
 		ShieldPolicy.bResolved && !ShieldPolicy.bTwoHanded);
 	TestEqual(TEXT("Shield keeps its own OffHand slot"), ShieldPolicy.PhysicalSlot, EGridEquipmentSlot::OffHand);
 	TestFalse(TEXT("Shield MainHand rejected by actual policy"),
-		FGridStartingKitEquipmentPolicyReadModel::Resolve(
-			Registry.Get(), Shield.Get(), 7, EGridEquipmentSlot::MainHand).bResolved);
+		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+			Registry.Get(), Shield->ItemDefinitionId, 7, EGridEquipmentSlot::MainHand).bResolved);
 	TestFalse(TEXT("Known ARM level N0 cannot fall back to old hand data"),
-		FGridStartingKitEquipmentPolicyReadModel::Resolve(
-			Registry.Get(), Bow.Get(), 0, EGridEquipmentSlot::OffHand).bResolved);
+		FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+			Registry.Get(), Bow->ItemDefinitionId, 0, EGridEquipmentSlot::OffHand).bResolved);
 
 	// Build an actual kit, ensuring the physical instance and stored fixed
 	// level are exactly what the existing combat/equipment runtime expects.
@@ -188,13 +188,13 @@ bool FGridClean063AOStartingKitHands::RunTest(const FString&)
 	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
 	Old->ItemDefinitionId = TEXT("LegacyStarter_AO");
 	Old->HandUsage = EGridItemHandUsage::OneHanded;
-	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
-		Registry.Get(), Old.Get(), 0, EGridEquipmentSlot::MainHand);
+	const auto OldPolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		Registry.Get(), Old->ItemDefinitionId, 0, EGridEquipmentSlot::MainHand);
 	TestFalse(TEXT("Unknown entry remains outside canonical registry"), OldPolicy.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown entry cannot equip in configured world"), OldPolicy.bResolved);
-	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::Resolve(
-		nullptr, Old.Get(), 0, EGridEquipmentSlot::MainHand);
-	TestTrue(TEXT("Isolated fixture still equips"), FixturePolicy.bResolved && !FixturePolicy.bTwoHanded);
+	const auto FixturePolicy = FGridStartingKitEquipmentPolicyReadModel::ResolveCanonical(
+		nullptr, Old->ItemDefinitionId, 0, EGridEquipmentSlot::MainHand);
+	TestFalse(TEXT("Registry-less entry cannot select an equipment slot"), FixturePolicy.bResolved);
 	return true;
 }
 #endif

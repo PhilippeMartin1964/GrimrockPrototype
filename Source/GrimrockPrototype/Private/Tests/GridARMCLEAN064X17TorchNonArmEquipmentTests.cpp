@@ -121,7 +121,7 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
     Character.InventorySlots[1].Item = Off;
 
     const auto MainSlots = FGridEquipmentSlots::Resolve(
-        F.Registry, nullptr, Main);
+        F.Registry, Main);
     if (!TestTrue(TEXT("Torch menu offers both hands"),
         MainSlots.bRegisteredIdentity && MainSlots.bResolved &&
         MainSlots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand) &&
@@ -185,7 +185,7 @@ bool FGridClean064X17TorchHandRegression::RunTest(const FString&)
     FGridItemInstance Ammo = ARMCLEAN064X17::MakeItem(
         OldAmmo->ItemDefinitionId, 0, Character.CharacterId);
     auto AmmoSlots = FGridEquipmentSlots::Resolve(
-        F.Registry, OldAmmo, Ammo);
+        F.Registry, Ammo);
     if (!TestTrue(TEXT("Canonical ammo has no equip actions"),
         AmmoSlots.bRegisteredIdentity && AmmoSlots.bResolved &&
         AmmoSlots.AllowedSlots.IsEmpty()) ||

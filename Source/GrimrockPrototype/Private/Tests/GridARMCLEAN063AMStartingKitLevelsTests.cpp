@@ -93,7 +93,7 @@ bool FGridClean063AMStartingKitLevels::RunTest(const FString&)
             ? ExpectedIds[Index].ToString() : Canonical.DisplayName.ToString();
         TestTrue(TEXT("Starter physical GUID exists"), Item.RuntimeObjectId.IsValid());
         TestEqual(TEXT("Starter quantity retained"), Item.Quantity, 1);
-        const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Item);
+        const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Item);
         TestTrue(TEXT("Starter metadata resolves"), Metadata.bResolved);
         TestEqual(TEXT("Starter name comes from ItemSystem"), Metadata.DisplayName.ToString(), ExpectedName);
         TestTrue(TEXT("Starter weight comes from ItemSystem"),

@@ -166,7 +166,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
         Entry.RuntimeObjectId = Item.RuntimeObjectId;
         const FGridEquipmentPreviewItemReadView Read =
             FGridEquipmentPreviewItemReadModel::Resolve(
-                Registry, nullptr, Item);
+                Registry, Item);
         Entry.DisplayName = Read.DisplayName;
         Entry.RemainingPhysicalArmor = Read.RemainingPhysicalArmor;
     };
@@ -224,7 +224,7 @@ bool UGridPartyInventoryComponent::PreviewEquipFromInventorySlot(
                 if (!Item.IsValid()) return;
                 const FGridEquipmentPreviewItemReadView Read =
                     FGridEquipmentPreviewItemReadModel::Resolve(
-                        Registry, nullptr, Item);
+                        Registry, Item);
                 // Independently aggregate the same bonus and resistance sources
                 // as live equipment; lack of an armor reserve must not mask
                 // a real resistance contribution in a read-only projection.

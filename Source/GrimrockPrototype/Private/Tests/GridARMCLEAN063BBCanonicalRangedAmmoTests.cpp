@@ -85,7 +85,7 @@ namespace ARMCLEAN063BB
             bool bRanged = true) const
         {
             return FGridRangedAmmunitionPolicy::ResolveForAttack(
-                Registry, TEXT("Weapon_ShortBow_01"), Level, Legacy, bRanged);
+                Registry, TEXT("Weapon_ShortBow_01"), Level, bRanged);
         }
     };
 
@@ -169,17 +169,17 @@ namespace ARMCLEAN063BB
             Legacy->ItemDefinitionId = TEXT("Legacy_Bow_BB");
             Legacy->RequiredAmmunitionItemDefinitionId = TEXT("Legacy_Arrow_BB");
             const auto UnknownConfigured = FGridRangedAmmunitionPolicy::ResolveForAttack(
-                F.Registry, Legacy->ItemDefinitionId, 0, Legacy, true);
+                F.Registry, Legacy->ItemDefinitionId, 0, true);
             Test.TestFalse(TEXT("Unregistered launcher cannot borrow historical ammo in a configured world"),
                 UnknownConfigured.bValid);
             Test.TestTrue(TEXT("Configured unknown launcher never invents an ammo join"),
                 UnknownConfigured.AmmunitionItemId.IsNone() &&
                 !UnknownConfigured.bRegisteredAmmunition);
             const auto WorldlessLegacy = FGridRangedAmmunitionPolicy::ResolveForAttack(
-                nullptr, Legacy->ItemDefinitionId, 0, Legacy, true);
-            Test.TestTrue(TEXT("Only worldless Automation can characterize the historical ammo join"),
-                !WorldlessLegacy.bRegisteredSource && WorldlessLegacy.bValid &&
-                WorldlessLegacy.AmmunitionItemId == Legacy->RequiredAmmunitionItemDefinitionId);
+                nullptr, Legacy->ItemDefinitionId, 0, true);
+            Test.TestTrue(TEXT("No ammunition policy exists without the registry"),
+                !WorldlessLegacy.bRegisteredSource && !WorldlessLegacy.bValid &&
+                WorldlessLegacy.AmmunitionItemId.IsNone());
             return !Test.HasAnyErrors();
         }
 
@@ -248,7 +248,7 @@ namespace ARMCLEAN063BB
             if (!Test.TestNotNull(TEXT("Canonical arrow launches without old item DA"),
                 Projectile)) return false;
             Test.TestNull(TEXT("No retired arrow asset attached"), Projectile->GetItemDefinitionAsset());
-            const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, nullptr, Projectile->ThrownItemInstance);
+            const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, Projectile->ThrownItemInstance);
             Test.TestTrue(TEXT("In-flight ammo name and mass resolve from ItemSystem"), FlightMetadata.bResolved &&
                 FlightMetadata.DisplayName.EqualTo(Ammo.DisplayName) &&
                 FMath::IsNearlyEqual(FlightMetadata.UnitWeightKg, Ammo.WeightKg));

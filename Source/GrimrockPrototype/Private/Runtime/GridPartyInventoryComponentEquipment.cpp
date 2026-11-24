@@ -60,7 +60,7 @@ bool UGridPartyInventoryComponent::TryResolveEquipmentArmorRead(
 {
 	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	return FGridEquipmentArmorReadModel::TryResolve(
-		Registry, nullptr,
+		Registry,
 		Item, OutView);
 }
 
@@ -69,7 +69,7 @@ FGridEquipmentStatBonus UGridPartyInventoryComponent::GetEquipmentBonusesForInst
 {
 	const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 	return FGridEquipmentContributionReadModel::ResolveStatBonuses(
-		Registry, nullptr, Item);
+		Registry, Item);
 }
 
 bool UGridPartyInventoryComponent::IsTwoHandedItem(const FGridItemInstance& Item) const
@@ -578,7 +578,7 @@ FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipment
 
 			const UGridItemSubsystem* Registry = GridPartyInventoryRegistry(this);
 			TotalResistances.Add(FGridEquipmentContributionReadModel::ResolveResistances(
-				Registry, nullptr, Item));
+				Registry, Item));
 		});
 
 	return TotalResistances;

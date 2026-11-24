@@ -121,9 +121,9 @@ bool FGridBFCanonical::RunTest(const FString&)
         {
             const auto I = F.Make(Id, Level);
             const auto NoOld = FGridPhysicalThrowPreflightReadModel::Resolve(
-                F.Registry, nullptr, I, 100);
+                F.Registry, I, 100);
             const auto Wrong = FGridPhysicalThrowPreflightReadModel::Resolve(
-                F.Registry, Old, I, 100);
+                F.Registry, I, 100);
             TestTrue(TEXT("Real canonical specialized N1/N20 flight is valid"),
                 NoOld.bRegisteredIdentity && NoOld.bResolved && NoOld.bCanThrow &&
                 NoOld.Ballistics.bSpecializedProjectile);
@@ -133,7 +133,7 @@ bool FGridBFCanonical::RunTest(const FString&)
         }
         const auto I = F.Make(Id, 1);
         const auto Expected = FGridPhysicalThrowPreflightReadModel::Resolve(
-            F.Registry, Old, I, F.Strength());
+            F.Registry, I, F.Strength());
         bool Present = false;
         const bool Enabled = F.MenuThrow(I, Old, Present);
         TestTrue(TEXT("Physical throw command is offered by actual menu"), Present);
@@ -169,8 +169,8 @@ bool FGridBFGeneric::RunTest(const FString&)
             Policy.InitialSpeed > KINDA_SMALL_NUMBER && FMath::IsFinite(Policy.Arc);
         const bool bExpectedPermission = bExpectedFlight && Policy.bGenericThrowOneHanded &&
             Canonical.WeightKg >= 0.0f && Canonical.WeightKg <= 25.0f + KINDA_SMALL_NUMBER;
-        const auto Native = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, 100);
-        const auto Contradictory = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100);
+        const auto Native = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 100);
+        const auto Contradictory = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 100);
         TestTrue(TEXT("Ordinary registered source remains canonical"), Native.bRegisteredIdentity &&
             Contradictory.bRegisteredIdentity);
         TestFalse(TEXT("No specialized action authorized"), Native.Ballistics.bSpecializedProjectile);
@@ -188,10 +188,10 @@ bool FGridBFGeneric::RunTest(const FString&)
 
         Old->ThrowSpeed = 0.0f;
         Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
-        const auto InvalidOld = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 100);
+        const auto InvalidOld = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 100);
         TestEqual(TEXT("Invalid old flight cannot override native resolution"), InvalidOld.bResolved, Native.bResolved);
         TestEqual(TEXT("Invalid old flight cannot override native permission"), InvalidOld.bCanThrow, Native.bCanThrow);
-        const auto ExpectedMenu = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, F.Strength());
+        const auto ExpectedMenu = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, F.Strength());
         bool bPresent = false;
         const bool bEnabled = F.MenuThrow(I, Old, bPresent);
         TestTrue(TEXT("Actual main-hand context exposes Throw"), bPresent);
@@ -199,7 +199,7 @@ bool FGridBFGeneric::RunTest(const FString&)
         for (int32 InvalidLevel : {0,21})
         {
             const auto Invalid = FGridPhysicalThrowPreflightReadModel::Resolve(
-                F.Registry, Old, F.Make(I.ItemDefinitionId, InvalidLevel), 100);
+                F.Registry, F.Make(I.ItemDefinitionId, InvalidLevel), 100);
             TestTrue(TEXT("Invalid physical level cannot borrow old data"),
                 Invalid.bRegisteredIdentity && !Invalid.bResolved && !Invalid.bCanThrow);
         }
@@ -223,34 +223,33 @@ bool FGridBFLegacy::RunTest(const FString&)
     Old->ThrowSpeed = 1800.0f;
     Old->ThrowArc = 0.08f;
     const auto I = F.Make(Old->ItemDefinitionId, 0);
-    const auto Rejected = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25);
+    const auto Rejected = FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 25);
     TestFalse(TEXT("Configured registry cannot advertise a throw that launch refuses"), Rejected.bCanThrow);
     TestFalse(TEXT("Unknown item has no canonical preflight"), Rejected.bResolved);
     bool Present = false;
     TestFalse(TEXT("Unknown item cannot launch via actual context menu"), F.MenuThrow(I, Old, Present));
     const auto Valid = FGridPhysicalThrowPreflightReadModel::Resolve(
-        nullptr, Old, I, 25);
-    TestTrue(TEXT("Historical unregistered throw uses exact old physics"),
-        !Valid.bRegisteredIdentity && Valid.bResolved && Valid.bCanThrow &&
-        FMath::IsNearlyEqual(Valid.Ballistics.Arc, Old->ThrowArc));
+        nullptr, I, 25);
+    TestTrue(TEXT("Registry-less throw yields no flight or permission"),
+        !Valid.bRegisteredIdentity && !Valid.bResolved && !Valid.bCanThrow && Valid.Ballistics.Arc == 0.0f);
     Old->ThrowArc = std::numeric_limits<float>::quiet_NaN();
     TestFalse(TEXT("Unregistered source rejects nonfinite authored arc"),
-        FGridPhysicalThrowPreflightReadModel::Resolve(nullptr, Old, I, 25).bCanThrow);
+        FGridPhysicalThrowPreflightReadModel::Resolve(nullptr, I, 25).bCanThrow);
     Old->ThrowArc = 0.08f;
     Old->ThrowSpeed = 0.0f;
     TestFalse(TEXT("Unregistered source rejects zero authored speed"),
-        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, Old, I, 25).bCanThrow);
+        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 25).bCanThrow);
     Old->ThrowSpeed = 1800.0f;
     TestFalse(TEXT("Wrong old definition cannot supply speed"),
         FGridPhysicalThrowPreflightReadModel::Resolve(
-            nullptr, Old, F.Make(TEXT("BF_Unregistered_Other"), 0), 25).bCanThrow);
+            nullptr, F.Make(TEXT("BF_Unregistered_Other"), 0), 25).bCanThrow);
     TestFalse(TEXT("Missing old definition cannot supply speed"),
-        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, nullptr, I, 25).bCanThrow);
+        FGridPhysicalThrowPreflightReadModel::Resolve(F.Registry, I, 25).bCanThrow);
     Old->ItemDefinitionId = TEXT("Weapon_ThrowingKnife_01");
     for (int32 Level : {0, 21})
     {
         const auto Bad = FGridPhysicalThrowPreflightReadModel::Resolve(
-            F.Registry, Old, F.Make(Old->ItemDefinitionId, Level), 100);
+            F.Registry, F.Make(Old->ItemDefinitionId, Level), 100);
         TestTrue(TEXT("Registered invalid ARM N0/N21 never receives old throw"),
             Bad.bRegisteredIdentity && !Bad.bResolved && !Bad.bCanThrow);
     }

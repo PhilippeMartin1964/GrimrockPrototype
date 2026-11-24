@@ -51,7 +51,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 			Item.AbsorbedEquipmentPhysicalArmor = 2;
 			const FGuid OriginalGuid = Item.RuntimeObjectId;
 			const FGridEquipmentPreviewItemReadView Read =
-				FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), ConflictingOld.Get(), Item);
+				FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), Item);
 			TestEqual(TEXT("Preview nominal physical from canonical N-level"),
 				Read.Bonuses.ArmorBonus, Canonical.Weapon.PhysicalArmor);
 			TestEqual(TEXT("Preview nominal magical from canonical N-level"),
@@ -65,7 +65,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 			TestTrue(TEXT("Preview ignores all historical ARM extra bonuses"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Read.Bonuses, &Expected, 0));
 			TestTrue(TEXT("Preview ignores historical ARM resistance"), Read.Resistances.IsEmpty());
-			const auto Pointerless = FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), nullptr, Item);
+			const auto Pointerless = FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), Item);
 			TestTrue(TEXT("Pointerless preview has the same contributions"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Pointerless.Bonuses, &Expected, 0));
 			TestTrue(TEXT("Pointerless preview has no resistance"), Pointerless.Resistances.IsEmpty());
@@ -75,7 +75,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 			TestEqual(TEXT("Preview never repairs absorbed armor"), Item.AbsorbedEquipmentPhysicalArmor, 2);
 			Item.ItemLevel = 0;
 			const FGridEquipmentPreviewItemReadView Invalid =
-				FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), ConflictingOld.Get(), Item);
+				FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), Item);
 			TestFalse(TEXT("Known ARM N0 cannot borrow old physical/magical armor"),
 				Invalid.Bonuses.HasAnyBonus());
 			TestEqual(TEXT("Invalid ARM N0 leaves no remaining armor"), Invalid.RemainingPhysicalArmor, 0);
@@ -93,7 +93,7 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 	Legacy.Quantity = 1;
 	Legacy.AbsorbedEquipmentPhysicalArmor = 1;
 	const FGridEquipmentPreviewItemReadView LegacyView =
-		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), ConflictingOld.Get(), Legacy);
+		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), Legacy);
 	TestFalse(TEXT("Configured registry refuses unregistered legacy armor bonuses"),
 		LegacyView.Bonuses.HasAnyBonus());
 	TestEqual(TEXT("Configured registry refuses unregistered armor reserve"),
@@ -103,17 +103,17 @@ bool FGridClean063AEEquipmentPreviewReadModel::RunTest(const FString&)
 	TestEqual(TEXT("Unregistered item cannot display historical name in configured registry"),
 		LegacyView.DisplayName.ToString(), Legacy.ItemDefinitionId.ToString());
 	const auto IsolatedFixture =
-		FGridEquipmentPreviewItemReadModel::Resolve(nullptr, ConflictingOld.Get(), Legacy);
-	TestEqual(TEXT("Registry-less Automation fixture retains obsolete armor"),
-		IsolatedFixture.Bonuses.ArmorBonus, 4);
-	TestEqual(TEXT("Registry-less Automation fixture preserves spent armor"),
-		IsolatedFixture.RemainingPhysicalArmor, 3);
-	TestEqual(TEXT("Isolated historical fixture retains its authored name"),
-		IsolatedFixture.DisplayName.ToString(), FString(TEXT("Wrong ancient item name")));
-	TestEqual(TEXT("Isolated historical resistance characterization remains unchanged"),
-		IsolatedFixture.Resistances.FireResistance, 14);
+		FGridEquipmentPreviewItemReadModel::Resolve(nullptr, Legacy);
+	TestEqual(TEXT("Registry-less preview has no armor"),
+		IsolatedFixture.Bonuses.ArmorBonus, 0);
+	TestEqual(TEXT("Registry-less preview has no armor reserve"),
+		IsolatedFixture.RemainingPhysicalArmor, 0);
+	TestEqual(TEXT("Registry-less preview shows only item identity"),
+		IsolatedFixture.DisplayName.ToString(), Legacy.ItemDefinitionId.ToString());
+	TestEqual(TEXT("Registry-less preview has no resistance"),
+		IsolatedFixture.Resistances.FireResistance, 0);
 	TestEqual(TEXT("No definition means no fabricated resistance"),
-		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), nullptr, Legacy).Resistances.FireResistance, 0);
+		FGridEquipmentPreviewItemReadModel::Resolve(Registry.Get(), Legacy).Resistances.FireResistance, 0);
 	return true;
 }
 

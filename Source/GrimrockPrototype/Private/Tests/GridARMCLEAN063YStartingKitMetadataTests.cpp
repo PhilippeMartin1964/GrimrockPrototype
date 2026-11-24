@@ -36,14 +36,14 @@ bool FGridClean063YStartingKitStaticMetadata::RunTest(const FString&)
 			if (!TestTrue(TEXT("Canonical kit ARM resolves at N1 and N20"),
 				Registry->ResolveItem(Id, Level, Canonical))) return false;
 			const FGridStartingKitStaticMetadataReadView View =
-				FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), Id, Level, WrongName, WrongWeight);
+				FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), Id, Level);
 			TestTrue(TEXT("Registered starter uses registry"), View.bRegisteredIdentity && View.bResolved);
 			TestEqual(TEXT("Starting kit name is canonical"), View.DisplayName.ToString(),
 				Canonical.DisplayName.IsEmpty() ? Id.ToString() : Canonical.DisplayName.ToString());
 			TestTrue(TEXT("Starting kit mass is canonical"), FMath::IsNearlyEqual(View.UnitWeightKg, Canonical.WeightKg));
 		}
 		const FGridStartingKitStaticMetadataReadView N0 =
-			FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), Id, 0, WrongName, WrongWeight);
+			FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), Id, 0);
 		TestTrue(TEXT("Invalid N0 ARM classified canonical"), N0.bRegisteredIdentity);
 		TestFalse(TEXT("Invalid N0 ARM never granted"), N0.bResolved);
 		TestTrue(TEXT("Invalid N0 ARM cannot inherit obsolete name"), N0.DisplayName.IsEmpty());
@@ -53,24 +53,24 @@ bool FGridClean063YStartingKitStaticMetadata::RunTest(const FString&)
 	if (!TestTrue(TEXT("Unlevelled arrow N0 resolves"), Registry->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows)))
 		return false;
 	const FGridStartingKitStaticMetadataReadView Ammo =
-		FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), TEXT("Item_Arrows_01"), 0, WrongName, WrongWeight);
+		FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), TEXT("Item_Arrows_01"), 0);
 	TestTrue(TEXT("Arrows without level remain canonical"), Ammo.bRegisteredIdentity && Ammo.bResolved);
 	TestTrue(TEXT("Starting arrow weight is canonical"),
 		FMath::IsNearlyEqual(Ammo.UnitWeightKg, Arrows.WeightKg));
 	const FGridStartingKitStaticMetadataReadView Legacy =
 		FGridStartingKitStaticMetadataReadModel::Resolve(
-			Registry.Get(), TEXT("LegacyStarter063Y"), 0, WrongName, WrongWeight);
+			Registry.Get(), TEXT("LegacyStarter063Y"), 0);
 	TestFalse(TEXT("Nonregistered starter still legacy"), Legacy.bRegisteredIdentity);
 	TestFalse(TEXT("Unknown starter with a registry is refused"), Legacy.bResolved);
 	TestTrue(TEXT("No legacy name leaks"), Legacy.DisplayName.IsEmpty());
 	TestEqual(TEXT("No legacy mass leaks"), Legacy.UnitWeightKg, 0.0f);
 	const auto Fixture = FGridStartingKitStaticMetadataReadModel::Resolve(
-		nullptr, TEXT("LegacyStarter063Y"), 0, WrongName, WrongWeight);
-	TestTrue(TEXT("Isolated Automation fixture still resolves"), Fixture.bResolved);
-	TestEqual(TEXT("Isolated fixture name unchanged"), Fixture.DisplayName.ToString(), WrongName.ToString());
-	TestEqual(TEXT("Isolated fixture weight unchanged"), Fixture.UnitWeightKg, WrongWeight);
+		nullptr, TEXT("LegacyStarter063Y"), 0);
+	TestFalse(TEXT("Registry-less fixture cannot resolve"), Fixture.bResolved);
+	TestTrue(TEXT("Registry-less name remains empty"), Fixture.DisplayName.IsEmpty());
+	TestEqual(TEXT("Registry-less weight remains zero"), Fixture.UnitWeightKg, 0.0f);
 	TestFalse(TEXT("Canonical arrows cannot project N1"),
-		FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), TEXT("Item_Arrows_01"), 1, WrongName, WrongWeight).bResolved);
+		FGridStartingKitStaticMetadataReadModel::Resolve(Registry.Get(), TEXT("Item_Arrows_01"), 1).bResolved);
 	return true;
 }
 

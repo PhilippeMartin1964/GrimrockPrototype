@@ -1,7 +1,6 @@
 #include "UI/GridEquipmentTooltipGlobalProjection.h"
 
 #include "Runtime/GridEquipmentPreviewTypes.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
@@ -154,18 +153,17 @@ namespace
 
 void FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
     const UGridItemSubsystem* Registry,
-    const UGridItemDefinitionAsset* CandidateDefinition,
     const FGridItemInstance& Candidate,
     TArray<EGridEquipmentSlot>& OutSlots)
 {
     OutSlots = FGridEquipmentSlots::Resolve(
-        Registry, CandidateDefinition, Candidate).AllowedSlots;
+        Registry, Candidate).AllowedSlots;
 }
 
 bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     const UGridPartyInventoryComponent* Inventory,
     int32 CharacterIndex, int32 InventorySlotIndex,
-    EGridEquipmentSlot RequestedSlot, const UGridItemDefinitionAsset* CandidateDefinition,
+    EGridEquipmentSlot RequestedSlot,
     const FGridItemInstance& Candidate,
     FGridItemTooltipEquipmentComparison& OutScenario)
 {
@@ -179,7 +177,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
     const UGridItemSubsystem* Registry = GameInstance
         ? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
     const auto Slots = FGridEquipmentSlots::Resolve(
-        Registry, CandidateDefinition, Candidate);
+        Registry, Candidate);
     if (!Slots.bResolved || !Slots.AllowedSlots.Contains(RequestedSlot))
     {
         return false;
@@ -251,8 +249,7 @@ bool FGridEquipmentTooltipGlobalProjection::BuildScenario(
         Preview.ActualTargetSlot, EquippedItem) &&
         EquippedItem.RuntimeObjectId != Candidate.RuntimeObjectId)
     {
-        FGridWeaponTooltipProjection::BuildComparison(
-            CandidateDefinition, Candidate, nullptr, EquippedItem,
+        FGridWeaponTooltipProjection::BuildComparison( Candidate, EquippedItem,
             OutScenario.WeaponFacts, Registry);
     }
     return true;

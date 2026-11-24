@@ -253,7 +253,7 @@ bool FARMLot02132Ammo::RunTest(const FString&)
         Arrows.MaxStack >= 12 && Recurve.IsValid() && ShortBow.IsValid());
     const FGridRangedAmmunitionRequirement Required =
         FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry,
-            Recurve.ItemId, 1, nullptr, true);
+            Recurve.ItemId, 1, true);
     if (!TestTrue(TEXT("One canonical, resolved arrow source"),
         Required.bValid && Required.bRegisteredSource &&
         Required.bRegisteredAmmunition && Required.AmmunitionItemId == ArrowId))

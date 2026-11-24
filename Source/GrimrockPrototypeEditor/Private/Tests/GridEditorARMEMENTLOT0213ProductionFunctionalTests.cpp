@@ -146,8 +146,7 @@ bool FARMEMENTLOT0213ProductionMatrix::RunTest(const FString&)
             Instance.OwnerType = EGridItemOwnerType::CharacterInventory;
             Instance.OwnerCharacterIndex = 0;
             FGridWeaponTooltipPresentation View;
-            if (FGridWeaponTooltipProjection::Build(
-                nullptr, Instance, View, Registry.Registry.Get()) &&
+            if (FGridWeaponTooltipProjection::Build( Instance, View, Registry.Registry.Get()) &&
                 View.bHasProfile && View.ItemLevel == Level &&
                 View.ArchetypeId == FName(Case.Id) && View.bPassive == Case.bPassive)
                 ++Levels;

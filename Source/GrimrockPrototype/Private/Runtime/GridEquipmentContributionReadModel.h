@@ -13,12 +13,11 @@ struct FGridEquipmentContributionReadModel
 {
 	static FGridEquipmentStatBonus ResolveStatBonuses(
 		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance)
 	{
 		FGridEquipmentStatBonus Result;
 		FGridEquipmentArmorReadView Armor;
-		if (!FGridEquipmentArmorReadModel::TryResolve(Registry, LegacyDefinition, Instance, Armor))
+		if (!FGridEquipmentArmorReadModel::TryResolve(Registry, Instance, Armor))
 		{
 			return Result; // Known invalid canonical ARM never falls back to old armor.
 		}
@@ -34,13 +33,6 @@ struct FGridEquipmentContributionReadModel
 				Result = Canonical.NonArmEquipmentBonuses;
 			}
 		}
-#if WITH_DEV_AUTOMATION_TESTS
-		else if (!Registry && GIsAutomationTesting && IsValid(LegacyDefinition) &&
-			LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
-		{
-			Result = LegacyDefinition->EquipmentStatBonus;
-		}
-#endif
 		Result.ArmorBonus = Armor.NominalPhysical;
 		Result.MagicalArmorBonus = Armor.NominalMagical;
 		return Result;
@@ -48,7 +40,6 @@ struct FGridEquipmentContributionReadModel
 
 	static FGridDamageResistanceSet ResolveResistances(
 		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance)
 	{
 		if (Registry && Registry->ContainsItem(Instance.ItemDefinitionId))
@@ -63,14 +54,6 @@ struct FGridEquipmentContributionReadModel
 			return FGridDamageResistanceSet(); // No historical resistance for registered ARM.
 		}
 		// No resistance from unknown identities in a configured game.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!Registry && GIsAutomationTesting && Instance.IsValid() &&
-			IsValid(LegacyDefinition) &&
-			LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
-		{
-			return LegacyDefinition->EquipmentResistanceBonus;
-		}
-#endif
 		return FGridDamageResistanceSet();
 	}
 };

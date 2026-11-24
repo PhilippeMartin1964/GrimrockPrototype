@@ -139,10 +139,10 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
         FGridItemInstance ProbeShield = Fixture.Make(ShieldId, Level);
         const auto SwordType =
             FGridInventoryItemTypeReadModel::Resolve(
-                Fixture.Registry, WrongSword, ProbeSword);
+                Fixture.Registry, ProbeSword);
         const auto ShieldType =
             FGridInventoryItemTypeReadModel::Resolve(
-                Fixture.Registry, WrongShield, ProbeShield);
+                Fixture.Registry, ProbeShield);
         TestTrue(TEXT("Sword type from canonical registry"),
             SwordType.bRegisteredIdentity && SwordType.bResolved);
         TestEqual(TEXT("Sword cannot inherit old Potion type"),
@@ -153,30 +153,30 @@ bool FGridClean063AUInventoryItemTypes::RunTest(const FString&)
             ShieldType.ItemType, EGridItemType::Shield);
         TestEqual(TEXT("Sword type works with no old asset"),
             FGridInventoryItemTypeReadModel::Resolve(
-                Fixture.Registry, nullptr, ProbeSword).ItemType,
+                Fixture.Registry, ProbeSword).ItemType,
             EGridItemType::Weapon);
     }
 
     const auto AmmoType = FGridInventoryItemTypeReadModel::Resolve(
-        Fixture.Registry, WrongArrows, Arrows);
+        Fixture.Registry, Arrows);
     TestTrue(TEXT("Canonical N0 arrows resolve without old Weapon category"),
         AmmoType.bRegisteredIdentity && AmmoType.bResolved);
     TestEqual(TEXT("N0 ammo projects to Misc without invented enum"),
         AmmoType.ItemType, EGridItemType::Misc);
     const auto LegacyType = FGridInventoryItemTypeReadModel::Resolve(
-        Fixture.Registry, RealLegacy, Potion);
+        Fixture.Registry, Potion);
     TestFalse(TEXT("Unknown potion has no canonical category"),
         LegacyType.bRegisteredIdentity || LegacyType.bResolved);
     TestEqual(TEXT("Unknown cannot inherit Potion type"), LegacyType.ItemType, EGridItemType::None);
-    TestEqual(TEXT("Isolated fixture retains Potion type"),
-        FGridInventoryItemTypeReadModel::Resolve(nullptr, RealLegacy, Potion).ItemType, EGridItemType::Potion);
+    TestEqual(TEXT("Registry-less item has no projected type"),
+        FGridInventoryItemTypeReadModel::Resolve(nullptr, Potion).ItemType, EGridItemType::None);
     TestEqual(TEXT("Mismatched old definition cannot classify unknown item"),
         FGridInventoryItemTypeReadModel::Resolve(
-            Fixture.Registry, WrongSword, Potion).ItemType, EGridItemType::None);
+            Fixture.Registry, Potion).ItemType, EGridItemType::None);
     for (const int32 InvalidLevel : {0, 21})
     {
         const auto Invalid = FGridInventoryItemTypeReadModel::Resolve(
-            Fixture.Registry, WrongSword, Fixture.Make(SwordId, InvalidLevel));
+            Fixture.Registry, Fixture.Make(SwordId, InvalidLevel));
         TestTrue(TEXT("Invalid known ARM remains canonical identity"),
             Invalid.bRegisteredIdentity);
         TestFalse(TEXT("Invalid known ARM cannot inherit legacy type"),
@@ -331,17 +331,17 @@ bool FGridClean064X61LootPresentationCategory::RunTest(const FString&)
         Wrong->CompatibleEquipmentSlots = {EGridEquipmentSlot::MainHand};
         Wrong->bStackable = true;
         Wrong->MaxStackSize = 3;
-        const auto Category = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Wrong, Item);
+        const auto Category = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Item);
         TestTrue(TEXT("Registered N0 category resolved"), Category.bRegisteredIdentity && Category.bResolved);
         TestEqual(TEXT("Retain original inventory type without old definition"), Category.ItemType, Types[I]);
         TestEqual(TEXT("Same existing filter category"), ResolveGridInventoryFilterCategory(Category.ItemType),
             ResolveGridInventoryFilterCategory(Types[I]));
-        const auto Slots = FGridEquipmentSlots::Resolve(Registry.Get(), Wrong, Item);
+        const auto Slots = FGridEquipmentSlots::Resolve(Registry.Get(), Item);
         TestTrue(TEXT("Category never grants a physical hand"), Slots.bResolved && Slots.AllowedSlots.IsEmpty());
-        const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
+        const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Item);
         TestTrue(TEXT("No read/consume/hotbar/throw capability invented"),
             Interaction.bRegisteredIdentity && Interaction.bResolved && !Interaction.bCanRead &&
-            !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeItem &&
+            !Interaction.bCanConsumeItem &&
             !Interaction.bCanAddToHotbar && !Interaction.bPhysicalThrowHotbar);
         const auto Stack = FGridInventoryStackReadModel::Resolve(Registry.Get(), Item);
         TestEqual(TEXT("Exact capacity wins over stale source"), Stack.MaxStackSize, Capacities[I]);
@@ -382,16 +382,16 @@ bool FGridClean064X63PotionPresentationOnly::RunTest(const FString&)
     auto* Wrong = NewObject<UGridItemDefinitionAsset>(GI.Get());
     Wrong->ItemDefinitionId = Item.ItemDefinitionId;
     Wrong->ItemType = EGridItemType::Weapon;
-    const auto View = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Wrong, Item);
+    const auto View = FGridInventoryItemTypeReadModel::Resolve(Registry.Get(), Item);
     TestTrue(TEXT("Category resolves without historical definition authority"), View.bRegisteredIdentity && View.bResolved);
     TestEqual(TEXT("Explicit Potion category"), View.ItemType, EGridItemType::Potion);
     TestEqual(TEXT("Existing Consumables filter"), ResolveGridInventoryFilterCategory(View.ItemType),
         EGridInventoryFilterCategory::Consumables);
-    const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Wrong, Item);
+    const auto Interaction = FGridItemInteractionReadModel::Resolve(Registry.Get(), Item);
     TestTrue(TEXT("A category grants no unbound action"), Interaction.bResolved &&
-        !Interaction.bCanConsumeLegacy && !Interaction.bCanConsumeItem && !Interaction.bCanAddToHotbar &&
+        !Interaction.bCanConsumeItem && !Interaction.bCanAddToHotbar &&
         !Interaction.bPhysicalThrowHotbar);
-    const auto Slots = FGridEquipmentSlots::Resolve(Registry.Get(), Wrong, Item);
+    const auto Slots = FGridEquipmentSlots::Resolve(Registry.Get(), Item);
     TestTrue(TEXT("Potion category grants no slot"), Slots.bResolved && Slots.AllowedSlots.IsEmpty());
     Definition->Tags.Add(Tags::Weapon());
     Errors.Reset();

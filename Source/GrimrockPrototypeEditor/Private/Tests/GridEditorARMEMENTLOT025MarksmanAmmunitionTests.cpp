@@ -31,7 +31,7 @@ bool FARMEMENTLOT025MarksmanStarter::RunTest(const FString&)
     TestTrue(TEXT("Canonical short bow consumes real arrow identity"),
         Bow.Weapon.RequiredAmmoKindId == ArrowId);
     const FGridRangedAmmunitionRequirement Required =
-        FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry, BowId, 1, nullptr, true);
+        FGridRangedAmmunitionPolicy::ResolveForAttack(Fixture.Registry, BowId, 1, true);
     TestTrue(TEXT("Valid canonical ammo preflight"),
         Required.bValid && Required.bRegisteredSource &&
         Required.bRegisteredAmmunition && Required.AmmunitionItemId == ArrowId);

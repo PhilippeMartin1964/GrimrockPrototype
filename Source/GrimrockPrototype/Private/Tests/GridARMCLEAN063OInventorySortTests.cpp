@@ -23,15 +23,11 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> ConflictingLegacy(NewObject<UGridItemDefinitionAsset>());
-	ConflictingLegacy->DisplayName = FText::FromString(TEXT("Old wrong weapon"));
-	ConflictingLegacy->Weight = 9000.0f;
 	const FName IDs[] = {TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01")};
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : IDs)
 	{
-		ConflictingLegacy->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Definition;
@@ -43,14 +39,14 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 			Item.ItemLevel = Level;
 			Item.Quantity = 2;
 			FGridInventorySortReadView View =
-				FGridInventorySortReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Item);
+				FGridInventorySortReadModel::Resolve(Registry.Get(), Item);
 			TestEqual(TEXT("Canonical display name drives alphabetical sorting"),
 				View.DisplayName, Definition.DisplayName.IsEmpty()
 					? Id.ToString() : Definition.DisplayName.ToString());
 			TestTrue(TEXT("Canonical 2x unit weight drives weight sorting"),
 				FMath::IsNearlyEqual(View.TotalWeight, Definition.WeightKg * 2.0f));
 			Item.ItemLevel = 0;
-			View = FGridInventorySortReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Item);
+			View = FGridInventorySortReadModel::Resolve(Registry.Get(), Item);
 			TestEqual(TEXT("Known invalid canonical has no legacy mass"), View.TotalWeight, 0.0f);
 			TestEqual(TEXT("Known invalid canonical does not leak old name"), View.DisplayName, Id.ToString());
 		}
@@ -60,16 +56,11 @@ bool FGridClean063OSortProjection::RunTest(const FString&)
 	Legacy.ItemDefinitionId = TEXT("LegacySort_063O");
 	Legacy.Quantity = 3;
 	Legacy.ItemLevel = 0;
-	ConflictingLegacy->ItemDefinitionId = Legacy.ItemDefinitionId;
-	ConflictingLegacy->Weight = 1.5f;
 	const FGridInventorySortReadView Old =
-		FGridInventorySortReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Legacy);
+		FGridInventorySortReadModel::Resolve(Registry.Get(), Legacy);
 	TestEqual(TEXT("Unregistered sort name is technical identity"), Old.DisplayName, Legacy.ItemDefinitionId.ToString());
 	TestEqual(TEXT("Unregistered sort cannot borrow old mass"), Old.TotalWeight, 0.0f);
-	const auto Fixture = FGridInventorySortReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Legacy);
-	TestEqual(TEXT("Isolated legacy fixture preserves name"), Fixture.DisplayName, FString(TEXT("Old wrong weapon")));
-	TestEqual(TEXT("Isolated legacy fixture preserves explicit definition mass"), Fixture.TotalWeight, 4.5f);
-	const auto NoDefinition = FGridInventorySortReadModel::Resolve(nullptr, nullptr, Legacy);
+	const auto NoDefinition = FGridInventorySortReadModel::Resolve(nullptr, Legacy);
 	TestEqual(TEXT("No source definition sorts by technical identity"),
 		NoDefinition.DisplayName, Legacy.ItemDefinitionId.ToString());
 	TestEqual(TEXT("No source definition contributes no artificial weight"),

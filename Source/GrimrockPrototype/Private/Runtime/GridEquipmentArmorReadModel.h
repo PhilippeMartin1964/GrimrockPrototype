@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreGlobals.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Runtime-only projection, not a persisted or authorable armor authority. */
@@ -13,11 +11,10 @@ struct FGridEquipmentArmorReadView
 	int32 RemainingMagical = 0;
 };
 
-/** Select exactly one armor source per item; keep the legacy reader only for IDs outside ItemSystem. */
+/** Project the registered item's nominal and remaining armor. */
 struct FGridEquipmentArmorReadModel
 {
 	static bool TryResolve(const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Instance, FGridEquipmentArmorReadView& Out)
 	{
 		Out = FGridEquipmentArmorReadView();
@@ -38,28 +35,6 @@ struct FGridEquipmentArmorReadModel
 			Out.RemainingMagical = Canonical.RemainingMagicalArmor;
 			return true;
 		}
-		// Unregistered items cannot borrow an obsolete armor reservoir in a
-		// canonical game. Only isolated, registry-less Automation fixtures
-		// retain the historical formula; Shipping compiles no legacy reader.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Registry || !GIsAutomationTesting || !IsValid(LegacyDefinition) ||
-			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
-		{
-			return false;
-		}
-		const FGridEquipmentStatBonus Legacy =
-			LegacyDefinition->GetEffectiveEquipmentStatBonusForInstance(Instance);
-		Out.NominalPhysical = Legacy.ArmorBonus;
-		Out.NominalMagical = Legacy.MagicalArmorBonus;
-		Out.RemainingPhysical = Legacy.ArmorBonus > 0
-			? FMath::Max(0, Legacy.ArmorBonus - FMath::Max(0, Instance.AbsorbedEquipmentPhysicalArmor))
-			: Legacy.ArmorBonus;
-		Out.RemainingMagical = Legacy.MagicalArmorBonus > 0
-			? FMath::Max(0, Legacy.MagicalArmorBonus - FMath::Max(0, Instance.AbsorbedEquipmentMagicalArmor))
-			: Legacy.MagicalArmorBonus;
-		return true;
-#else
 		return false;
-#endif
 	}
 };

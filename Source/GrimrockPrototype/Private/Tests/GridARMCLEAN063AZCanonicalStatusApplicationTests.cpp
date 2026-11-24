@@ -163,7 +163,7 @@ bool FGridClean063AZStatusProjection::RunTest(const FString&)
         TestEqual(TEXT("No inferred armor gate"), Application.ArmorGate, EGridCombatStatusArmorGate::None);
     }
 
-    const auto Capabilities = FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
+    const auto Capabilities = FGridItemInteractionReadModel::Resolve(F.Registry, F.Make());
     TestTrue(TEXT("Combat quick-item hotbar accepts registered ApplyStatus"), Capabilities.bCanAddToHotbar);
     TestFalse(TEXT("Combat-only status does not masquerade as inline Consume"), Capabilities.bCanConsumeItem);
     TestFalse(TEXT("Status item is not a throwing weapon"), Capabilities.bPhysicalThrowHotbar);

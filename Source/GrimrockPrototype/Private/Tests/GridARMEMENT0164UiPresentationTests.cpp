@@ -39,7 +39,7 @@ bool FARMEMENT0164InventoryIconTest::RunTest(const FString&)
         Instance.OwnerCharacterIndex = 0;
         FGridWeaponTooltipPresentation View;
         TestTrue(TEXT("UI tooltip reads actual physical item level"),
-            FGridWeaponTooltipProjection::Build(nullptr, Instance, View, Fixture.Registry.Get()) &&
+            FGridWeaponTooltipProjection::Build( Instance, View, Fixture.Registry.Get()) &&
             View.bHasProfile && View.ItemLevel == 12 &&
             View.ArchetypeId == FName(Pilot.Arm));
         FGridResolvedItem Higher;
@@ -48,7 +48,7 @@ bool FARMEMENT0164InventoryIconTest::RunTest(const FString&)
             Higher.ItemIcon.ToSoftObjectPath() == Resolved.ItemIcon.ToSoftObjectPath());
         Instance.ItemLevel = 0;
         TestFalse(TEXT("Invalid ARM N0 never invents tooltip level"),
-            FGridWeaponTooltipProjection::Build(nullptr, Instance, View, Fixture.Registry.Get()));
+            FGridWeaponTooltipProjection::Build( Instance, View, Fixture.Registry.Get()));
         TestEqual(TEXT("Invalid request does not mutate physical instance"),
             Instance.ItemLevel, 0);
     }

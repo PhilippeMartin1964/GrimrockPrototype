@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "CoreGlobals.h"
 
 /** Read-only starter metadata projection; historical fixture values are not serialized. */
 struct FGridStartingKitStaticMetadataReadView
@@ -15,8 +14,7 @@ struct FGridStartingKitStaticMetadataReadView
 struct FGridStartingKitStaticMetadataReadModel
 {
 	static FGridStartingKitStaticMetadataReadView Resolve(
-		const UGridItemSubsystem* Registry, FName ItemId, int32 FixedItemLevel,
-		const FText& LegacyName, float LegacyWeight)
+		const UGridItemSubsystem* Registry, FName ItemId, int32 FixedItemLevel)
 	{
 		FGridStartingKitStaticMetadataReadView Result;
 		if (ItemId.IsNone()) return Result;
@@ -36,15 +34,6 @@ struct FGridStartingKitStaticMetadataReadModel
 			Result.UnitWeightKg = Canonical.WeightKg;
 			return Result;
 		}
-		// Only isolated worldless Automation fixtures may use old metadata.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (!Registry && GIsAutomationTesting && FMath::IsFinite(LegacyWeight) && LegacyWeight >= 0.0f)
-		{
-			Result.bResolved = true;
-			Result.DisplayName = LegacyName;
-			Result.UnitWeightKg = LegacyWeight;
-		}
-#endif
 		return Result;
 	}
 };

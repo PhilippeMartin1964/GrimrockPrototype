@@ -62,7 +62,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
             TestEqual(TEXT("Keeps actual fixed N-level"), Item.ItemLevel, Level);
             TestTrue(TEXT("All durable fields remain unchanged"),
                 FGridItemInstance::StaticStruct()->CompareScriptStruct(&Item, &Before, 0));
-            const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+            const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Item);
             TestTrue(TEXT("Canonical metadata resolves"), Metadata.bResolved);
             TestEqual(TEXT("Name from canonical reader"), Metadata.DisplayName.ToString(), Canonical.DisplayName.ToString());
             TestEqual(TEXT("Physical GUID stable"), Item.RuntimeObjectId, Before.RuntimeObjectId);
@@ -133,7 +133,7 @@ bool FGridClean063AGMaterialization::RunTest(const FString&)
         FGridItemInstanceMaterializationReadModel::TryApply(Registry.Get(), Ammo));
     TestEqual(TEXT("Arrows retain genuine N0"), Ammo.ItemLevel, 0);
     TestEqual(TEXT("Arrows quantity unchanged"), Ammo.Quantity, 12);
-    const auto ArrowMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Old.Get(), Ammo);
+    const auto ArrowMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Ammo);
     TestTrue(TEXT("Arrow metadata resolves"), ArrowMeta.bResolved);
     TestEqual(TEXT("Arrow name canonical"), ArrowMeta.DisplayName.ToString(), CanonicalArrow.DisplayName.ToString());
     TestTrue(TEXT("Arrow unit mass canonical"), FMath::IsNearlyEqual(ArrowMeta.UnitWeightKg, CanonicalArrow.WeightKg));

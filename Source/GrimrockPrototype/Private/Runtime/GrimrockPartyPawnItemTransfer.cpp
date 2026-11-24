@@ -43,7 +43,7 @@ namespace
 		OutStrength = Summary.Attributes.Strength;
 		const FGridPhysicalThrowPreflightReadView ThrowGate =
 			FGridPhysicalThrowPreflightReadModel::Resolve(
-				Registry, nullptr, Instance, OutStrength);
+				Registry, Instance, OutStrength);
 		OutBallistics = ThrowGate.Ballistics;
 		OutSpeedScale = ThrowGate.Strength.SpeedScale;
 		return ThrowGate.bCanThrow;

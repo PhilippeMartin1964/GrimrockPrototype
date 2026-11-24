@@ -66,7 +66,7 @@ bool FWeaponIndustrial05ActiveMatrix::RunTest(const FString&)
 
             FGridWeaponTooltipPresentation Tooltip;
             if (!TestTrue(*FString::Printf(TEXT("%s N%d canonical tooltip"), *Row.ArchetypeId, Level),
-                FGridWeaponTooltipProjection::Build(nullptr, Item, Tooltip, Canonical.Registry.Get())))
+                FGridWeaponTooltipProjection::Build( Item, Tooltip, Canonical.Registry.Get())))
                 continue;
             TestEqual(TEXT("Tooltip has exact item level"), Tooltip.ItemLevel, Level);
             TestEqual(TEXT("Tooltip passive state matches resolved dice"),

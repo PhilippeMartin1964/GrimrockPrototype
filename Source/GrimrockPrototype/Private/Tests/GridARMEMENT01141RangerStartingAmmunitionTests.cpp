@@ -53,7 +53,7 @@ bool FARMEMENT01141RangerStartingAmmunition::RunTest(const FString&)
 
         const FGridRangedAmmunitionRequirement BowRequirement =
             FGridRangedAmmunitionPolicy::ResolveForAttack(
-                NativeWorld.Scope.Registry, BowIds[KitIndex], 1, nullptr, true);
+                NativeWorld.Scope.Registry, BowIds[KitIndex], 1, true);
         if (!TestTrue(TEXT("Native Ranger bow has valid ranged ammunition policy"),
             BowRequirement.bRegisteredSource && BowRequirement.bValid &&
             BowRequirement.bRegisteredAmmunition)) return false;

@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 
-class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 
 /**
@@ -37,8 +36,7 @@ public:
 		const FGridResolvedItem& Ammo, float& OutSpeed);
 
 	static FGridRangedAmmunitionRequirement ResolveForAttack(
-		const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel,
-		const UGridItemDefinitionAsset* LegacyWeapon, bool bRangedAttack);
+		const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel, bool bRangedAttack);
 
 	static bool HasRequiredAmmunitionForAttack(
 		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
@@ -48,25 +46,4 @@ public:
 		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
 		const FGridRangedAmmunitionRequirement& Requirement);
 
-#if WITH_DEV_AUTOMATION_TESTS
-	/** Historical authoring overloads for isolated Editor Automation only. */
-	static bool HasRequiredAmmunition(
-		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-		const UGridItemDefinitionAsset& Weapon);
-
-	static bool ConsumeRequiredAmmunition(
-		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-		const UGridItemDefinitionAsset& Weapon);
-
-	/** Only an actual ranged attack requires ammunition. Non-ranged actions
-	 * never check or consume arrows, even when sourced from an equipped bow.
-	 */
-	static bool HasRequiredAmmunitionForAttack(
-		const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-		const UGridItemDefinitionAsset& Weapon, bool bRangedAttack);
-
-	static bool ConsumeRequiredAmmunitionForAttack(
-		UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-		const UGridItemDefinitionAsset& Weapon, bool bRangedAttack);
-#endif
 };

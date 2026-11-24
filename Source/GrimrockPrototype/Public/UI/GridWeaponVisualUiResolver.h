@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 
-class UGridItemDefinitionAsset;
 class UGridItemSubsystem;
 struct FGridItemInstance;
 
@@ -22,6 +21,6 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisualUiResolver
 {
 	/** Canonical item icons never read DA_Weapon_* even on invalid levels. */
 	static FGridResolvedInventoryItemIcon ResolveInventoryItemIcon(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Item);
 };

@@ -1026,14 +1026,14 @@ void UGridInventoryWidget::BuildInventoryProjectionSourceSlotIndices(TArray<int3
 				const FGridItemInstance& Item = InventorySlot.Item;
 				const EGridItemType ItemType =
 					FGridInventoryItemTypeReadModel::Resolve(
-						Registry, nullptr, Item).ItemType;
+						Registry, Item).ItemType;
 				if (!DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 				{
 					continue;
 				}
 
 				const FGridInventorySortReadView SortSource =
-					FGridInventorySortReadModel::Resolve(Registry, nullptr, Item);
+					FGridInventorySortReadModel::Resolve(Registry, Item);
 				FGridInventoryProjectionEntry& Entry = Entries.AddDefaulted_GetRef();
 				Entry.SourceSlotIndex = SlotIndex;
 				Entry.DisplayName = SortSource.DisplayName;
@@ -1129,7 +1129,7 @@ int32 UGridInventoryWidget::GetVisibleInventoryItemCount() const
 
 		const EGridItemType ItemType =
 			FGridInventoryItemTypeReadModel::Resolve(
-				Registry, nullptr, InventorySlot.Item).ItemType;
+				Registry, InventorySlot.Item).ItemType;
 		if (DoesGridItemTypeMatchInventoryFilter(ItemType, InventoryFilterCategory))
 		{
 			++VisibleItems;
@@ -1617,7 +1617,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		case EGridItemActionType::Examine:
 		{
 			const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
-			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, LastContextItem);
+			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, LastContextItem);
 			if (!Metadata.bResolved) break;
 			const UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
 			FText TooltipText = Metadata.DisplayName;
@@ -1636,7 +1636,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			const FGridItemInteractionReadView Read =
 				FGridItemInteractionReadModel::Resolve(
-					ResolveInventoryCanonicalRegistry(this), nullptr, LastContextItem);
+					ResolveInventoryCanonicalRegistry(this), LastContextItem);
 			if (!Read.bCanRead)
 			{
 				break; // The menu may be stale; never revive old readable flags.
@@ -1705,7 +1705,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
             const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
             const FGridItemInteractionReadView Capabilities =
                 FGridItemInteractionReadModel::Resolve(
-                    Registry, nullptr, LastContextItem);
+                    Registry, LastContextItem);
             const FGridQuickItemUseReadView CanonicalUse =
                 FGridQuickItemUseReadModel::Resolve(Registry, LastContextItem);
             FGridCombatActionDefinition QuickItemAction;
@@ -2004,7 +2004,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 		{
 			const FGridItemInteractionReadView Capabilities =
 				FGridItemInteractionReadModel::Resolve(
-					ResolveInventoryCanonicalRegistry(this), nullptr, LastContextItem);
+					ResolveInventoryCanonicalRegistry(this), LastContextItem);
 			if (SourceSlotType != EGridInventoryUiSlotType::Inventory ||
 				!InventoryComponent || !Capabilities.bCanAddToHotbar)
 			{

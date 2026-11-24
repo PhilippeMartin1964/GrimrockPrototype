@@ -3,16 +3,12 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Runtime/GridItemActor.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridWorldItemLevelReadModel.h"
 
 /** The placed runtime entry and the actor's materialized ItemId describe
  * the physical object. An old DA_Item_* cannot rename a registered item
  * during pickup or SaveGame capture.
- *
- * Historical definition-first lookup is restricted to isolated
- * registry-less Automation fixtures.
  */
 struct FGridWorldPickupIdentityReadModel
 {
@@ -45,7 +41,7 @@ struct FGridWorldPickupIdentityReadModel
             // ammunition and other non-ARM N0.
             const FGridReceptacleItemMetadataReadView Physical =
                 FGridWorldItemLevelReadModel::ResolvePersistedInstance(
-                    Registry, nullptr, Candidate, ItemLevel);
+                    Registry, Candidate, ItemLevel);
             return Physical.bRegisteredIdentity && Physical.bResolved &&
                 Physical.FixedItemLevel == ItemLevel ? Candidate : NAME_None;
         }
@@ -60,14 +56,6 @@ struct FGridWorldPickupIdentityReadModel
         {
             return PhysicalItemId;
         }
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!GameInstance && GIsAutomationTesting)
-        {
-            const UGridItemDefinitionAsset* Legacy = ItemActor->GetItemDefinitionAsset();
-            if (IsValid(Legacy) && !Legacy->ItemDefinitionId.IsNone()) return Legacy->ItemDefinitionId;
-            return !PhysicalItemId.IsNone() ? PhysicalItemId : EntryItemId;
-        }
-#endif
         return NAME_None;
     }
 };

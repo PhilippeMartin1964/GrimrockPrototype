@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Transient flight numbers; the strength-to-weight gate remains a separate policy. */
@@ -47,7 +46,7 @@ struct FGridThrowBallisticsReadModel
 	}
 
 	static FGridThrowBallisticsReadView Resolve(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
 		FGridThrowBallisticsReadView Out;
@@ -69,28 +68,6 @@ struct FGridThrowBallisticsReadModel
 			}
 			return ReadCanonicalFlight(Canonical);
 		}
-		// Only active, registry-less Automation fixtures may use old physics.
-#if !WITH_DEV_AUTOMATION_TESTS
 		return Out;
-#else
-		if (!GIsAutomationTesting || Registry) return Out;
-		if (!IsValid(LegacyDefinition) ||
-			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
-		{
-			return Out;
-		}
-		// Historical flight values remain authoritative only if physically
-		// usable. Keep signed finite arcs: the launcher already clamps them.
-		if (!FMath::IsFinite(LegacyDefinition->ThrowSpeed) ||
-			LegacyDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER ||
-			!FMath::IsFinite(LegacyDefinition->ThrowArc))
-		{
-			return Out;
-		}
-		Out.bResolved = true;
-		Out.InitialSpeed = LegacyDefinition->ThrowSpeed;
-		Out.Arc = LegacyDefinition->ThrowArc;
-		return Out;
-#endif
 	}
 };

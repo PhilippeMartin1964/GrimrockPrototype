@@ -47,7 +47,7 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	}
 	FGridEquipmentArmorReadView Armor;
 	TestTrue(TEXT("Runtime read uses canonical N20 with conflicting legacy source"),
-		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), ConflictingLegacy.Get(), Shield, Armor));
+		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Shield, Armor));
 	TestEqual(TEXT("Canonical physical nominal not 999"), Armor.NominalPhysical, Expected.NominalPhysicalArmor);
 	TestEqual(TEXT("Canonical magic nominal not 999"), Armor.NominalMagical, Expected.NominalMagicalArmor);
 	TestEqual(TEXT("Spent physical reserve follows actual item"), Armor.RemainingPhysical, Expected.RemainingPhysicalArmor);
@@ -71,7 +71,7 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 			return false;
 		}
 		TestTrue(TEXT("Registered ARM resolves without a legacy DA_Weapon definition"),
-			FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, Aegis, Armor));
+			FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Aegis, Armor));
 		TestEqual(TEXT("Holy Aegis nominal physical comes from real catalogue"),
 			Armor.NominalPhysical, Authoritative.NominalPhysicalArmor);
 		TestEqual(TEXT("Holy Aegis nominal magical comes from real catalogue"),
@@ -85,12 +85,12 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	Shield.ItemLevel = 0;
 	Armor.NominalPhysical = 123;
 	TestFalse(TEXT("Canonical level zero cannot fall back to conflicting DA_Weapon"),
-		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), ConflictingLegacy.Get(), Shield, Armor));
+		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Shield, Armor));
 	TestEqual(TEXT("Failed canonical read resets output"), Armor.NominalPhysical, 0);
 	Shield.ItemLevel = 20;
 	Shield.AbsorbedEquipmentPhysicalArmor = Expected.NominalPhysicalArmor + 7;
 	TestTrue(TEXT("Spent beyond nominal is conserved in the instance"),
-		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), ConflictingLegacy.Get(), Shield, Armor));
+		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Shield, Armor));
 	TestEqual(TEXT("Overspent canonical physical armor remains zero"), Armor.RemainingPhysical, 0);
 	TestEqual(TEXT("Overspent debt is not reset"), Shield.AbsorbedEquipmentPhysicalArmor,
 		Expected.NominalPhysicalArmor + 7);
@@ -107,15 +107,15 @@ bool FGridClean063HArmorRuntime::RunTest(const FString&)
 	LegacyItem.AbsorbedEquipmentPhysicalArmor = 3;
 	LegacyItem.AbsorbedEquipmentMagicalArmor = 2;
 	TestFalse(TEXT("Unknown ID cannot inherit old armor in a configured world"),
-		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Legacy.Get(), LegacyItem, Armor));
+		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), LegacyItem, Armor));
 	TestEqual(TEXT("Rejected legacy armor view is reset"), Armor.NominalPhysical, 0);
 	TestEqual(TEXT("Rejected legacy magic view is reset"), Armor.NominalMagical, 0);
-	TestTrue(TEXT("Registry-less Automation fixture retains historical armor characterization"),
-		FGridEquipmentArmorReadModel::TryResolve(nullptr, Legacy.Get(), LegacyItem, Armor));
-	TestEqual(TEXT("Isolated fixture physical reserve remains five"), Armor.RemainingPhysical, 5);
-	TestEqual(TEXT("Isolated fixture magical reserve remains four"), Armor.RemainingMagical, 4);
+	TestFalse(TEXT("Registry-less armor cannot resolve"),
+		FGridEquipmentArmorReadModel::TryResolve(nullptr, LegacyItem, Armor));
+	TestEqual(TEXT("Registry-less physical reserve is absent"), Armor.RemainingPhysical, 0);
+	TestEqual(TEXT("Registry-less magical reserve is absent"), Armor.RemainingMagical, 0);
 	TestFalse(TEXT("Unknown item without definition is rejected"),
-		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, LegacyItem, Armor));
+		FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), LegacyItem, Armor));
 	TestEqual(TEXT("Rejected unknown result has zero remaining armor"), Armor.RemainingPhysical, 0);
 	return true;
 }

@@ -1,10 +1,9 @@
 #include "UI/GridWeaponVisualUiResolver.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(
-	const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+	const UGridItemSubsystem* Registry,
 	const FGridItemInstance& Item)
 {
 	FGridResolvedInventoryItemIcon Result;
@@ -23,16 +22,5 @@ FGridResolvedInventoryItemIcon FGridWeaponVisualUiResolver::ResolveInventoryItem
 		}
 		return Result; // Never use a copied legacy icon for an invalid canonical item.
 	}
-	// H.68: a configured game never borrows an icon from an unknown
-	// historical item. Worldless Automation alone may characterize that old UI.
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!Registry && GIsAutomationTesting && IsValid(LegacyDefinition) &&
-		LegacyDefinition->ItemDefinitionId == Item.ItemDefinitionId && !LegacyDefinition->bUseWeaponVisualCatalogue)
-	{
-		Result.Icon = LegacyDefinition->Icon;
-	}
-#else
-	(void)LegacyDefinition;
-#endif
 	return Result;
 }

@@ -52,7 +52,7 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 				Registry->ResolveItem(Id, Level, Canonical))) return false;
 
 			const FGridEquipmentStatBonus Bonuses =
-				FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Equipped);
+				FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Equipped);
 			TestEqual(TEXT("Physical armor uses canonical N1-N20"), Bonuses.ArmorBonus,
 				Canonical.Weapon.PhysicalArmor);
 			TestEqual(TEXT("Magical armor uses canonical N1-N20"), Bonuses.MagicalArmorBonus,
@@ -63,31 +63,31 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 			TestTrue(TEXT("ARM only contributes catalogued armor"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Bonuses, &Expected, 0));
 			const auto Pointerless = FGridEquipmentContributionReadModel::ResolveStatBonuses(
-				Registry.Get(), nullptr, Equipped);
+				Registry.Get(), Equipped);
 			TestTrue(TEXT("ARM bonuses identical without old pointer"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Pointerless, &Expected, 0));
 
 			const FGridDamageResistanceSet Resistances =
-				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped);
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped);
 			TestTrue(TEXT("Registered ARM ignores old resistance"), Resistances.IsEmpty());
 			TestTrue(TEXT("Pointerless ARM has no resistance contribution"),
-				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), nullptr, Equipped).IsEmpty());
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped).IsEmpty());
 			Old->ItemDefinitionId = TEXT("Conflicting_ARM_5D5");
 			const auto WrongIdentity = FGridEquipmentContributionReadModel::ResolveStatBonuses(
-				Registry.Get(), Old.Get(), Equipped);
+				Registry.Get(), Equipped);
 			TestTrue(TEXT("Wrong historical identity cannot affect registered ARM"),
 				FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&WrongIdentity, &Expected, 0));
 			TestTrue(TEXT("Wrong identity cannot affect resistance"),
-				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped).IsEmpty());
+				FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped).IsEmpty());
 			Old->ItemDefinitionId = Id;
 			for (const int32 InvalidLevel : {0, 21})
 			{
 				Equipped.ItemLevel = InvalidLevel;
 				const FGridEquipmentStatBonus Invalid =
-					FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Equipped);
+					FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Equipped);
 				TestFalse(TEXT("Invalid registered ARM cannot inherit old bonuses"), Invalid.HasAnyBonus());
 				TestTrue(TEXT("Invalid registered ARM cannot inherit old resistances"),
-					FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Equipped).IsEmpty());
+					FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Equipped).IsEmpty());
 			}
 		}
 	}
@@ -102,7 +102,7 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	if (!TestTrue(TEXT("Canonical N20 round shield exists"),
 		Registry->ResolveItem(NoOld.ItemDefinitionId, 20, Shield))) return false;
 	const FGridEquipmentStatBonus WithoutDefinition =
-		FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), nullptr, NoOld);
+		FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), NoOld);
 	TestEqual(TEXT("Canonical shield armor survives missing old definition"),
 		WithoutDefinition.ArmorBonus, Shield.Weapon.PhysicalArmor);
 
@@ -117,20 +117,20 @@ bool FGridClean063ADEquipmentContributions::RunTest(const FString&)
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	const FGridEquipmentStatBonus Refused =
-		FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Old.Get(), Legacy);
+		FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Legacy);
 	TestFalse(TEXT("Configured canonical game rejects unknown legacy bonus"),
 		Refused.HasAnyBonus());
 	TestTrue(TEXT("Configured canonical game rejects unknown legacy resistances"),
-		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Old.Get(), Legacy).IsEmpty());
+		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Legacy).IsEmpty());
 	const FGridEquipmentStatBonus LegacyBonuses =
-		FGridEquipmentContributionReadModel::ResolveStatBonuses(nullptr, Old.Get(), Legacy);
-	TestEqual(TEXT("Isolated legacy armor remains seven"), LegacyBonuses.ArmorBonus, 7);
-	TestEqual(TEXT("Isolated legacy magical armor remains four"), LegacyBonuses.MagicalArmorBonus, 4);
-	TestEqual(TEXT("Isolated legacy attribute contribution unchanged"), LegacyBonuses.StrengthBonus, 3);
-	TestEqual(TEXT("Isolated legacy resistance contribution unchanged"),
-		FGridEquipmentContributionReadModel::ResolveResistances(nullptr, Old.Get(), Legacy).FireResistance, 12);
+		FGridEquipmentContributionReadModel::ResolveStatBonuses(nullptr, Legacy);
+	TestEqual(TEXT("Registry-less armor is absent"), LegacyBonuses.ArmorBonus, 0);
+	TestEqual(TEXT("Registry-less magical armor is absent"), LegacyBonuses.MagicalArmorBonus, 0);
+	TestEqual(TEXT("Registry-less attribute contribution is absent"), LegacyBonuses.StrengthBonus, 0);
+	TestEqual(TEXT("Registry-less resistance contribution is absent"),
+		FGridEquipmentContributionReadModel::ResolveResistances(nullptr, Legacy).FireResistance, 0);
 	TestTrue(TEXT("Missing definition gives no resistance contribution"),
-		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), nullptr, Legacy).IsEmpty());
+		FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Legacy).IsEmpty());
 	return true;
 }
 
@@ -164,14 +164,14 @@ bool FGridClean065D4NonArmContributions::RunTest(const FString&)
 		Item.Quantity = 1;
 		Item.AbsorbedEquipmentPhysicalArmor = 2;
 		Item.AbsorbedEquipmentMagicalArmor = 3;
-		const auto Bonus = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Stale.Get(), Item);
-		const auto NoOld = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), nullptr, Item);
+		const auto Bonus = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Item);
+		const auto NoOld = FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Item);
 		TestTrue(TEXT("Exact native bonuses, no old source"), FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&Bonus, &Gear->Bonuses, 0));
 		TestTrue(TEXT("Same without pointer"), FGridEquipmentStatBonus::StaticStruct()->CompareScriptStruct(&NoOld, &Gear->Bonuses, 0));
-		const auto R = FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Stale.Get(), Item);
+		const auto R = FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Item);
 		TestTrue(TEXT("Exact native resistance"), FGridDamageResistanceSet::StaticStruct()->CompareScriptStruct(&R, &Gear->Resistances, 0));
 		FGridEquipmentArmorReadView Armor;
-		if (!TestTrue(TEXT("Physical non-ARM armor resolves"), FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), nullptr, Item, Armor))) return false;
+		if (!TestTrue(TEXT("Physical non-ARM armor resolves"), FGridEquipmentArmorReadModel::TryResolve(Registry.Get(), Item, Armor))) return false;
 		FGridArmorReserveView Direct;
 		TestTrue(TEXT("Public registry resolves same non-ARM reserve"), Registry->ResolveArmorReserveForInstance(Item, Direct));
 		TestEqual(TEXT("Exact spent physical debt"), Direct.SpentPhysicalArmor, 2);
@@ -186,8 +186,8 @@ bool FGridClean065D4NonArmContributions::RunTest(const FString&)
 		Item.AbsorbedEquipmentMagicalArmor = 3;
 		Item.ItemLevel = 1;
 		TestFalse(TEXT("Invalid registry reserve rejected"), Registry->ResolveArmorReserveForInstance(Item, Direct));
-		TestFalse(TEXT("Physical N1 rejected"), FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Stale.Get(), Item).HasAnyBonus());
-		TestTrue(TEXT("Invalid levels do not borrow resistance"), FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Stale.Get(), Item).IsEmpty());
+		TestFalse(TEXT("Physical N1 rejected"), FGridEquipmentContributionReadModel::ResolveStatBonuses(Registry.Get(), Item).HasAnyBonus());
+		TestTrue(TEXT("Invalid levels do not borrow resistance"), FGridEquipmentContributionReadModel::ResolveResistances(Registry.Get(), Item).IsEmpty());
 	}
 	TestTrue(TEXT("Real equipment tested"), Count > 0);
 	return !HasAnyErrors();

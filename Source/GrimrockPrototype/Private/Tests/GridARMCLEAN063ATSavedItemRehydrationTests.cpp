@@ -148,7 +148,7 @@ bool FGridClean063ATSavedRehydration::RunTest(const FString&)
 	FGridResolvedItem ExpectedSword;
 	if (!TestTrue(TEXT("Canonical N20 sword metadata resolves"),
 		Fixture.Registry->ResolveItem(SwordId, 20, ExpectedSword))) return false;
-	const auto SwordMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, nullptr, RehydratedSword);
+	const auto SwordMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.Registry, RehydratedSword);
 	TestTrue(TEXT("Rehydrated name and mass come from canonical definition"), SwordMetadata.bResolved &&
 		SwordMetadata.DisplayName.EqualTo(ExpectedSword.DisplayName) &&
 		FMath::IsNearlyEqual(SwordMetadata.UnitWeightKg, ExpectedSword.WeightKg));

@@ -135,7 +135,7 @@ bool FGridUIItem01TooltipProjectionTest::RunTest(const FString& Parameters)
 	Book.Quantity = 1;
 	Book.OwnerType = EGridItemOwnerType::CharacterInventory;
 	Book.OwnerCharacterIndex = 0;
-	const FGridItemInteractionReadView BookInteraction = FGridItemInteractionReadModel::Resolve(BookWorld.Scope.Registry, nullptr, Book);
+	const FGridItemInteractionReadView BookInteraction = FGridItemInteractionReadModel::Resolve(BookWorld.Scope.Registry, Book);
 	TestTrue(TEXT("Shared readable capability recognizes the registered book"), BookInteraction.bCanRead);
 	TestEqual(TEXT("The book keeps its authored readable text"), BookInteraction.DefaultReadText.ToString(), FString(TEXT("Texte du livre")));
 

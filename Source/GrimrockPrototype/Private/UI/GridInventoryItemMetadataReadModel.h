@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Temporary C++ projection of identity and mass for an inventory tooltip. */
@@ -16,8 +14,7 @@ struct FGridInventoryItemMetadata
 
 struct FGridInventoryItemMetadataReadModel
 {
-	static FGridInventoryItemMetadata Resolve(const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition, const FGridItemInstance& Instance)
+	static FGridInventoryItemMetadata Resolve(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance)
 	{
 		FGridInventoryItemMetadata Result;
 		if (!Instance.IsValid())
@@ -46,20 +43,6 @@ struct FGridInventoryItemMetadataReadModel
 		// Unknown identities expose only their technical ID, not a cached label
 		// or mass. Historical fixture data is isolated from the production UI.
 		Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Registry || !GIsAutomationTesting) return Result;
-		if (IsValid(LegacyDefinition) && LegacyDefinition->ItemDefinitionId == Instance.ItemDefinitionId)
-		{
-			Result.bResolved = true;
-			Result.DisplayName = LegacyDefinition->DisplayName;
-			Result.Description = LegacyDefinition->Description;
-			Result.UnitWeightKg = LegacyDefinition->Weight;
-		}
-		// Historical Automation tests may explicitly supply a definition,
-		// never a name or a mass copied into the physical instance.
-		if (Result.DisplayName.IsEmpty())
-			Result.DisplayName = FText::FromName(Instance.ItemDefinitionId);
-#endif
 		return Result;
 	}
 };

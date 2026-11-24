@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /**
@@ -21,7 +20,6 @@ struct FGridEquipmentSlots
 {
 	static FGridEquipmentSlotsView Resolve(
 		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Item)
 	{
 		FGridEquipmentSlotsView View;
@@ -64,40 +62,6 @@ struct FGridEquipmentSlots
 			return View;
 		}
 
-#if WITH_DEV_AUTOMATION_TESTS
-		// No obsolete slot grants for an unknown ItemId while a real registry
-		// is present, even during Automation. Only isolated fixtures may use it.
-		if (Registry || !GIsAutomationTesting || !IsValid(LegacyDefinition) ||
-			LegacyDefinition->ItemDefinitionId != Item.ItemDefinitionId)
-		{
-			return View;
-		}
-		View.bResolved = true;
-		View.bTwoHanded =
-			LegacyDefinition->GetEffectiveHandUsage() == EGridItemHandUsage::TwoHanded &&
-			LegacyDefinition->CanEquipToSlot(EGridEquipmentSlot::MainHand);
-		if (LegacyDefinition->CanEquipToSlot(EGridEquipmentSlot::MainHand))
-		{
-			View.AllowedSlots.Add(EGridEquipmentSlot::MainHand);
-		}
-		if (!View.bTwoHanded &&
-			LegacyDefinition->CanEquipToSlot(EGridEquipmentSlot::OffHand))
-		{
-			View.AllowedSlots.Add(EGridEquipmentSlot::OffHand);
-		}
-		for (const EGridEquipmentSlot Slot : LegacyDefinition->CompatibleEquipmentSlots)
-		{
-			if (Slot == EGridEquipmentSlot::None ||
-				Slot == EGridEquipmentSlot::MainHand ||
-				Slot == EGridEquipmentSlot::OffHand ||
-				View.AllowedSlots.Contains(Slot) ||
-				!LegacyDefinition->CanEquipToSlot(Slot))
-			{
-				continue;
-			}
-			View.AllowedSlots.Add(Slot);
-		}
-#endif
 		return View;
 	}
 };

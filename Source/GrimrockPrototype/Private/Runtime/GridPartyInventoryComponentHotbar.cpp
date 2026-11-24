@@ -269,7 +269,7 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem(
 		}
 
 		const FGridItemInteractionReadView Capabilities =
-			FGridItemInteractionReadModel::Resolve(Canonical, nullptr, OwnedItem);
+			FGridItemInteractionReadModel::Resolve(Canonical, OwnedItem);
 		const FGridQuickItemUseReadView Use = Capabilities.bRegisteredIdentity
 			? FGridQuickItemUseReadModel::Resolve(Canonical, OwnedItem) : FGridQuickItemUseReadView();
 		if (Use.bResolved || Capabilities.bPhysicalThrowHotbar)

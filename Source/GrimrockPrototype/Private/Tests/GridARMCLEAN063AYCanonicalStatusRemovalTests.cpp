@@ -167,7 +167,7 @@ bool FGridClean063AYStatusProjection::RunTest(const FString&)
     }
 
     const auto Capability =
-        FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, F.Make());
+        FGridItemInteractionReadModel::Resolve(F.Registry, F.Make());
     TestTrue(TEXT("Status cleanse may be assigned to combat hotbar"),
         Capability.bCanAddToHotbar);
     TestFalse(TEXT("No inline Consume action for combat-only status removal"),

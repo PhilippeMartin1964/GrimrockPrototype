@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Runtime/GridItemDefinitionAsset.h"
-#include "CoreGlobals.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Runtime/Items/GridInventoryCategoryTags.h"
 
@@ -16,7 +15,7 @@ struct FGridInventoryItemTypeReadView
 struct FGridInventoryItemTypeReadModel
 {
     static FGridInventoryItemTypeReadView Resolve(
-        const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* Legacy,
+        const UGridItemSubsystem* Registry,
         const FGridItemInstance& Item)
     {
         FGridInventoryItemTypeReadView View;
@@ -69,13 +68,6 @@ struct FGridInventoryItemTypeReadModel
         if (!Item.IsValid()) return View;
 
         // A diagnostic unknown ID has no category. Historical fixtures only.
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!Registry && GIsAutomationTesting && IsValid(Legacy) && Legacy->ItemDefinitionId == Item.ItemDefinitionId)
-        {
-            View.bResolved = true;
-            View.ItemType = Legacy->ItemType;
-        }
-#endif
         return View;
     }
 };

@@ -656,7 +656,7 @@ bool FGridClean064X60PointerlessLootDeath::RunTest(const FString&)
         !TestEqual(TEXT("Quantity unchanged"), Item.Quantity, 1) ||
         !TestTrue(TEXT("Loot owns a valid physical GUID"), Item.RuntimeObjectId.IsValid()))
         return false;
-    const auto LootMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, Item);
+    const auto LootMeta = FGridInventoryItemMetadataReadModel::Resolve(Registry, Item);
     if (!TestTrue(TEXT("Loot metadata resolved"), LootMeta.bResolved) ||
         !TestEqual(TEXT("Unit mass from canonical registry"), LootMeta.UnitWeightKg, Stone.WeightKg) ||
         !TestTrue(TEXT("Loot display name from canonical registry"), LootMeta.DisplayName.EqualTo(

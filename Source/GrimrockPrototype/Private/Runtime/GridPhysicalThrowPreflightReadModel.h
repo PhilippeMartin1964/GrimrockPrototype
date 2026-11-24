@@ -34,14 +34,13 @@ struct FGridPhysicalThrowPreflightReadModel
 
     static FGridPhysicalThrowPreflightReadView Resolve(
         const UGridItemSubsystem* Registry,
-        const UGridItemDefinitionAsset* Legacy,
         const FGridItemInstance& Instance, int32 Strength)
     {
         FGridPhysicalThrowPreflightReadView Out;
         Out.Ballistics =
-            FGridThrowBallisticsReadModel::Resolve(Registry, Legacy, Instance);
+            FGridThrowBallisticsReadModel::Resolve(Registry, Instance);
         Out.Strength =
-            FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Legacy, Instance, Strength);
+            FGridPhysicalThrowStrengthReadModel::Resolve(Registry, Instance, Strength);
         Out.bRegisteredIdentity =
             Out.Ballistics.bRegisteredIdentity || Out.Strength.bRegisteredIdentity;
         Out.bResolved = Out.Strength.bResolved && Out.Ballistics.bResolved;

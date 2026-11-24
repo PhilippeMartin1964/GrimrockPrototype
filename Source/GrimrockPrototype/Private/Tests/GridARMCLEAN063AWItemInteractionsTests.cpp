@@ -120,15 +120,15 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     {
         const FGridItemInstance Knife = F.Make(KnifeId, Level);
         const auto Canonical =
-            FGridItemInteractionReadModel::Resolve(F.Registry, nullptr, Knife);
+            FGridItemInteractionReadModel::Resolve(F.Registry, Knife);
         const auto Wrong =
-            FGridItemInteractionReadModel::Resolve(F.Registry, Contradictory, Knife);
+            FGridItemInteractionReadModel::Resolve(F.Registry, Knife);
         TestTrue(TEXT("Actual N1/N20 armament has canonical identity"),
             Canonical.bRegisteredIdentity && Canonical.bResolved);
         TestTrue(TEXT("Specialized throwing ARM supports physical utility hotbar"),
             Canonical.bCanAddToHotbar && Canonical.bPhysicalThrowHotbar);
         TestTrue(TEXT("Contradictory legacy asset cannot add Consume or Read"),
-            !Wrong.bCanConsumeLegacy && !Wrong.bCanRead);
+            !Wrong.bCanRead);
         TestTrue(TEXT("Contradictory legacy asset cannot revoke the physical throw"),
             Wrong.bCanAddToHotbar && Wrong.bPhysicalThrowHotbar);
         TestEqual(TEXT("Canonical item name ignores old asset"),
@@ -145,21 +145,21 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     for (int32 InvalidLevel : {0, 21})
     {
         const auto Bad = FGridItemInteractionReadModel::Resolve(
-            F.Registry, Contradictory, F.Make(KnifeId, InvalidLevel));
+            F.Registry, F.Make(KnifeId, InvalidLevel));
         TestTrue(TEXT("Known N0/N21 is classified before instance validation"), Bad.bRegisteredIdentity);
         TestFalse(TEXT("Invalid registered level refuses legacy capabilities"), Bad.bResolved ||
-            Bad.bCanRead || Bad.bCanConsumeLegacy || Bad.bCanAddToHotbar);
+            Bad.bCanRead || Bad.bCanAddToHotbar);
     }
 
     FGridItemInstance Arrow = F.Make(TEXT("Item_Arrows_01"), 0);
-    const auto Ammo = FGridItemInteractionReadModel::Resolve(F.Registry, Contradictory, Arrow);
+    const auto Ammo = FGridItemInteractionReadModel::Resolve(F.Registry, Arrow);
     TestTrue(TEXT("Canonical N0 ammo resolves"), Ammo.bRegisteredIdentity && Ammo.bResolved);
     TestFalse(TEXT("Ammo receives no fabricated physical throw shortcut"), Ammo.bCanAddToHotbar);
 
     FGridItemInstance WithText = F.Make(KnifeId, 1);
     WithText.ReadTextOverride = FText::FromString(TEXT("Genuine instance text"));
     const auto GenuineRead = FGridItemInteractionReadModel::Resolve(
-        F.Registry, Contradictory, WithText);
+        F.Registry, WithText);
     TestTrue(TEXT("Canonical item retains truly authored instance text"), GenuineRead.bCanRead);
     TestTrue(TEXT("Context offers Read only for genuine canonical instance content"),
         F.HasAction(WithText, Contradictory, EGridItemActionType::Read));
@@ -170,30 +170,29 @@ bool FGridARMCLEAN063AWInteractionIdentityTest::RunTest(const FString&)
     Book->ReadText = FText::FromString(TEXT("Legacy readable body"));
     Book->DisplayName = FText::FromString(TEXT("Legacy book"));
     const auto Legacy = FGridItemInteractionReadModel::Resolve(
-        F.Registry, Book, F.Make(Book->ItemDefinitionId, 0));
+        F.Registry, F.Make(Book->ItemDefinitionId, 0));
     TestFalse(TEXT("Unregistered reading is not canonical"), Legacy.bRegisteredIdentity);
     TestFalse(TEXT("Configured registry refuses unknown readable source"),
-        Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeLegacy ||
-        Legacy.bCanConsumeItem || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
+        Legacy.bResolved || Legacy.bCanRead || Legacy.bCanConsumeItem || Legacy.bCanAddToHotbar || Legacy.bPhysicalThrowHotbar);
     TestTrue(TEXT("Unknown reader exposes no historical presentation"),
         Legacy.DisplayName.IsEmpty() && Legacy.DefaultReadText.IsEmpty());
     FGridItemInstance UnknownWithText = F.Make(Book->ItemDefinitionId, 0);
     UnknownWithText.ReadTextOverride = FText::FromString(TEXT("Unknown source text"));
     TestFalse(TEXT("Instance text cannot authorize an unknown identity"),
-        FGridItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanRead);
+        FGridItemInteractionReadModel::Resolve(F.Registry, UnknownWithText).bCanRead);
     TestFalse(TEXT("Real menu refuses unknown Read"),
         F.HasAction(UnknownWithText, Book, EGridItemActionType::Read));
     Book->ItemType = EGridItemType::Potion;
     Book->bProvidesQuickItemCombatAction = true;
     TestFalse(TEXT("Historical potion cannot grant unknown Consume"),
-        FGridItemInteractionReadModel::Resolve(F.Registry, Book, UnknownWithText).bCanConsumeLegacy);
+        FGridItemInteractionReadModel::Resolve(F.Registry, UnknownWithText).bCanConsumeItem);
     TestFalse(TEXT("Real menu refuses unknown Consume"),
         F.HasAction(UnknownWithText, Book, EGridItemActionType::Consume));
     Book->ItemType = EGridItemType::Book;
     const auto FixtureRead = FGridItemInteractionReadModel::Resolve(
-        nullptr, Book, F.Make(Book->ItemDefinitionId, 0));
-    TestTrue(TEXT("Isolated registry-less readable fixture remains supported"),
-        FixtureRead.bResolved && FixtureRead.bCanRead);
+        nullptr, F.Make(Book->ItemDefinitionId, 0));
+    TestTrue(TEXT("Registry-less item cannot authorize Read"),
+        !FixtureRead.bResolved && !FixtureRead.bCanRead);
 
     const FGridItemInstance Incoming = F.Make(KnifeId, 20);
     if (!TestTrue(TEXT("Real canonical knife enters inventory without old DA"),

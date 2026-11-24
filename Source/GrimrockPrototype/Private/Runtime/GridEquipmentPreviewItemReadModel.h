@@ -20,7 +20,6 @@ struct FGridEquipmentPreviewItemReadModel
 {
 	static FGridEquipmentPreviewItemReadView Resolve(
 		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* LegacyDefinition,
 		const FGridItemInstance& Item)
 	{
 		FGridEquipmentPreviewItemReadView View;
@@ -29,17 +28,17 @@ struct FGridEquipmentPreviewItemReadModel
 			return View;
 		}
 		View.Bonuses = FGridEquipmentContributionReadModel::ResolveStatBonuses(
-			Registry, LegacyDefinition, Item);
+			Registry, Item);
 		View.Resistances = FGridEquipmentContributionReadModel::ResolveResistances(
-			Registry, LegacyDefinition, Item);
+			Registry, Item);
 		FGridEquipmentArmorReadView Armor;
 		if (FGridEquipmentArmorReadModel::TryResolve(
-			Registry, LegacyDefinition, Item, Armor))
+			Registry, Item, Armor))
 		{
 			View.RemainingPhysicalArmor = FMath::Max(0, Armor.RemainingPhysical);
 		}
 		const FGridInventoryItemMetadata Metadata =
-			FGridInventoryItemMetadataReadModel::Resolve(Registry, LegacyDefinition, Item);
+			FGridInventoryItemMetadataReadModel::Resolve(Registry, Item);
 		View.DisplayName = Metadata.DisplayName.IsEmpty()
 			? FText::FromName(Item.ItemDefinitionId) : Metadata.DisplayName;
 		return View;

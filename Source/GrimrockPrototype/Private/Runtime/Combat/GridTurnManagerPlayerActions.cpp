@@ -696,7 +696,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		(SourcePolicy == EGridCombatActionSourcePolicy::QuickItem && !bRegisteredQuickItemAttack);
 	const FGridCombatPhysicalThrowSourceReadView ThrowSource = bItemSourceAttack
 		? FGridCombatPhysicalThrowSourceReadModel::Resolve(
-			AmmoRegistry, nullptr, AmmoSourceInstance,
+			AmmoRegistry, AmmoSourceInstance,
 			SourceItemQuantityCost, bResolvedRangedAttack)
 		: FGridCombatPhysicalThrowSourceReadView();
 	if (ThrowSource.bRejectAction)
@@ -713,8 +713,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 	const FGridRangedAmmunitionRequirement AmmoRequirement =
 		FGridRangedAmmunitionPolicy::ResolveForAttack(
-			AmmoRegistry, OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel,
-			nullptr, bResolvedRangedAttack && bItemSourceAttack);
+			AmmoRegistry, OffensiveItemDefinitionId, AmmoSourceInstance.ItemLevel, bResolvedRangedAttack && bItemSourceAttack);
 	// Preflight before reserving AP, mana or the source item.
 	if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 			*Inventory, AttackerCharacterIndex, AmmoRequirement))

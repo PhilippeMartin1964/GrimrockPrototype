@@ -83,7 +83,7 @@ bool FGridUIFilter01CategoryMappingTest::RunTest(const FString& Parameters)
 		Item.ItemDefinitionId = Id;
 		Item.ItemLevel = Level;
 		Item.Quantity = 1;
-		const auto Type = FGridInventoryItemTypeReadModel::Resolve(World.Scope.Registry, nullptr, Item);
+		const auto Type = FGridInventoryItemTypeReadModel::Resolve(World.Scope.Registry, Item);
 		TestTrue(FString::Printf(TEXT("%s resolves at its physical level"), *Id.ToString()), Type.bResolved);
 		TestEqual(FString::Printf(TEXT("%s projects its current inventory type"), *Id.ToString()), Type.ItemType, ExpectedType);
 	};

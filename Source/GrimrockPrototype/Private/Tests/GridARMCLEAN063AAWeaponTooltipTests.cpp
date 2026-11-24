@@ -47,11 +47,11 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
             Item.Quantity = 1;
             FGridWeaponTooltipPresentation Tooltip;
             if (!TestTrue(TEXT("Canonical tooltip must not depend on old catalogue"),
-                FGridWeaponTooltipProjection::Build(Old.Get(), Item, Tooltip, Registry.Get())))
+                FGridWeaponTooltipProjection::Build( Item, Tooltip, Registry.Get())))
                 return false;
             FGridWeaponTooltipPresentation Pointerless;
             TestTrue(TEXT("Same profile without any old item definition"),
-                FGridWeaponTooltipProjection::Build(nullptr, Item, Pointerless, Registry.Get()));
+                FGridWeaponTooltipProjection::Build( Item, Pointerless, Registry.Get()));
             TestEqual(TEXT("Pointerless level"), Pointerless.ItemLevel, Tooltip.ItemLevel);
             TestEqual(TEXT("Pointerless fact count"), Pointerless.Facts.Num(), Tooltip.Facts.Num());
             if (Pointerless.Facts.Num() == Tooltip.Facts.Num())
@@ -101,22 +101,21 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
             Equipped.ItemLevel = Level == 1 ? 20 : 1;
             TArray<FGridWeaponTooltipComparisonFact> Comparisons;
             TestTrue(TEXT("Compare levels without legacy data"),
-                FGridWeaponTooltipProjection::BuildComparison(
-                    Old.Get(), Item, Old.Get(), Equipped, Comparisons, Registry.Get()));
+                FGridWeaponTooltipProjection::BuildComparison( Item, Equipped, Comparisons, Registry.Get()));
             TestTrue(TEXT("Comparable roles yield facts"), !Comparisons.IsEmpty());
             TArray<FGridWeaponTooltipComparisonFact> NoOldFacts;
             TestTrue(TEXT("Both comparison sources can be pointerless"),
-                FGridWeaponTooltipProjection::BuildComparison(nullptr, Item, nullptr, Equipped, NoOldFacts, Registry.Get()));
+                FGridWeaponTooltipProjection::BuildComparison( Item, Equipped, NoOldFacts, Registry.Get()));
             TestEqual(TEXT("Same comparison count"), NoOldFacts.Num(), Comparisons.Num());
             Old->ItemDefinitionId = TEXT("WrongHistoricalIdentity");
             TestTrue(TEXT("Registered item ignores conflicting historical identity"),
-                FGridWeaponTooltipProjection::Build(Old.Get(), Item, Pointerless, Registry.Get()));
+                FGridWeaponTooltipProjection::Build( Item, Pointerless, Registry.Get()));
             Old->ItemDefinitionId = Id;
 
             Item.ItemLevel = 0;
             FGridWeaponTooltipPresentation Invalid;
             TestFalse(TEXT("Registered ARM N0 refuses old N1 tooltip"),
-                FGridWeaponTooltipProjection::Build(Old.Get(), Item, Invalid, Registry.Get()));
+                FGridWeaponTooltipProjection::Build( Item, Invalid, Registry.Get()));
             TestFalse(TEXT("Registered ARM N0 has no profile"), Invalid.bHasProfile);
         }
     }
@@ -128,7 +127,7 @@ bool FGridClean063AAWeaponTooltip::RunTest(const FString&)
     Unknown.Quantity = 1;
     FGridWeaponTooltipPresentation Unregistered;
     TestFalse(TEXT("Unknown ID retains legacy path, cannot invent profile"),
-        FGridWeaponTooltipProjection::Build(Old.Get(), Unknown, Unregistered, Registry.Get()));
+        FGridWeaponTooltipProjection::Build( Unknown, Unregistered, Registry.Get()));
     return true;
 }
 

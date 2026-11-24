@@ -150,7 +150,7 @@ namespace
 			return Action;
 		}
 		const FGridItemInteractionReadView Capabilities =
-			FGridItemInteractionReadModel::Resolve(Registry, nullptr, Source->Item);
+			FGridItemInteractionReadModel::Resolve(Registry, Source->Item);
 		if (!Capabilities.bPhysicalThrowHotbar)
 		{
 			Action.DisabledReason = FUILocalizationText::Get(TEXT("Combat.Action.Unavailable.ItemDefinition"));
@@ -171,7 +171,7 @@ namespace
 			return Action;
 		}
 		const FGridPhysicalThrowPreflightReadView Gate =
-			FGridPhysicalThrowPreflightReadModel::Resolve(Registry, nullptr, Source->Item, Summary.Attributes.Strength);
+			FGridPhysicalThrowPreflightReadModel::Resolve(Registry, Source->Item, Summary.Attributes.Strength);
 		if (!Gate.bCanThrow)
 		{
 			Action.AvailabilityReason = EGridCombatActionAvailabilityReason::MissingRequirement;

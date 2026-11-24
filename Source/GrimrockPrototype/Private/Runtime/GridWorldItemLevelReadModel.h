@@ -11,19 +11,17 @@ struct FGridWorldItemLevelReadModel
 {
 	/** LevelAsset placement with a materialized physical level. */
 	static FGridReceptacleItemMetadataReadView ResolveAuthoredPlacement(
-		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* Definition, FName ItemId, int32 AuthoredLevel)
+		const UGridItemSubsystem* Registry, FName ItemId, int32 AuthoredLevel)
 	{
 		return FGridReceptacleItemMetadataReadModel::Resolve(
-			Registry, Definition, ItemId, AuthoredLevel, true);
+			Registry, ItemId, AuthoredLevel);
 	}
 
 	/** Already-existing item: registered ARM N0 is invalid, ammo N0 is real. */
 	static FGridReceptacleItemMetadataReadView ResolvePersistedInstance(
-		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* Definition, FName ItemId, int32 FixedLevel)
+		const UGridItemSubsystem* Registry, FName ItemId, int32 FixedLevel)
 	{
 		return FGridReceptacleItemMetadataReadModel::Resolve(
-			Registry, Definition, ItemId, FixedLevel, false);
+			Registry, ItemId, FixedLevel);
 	}
 };

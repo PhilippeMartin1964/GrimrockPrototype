@@ -82,7 +82,7 @@ bool FGridNativeItemTooltipLocalization04::RunTest(const FString&)
     RealItem.OwnerCharacterIndex = 0;
     FGridWeaponTooltipPresentation Profile;
     if (!TestTrue(TEXT("Existing N9 projection survives UI key migration"),
-        FGridWeaponTooltipProjection::Build(nullptr, RealItem, Profile, Fixture.Registry.Get())))
+        FGridWeaponTooltipProjection::Build( RealItem, Profile, Fixture.Registry.Get())))
         return false;
     TestTrue(TEXT("Localized dice label resolved from ST_UI"),
         !Profile.Facts.IsEmpty() && !Profile.Facts[0].Label.IsEmpty());

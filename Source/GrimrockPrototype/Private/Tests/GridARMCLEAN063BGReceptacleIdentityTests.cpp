@@ -148,20 +148,20 @@ bool FGridBGLevelAndLegacy::RunTest(const FString&)
     UGridItemDefinitionAsset* Old = F.Contradictory();
     const FName ArrowId(TEXT("Item_Arrows_01"));
     const auto Arrow = FGridReceptacleItemMetadataReadModel::Resolve(
-        F.Registry, Old, ArrowId, 0, false);
+        F.Registry, ArrowId, 0);
     TestTrue(TEXT("Registered arrow N0 ignores contradicting old definition"),
         Arrow.bRegisteredIdentity && Arrow.bResolved && Arrow.FixedItemLevel == 0 &&
         Arrow.UnitWeightKg < Old->Weight);
     const auto InvalidArrow = FGridReceptacleItemMetadataReadModel::Resolve(
-        F.Registry, Old, ArrowId, 1, false);
+        F.Registry, ArrowId, 1);
     TestFalse(TEXT("N1 ammunition remains invalid"), InvalidArrow.bResolved);
     const FName SwordId(TEXT("Weapon_StraightSword_01"));
 
     const auto InvalidSword = FGridReceptacleItemMetadataReadModel::Resolve(
-        F.Registry, nullptr, SwordId, 0, false);
+        F.Registry, SwordId, 0);
     TestFalse(TEXT("Persisted N0 weapon cannot inherit N1"), InvalidSword.bResolved);
     const auto Sword = FGridReceptacleItemMetadataReadModel::Resolve(
-        F.Registry, Old, SwordId, 20, false);
+        F.Registry, SwordId, 20);
     TestTrue(TEXT("Real N20 item level retained"),
         Sword.bRegisteredIdentity && Sword.bResolved && Sword.FixedItemLevel == 20);
 

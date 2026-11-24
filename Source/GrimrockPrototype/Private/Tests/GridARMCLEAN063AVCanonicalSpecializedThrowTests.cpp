@@ -125,9 +125,9 @@ namespace ARMCLEAN063AV
                 Resolved.Weapon.Projectile.bEnabled)) return false;
 
             const FGridThrowBallisticsReadView Flight =
-                FGridThrowBallisticsReadModel::Resolve(F.Registry, nullptr, Instance);
+                FGridThrowBallisticsReadModel::Resolve(F.Registry, Instance);
             const auto FlightWrong =
-                FGridThrowBallisticsReadModel::Resolve(F.Registry, Contradictory, Instance);
+                FGridThrowBallisticsReadModel::Resolve(F.Registry, Instance);
             Test.TestTrue(TEXT("Canonical ballistics resolve without DA_Weapon"),
                 Flight.bRegisteredIdentity && Flight.bResolved && Flight.bSpecializedProjectile);
             Test.TestTrue(TEXT("Old zero speed cannot override canonical projectile"),
@@ -138,9 +138,9 @@ namespace ARMCLEAN063AV
                 FMath::IsNearlyEqual(FlightWrong.InitialSpeed, Flight.InitialSpeed));
 
             const auto Gate =
-                FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, nullptr, Instance, 100);
+                FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Instance, 100);
             const auto GateWrong =
-                FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Contradictory, Instance, 100);
+                FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Instance, 100);
             Test.TestTrue(TEXT("Throw gate resolves with canonical item only"),
                 Gate.bRegisteredIdentity && Gate.bResolved && Gate.bOneHanded);
             Test.TestTrue(TEXT("Force threshold and mass are canonical"),
@@ -175,7 +175,7 @@ namespace ARMCLEAN063AV
     FGridResolvedItem CanonicalFlightSource;
     if (!Test.TestTrue(TEXT("Physical source resolves before presentation checks"),
         F.Registry->ResolveItem(Valid.ItemDefinitionId, Valid.ItemLevel, CanonicalFlightSource))) return false;
-    const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, nullptr, Projectile->ThrownItemInstance);
+    const auto FlightMetadata = FGridInventoryItemMetadataReadModel::Resolve(F.Registry, Projectile->ThrownItemInstance);
     Test.TestTrue(TEXT("In-flight physical identity resolves canonical name and mass"), FlightMetadata.bResolved &&
         FlightMetadata.DisplayName.EqualTo(CanonicalFlightSource.DisplayName) &&
         FMath::IsNearlyEqual(FlightMetadata.UnitWeightKg, CanonicalFlightSource.WeightKg));
@@ -230,9 +230,9 @@ namespace ARMCLEAN063AV
     {
         const FGridItemInstance Bad = F.Make(Ids[0], Invalid);
         const auto Flight =
-            FGridThrowBallisticsReadModel::Resolve(F.Registry, Contradictory, Bad);
+            FGridThrowBallisticsReadModel::Resolve(F.Registry, Bad);
         const auto Gate =
-            FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Contradictory, Bad, 100);
+            FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Bad, 100);
         Test.TestTrue(TEXT("Invalid known identity remains registered"),
             Flight.bRegisteredIdentity && Gate.bRegisteredIdentity);
         Test.TestFalse(TEXT("Invalid ARM has no canonical flight"), Flight.bResolved);
@@ -254,7 +254,7 @@ namespace ARMCLEAN063AV
     Test.TestNull(TEXT("Unknown item without old definition cannot spawn"),
         F.Runtime->SpawnThrownItemProjectile(Unknown, Start, Velocity, 0, 0));
     Test.TestFalse(TEXT("Unknown item without old definition has no throw gate"),
-        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, nullptr, Unknown, 20).bResolved);
+        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Unknown, 20).bResolved);
 
     UGridItemDefinitionAsset* Legacy = NewObject<UGridItemDefinitionAsset>(F.Runtime);
     Legacy->ItemDefinitionId = Unknown.ItemDefinitionId;
@@ -266,12 +266,12 @@ namespace ARMCLEAN063AV
     Test.TestNull(TEXT("One physical projectile cannot carry two armaments"),
         F.Runtime->SpawnThrownItemProjectile(Oversized, Start, Velocity, 0, 0));
     Test.TestFalse(TEXT("Unknown identity cannot resolve Strength with matching old asset"),
-        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Legacy, Unknown, 20).bResolved);
+        FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Unknown, 20).bResolved);
     const auto LegacyGate =
-        FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Legacy, Unknown, 20);
-    Test.TestFalse(TEXT("Unregistered item stays on legacy path"), LegacyGate.bRegisteredIdentity);
-    Test.TestEqual(TEXT("Legacy speed-scale curve unchanged"),
-        LegacyGate.SpeedScale, Legacy->GetThrowSpeedScaleForStrength(20));
+        FGridPhysicalThrowStrengthReadModel::Resolve(nullptr, Unknown, 20);
+    Test.TestFalse(TEXT("Worldless item has no registered identity"), LegacyGate.bRegisteredIdentity);
+    Test.TestEqual(TEXT("Worldless source has no speed scale"),
+        LegacyGate.SpeedScale, 0.0f);
     return !Test.HasAnyErrors();
     }
     Test.AddError(TEXT("Unknown ARM-CLEAN06.3AV test stage"));
@@ -343,8 +343,8 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
         Stale->ThrowSpeed = 777.f;
         const auto* Equipment = Cast<UGridOtherEquipmentDefinitionAsset>(Native);
         const bool bOneHand = Equipment && Equipment->HandPolicy == EGridNonArmamentHandPolicy::OneHanded;
-        const auto Gate = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Item, 100);
-        const auto Flight = FGridThrowBallisticsReadModel::Resolve(F.Registry, Stale, Item);
+        const auto Gate = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Item, 100);
+        const auto Flight = FGridThrowBallisticsReadModel::Resolve(F.Registry, Item);
         TestEqual(TEXT("Hand permission does not use obsolete definition"), Gate.bOneHanded, bOneHand);
         if (Flight.bResolved)
             TestEqual(TEXT("Authored speed"), Flight.InitialSpeed, Native->GenericThrow.InitialSpeed);
@@ -364,8 +364,8 @@ bool FGridClean065DGenericThrow::RunTest(const FString&)
             Projectile->Destroy();
         }
         Item.ItemLevel = 1;
-        TestFalse(TEXT("Nonphysical non-ARM level refused"), FGridThrowBallisticsReadModel::Resolve(F.Registry, Stale, Item).bResolved);
-        TestFalse(TEXT("Nonphysical non-ARM hand gate refused"), FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Item, 100).bResolved);
+        TestFalse(TEXT("Nonphysical non-ARM level refused"), FGridThrowBallisticsReadModel::Resolve(F.Registry, Item).bResolved);
+        TestFalse(TEXT("Nonphysical non-ARM hand gate refused"), FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Item, 100).bResolved);
     }
     TestEqual(TEXT("All non-ARM definitions covered"), NonArmCount, 26);
     TestTrue(TEXT("At least one actual handheld item launched"), HandheldCount > 0);
@@ -400,8 +400,8 @@ bool FGridClean065D3GenericArmFlight::RunTest(const FString&)
             Stale->ThrowSpeed = 99999.f;
             Stale->ThrowArc = 99.f;
             Stale->Weight = 99999.f;
-            const auto Flight = FGridThrowBallisticsReadModel::Resolve(F.Registry, Stale, Instance);
-            const auto Strength = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Stale, Instance, 100);
+            const auto Flight = FGridThrowBallisticsReadModel::Resolve(F.Registry, Instance);
+            const auto Strength = FGridPhysicalThrowStrengthReadModel::Resolve(F.Registry, Instance, 100);
             TestFalse(TEXT("No specialist attack invented"), Item.Weapon.Projectile.bEnabled || Flight.bSpecializedProjectile);
             TestEqual(TEXT("Canonical speed success"), Flight.bResolved, Item.Weapon.Projectile.InitialSpeed > KINDA_SMALL_NUMBER);
             if (Flight.bResolved) TestEqual(TEXT("Old speed cannot override ordinary flight"), Flight.InitialSpeed, Item.Weapon.Projectile.InitialSpeed);

@@ -23,17 +23,12 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 		for (const FString& Error : Errors) AddError(Error);
 		return false;
 	}
-	TStrongObjectPtr<UGridItemDefinitionAsset> Old(NewObject<UGridItemDefinitionAsset>());
-	Old->bUseWeaponCatalogue = true;
-	Old->ThrowSpeed = 12.0f;
-	Old->ThrowArc = 33.0f;
 	const FName Ids[] = {
 		TEXT("Weapon_ThrowingKnife_01"), TEXT("Weapon_Javelin_01"), TEXT("Weapon_Dart_01")
 	};
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Ids)
 	{
-		Old->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridItemInstance Item;
@@ -45,7 +40,7 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 			if (!TestTrue(TEXT("Real ranged/throwing ARM exists"), Registry->ResolveItem(Id, Level, Canonical)))
 				return false;
 			const FGridThrowBallisticsReadView Shot =
-				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Item);
 			TestTrue(TEXT("Canonical N1/N20 physical throw has one source"), Shot.bRegisteredIdentity);
 			TestTrue(TEXT("Canonical specialized throw is resolved"), Shot.bResolved && Shot.bSpecializedProjectile);
 			TestTrue(TEXT("Throw speed ignores contradictory DA_Weapon value"),
@@ -54,27 +49,25 @@ bool FGridClean063TThrowBallistics::RunTest(const FString&)
 				FMath::IsNearlyEqual(Shot.Arc, Canonical.Weapon.Projectile.Arc));
 			Item.ItemLevel = 0;
 			const FGridThrowBallisticsReadView Invalid =
-				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Item);
+				FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Item);
 			TestTrue(TEXT("Known invalid ARM stays classified"), Invalid.bRegisteredIdentity);
 			TestFalse(TEXT("Known invalid level never falls back to old speed"), Invalid.bResolved);
 			TestEqual(TEXT("No generated launch speed on N0"), Invalid.InitialSpeed, 0.0f);
 		}
 	}
-	Old->bUseWeaponCatalogue = false;
-	Old->ItemDefinitionId = TEXT("Unregistered_PhysicalThrow_063T");
 	FGridItemInstance Legacy;
-	Legacy.ItemDefinitionId = Old->ItemDefinitionId;
+	Legacy.ItemDefinitionId = TEXT("Unregistered_PhysicalThrow_063T");
 	Legacy.RuntimeObjectId = FGuid::NewGuid();
 	Legacy.ItemLevel = 0;
 	Legacy.Quantity = 1;
 	TestFalse(TEXT("Configured registry rejects unknown flight even with matching old asset"),
-		FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Old.Get(), Legacy).bResolved);
+		FGridThrowBallisticsReadModel::Resolve(Registry.Get(), Legacy).bResolved);
 	const FGridThrowBallisticsReadView Fallback =
-		FGridThrowBallisticsReadModel::Resolve(nullptr, Old.Get(), Legacy);
+		FGridThrowBallisticsReadModel::Resolve(nullptr, Legacy);
 	TestFalse(TEXT("Unregistered throw retains old source"), Fallback.bRegisteredIdentity);
-	TestTrue(TEXT("Unregistered throw resolves"), Fallback.bResolved);
-	TestEqual(TEXT("Unregistered throw speed unchanged"), Fallback.InitialSpeed, 12.0f);
-	TestEqual(TEXT("Unregistered throw arc unchanged"), Fallback.Arc, 33.0f);
+	TestFalse(TEXT("Unregistered throw is unresolved"), Fallback.bResolved);
+	TestEqual(TEXT("Unregistered throw has no speed"), Fallback.InitialSpeed, 0.0f);
+	TestEqual(TEXT("Unregistered throw has no arc"), Fallback.Arc, 0.0f);
 	return true;
 }
 

@@ -1,7 +1,6 @@
 #include "UI/GridWeaponTooltipProjection.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
-#include "Runtime/Combat/GridWeaponCatalogueAsset.h"
+#include "Runtime/Combat/GridWeaponProgressionTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "UI/UILocalizationText.h"
 
@@ -10,8 +9,7 @@ namespace
     /** One temporary tooltip-shaped projection; canonical item data owns all
      * N1-N20 values when its ItemId is registered in DA_ItemSystem.
      * Legacy-only readers continue until binary asset conversion (06.4). */
-    bool ResolveTooltipLevelProfile(
-        const UGridItemDefinitionAsset* Definition, const FGridItemInstance& Instance,
+    bool ResolveTooltipLevelProfile( const FGridItemInstance& Instance,
         const UGridItemSubsystem* Registry, FGridWeaponLevelProfile& OutProfile)
     {
         OutProfile = FGridWeaponLevelProfile();
@@ -44,18 +42,7 @@ namespace
             // A tooltip is not a combat action; no action or slot is created.
             return true;
         }
-        if (!IsValid(Definition) || Instance.ItemDefinitionId != Definition->ItemDefinitionId)
-        {
-            return false;
-        }
-        const FGridWeaponLevelProfile* Old = nullptr;
-        if (!Definition->TryGetWeaponCatalogueProfile(Instance.ItemLevel, Old) ||
-            !Old || !Old->IsValidProfile())
-        {
-            return false;
-        }
-        OutProfile = *Old;
-        return true;
+        return false;
     }
 
     FText FormatDice(const FGridDamageDiceProfile& Dice)
@@ -142,14 +129,13 @@ namespace
 }
 
 bool FGridWeaponTooltipProjection::Build(
-    const UGridItemDefinitionAsset* Definition,
     const FGridItemInstance& Instance,
     FGridWeaponTooltipPresentation& Out,
     const UGridItemSubsystem* CanonicalRegistry)
 {
     Out = FGridWeaponTooltipPresentation();
     FGridWeaponLevelProfile ResolvedProfile;
-    if (!ResolveTooltipLevelProfile(Definition, Instance, CanonicalRegistry, ResolvedProfile))
+    if (!ResolveTooltipLevelProfile( Instance, CanonicalRegistry, ResolvedProfile))
     {
         return false;
     }
@@ -270,9 +256,7 @@ namespace
 }
 
 bool FGridWeaponTooltipProjection::BuildComparison(
-    const UGridItemDefinitionAsset* CandidateDefinition,
     const FGridItemInstance& Candidate,
-    const UGridItemDefinitionAsset* EquippedDefinition,
     const FGridItemInstance& Equipped,
     TArray<FGridWeaponTooltipComparisonFact>& OutFacts,
     const UGridItemSubsystem* CanonicalRegistry)
@@ -280,8 +264,8 @@ bool FGridWeaponTooltipProjection::BuildComparison(
     OutFacts.Reset();
     FGridWeaponLevelProfile CandidateProfile;
     FGridWeaponLevelProfile EquippedProfile;
-    if (!ResolveTooltipLevelProfile(CandidateDefinition, Candidate, CanonicalRegistry, CandidateProfile) ||
-        !ResolveTooltipLevelProfile(EquippedDefinition, Equipped, CanonicalRegistry, EquippedProfile))
+    if (!ResolveTooltipLevelProfile( Candidate, CanonicalRegistry, CandidateProfile) ||
+        !ResolveTooltipLevelProfile( Equipped, CanonicalRegistry, EquippedProfile))
     {
         return false;
     }

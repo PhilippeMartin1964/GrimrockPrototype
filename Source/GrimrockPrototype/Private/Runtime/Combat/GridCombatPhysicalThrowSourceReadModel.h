@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
-#include "CoreGlobals.h"
 
 /**
  * ARM-CLEAN06.3BE — one preflight for the existing Attack executor's
@@ -22,7 +20,6 @@ struct FGridCombatPhysicalThrowSourceReadModel
 {
     static FGridCombatPhysicalThrowSourceReadView Resolve(
         const UGridItemSubsystem* Registry,
-        const UGridItemDefinitionAsset* Legacy,
         const FGridItemInstance& Instance,
         int32 AuthoredSourceItemQuantityCost,
         bool bRangedAttack)
@@ -67,17 +64,6 @@ struct FGridCombatPhysicalThrowSourceReadModel
             return Out;
         }
 
-        // Historical execution is confined to worldless Automation fixtures.
-        // A configured runtime must never borrow bCombatThrowWeapon.
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!Registry && GIsAutomationTesting)
-        {
-            Out.bResolved = IsValid(Legacy) && Legacy->ItemDefinitionId == Instance.ItemDefinitionId;
-            Out.bLaunchPhysicalProjectile = Out.bResolved && Legacy->IsCombatThrowable();
-        }
-#else
-        (void)Legacy;
-#endif
         Out.bRejectAction = !Out.bResolved;
         return Out;
     }

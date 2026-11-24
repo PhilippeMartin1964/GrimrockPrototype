@@ -24,15 +24,11 @@ bool FGridClean063QWorldMass::RunTest(const FString&)
 		return false;
 	}
 
-	TStrongObjectPtr<UGridItemDefinitionAsset> Legacy(NewObject<UGridItemDefinitionAsset>());
-	Legacy->Weight = 10000.0f;
-	Legacy->bUseItemWeightAsWorldPhysicsMass = true;
 	const FName Ids[] = {TEXT("Weapon_StraightSword_01"), TEXT("Weapon_GreatAxe_01"),
 		TEXT("Weapon_RoundShield_01"), TEXT("Weapon_HolyAegis_01")};
 	const int32 Levels[] = {1, 20};
 	for (const FName Id : Ids)
 	{
-		Legacy->ItemDefinitionId = Id;
 		for (const int32 Level : Levels)
 		{
 			FGridResolvedItem Canonical;
@@ -46,43 +42,31 @@ bool FGridClean063QWorldMass::RunTest(const FString&)
 			const bool bExpectedOverride = Canonical.bUseItemWeightAsWorldPhysicsMass &&
 				FMath::IsFinite(Canonical.WeightKg) && Canonical.WeightKg > KINDA_SMALL_NUMBER;
 			const float ExpectedKg = bExpectedOverride ? Canonical.WeightKg : 0.0f;
-			for (const bool bOldOptIn : {false, true})
-			{
-				Legacy->bUseItemWeightAsWorldPhysicsMass = bOldOptIn;
-				float ActualKg = 900.0f;
-				TestEqual(TEXT("Canonical policy ignores contradictory old opt-in"),
-					FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Legacy.Get(), Item, ActualKg),
-					bExpectedOverride);
-				TestTrue(TEXT("Chaos unit mass never copies stack mass or stale DA_Weapon weight"),
-					FMath::IsNearlyEqual(ActualKg, ExpectedKg));
-			}
 			float Kg = 900.0f;
 			TestEqual(TEXT("No historic asset required for canonical physics"),
-				FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), nullptr, Item, Kg),
+				FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Item, Kg),
 				bExpectedOverride);
 			TestEqual(TEXT("Canonical unit mass"), Kg, ExpectedKg);
 			Item.ItemLevel = 0;
 			Kg = 900.0f;
 			TestFalse(TEXT("Registered N0 cannot fall back to old weight"),
-				FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Legacy.Get(), Item, Kg));
+				FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Item, Kg));
 			TestEqual(TEXT("Rejected override resets output"), Kg, 0.0f);
 		}
 	}
-	Legacy->ItemDefinitionId = TEXT("LegacyPhysicsMass_063Q");
 	FGridItemInstance Other;
 	Other.RuntimeObjectId = FGuid::NewGuid();
-	Other.ItemDefinitionId = Legacy->ItemDefinitionId;
+	Other.ItemDefinitionId = TEXT("LegacyPhysicsMass_063Q");
 	Other.ItemLevel = 0;
 	float Kg = 0;
 	TestFalse(TEXT("Configured registry refuses unknown physical identity"),
-		FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Legacy.Get(), Other, Kg));
+		FGridWorldPhysicsMassReadModel::TryResolve(Registry.Get(), Other, Kg));
 	TestEqual(TEXT("Rejected mass is zero"), Kg, 0.0f);
-	TestTrue(TEXT("Isolated fixture retains its old numeric test mass"),
-		FGridWorldPhysicsMassReadModel::TryResolve(nullptr, Legacy.Get(), Other, Kg));
-	TestEqual(TEXT("Fixture unit mass remains unchanged"), Kg, 10000.0f);
-	Legacy->bUseItemWeightAsWorldPhysicsMass = false;
+	TestFalse(TEXT("A registry-less item cannot override mass"),
+		FGridWorldPhysicsMassReadModel::TryResolve(nullptr, Other, Kg));
+	TestEqual(TEXT("Unresolved mass is zero"), Kg, 0.0f);
 	TestFalse(TEXT("Opt-out fixture never overrides Chaos mass"),
-		FGridWorldPhysicsMassReadModel::TryResolve(nullptr, Legacy.Get(), Other, Kg));
+		FGridWorldPhysicsMassReadModel::TryResolve(nullptr, Other, Kg));
 	return true;
 }
 

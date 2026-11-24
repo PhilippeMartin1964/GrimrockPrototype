@@ -207,7 +207,7 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     TestNull(TEXT("Physical instance mass removed from schema"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("Weight")));
     TestNull(TEXT("Physical instance name removed from schema"), FGridItemInstance::StaticStruct()->FindPropertyByName(TEXT("DisplayName")));
     TestEqual(TEXT("Accepted physical quantity unchanged"), Accepted.Quantity, Cursor.Quantity);
-    const auto AcceptedMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, Accepted);
+    const auto AcceptedMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, Accepted);
     TestTrue(TEXT("Accepted item metadata resolves"), AcceptedMetadata.bResolved);
     TestEqual(TEXT("Accepted item projection uses canonical mass"), AcceptedMetadata.UnitWeightKg, Physical.WeightKg);
     TestTrue(TEXT("Accepted item projection uses canonical name"), AcceptedMetadata.DisplayName.EqualTo(Physical.DisplayName));
@@ -254,7 +254,7 @@ bool FARMEMENT0183TransferTest::RunTest(const FString&)
     TestEqual(TEXT("Fixed level preserved on retrieval"), Bag->ItemLevel, 12);
     TestEqual(TEXT("Restored physical quantity retained"), Bag->Quantity, Cursor.Quantity);
     TestEqual(TEXT("Restored physical GUID retained"), Bag->RuntimeObjectId, Cursor.RuntimeObjectId);
-    const auto BagMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, nullptr, *Bag);
+    const auto BagMetadata = FGridInventoryItemMetadataReadModel::Resolve(Fixture.RegistryScope.Registry, *Bag);
     TestTrue(TEXT("Restored inventory canonical metadata resolves"), BagMetadata.bResolved);
     TestEqual(TEXT("Restored inventory projection canonical weight"), BagMetadata.UnitWeightKg, Physical.WeightKg);
     TestTrue(TEXT("Restored inventory projection canonical name"), BagMetadata.DisplayName.EqualTo(Physical.DisplayName));

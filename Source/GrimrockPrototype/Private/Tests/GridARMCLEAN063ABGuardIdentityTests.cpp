@@ -50,7 +50,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			OffHand.EquipmentSlot = EGridEquipmentSlot::OffHand;
 			const FGridEquippedGuardItemReadView View =
 				FGridEquippedGuardItemReadModel::Resolve(
-					Registry.Get(), ConflictingLegacy.Get(), OffHand);
+					Registry.Get(), OffHand);
 			TestTrue(TEXT("Known ARM identified canonically"), View.bRegisteredIdentity && View.bResolved);
 			const bool bOffHand = Definition.Weapon.CanEquipInHand(EGridEquipmentSlot::OffHand);
 			const bool bExpectedParry = bOffHand &&
@@ -75,7 +75,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			OffHand.ItemLevel = 0;
 			const FGridEquippedGuardItemReadView BadLevel =
 				FGridEquippedGuardItemReadModel::Resolve(
-					Registry.Get(), ConflictingLegacy.Get(), OffHand);
+					Registry.Get(), OffHand);
 			TestTrue(TEXT("Known N0 remains classified as canonical"), BadLevel.bRegisteredIdentity);
 			TestFalse(TEXT("Known N0 cannot fall back to parry"), BadLevel.bCanParry);
 			TestFalse(TEXT("Known N0 cannot fall back to shield"), BadLevel.bIsShield);
@@ -84,7 +84,7 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 			OffHand.EquipmentSlot = EGridEquipmentSlot::MainHand;
 			const FGridEquippedGuardItemReadView WrongHand =
 				FGridEquippedGuardItemReadModel::Resolve(
-					Registry.Get(), ConflictingLegacy.Get(), OffHand);
+					Registry.Get(), OffHand);
 			TestFalse(TEXT("Mainhand never grants offhand parry"), WrongHand.bCanParry);
 			TestFalse(TEXT("Mainhand cannot claim offhand shield block"), WrongHand.bIsShield);
 		}
@@ -101,20 +101,20 @@ bool FGridClean063ABGuardIdentity::RunTest(const FString&)
 	Unknown.Quantity = 1;
 	Unknown.EquipmentSlot = EGridEquipmentSlot::OffHand;
 	const FGridEquippedGuardItemReadView Refused =
-		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Unknown);
+		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), Unknown);
 	TestFalse(TEXT("Unknown identity stays outside canonical registry"), Refused.bRegisteredIdentity);
 	TestFalse(TEXT("Configured canonical registry refuses unknown guard rule"), Refused.bResolved);
 	TestFalse(TEXT("Unknown cannot inherit historical parry"), Refused.bCanParry);
 	TestFalse(TEXT("Unknown cannot inherit historical shield"), Refused.bIsShield);
-	TestTrue(TEXT("Isolated Automation fixture still exercises historical ARM013 parry"),
-		FGridEquippedGuardItemReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Unknown).bCanParry);
+	TestFalse(TEXT("Without a registry there is no parry source"),
+		FGridEquippedGuardItemReadModel::Resolve(nullptr, Unknown).bCanParry);
 	ConflictingLegacy->ItemType = EGridItemType::Shield;
 	TestFalse(TEXT("Configured canonical registry refuses unknown historical shield"),
-		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), ConflictingLegacy.Get(), Unknown).bResolved);
-	TestTrue(TEXT("Registry-less Automation fixture still recognizes historical shield"),
-		FGridEquippedGuardItemReadModel::Resolve(nullptr, ConflictingLegacy.Get(), Unknown).bIsShield);
+		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), Unknown).bResolved);
+	TestFalse(TEXT("Without a registry there is no shield source"),
+		FGridEquippedGuardItemReadModel::Resolve(nullptr, Unknown).bIsShield);
 	TestFalse(TEXT("Unknown item without definition has no guard reaction"),
-		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), nullptr, Unknown).bResolved);
+		FGridEquippedGuardItemReadModel::Resolve(Registry.Get(), Unknown).bResolved);
 	return true;
 }
 

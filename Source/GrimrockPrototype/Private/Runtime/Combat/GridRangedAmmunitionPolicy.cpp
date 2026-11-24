@@ -1,6 +1,5 @@
 #include "Runtime/Combat/GridRangedAmmunitionPolicy.h"
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
@@ -31,8 +30,7 @@ bool FGridRangedAmmunitionPolicy::TryResolveLaunchSpeed(
 }
 
 FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
-	const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel,
-	const UGridItemDefinitionAsset* LegacyWeapon, bool bRangedAttack)
+	const UGridItemSubsystem* Registry, FName WeaponItemId, int32 WeaponLevel, bool bRangedAttack)
 {
 	FGridRangedAmmunitionRequirement Result;
 	if (!bRangedAttack)
@@ -67,20 +65,6 @@ FGridRangedAmmunitionRequirement FGridRangedAmmunitionPolicy::ResolveForAttack(
 		return Result;
 	}
 
-	// H.72: an unknown ranged launcher has no ammunition policy in a
-	// configured game. Never borrow its old RequiredAmmunitionItemDefinitionId.
-#if WITH_DEV_AUTOMATION_TESTS
-	// Preserve historical source characterization ONLY for isolated
-	// Automation without a configured ItemSystem.
-	if (!Registry && GIsAutomationTesting && IsValid(LegacyWeapon) &&
-		LegacyWeapon->ItemDefinitionId == WeaponItemId)
-	{
-		Result.bValid = true;
-		Result.AmmunitionItemId = LegacyWeapon->RequiredAmmunitionItemDefinitionId;
-	}
-#else
-	(void)LegacyWeapon;
-#endif
 	return Result;
 }
 
@@ -114,38 +98,3 @@ bool FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
 		(Requirement.AmmunitionItemId.IsNone() ||
 		 Inventory.RemoveItemDefinitionFromCharacterInventory(CharacterIndex, Requirement.AmmunitionItemId, 1));
 }
-
-#if WITH_DEV_AUTOMATION_TESTS
-bool FGridRangedAmmunitionPolicy::HasRequiredAmmunition(
-	const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-	const UGridItemDefinitionAsset& Weapon)
-{
-	const FName AmmunitionId = Weapon.RequiredAmmunitionItemDefinitionId;
-	return AmmunitionId.IsNone() ||
-		Inventory.CountItemDefinitionInCharacterInventory(CharacterIndex, AmmunitionId) >= 1;
-}
-
-bool FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunition(
-	UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-	const UGridItemDefinitionAsset& Weapon)
-{
-	const FName AmmunitionId = Weapon.RequiredAmmunitionItemDefinitionId;
-	return AmmunitionId.IsNone() ||
-		Inventory.RemoveItemDefinitionFromCharacterInventory(CharacterIndex, AmmunitionId, 1);
-}
-
-bool FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
-	const UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-	const UGridItemDefinitionAsset& Weapon, bool bRangedAttack)
-{
-	return !bRangedAttack || HasRequiredAmmunition(Inventory, CharacterIndex, Weapon);
-}
-
-bool FGridRangedAmmunitionPolicy::ConsumeRequiredAmmunitionForAttack(
-	UGridPartyInventoryComponent& Inventory, int32 CharacterIndex,
-	const UGridItemDefinitionAsset& Weapon, bool bRangedAttack)
-{
-	return !bRangedAttack || ConsumeRequiredAmmunition(Inventory, CharacterIndex, Weapon);
-}
-
-#endif // WITH_DEV_AUTOMATION_TESTS: historical definition overloads

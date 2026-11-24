@@ -68,11 +68,9 @@ bool FWeaponTooltipFixedLevelsTest::RunTest(const FString&)
 
     FGridWeaponTooltipPresentation N1;
     FGridWeaponTooltipPresentation N9;
-    const bool bN1 = FGridWeaponTooltipProjection::Build(
-        nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
+    const bool bN1 = FGridWeaponTooltipProjection::Build( WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
         N1, Fixture.Registry.Get());
-    const bool bN9 = FGridWeaponTooltipProjection::Build(
-        nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9),
+    const bool bN9 = FGridWeaponTooltipProjection::Build( WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9),
         N9, Fixture.Registry.Get());
     if (!TestTrue(TEXT("N1 profile resolved"), bN1) ||
         !TestTrue(TEXT("N9 profile resolved"), bN9))
@@ -131,7 +129,7 @@ bool FWeaponTooltipPassiveLegacyTest::RunTest(const FString&)
 
     FGridWeaponTooltipPresentation Passive;
     if (!TestTrue(TEXT("Passive level 12 resolved"),
-        FGridWeaponTooltipProjection::Build(nullptr,
+        FGridWeaponTooltipProjection::Build(
             WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
             Passive, Fixture.Registry.Get())))
         return false;
@@ -156,14 +154,13 @@ bool FWeaponTooltipPassiveLegacyTest::RunTest(const FString&)
     Legacy->DisplayName = FText::FromString(TEXT("Legacy item"));
     FGridWeaponTooltipPresentation LegacyView;
     TestFalse(TEXT("Legacy is not retroactively migrated"),
-        FGridWeaponTooltipProjection::Build(
-            Legacy, WeaponTooltipTests::MakeItem(Legacy, 0), LegacyView));
+        FGridWeaponTooltipProjection::Build( WeaponTooltipTests::MakeItem(Legacy, 0), LegacyView));
     TestFalse(TEXT("Legacy produces no new weapon profile"),
         LegacyView.bHasProfile);
 
     FGridWeaponTooltipPresentation InvalidLevel;
     TestFalse(TEXT("No guessing a level outside N1-N20"),
-        FGridWeaponTooltipProjection::Build(nullptr,
+        FGridWeaponTooltipProjection::Build(
             WeaponTooltipTests::MakeCanonicalItem(ShieldId, 21),
             InvalidLevel, Fixture.Registry.Get()));
     TestFalse(TEXT("Invalid level remains empty"),
@@ -275,8 +272,7 @@ bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
     const FGridItemInstance N9 = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 9);
     const FGridItemInstance N1 = WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1);
     if (!TestTrue(TEXT("Two canonical ARM002 weapon levels comparable"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            nullptr, N9, nullptr, N1, Facts, Fixture.Registry.Get())))
+        FGridWeaponTooltipProjection::BuildComparison( N9, N1, Facts, Fixture.Registry.Get())))
         return false;
     const auto* Min = Facts.FindByPredicate([](const FGridWeaponTooltipComparisonFact& F)
     {
@@ -297,8 +293,7 @@ bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
 
     TArray<FGridWeaponTooltipComparisonFact> Incompatible;
     TestFalse(TEXT("Weapon and shield have incomparable attack roles"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            nullptr, N9, nullptr,
+        FGridWeaponTooltipProjection::BuildComparison( N9,
             WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
             Incompatible, Fixture.Registry.Get()));
     TestEqual(TEXT("Incompatible roles leave no partial comparison"),
@@ -306,9 +301,7 @@ bool FWeaponTooltipRealComparisonTest::RunTest(const FString&)
 
     TArray<FGridWeaponTooltipComparisonFact> ShieldFacts;
     if (!TestTrue(TEXT("Two canonical passive shield levels comparable"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12),
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(ShieldId, 1),
+        FGridWeaponTooltipProjection::BuildComparison( WeaponTooltipTests::MakeCanonicalItem(ShieldId, 12), WeaponTooltipTests::MakeCanonicalItem(ShieldId, 1),
             ShieldFacts, Fixture.Registry.Get())))
         return false;
     TestTrue(TEXT("No fictitious shield dice"),
@@ -413,9 +406,7 @@ bool FWeaponTooltipPAValenceTest::RunTest(const FString&)
     auto Compare = [&Fixture](FName CandidateId, FName EquippedId,
         TArray<FGridWeaponTooltipComparisonFact>& Out)
     {
-        return FGridWeaponTooltipProjection::BuildComparison(
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(CandidateId, 1),
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(EquippedId, 1),
+        return FGridWeaponTooltipProjection::BuildComparison( WeaponTooltipTests::MakeCanonicalItem(CandidateId, 1), WeaponTooltipTests::MakeCanonicalItem(EquippedId, 1),
             Out, Fixture.Registry.Get());
     };
     TArray<FGridWeaponTooltipComparisonFact> Facts;
@@ -509,9 +500,7 @@ bool FWeaponTooltipPhysicalSubtypeRawDamageTest::RunTest(const FString&)
 
     TArray<FGridWeaponTooltipComparisonFact> Facts;
     if (!TestTrue(TEXT("Canonical War Pick / Dagger comparison built"),
-        FGridWeaponTooltipProjection::BuildComparison(
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(PickId, 1),
-            nullptr, WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
+        FGridWeaponTooltipProjection::BuildComparison( WeaponTooltipTests::MakeCanonicalItem(PickId, 1), WeaponTooltipTests::MakeCanonicalItem(DaggerId, 1),
             Facts, Fixture.Registry.Get())))
         return false;
 

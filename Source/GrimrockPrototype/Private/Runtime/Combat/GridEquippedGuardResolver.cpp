@@ -30,7 +30,7 @@ namespace
 		const FGridItemInstance& Item)
 	{
 		const UGridItemSubsystem* Registry = ResolveGuardRegistry(Inventory);
-		return FGridEquippedGuardItemReadModel::Resolve(Registry, nullptr, Item);
+		return FGridEquippedGuardItemReadModel::Resolve(Registry, Item);
 	}
 }
 

@@ -35,7 +35,6 @@
 #include "Runtime/Combat/GridCombatSurfaceResolver.h"
 #include "Runtime/Combat/GridCatalystAreaResolver.h"
 #include "Runtime/Combat/GridCombatTargetingResolver.h"
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -76,26 +75,6 @@ namespace
 	bool IsMON1285ClassActionSource(EGridCombatActionSourcePolicy SourcePolicy)
 	{
 		return SourcePolicy == EGridCombatActionSourcePolicy::Ability || SourcePolicy == EGridCombatActionSourcePolicy::Spell;
-	}
-
-	bool ResolveEquippedAttackProfile(const UGridItemDefinitionAsset* Definition, const FGridItemInstance& Item,
-		FGridOffensiveEquipmentProfile& OutProfile)
-	{
-		OutProfile = FGridOffensiveEquipmentProfile();
-		if (!IsValid(Definition))
-		{
-			return false;
-		}
-
-		for (const FGridCombatActionDefinition& Action : Definition->CombatActions)
-		{
-			if (Action.IsValid() && Action.SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
-				Action.ResolutionProfile == EGridCombatActionResolutionProfile::Attack)
-			{
-				return Definition->ResolveEquippedOffensiveProfile(Item, Action, OutProfile);
-			}
-		}
-		return false;
 	}
 
 	int32 ResolveRPG038AttributeValue(const FRPGAttributes& Attributes, EGridAttackScalingAttribute Attribute)
@@ -632,7 +611,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 			const FGridRangedAmmunitionRequirement Ammo =
 				FGridRangedAmmunitionPolicy::ResolveForAttack(
 					AmmoRegistry, Action.SourceDefinitionId,
-					bEquipped ? Equipped.ItemLevel : 0, nullptr,
+					bEquipped ? Equipped.ItemLevel : 0,
 					Action.Definition.ActionType == EGridCombatActionType::RangedAttack && !bUsesBoundNonArmAttack);
 			if (!FGridRangedAmmunitionPolicy::HasRequiredAmmunitionForAttack(
 					*Inventory, CharacterIndex, Ammo))

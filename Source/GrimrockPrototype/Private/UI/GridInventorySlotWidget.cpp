@@ -102,11 +102,10 @@ namespace
 
 	FText BuildCompatibleEquipmentSlotsText(
 		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* Definition,
 		const FGridItemInstance& Item)
 	{
 		const FGridEquipmentSlotsView Slots =
-			FGridEquipmentSlots::Resolve(Registry, Definition, Item);
+			FGridEquipmentSlots::Resolve(Registry, Item);
 		if (Slots.bTwoHanded && !Slots.AllowedSlots.IsEmpty())
 		{
 			// The physical MainHand slot is a two-hand usage label to players.
@@ -192,21 +191,18 @@ namespace
 	}
 
 	void AppendDefinitionStats(
-		const UGridItemSubsystem* Registry,
-		const UGridItemDefinitionAsset* Candidate, const FGridItemInstance& CandidateInstance,
-		const UGridItemDefinitionAsset* Equipped, const FGridItemInstance* EquippedInstance,
+		const UGridItemSubsystem* Registry, const FGridItemInstance& CandidateInstance, const FGridItemInstance* EquippedInstance,
 		bool bComparison, TArray<FGridItemTooltipStatLine>& OutLines)
 	{
-		if (!(Registry && Registry->ContainsItem(CandidateInstance.ItemDefinitionId)) &&
-			(!IsValid(Candidate) || Candidate->ItemDefinitionId != CandidateInstance.ItemDefinitionId))
+		if (!Registry || !Registry->ContainsItem(CandidateInstance.ItemDefinitionId))
 		{
 			return;
 		}
 
 		const FGridEquipmentPreviewItemReadView CandidateView =
-			FGridEquipmentPreviewItemReadModel::Resolve(Registry, Candidate, CandidateInstance);
+			FGridEquipmentPreviewItemReadModel::Resolve(Registry, CandidateInstance);
 		const FGridEquipmentPreviewItemReadView EquippedView = EquippedInstance
-			? FGridEquipmentPreviewItemReadModel::Resolve(Registry, Equipped, *EquippedInstance)
+			? FGridEquipmentPreviewItemReadModel::Resolve(Registry, *EquippedInstance)
 			: FGridEquipmentPreviewItemReadView();
 		const FGridEquipmentStatBonus& CandidateStats = CandidateView.Bonuses;
 		const FGridEquipmentStatBonus& EquippedStats = EquippedView.Bonuses;
@@ -338,7 +334,7 @@ void UGridInventorySlotWidget::SetItem(const FGridItemInstance& InItem)
 	CachedVisualId = NAME_None;
 	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridResolvedInventoryItemIcon Visual =
-		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, nullptr, CachedItem);
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry, CachedItem);
 	CachedVisualId = Visual.VisualId;
 	CachedIconTexture = Visual.Icon.Get();
 	if (!CachedIconTexture && !Visual.Icon.IsNull())
@@ -378,7 +374,7 @@ FString UGridInventorySlotWidget::GetDisplayNameText() const
 	}
 
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-		GetItemRegistry(this), nullptr, CachedItem);
+		GetItemRegistry(this), CachedItem);
 	return Metadata.DisplayName.IsEmpty() ? CachedItem.ItemDefinitionId.ToString()
 		: Metadata.DisplayName.ToString();
 }
@@ -403,7 +399,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 
 	const UGridItemSubsystem* Registry = GetItemRegistry(this);
 	const FGridInventoryItemMetadata Metadata = FGridInventoryItemMetadataReadModel::Resolve(
-		Registry, nullptr, CachedItem);
+		Registry, CachedItem);
 	View.bValid = true;
 	View.ItemDefinitionId = CachedItem.ItemDefinitionId;
 	View.Icon = CachedIconTexture;
@@ -439,7 +435,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		}
 	}
 	const FGridInventoryItemTypeReadView TypeView =
-		FGridInventoryItemTypeReadModel::Resolve(Registry, nullptr, CachedItem);
+		FGridInventoryItemTypeReadModel::Resolve(Registry, CachedItem);
 	View.ItemType = TypeView.bResolved
 		? GetItemTypeDisplayName(TypeView.ItemType)
 		: NSLOCTEXT("GridInventoryTooltip", "ItemTypeUnknown", "Objet");
@@ -464,14 +460,14 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		View.VisualId = NAME_None;
 		return View;
 	}
-	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, nullptr, CachedItem);
+	View.CompatibleSlotsText = BuildCompatibleEquipmentSlotsText(Registry, CachedItem);
 	const FGridEquipmentSlotsView EquipmentSlots =
-		FGridEquipmentSlots::Resolve(Registry, nullptr, CachedItem);
+		FGridEquipmentSlots::Resolve(Registry, CachedItem);
 	View.bEquippable = !EquipmentSlots.AllowedSlots.IsEmpty();
 
 	// INDUS04.1: use the real instance ItemLevel, never the authored N1 action.
-	FGridWeaponTooltipProjection::Build(nullptr, CachedItem, View.WeaponProfile, Registry);
-	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, nullptr, CachedItem);
+	FGridWeaponTooltipProjection::Build( CachedItem, View.WeaponProfile, Registry);
+	const auto Capabilities = FGridItemInteractionReadModel::Resolve(Registry, CachedItem);
 	View.bReadable = Capabilities.bCanRead;
 	View.bProvidesLight = Canonical.LightEmitter.HasEmitter();
 	View.bLightEnabled = View.bProvidesLight && CachedItem.bLightsEnabled;
@@ -486,7 +482,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		SlotType == EGridInventoryUiSlotType::Inventory && Capabilities.bCanAddToHotbar;
 
 
-	AppendDefinitionStats(Registry, nullptr, CachedItem, nullptr, nullptr, false, View.StatLines);
+	AppendDefinitionStats(Registry, CachedItem, nullptr, false, View.StatLines);
 
 	const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get();
 	const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
@@ -513,13 +509,13 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
     {
         TArray<EGridEquipmentSlot> AllowedSlots;
         FGridEquipmentTooltipGlobalProjection::GatherAllowedSlots(
-			Registry, nullptr, CachedItem, AllowedSlots);
+			Registry, CachedItem, AllowedSlots);
         for (const EGridEquipmentSlot TargetSlot : AllowedSlots)
         {
             FGridItemTooltipEquipmentComparison Scenario;
             if (FGridEquipmentTooltipGlobalProjection::BuildScenario(
                 InventoryComponent, CharacterIndex, InventorySlotIndex,
-                TargetSlot, nullptr, CachedItem, Scenario))
+                TargetSlot, CachedItem, Scenario))
             {
                 View.EquipmentComparisons.Add(MoveTemp(Scenario));
             }
@@ -552,7 +548,7 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		if (bHasEquippedItem)
 		{
 			const FGridInventoryItemMetadata EquippedMetadata = FGridInventoryItemMetadataReadModel::Resolve(
-				Registry, nullptr, EquippedItem);
+				Registry, EquippedItem);
 			Comparison.EquippedItemDisplayText = EquippedMetadata.DisplayName.IsEmpty()
 				? FText::FromName(EquippedItem.ItemDefinitionId) : EquippedMetadata.DisplayName;
 		}
@@ -560,12 +556,11 @@ FGridItemTooltipView UGridInventorySlotWidget::GetTooltipView() const
 		{
 			Comparison.EquippedItemDisplayText = NSLOCTEXT("GridInventoryTooltip", "EmptyEquipment", "vide");
 		}
-		AppendDefinitionStats(Registry, nullptr, CachedItem, nullptr,
+		AppendDefinitionStats(Registry, CachedItem,
 			bHasEquippedItem ? &EquippedItem : nullptr, true, Comparison.StatLines);
         if (bHasEquippedItem)
         {
-            FGridWeaponTooltipProjection::BuildComparison(
-                nullptr, CachedItem, nullptr, EquippedItem,
+            FGridWeaponTooltipProjection::BuildComparison( CachedItem, EquippedItem,
                 Comparison.WeaponFacts, Registry);
         }
 	}

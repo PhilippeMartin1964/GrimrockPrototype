@@ -490,7 +490,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor(const FGridItemInstan
 
 	const UGridItemSubsystem* Registry = ResolveReceptacleItemRegistry(this);
 	const FGridReceptacleItemMetadataReadView InsertedMetadata =
-		FGridReceptacleItemMetadataReadModel::Resolve(Registry, nullptr, CursorItem.ItemDefinitionId, CursorItem.ItemLevel, false);
+		FGridReceptacleItemMetadataReadModel::Resolve(Registry, CursorItem.ItemDefinitionId, CursorItem.ItemLevel);
 	if (!InsertedMetadata.bResolved || !InsertedMetadata.bRegisteredIdentity) return false;
 	const int32 NewIndex = AddContainedItem(CursorItem.ItemDefinitionId, nullptr, false,
 		CursorItem.Quantity, CursorItem.RuntimeObjectId, CursorItem.ItemLevel);

@@ -112,14 +112,9 @@ namespace
 		return Owner && Owner->IsA<AGridRuntimeObjectActor>() ? Owner : HitActor;
 	}
 
-	bool HasItemTag(const UGridItemDefinitionAsset* Definition, FName Tag)
-	{
-		return Definition && Definition->ItemTags.Contains(Tag);
-	}
-
     // The menu and target lookup must agree with the actual exploration executor.
     bool IsContextDisarmTool(const AGrimrockPartyPawn* Pawn,
-        const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
+        const FGridItemInstance& Item)
     {
         const UWorld* World = Pawn ? Pawn->GetWorld() : nullptr;
         const UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
@@ -127,13 +122,6 @@ namespace
         if (Registry)
             return FGridExplorationItemReadModel::IsDisarmToolInstance(
                 Registry, Item, TEXT("Tool.Disarm"));
-#if WITH_DEV_AUTOMATION_TESTS
-        if (!GI && GIsAutomationTesting)
-            return Item.IsValid() && Item.ItemLevel == 0 && Item.Quantity == 1 &&
-                Item.ItemDefinitionId == FName(TEXT("Item_DisarmTools_01")) &&
-                IsValid(Definition) && Definition->ItemDefinitionId == Item.ItemDefinitionId &&
-                Definition->ItemTags.Contains(TEXT("Tool.Disarm"));
-#endif
         return false;
     }
 
@@ -201,14 +189,6 @@ namespace
 	}
 }
 
-bool UGridItemContextActionLibrary::IsItemReadable(const FGridItemInstance& Item, const UGridItemDefinitionAsset* Definition)
-{
-	return !Item.ReadTextOverride.IsEmpty() || (Item.ReadableContentAsset && !Item.ReadableContentAsset->BodyText.IsEmpty()) ||
-		(Definition &&
-			(Definition->ItemType == EGridItemType::Book || Definition->ItemType == EGridItemType::Scroll || HasItemTag(Definition, TEXT("Readable")) ||
-				HasItemTag(Definition, TEXT("Lisible")) || !Definition->ReadText.IsEmpty()));
-}
-
 bool UGridItemContextActionLibrary::BuildInventorySlotContextActions(AGrimrockPartyPawn* PartyPawn, int32 CharacterIndex, int32 InventorySlotIndex,
 	FGridFacingTargetContext& OutFacingTarget, TArray<FGridItemContextAction>& OutActions)
 {
@@ -235,7 +215,6 @@ bool UGridItemContextActionLibrary::BuildInventorySlotContextActions(AGrimrockPa
 	FGridItemActionContext ItemContext;
 	ItemContext.PartyPawn = PartyPawn;
 	ItemContext.Item = CharacterState.InventorySlots[InventorySlotIndex].Item;
-	ItemContext.ItemDefinition = nullptr; // The action builder resolves canonical data by ItemId.
 	ItemContext.CharacterIndex = CharacterIndex;
 	ItemContext.InventorySlotIndex = InventorySlotIndex;
 	return BuildItemContextActions(ItemContext, OutFacingTarget, OutActions);
@@ -254,17 +233,10 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 	const UWorld* ItemWorld = ItemContext.PartyPawn->GetWorld();
 	UGameInstance* ItemGI = ItemWorld ? ItemWorld->GetGameInstance() : nullptr;
 	const UGridItemSubsystem* ItemRegistry = ItemGI ? ItemGI->GetSubsystem<UGridItemSubsystem>() : nullptr;
-	UGridItemDefinitionAsset* Definition = nullptr;
-#if WITH_DEV_AUTOMATION_TESTS
-	if (!ItemRegistry && GIsAutomationTesting)
-	{
-		Definition = ItemContext.ItemDefinition;
-	}
-#endif
 	const FGridItemInteractionReadView Capabilities =
-		FGridItemInteractionReadModel::Resolve(ItemRegistry, Definition, ItemContext.Item);
+		FGridItemInteractionReadModel::Resolve(ItemRegistry, ItemContext.Item);
 
-	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, Definition, OutFacingTarget);
+	ResolveFacingTarget(ItemContext.PartyPawn, ItemContext.Item, nullptr, OutFacingTarget);
 
 	AddAction(OutActions, EGridItemActionType::Examine, NSLOCTEXT("GridItemActions", "Examine", "Examiner"));
 
@@ -283,7 +255,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridEquipmentSlotsView Slots =
 			FGridEquipmentSlots::Resolve(
-				Registry, Definition, ItemContext.Item);
+				Registry, ItemContext.Item);
 
 		if (Slots.bTwoHanded && Slots.AllowedSlots.Contains(EGridEquipmentSlot::MainHand))
 		{
@@ -307,7 +279,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		}
 	}
 
-	if ((Capabilities.bCanConsumeLegacy && Definition) || Capabilities.bCanConsumeItem)
+	if (Capabilities.bCanConsumeItem)
 	{
 		FGridCombatActionDefinition QuickItemAction;
 		const FGridQuickItemUseReadView CanonicalUse =
@@ -317,12 +289,6 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 		{
 			QuickItemAction = CanonicalUse.Action;
 		}
-#if WITH_DEV_AUTOMATION_TESTS
-		else if (!ItemRegistry && GIsAutomationTesting && Capabilities.bCanConsumeLegacy && Definition)
-		{
-			bActionResolved = Definition->BuildQuickItemCombatActionDefinition(QuickItemAction);
-		}
-#endif
 		const bool bSelfRestoration =
 			ItemContext.InventorySlotIndex != INDEX_NONE && bActionResolved &&
 			QuickItemAction.TargetingPolicy == EGridCombatTargetingPolicy::Self &&
@@ -371,7 +337,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 
 	const bool bIsInventorySlotSource = ItemContext.InventorySlotIndex != INDEX_NONE && ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
     if (bIsInventorySlotSource &&
-        IsContextDisarmTool(ItemContext.PartyPawn, ItemContext.Item, Definition) &&
+        IsContextDisarmTool(ItemContext.PartyPawn, ItemContext.Item) &&
         OutFacingTarget.bIsValid &&
         OutFacingTarget.TargetType == EGridFacingTargetType::DungeonTrap &&
         OutFacingTarget.bAcceptsCurrentItem &&
@@ -473,7 +439,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 			? GameInstance->GetSubsystem<UGridItemSubsystem>() : nullptr;
 		const FGridPhysicalThrowPreflightReadView Gate =
 			FGridPhysicalThrowPreflightReadModel::Resolve(
-				Registry, Definition, ItemContext.Item, Strength);
+				Registry, ItemContext.Item, Strength);
 		const bool bCanThrow = bHasSummary && Gate.bCanThrow;
 
 		FText DisabledReason;
@@ -518,7 +484,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions(
 }
 
 bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CurrentItem,
-	UGridItemDefinitionAsset* ItemDefinition, FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
+	UGridItemDefinitionAsset*, FGridFacingTargetContext& OutFacingTarget, float TraceDistance)
 {
 	OutFacingTarget = FGridFacingTargetContext();
 	if (!PartyPawn || !PartyPawn->GetWorld())
@@ -529,7 +495,7 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
     // Authored dungeon Triggers are data-only: unlike doors/locks they need
     // not own a spawned mesh/actor, so a camera trace cannot select them.
     // Resolve the single adjacent candidate through the grid authority first.
-    if (IsContextDisarmTool(PartyPawn, CurrentItem, ItemDefinition) &&
+    if (IsContextDisarmTool(PartyPawn, CurrentItem) &&
         IsValid(PartyPawn->LevelRuntimeActor))
     {
         FGuid TrapId;
@@ -587,8 +553,7 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget(AGrimrockPartyPawn* Part
 	{
 		FGridReceptacleAcceptanceResult AcceptanceResult;
 		OutFacingTarget.bAcceptsCurrentItem = ReceptacleActor->EvaluateItemAcceptance(CurrentItem, AcceptanceResult, false);
-		const bool bLooksLikeTorchHolder = TargetActor->GetName().Contains(TEXT("TorchHolder")) ||
-			(ItemDefinition && ItemDefinition->ItemType == EGridItemType::Torch && OutFacingTarget.bAcceptsCurrentItem && !ReceptacleActor->bAcceptAnyItem);
+		const bool bLooksLikeTorchHolder = TargetActor->GetName().Contains(TEXT("TorchHolder"));
 		OutFacingTarget.TargetType = bLooksLikeTorchHolder ? EGridFacingTargetType::TorchHolder : EGridFacingTargetType::Receptacle;
 		if (!OutFacingTarget.bAcceptsCurrentItem)
 		{

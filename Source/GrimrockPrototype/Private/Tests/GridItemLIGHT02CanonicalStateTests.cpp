@@ -108,7 +108,7 @@ bool FGridItemLIGHT02CanonicalItemLightStateTest::RunTest(const FString& Paramet
     if (!TestTrue(TEXT("Canonical default-on definition resolves"),
         RegistryScope.Registry->ResolveItem(ExtinguishedItem.ItemDefinitionId, 0, DefaultOn))) return false;
     const auto ExtinguishedMetadata =
-        FGridInventoryItemMetadataReadModel::Resolve(RegistryScope.Registry, nullptr, ExtinguishedItem);
+        FGridInventoryItemMetadataReadModel::Resolve(RegistryScope.Registry, ExtinguishedItem);
     TestTrue(TEXT("Extinguished item name and unit mass are projected canonically"),
         ExtinguishedMetadata.bResolved && ExtinguishedMetadata.DisplayName.EqualTo(DefaultOn.DisplayName) &&
         FMath::IsNearlyEqual(ExtinguishedMetadata.UnitWeightKg, 2.5f));

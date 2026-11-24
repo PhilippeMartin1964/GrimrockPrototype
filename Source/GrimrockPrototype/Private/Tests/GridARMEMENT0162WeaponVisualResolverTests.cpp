@@ -97,7 +97,7 @@ bool FARMEMENT0162SharedVisualTest::RunTest(const FString&)
 	{
 		const auto Item = MakeInstance(Id, 7);
 		const auto Mesh = FGridItemMeshResolver::Resolve(F.Registry.Get(), Item);
-		const auto Ui = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Item);
+		const auto Ui = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Item);
 		TestTrue(TEXT("Registered armament resolves mesh and icon"), Mesh.bResolved && Mesh.bRegisteredIdentity && Ui.bRegisteredIdentity);
 		TestEqual(TEXT("Both archetypes use the authored fixture silhouette"), Mesh.VisualId, VisualId);
 		TestEqual(TEXT("UI resolves the same explicit silhouette"), Ui.VisualId, VisualId);
@@ -124,7 +124,7 @@ bool FARMEMENT0162LegacyFallbackTest::RunTest(const FString&)
 	FGridResolvedItem Rejected;
 	TestFalse(TEXT("Unknown identity cannot resolve any definition"), F.Registry->ResolveItem(Unknown.ItemDefinitionId, 7, Rejected));
 	TestTrue(TEXT("Explicit unknown-identity diagnostic"), Rejected.Error == EGridItemResolveError::UnknownItemId);
-	const auto IconView = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Unknown);
+	const auto IconView = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Unknown);
 	const auto Mesh = FGridItemMeshResolver::Resolve(F.Registry.Get(), Unknown);
 	TestTrue(TEXT("Unknown identity receives neither icon nor visual ID"), !IconView.bRegisteredIdentity && IconView.Icon.IsNull() && IconView.VisualId.IsNone());
 	TestTrue(TEXT("Unknown identity receives no mesh, level projection or authored transform"),
@@ -149,7 +149,7 @@ bool FARMEMENT0162PartialResourceTest::RunTest(const FString&)
 
 	const auto Item = MakeInstance(Sword, 7);
 	const auto Mesh = FGridItemMeshResolver::Resolve(F.Registry.Get(), Item);
-	const auto Ui = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Item);
+	const auto Ui = FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Item);
 	TestTrue(TEXT("Known presentation can lack a world mesh"), Mesh.bResolved && Mesh.WorldMesh.IsNull());
 	TestEqual(TEXT("Explicit equipped mesh stays distinct"), Mesh.EquippedMesh.ToSoftObjectPath(), EquippedMesh);
 	TestEqual(TEXT("Authored icon remains"), Ui.Icon.ToSoftObjectPath(), Icon);
@@ -157,7 +157,7 @@ bool FARMEMENT0162PartialResourceTest::RunTest(const FString&)
 	F.Visual->ItemIcon.Reset();
 	F.Visual->WorldMesh = TSoftObjectPtr<UStaticMesh>(WorldMesh);
 	TestTrue(TEXT("Missing icon cannot be supplied by another silhouette"),
-		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Item).Icon.IsNull());
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Item).Icon.IsNull());
 	TestEqual(TEXT("Mesh remains independently available"),
 		FGridItemMeshResolver::Resolve(F.Registry.Get(), Item).WorldMesh.ToSoftObjectPath(), WorldMesh);
 	return true;
@@ -215,13 +215,13 @@ bool FARMEMENT0162MalformedTest::RunTest(const FString&)
 		TestTrue(TEXT("Explicit invalid-level diagnostic"), Rejected.Error == EGridItemResolveError::InvalidItemLevel);
 		TestFalse(TEXT("Invalid level exposes no mesh"), FGridItemMeshResolver::Resolve(F.Registry.Get(), MakeInstance(Sword, Level)).bResolved);
 		TestTrue(TEXT("Invalid level exposes no icon"),
-			FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, MakeInstance(Sword, Level)).Icon.IsNull());
+			FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), MakeInstance(Sword, Level)).Icon.IsNull());
 	}
 	auto Invalid = MakeInstance(Sword, 7);
 	Invalid.RuntimeObjectId.Invalidate();
 	TestFalse(TEXT("Malformed physical identity is rejected by the mesh view"), FGridItemMeshResolver::Resolve(F.Registry.Get(), Invalid).bResolved);
 	TestFalse(TEXT("Malformed physical identity never reaches icon lookup"),
-		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Invalid).bRegisteredIdentity);
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Invalid).bRegisteredIdentity);
 	return true;
 }
 
@@ -245,7 +245,7 @@ bool FARMEMENT0162NoMutationTest::RunTest(const FString&)
 		TestEqual(TEXT("World read uses fixture mesh"),
 			FGridItemMeshResolver::Resolve(F.Registry.Get(), Item).WorldMesh.ToSoftObjectPath(), WorldMesh);
 		TestEqual(TEXT("Icon read uses fixture image"),
-			FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), nullptr, Item).Icon.ToSoftObjectPath(), Icon);
+			FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(F.Registry.Get(), Item).Icon.ToSoftObjectPath(), Icon);
 	}
 	TestTrue(TEXT("Visual reads preserve every physical instance field"),
 		FGridItemInstance::StaticStruct()->CompareScriptStruct(&Before, &Item, 0));

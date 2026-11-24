@@ -58,12 +58,12 @@ bool FGridClean063VUnlevelledAmmo::RunTest(const FString&)
 		FMath::IsNearlyEqual(FGridItemWeightReadModel::GetTotalWeight(Registry.Get(), Stack),
 			12.0f * N0.WeightKg));
 	const FGridInventoryItemMetadata Meta =
-		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), nullptr, Stack);
+		FGridInventoryItemMetadataReadModel::Resolve(Registry.Get(), Stack);
 	TestTrue(TEXT("Arrow tooltip remains canonical"), Meta.bRegisteredIdentity && Meta.bResolved);
 	TestTrue(TEXT("Arrow tooltip uses authored mass"),
 		FMath::IsNearlyEqual(Meta.UnitWeightKg, N0.WeightKg));
 	const FGridResolvedInventoryItemIcon Icon =
-		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry.Get(), nullptr, Stack);
+		FGridWeaponVisualUiResolver::ResolveInventoryItemIcon(Registry.Get(), Stack);
 	TestTrue(TEXT("Arrow icon no longer falls back to old DA"), Icon.bRegisteredIdentity);
 	TestEqual(TEXT("Arrow icon from sole canonical source"),
 		Icon.Icon.ToSoftObjectPath().ToString(), N0.ItemIcon.ToSoftObjectPath().ToString());

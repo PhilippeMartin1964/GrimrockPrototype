@@ -56,8 +56,7 @@ bool FUITooltipClean01NominalShieldTest::RunTest(const FString&)
     {
         FGridWeaponTooltipPresentation Presentation;
         if (!TestTrue(TEXT("Passive catalogue read model built"),
-                FGridWeaponTooltipProjection::Build(
-                    nullptr, TooltipClean01::Item(Shield.ItemId, Spent),
+                FGridWeaponTooltipProjection::Build( TooltipClean01::Item(Shield.ItemId, Spent),
                     Presentation, Fixture.Registry.Get())))
             return false;
         TestTrue(TEXT("Shield is passive"), Presentation.bPassive);
@@ -163,7 +162,7 @@ bool FUITooltipClean01RecoveryAndPreviewTest::RunTest(const FString&)
 
     FGridWeaponTooltipPresentation RestoredShield;
     TestTrue(TEXT("Shield fact built after victory"),
-        FGridWeaponTooltipProjection::Build(nullptr,
+        FGridWeaponTooltipProjection::Build(
             State.ActiveEquipment[0].OffHand, RestoredShield, Registry));
     TestEqual(TEXT("Restored shield displays full 5/5"),
         TooltipClean01::Fact(RestoredShield, TEXT("WeaponPhysicalArmorRemaining")), FString(TEXT("5/5")));

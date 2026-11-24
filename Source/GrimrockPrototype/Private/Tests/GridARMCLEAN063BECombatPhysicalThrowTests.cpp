@@ -74,7 +74,7 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
                 Bound.Action.SourceItemQuantityCost == 1)) return false;
 
             const auto NoLegacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-                Registry.Get(), nullptr, Item,
+                Registry.Get(), Item,
                 Bound.Action.SourceItemQuantityCost, Bound.Action.bRangedAttack);
             TestTrue(TEXT("N1/N20 canonical combat throw launches without old definition"),
                 NoLegacy.bRegisteredIdentity && NoLegacy.bResolved &&
@@ -85,18 +85,18 @@ bool FGridBECombatThrowCanonicalActions::RunTest(const FString&)
             Old->bCombatThrowWeapon = false;
             Old->ThrowSpeed = 0.f;
             const auto Contradictory = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-                Registry.Get(), Old, Item, 1, Bound.Action.bRangedAttack);
+                Registry.Get(), Item, 1, Bound.Action.bRangedAttack);
             TestTrue(TEXT("Old bCombatThrowWeapon=false cannot stop a canonical combat throw"),
                 Contradictory.bLaunchPhysicalProjectile && !Contradictory.bRejectAction);
 
             Old->bCombatThrowWeapon = true;
             const auto NoCost = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-                Registry.Get(), Old, Item, 0, true);
+                Registry.Get(), Item, 0, true);
             TestTrue(TEXT("No authored source cost cannot permit a free ranged projectile"),
                 NoCost.bRegisteredIdentity && NoCost.bRejectAction &&
                 !NoCost.bLaunchPhysicalProjectile);
             const auto BadCost = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-                Registry.Get(), Old, Item, 2, true);
+                Registry.Get(), Item, 2, true);
             TestTrue(TEXT("No double debit or unrepresented physical quantity"),
                 BadCost.bRejectAction && !BadCost.bLaunchPhysicalProjectile);
         }
@@ -120,7 +120,7 @@ bool FGridBECombatThrowInvalidKnown::RunTest(const FString&)
     for (int32 Level : {0, 21})
     {
         const auto Bad = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-            Registry.Get(), Old.Get(),
+            Registry.Get(),
             ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, Level), 1, true);
         TestTrue(TEXT("Known invalid ARM fails closed without old throw"),
             Bad.bRegisteredIdentity && Bad.bRejectAction &&
@@ -128,7 +128,7 @@ bool FGridBECombatThrowInvalidKnown::RunTest(const FString&)
     }
     Old->ItemDefinitionId = TEXT("Weapon_StraightSword_01");
     const auto Sword = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-        Registry.Get(), Old.Get(),
+        Registry.Get(),
         ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 1), 0, false);
     TestTrue(TEXT("Old flag cannot create projectile for canonical straight sword"),
         Sword.bRegisteredIdentity && Sword.bResolved &&
@@ -151,21 +151,21 @@ bool FGridBECombatThrowLegacy::RunTest(const FString&)
     Old->bCombatThrowWeapon = true;
     const FGridItemInstance Item = ARMCLEAN063BE::MakeItem(Old->ItemDefinitionId, 0);
     const auto UnknownConfigured = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-        Registry.Get(), Old.Get(), Item, 0, false);
+        Registry.Get(), Item, 0, false);
     TestTrue(TEXT("Configured registry never borrows unknown bCombatThrowWeapon"),
         !UnknownConfigured.bRegisteredIdentity && UnknownConfigured.bRejectAction &&
         !UnknownConfigured.bLaunchPhysicalProjectile);
     const auto Legacy = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-        nullptr, Old.Get(), Item, 0, false);
-    TestTrue(TEXT("Only isolated Automation may characterize a historical combat throw"),
-        !Legacy.bRegisteredIdentity && Legacy.bResolved &&
-        Legacy.bLaunchPhysicalProjectile && !Legacy.bRejectAction);
+        nullptr, Item, 0, false);
+    TestTrue(TEXT("Without a registry the combat throw is rejected"),
+        !Legacy.bRegisteredIdentity && !Legacy.bResolved &&
+        !Legacy.bLaunchPhysicalProjectile && Legacy.bRejectAction);
     const auto Missing = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-        Registry.Get(), nullptr, Item, 0, true);
+        Registry.Get(), Item, 0, true);
     TestFalse(TEXT("Missing old unregistered definition cannot launch"), Missing.bLaunchPhysicalProjectile);
     Old->ItemDefinitionId = TEXT("BE_DifferentIdentity");
     const auto Mismatched = FGridCombatPhysicalThrowSourceReadModel::Resolve(
-        Registry.Get(), Old.Get(), Item, 0, false);
+        Registry.Get(), Item, 0, false);
     TestFalse(TEXT("Mismatched legacy source never launches"), Mismatched.bLaunchPhysicalProjectile);
     return !HasAnyErrors();
 }

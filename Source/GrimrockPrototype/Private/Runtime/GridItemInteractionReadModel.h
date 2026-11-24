@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "GridQuickItemUseReadModel.h"
@@ -18,7 +17,6 @@ struct FGridItemInteractionReadView
 	bool bRegisteredIdentity = false;
 	bool bResolved = false;
 	bool bCanRead = false;
-	bool bCanConsumeLegacy = false;
 	bool bCanConsumeItem = false;
 	bool bCanAddToHotbar = false;
 	bool bPhysicalThrowHotbar = false;
@@ -31,7 +29,7 @@ struct FGridItemInteractionReadView
 struct FGridItemInteractionReadModel
 {
 	static FGridItemInteractionReadView Resolve(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* OldDefinition,
+		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Item)
 	{
 		FGridItemInteractionReadView Out;
@@ -72,31 +70,6 @@ struct FGridItemInteractionReadModel
 
 		// No production identity may obtain an interaction from historical
 		// data, including readable text on an unknown instance.
-#if WITH_DEV_AUTOMATION_TESTS
-		if (Registry || !GIsAutomationTesting) return Out;
-		const bool bLegacy = IsValid(OldDefinition) &&
-			OldDefinition->ItemDefinitionId == Item.ItemDefinitionId;
-		Out.bResolved = bLegacy;
-		Out.bCanRead = bHasInstanceText ||
-			(bLegacy && (OldDefinition->ItemType == EGridItemType::Book ||
-				OldDefinition->ItemType == EGridItemType::Scroll ||
-				OldDefinition->ItemTags.Contains(TEXT("Readable")) ||
-				OldDefinition->ItemTags.Contains(TEXT("Lisible")) ||
-				!OldDefinition->ReadText.IsEmpty()));
-		if (bLegacy)
-		{
-			Out.DisplayName = OldDefinition->DisplayName;
-			Out.Description = OldDefinition->Description;
-			Out.DefaultReadText = OldDefinition->ReadText;
-			Out.ItemIcon = OldDefinition->Icon;
-			Out.bCanConsumeLegacy = OldDefinition->ItemType == EGridItemType::Potion ||
-				OldDefinition->ItemType == EGridItemType::Food;
-			FGridCombatActionDefinition LegacyAction;
-			Out.bCanAddToHotbar =
-				OldDefinition->BuildInventoryCombatActionDefinition(LegacyAction) ||
-				OldDefinition->IsPhysicallyThrowable();
-		}
-#endif // WITH_DEV_AUTOMATION_TESTS
 		return Out;
 	}
 };

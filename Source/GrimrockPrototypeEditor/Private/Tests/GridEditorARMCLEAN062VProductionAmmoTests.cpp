@@ -55,7 +55,7 @@ bool FGridClean062VRealAmmo::RunTest(const FString&)
             Weapon.Weapon.RequiredAmmoKindId, Arrows.AmmoKindId);
         FGridRangedAmmunitionRequirement Requirement =
             FGridRangedAmmunitionPolicy::ResolveForAttack(
-                Registry.Registry.Get(), Weapon.ItemId, 1, nullptr, true);
+                Registry.Registry.Get(), Weapon.ItemId, 1, true);
         TestTrue(TEXT("Actual bow preflight rejects historical lookup"),
             Requirement.bValid && Requirement.bRegisteredSource &&
             Requirement.bRegisteredAmmunition &&

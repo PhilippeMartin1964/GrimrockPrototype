@@ -42,21 +42,21 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
             if (!TestTrue(TEXT("Actual ARM N1/N20 resolves"),
                 Registry->ResolveItem(Id, Level, Canonical))) return false;
             const FGridStartingKitDisplayReadView Read =
-                FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), Level, Id);
+                FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Level, Id);
             TestTrue(TEXT("Recognize canonical ARM"), Read.bRegisteredIdentity && Read.bResolved);
             TestEqual(TEXT("Show actual fixed level"), Read.FixedItemLevel, Level);
             TestEqual(TEXT("Show canonical name, not old item name"),
                 Read.DisplayName.ToString(), Canonical.DisplayName.ToString());
         }
-        const auto MissingId = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 20);
-        TestTrue(TEXT("Pointer-only registered ARM remains canonical"), MissingId.bRegisteredIdentity);
+        const auto MissingId = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 20, NAME_None);
+        TestFalse(TEXT("Missing explicit ID has no identity"), MissingId.bRegisteredIdentity);
         TestFalse(TEXT("Pointer-only registered ARM cannot preview a valid N20"), MissingId.bResolved);
-        const auto Inherited = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, Id);
+        const auto Inherited = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, Id);
         TestTrue(TEXT("Known malformed ARM remains canonical"), Inherited.bRegisteredIdentity);
         TestFalse(TEXT("Explicit ARM N0 cannot inherit obsolete N4"), Inherited.bResolved);
         TestTrue(TEXT("No obsolete label on refusal"), Inherited.DisplayName.IsEmpty());
         const FGridStartingKitDisplayReadView Invalid = 
-            FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 21, Id);
+            FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 21, Id);
         TestTrue(TEXT("Known invalid ARM still classified canonical"), Invalid.bRegisteredIdentity);
         TestFalse(TEXT("Invalid N21 cannot inherit old data"), Invalid.bResolved);
         TestTrue(TEXT("Invalid N21 has no obsolete name"), Invalid.DisplayName.IsEmpty());
@@ -65,7 +65,7 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
     Old->DefaultWeaponItemLevel = 0;
     const FGridStartingKitDisplayReadView BadDefault =
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, TEXT("Weapon_RoundShield_01"));
     TestTrue(TEXT("Known invalid default remains canonical"), BadDefault.bRegisteredIdentity);
     TestFalse(TEXT("Invalid ARM N0 never silently becomes N1"), BadDefault.bResolved);
     TestTrue(TEXT("Invalid default never exposes historic name"), BadDefault.DisplayName.IsEmpty());
@@ -77,31 +77,31 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     if (!TestTrue(TEXT("Real canonical arrows N0 resolve"),
         Registry->ResolveItem(Old->ItemDefinitionId, 0, Arrows))) return false;
     TestFalse(TEXT("Registered ammo also needs an explicit authored ID"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, NAME_None).bResolved);
     const FGridStartingKitDisplayReadView Ammo =
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, Old->ItemDefinitionId);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, Old->ItemDefinitionId);
     TestTrue(TEXT("Ammo N0 still has canonical identity"), Ammo.bRegisteredIdentity && Ammo.bResolved);
     TestEqual(TEXT("Ammo N0 is a real fixed level 0"), Ammo.FixedItemLevel, 0);
     TestEqual(TEXT("Ammo name canonical not obsolete"), Ammo.DisplayName.ToString(),
         Arrows.DisplayName.ToString());
     TestFalse(TEXT("Ammo N1 is rejected for starting kit, despite transitional resolver support"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 1, Old->ItemDefinitionId).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 1, Old->ItemDefinitionId).bResolved);
 
     Old->ItemDefinitionId = TEXT("LegacyStarter_AF");
     Old->bUseWeaponCatalogue = false;
     const FGridStartingKitDisplayReadView Legacy =
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, NAME_None);
     TestFalse(TEXT("Unknown item remains outside registry"), Legacy.bRegisteredIdentity);
     TestFalse(TEXT("Unknown starter with registry never displays"), Legacy.bResolved);
     TestTrue(TEXT("Unknown starter never leaks legacy label"), Legacy.DisplayName.IsEmpty());
-    const auto Fixture = FGridStartingKitDisplayReadModel::Resolve(nullptr, Old.Get(), 0);
-    TestTrue(TEXT("Isolated Automation fixture still displays"), Fixture.bResolved);
-    TestEqual(TEXT("Fixture authored text retained"), Fixture.DisplayName.ToString(), Old->DisplayName.ToString());
+    const auto Fixture = FGridStartingKitDisplayReadModel::Resolve(nullptr, 0, NAME_None);
+    TestFalse(TEXT("Registry-less entry cannot display static metadata"), Fixture.bResolved);
+    TestTrue(TEXT("Registry-less label remains empty"), Fixture.DisplayName.IsEmpty());
     TestEqual(TEXT("Fixture level remains N0"), Fixture.FixedItemLevel, 0);
     TestFalse(TEXT("Negative authored level rejected"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), -1).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), -1, NAME_None).bResolved);
     TestFalse(TEXT("Legacy item cannot invent N9"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 9).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 9, NAME_None).bResolved);
     TestEqual(TEXT("Preview never edits source's default"), Old->DefaultWeaponItemLevel, 4);
     TestEqual(TEXT("Preview never edits source's display name"),
         Old->DisplayName.ToString(), FString(TEXT("INCORRECT OLD STARTING NAME")));
@@ -110,20 +110,18 @@ bool FGridClean063AFStartingKitDisplay::RunTest(const FString&)
     FGridResolvedItem Oil;
     const FName OilId(TEXT("Item_Flask_Oil"));
     if (!TestTrue(TEXT("Canonical Oil resolves"), Registry->ResolveItem(OilId, 0, Oil))) return false;
-    const auto Explicit = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 0, OilId);
+    const auto Explicit = FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, OilId);
     TestTrue(TEXT("Pointerless item preview resolved"), Explicit.bRegisteredIdentity && Explicit.bResolved);
     TestTrue(TEXT("DataAsset FText retained"), Explicit.DisplayName.EqualTo(Oil.DisplayName));
     TestEqual(TEXT("Physical N0 retained"), Explicit.FixedItemLevel, 0);
     TestFalse(TEXT("Explicit unknown ID cannot fall back to legacy"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, TEXT("Unknown_X65")).bResolved);
-    TestFalse(TEXT("Contradictory old pointer forbidden"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), Old.Get(), 0, OilId).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, TEXT("Unknown_X65")).bResolved);
     TestFalse(TEXT("Explicit invalid N1 consumable forbidden"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 1, OilId).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 1, OilId).bResolved);
     TestFalse(TEXT("Missing registry not permitted for explicit ID"),
-        FGridStartingKitDisplayReadModel::Resolve(nullptr, nullptr, 0, OilId).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(nullptr, 0, OilId).bResolved);
     TestFalse(TEXT("Explicit ARM N0 cannot inherit a level"),
-        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), nullptr, 0, TEXT("Weapon_RoundShield_01")).bResolved);
+        FGridStartingKitDisplayReadModel::Resolve(Registry.Get(), 0, TEXT("Weapon_RoundShield_01")).bResolved);
     return true;
 }
 

@@ -43,7 +43,7 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
                 Registry->ResolveItem(Id, Level, Canonical))) return false;
             const FGridReceptacleItemMetadataReadView View =
                 FGridReceptacleItemMetadataReadModel::Resolve(
-                    Registry.Get(), Old.Get(), Id, Level, false);
+                    Registry.Get(), Id, Level);
             TestTrue(TEXT("Registered fixed contained ARM resolves"), View.bRegisteredIdentity && View.bResolved);
             TestEqual(TEXT("Never rewrite a fixed persisted level"), View.FixedItemLevel, Level);
             TestTrue(TEXT("Contained unit weight equals canonical"), FMath::IsNearlyEqual(
@@ -53,36 +53,36 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
         }
         const FGridReceptacleItemMetadataReadView Fresh =
             FGridReceptacleItemMetadataReadModel::Resolve(
-                Registry.Get(), Old.Get(), Id, 0, true);
+                Registry.Get(), Id, 0);
         TestTrue(TEXT("Malformed authored ARM still classified canonical"), Fresh.bRegisteredIdentity);
         TestFalse(TEXT("Fresh registered ARM N0 cannot inherit obsolete N6"), Fresh.bResolved);
         TestEqual(TEXT("Rejected authored level exposes no fallback mass"), Fresh.UnitWeightKg, 0.0f);
         const FGridReceptacleItemMetadataReadView Persisted =
             FGridReceptacleItemMetadataReadModel::Resolve(
-                Registry.Get(), Old.Get(), Id, 0, false);
+                Registry.Get(), Id, 0);
         TestTrue(TEXT("Persisted invalid ARM N0 remains canonical"), Persisted.bRegisteredIdentity);
         TestFalse(TEXT("Cursor and save restoration never invent N1"), Persisted.bResolved);
         TestTrue(TEXT("Refused saved N0 has no old name"), Persisted.DisplayName.IsEmpty());
         TestEqual(TEXT("Refused saved N0 has no old mass"), Persisted.UnitWeightKg, 0.0f);
         const FGridReceptacleItemMetadataReadView IdOnly =
             FGridReceptacleItemMetadataReadModel::Resolve(
-                Registry.Get(), nullptr, Id, 20, false);
+                Registry.Get(), Id, 20);
         TestTrue(TEXT("Canonical fixed level can resolve without old pointer"), IdOnly.bResolved);
         TestEqual(TEXT("Id-only valid level preserved"), IdOnly.FixedItemLevel, 20);
         TestFalse(TEXT("Id-only N0 cannot inherit an absent default"),
             FGridReceptacleItemMetadataReadModel::Resolve(
-                Registry.Get(), nullptr, Id, 0, true).bResolved);
+                Registry.Get(), Id, 0).bResolved);
     }
 
     Old->ItemDefinitionId = TEXT("Weapon_RoundShield_01");
     Old->DefaultWeaponItemLevel = 0;
     TestFalse(TEXT("Invalid authored ARM default fails without legacy fallback"),
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0, true).bResolved);
+            Registry.Get(), Old->ItemDefinitionId, 0).bResolved);
     Old->DefaultWeaponItemLevel = 6;
     TestFalse(TEXT("Known ARM N21 rejected"),
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), Old->ItemDefinitionId, 21, false).bResolved);
+            Registry.Get(), Old->ItemDefinitionId, 21).bResolved);
 
     Old->ItemDefinitionId = TEXT("Item_Arrows_01");
     Old->bUseWeaponCatalogue = true; // Contradict ammo family.
@@ -91,7 +91,7 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
         return false;
     const FGridReceptacleItemMetadataReadView Ammo =
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0, false);
+            Registry.Get(), Old->ItemDefinitionId, 0);
     TestTrue(TEXT("Persisted canonical arrows N0 valid"), Ammo.bResolved && Ammo.bRegisteredIdentity);
     TestEqual(TEXT("Ammo stays fixed N0"), Ammo.FixedItemLevel, 0);
     TestTrue(TEXT("Ammo mass from canonical"), FMath::IsNearlyEqual(Ammo.UnitWeightKg, Arrows.WeightKg));
@@ -99,33 +99,32 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
         Arrows.DisplayName.ToString());
     TestFalse(TEXT("No forged N1 for non-armament initial content"),
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), Old->ItemDefinitionId, 1, true).bResolved);
+            Registry.Get(), Old->ItemDefinitionId, 1).bResolved);
 
     Old->ItemDefinitionId = TEXT("LegacyReceptacle_AI");
     Old->bUseWeaponCatalogue = false;
     Old->Weight = 7.5f;
     const FGridReceptacleItemMetadataReadView Legacy =
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), Old->ItemDefinitionId, 0, false);
+            Registry.Get(), Old->ItemDefinitionId, 0);
     TestFalse(TEXT("Configured registry rejects unregistered initial item"), Legacy.bResolved);
     TestFalse(TEXT("Unregistered identity not canonical"), Legacy.bRegisteredIdentity);
     TestEqual(TEXT("Rejected source exposes no mass"), Legacy.UnitWeightKg, 0.f);
     TestTrue(TEXT("Rejected source exposes no old display name"), Legacy.DisplayName.IsEmpty());
     const auto FixtureOnly = FGridReceptacleItemMetadataReadModel::Resolve(
-        nullptr, Old.Get(), Old->ItemDefinitionId, 0, false);
-    TestTrue(TEXT("Isolated registry-less fixture keeps explicit old data"),
-        FixtureOnly.bResolved && !FixtureOnly.bRegisteredIdentity &&
-        FMath::IsNearlyEqual(FixtureOnly.UnitWeightKg, 7.5f));
+        nullptr, Old->ItemDefinitionId, 0);
+    TestTrue(TEXT("Registry-less source exposes no mass or metadata"),
+        !FixtureOnly.bResolved && !FixtureOnly.bRegisteredIdentity && FixtureOnly.UnitWeightKg == 0.f);
     const FGridReceptacleItemMetadataReadView IdOnlyLegacy =
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), nullptr, TEXT("LegacyIdOnly_AI"), 12, false);
+            Registry.Get(), TEXT("LegacyIdOnly_AI"), 12);
     TestFalse(TEXT("Configured registry rejects unknown ID-only content"), IdOnlyLegacy.bResolved);
     // Registered physical identity wins over an obsolete definition.
     FGridResolvedItem RealSword;
     if (!TestTrue(TEXT("Real N6 sword is in the canonical registry"),
         Registry->ResolveItem(TEXT("Weapon_StraightSword_01"), 6, RealSword))) return false;
     const auto RegisteredMismatch = FGridReceptacleItemMetadataReadModel::Resolve(
-        Registry.Get(), Old.Get(), TEXT("Weapon_StraightSword_01"), 6, false);
+        Registry.Get(), TEXT("Weapon_StraightSword_01"), 6);
     TestTrue(TEXT("Obsolete definition cannot cancel a registered N6 sword"),
         RegisteredMismatch.bRegisteredIdentity && RegisteredMismatch.bResolved &&
         RegisteredMismatch.FixedItemLevel == 6 &&
@@ -134,7 +133,7 @@ bool FGridClean063AIReceptacleMaterialization::RunTest(const FString&)
         RegisteredMismatch.DisplayName.ToString(), RealSword.DisplayName.ToString());
     TestFalse(TEXT("Unregistered mismatch still rejected"),
         FGridReceptacleItemMetadataReadModel::Resolve(
-            Registry.Get(), Old.Get(), TEXT("AI_UnregisteredOther"), 0, false).bResolved);
+            Registry.Get(), TEXT("AI_UnregisteredOther"), 0).bResolved);
     TestEqual(TEXT("Read model never edits definition default"), Old->DefaultWeaponItemLevel, 6);
     return true;
 }

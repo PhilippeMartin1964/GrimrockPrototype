@@ -222,7 +222,7 @@ bool FGridHotbarContext01CanonicalStoneDivergence::RunTest(const FString&)
 	Stone.Quantity = 4;
 	if (!TestTrue(TEXT("The canonical stack enters inventory"), Inventory->AddItemToCharacterInventory(0, Stone))) return false;
 	const FGridPhysicalThrowPreflightReadView Preflight =
-		FGridPhysicalThrowPreflightReadModel::Resolve(World.Scope.Registry, nullptr, Stone, 10);
+		FGridPhysicalThrowPreflightReadModel::Resolve(World.Scope.Registry, Stone, 10);
 	TestTrue(TEXT("The registered non-armament stone passes the generic physical throw preflight"),
 		Preflight.bRegisteredIdentity && Preflight.bCanThrow);
 	TestEqual(TEXT("The generic launch speed is authored independently"), Preflight.Ballistics.InitialSpeed, 800.0f);
@@ -334,7 +334,7 @@ bool FGridHotbarContext01CanonicalStoneDivergence::RunTest(const FString&)
 		Item.ItemDefinitionId = ItemId;
 		Item.ItemLevel = Level;
 		Item.Quantity = Quantity;
-		return FGridItemInteractionReadModel::Resolve(Registry, nullptr, Item).bPhysicalThrowHotbar;
+		return FGridItemInteractionReadModel::Resolve(Registry, Item).bPhysicalThrowHotbar;
 	};
 	TestTrue(TEXT("An existing specialized ARM remains assignable"), Capabilities(TEXT("Weapon_ThrowingKnife_01"), 1, 1));
 	TestTrue(TEXT("A generic one-handed ARM is assignable"), Capabilities(TEXT("Weapon_StraightSword_01"), 1, 1));
@@ -344,7 +344,7 @@ bool FGridHotbarContext01CanonicalStoneDivergence::RunTest(const FString&)
 	TestFalse(TEXT("A stack above its authored capacity is invalid"), Capabilities(StoneId, 0, 11));
 	TestFalse(TEXT("An empty stack is invalid"), Capabilities(StoneId, 0, 0));
 	TestFalse(TEXT("An absent registry cannot authorize a stone"),
-		FGridItemInteractionReadModel::Resolve(nullptr, nullptr, Stone).bPhysicalThrowHotbar);
+		FGridItemInteractionReadModel::Resolve(nullptr, Stone).bPhysicalThrowHotbar);
 	return !HasAnyErrors();
 }
 

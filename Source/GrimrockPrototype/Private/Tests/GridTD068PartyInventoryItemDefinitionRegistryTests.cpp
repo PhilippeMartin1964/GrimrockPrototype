@@ -114,7 +114,7 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 
 	FGridItemInstance StackItem = GridTD068CreateItem(StackId, 99);
 	TestTrue(TEXT("ApplyItemDefinitionToInstance succeeds for a registered definition"), Component->ApplyItemDefinitionToInstance(StackItem));
-	const auto StackMetadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, StackItem);
+	const auto StackMetadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, StackItem);
 	TestTrue(TEXT("Isolated definition provides weight without an instance cache"),
 		StackMetadata.bResolved && FMath::IsNearlyEqual(StackMetadata.UnitWeightKg, 2.5f));
 	TestTrue(TEXT("Isolated definition provides name without an instance cache"),
@@ -125,7 +125,7 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 	FGridItemInstance NamedStackItem = GridTD068CreateItem(StackId, 0);
 	TestTrue(TEXT("Apply accepts a zero incoming stack quantity and normalizes it"), Component->ApplyItemDefinitionToInstance(NamedStackItem));
 	TestTrue(TEXT("Definition name is read from the registry"),
-		FGridInventoryItemMetadataReadModel::Resolve(Registry, nullptr, NamedStackItem)
+		FGridInventoryItemMetadataReadModel::Resolve(Registry, NamedStackItem)
 			.DisplayName.EqualTo(StackName));
 	TestEqual(TEXT("Apply clamps a stack quantity to at least one"), NamedStackItem.Quantity, 1);
 

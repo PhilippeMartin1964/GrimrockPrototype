@@ -12,13 +12,13 @@ struct FGridInventorySortReadView
 struct FGridInventorySortReadModel
 {
 	static FGridInventorySortReadView Resolve(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance)
 	{
 		FGridInventorySortReadView Result;
 		if (!Instance.IsValid()) return Result;
 		const FGridInventoryItemMetadata Meta =
-			FGridInventoryItemMetadataReadModel::Resolve(Registry, LegacyDefinition, Instance);
+			FGridInventoryItemMetadataReadModel::Resolve(Registry, Instance);
 		Result.DisplayName = Meta.DisplayName.IsEmpty() ? Instance.ItemDefinitionId.ToString()
 			: Meta.DisplayName.ToString();
 		Result.TotalWeight = FMath::Max(0.0f, Meta.UnitWeightKg) *

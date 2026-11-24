@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 
 /** Same read-only throw gate for menu, controller and actual projectile launch. */
@@ -30,7 +29,7 @@ struct FGridPhysicalThrowStrengthReadModel
 	}
 
 	static FGridPhysicalThrowStrengthReadView Resolve(
-		const UGridItemSubsystem* Registry, const UGridItemDefinitionAsset* LegacyDefinition,
+		const UGridItemSubsystem* Registry,
 		const FGridItemInstance& Instance, int32 Strength)
 	{
 		FGridPhysicalThrowStrengthReadView Out;
@@ -78,24 +77,6 @@ struct FGridPhysicalThrowStrengthReadModel
 			Out.bCanThrow = Out.SpeedScale > 0.0f;
 			return Out;
 		}
-		// Identities absent from ItemSystem keep legacy physics during 06.3.
-		// Only active, registry-less Automation fixtures may use old physics.
-#if !WITH_DEV_AUTOMATION_TESTS
 		return Out;
-#else
-		if (!GIsAutomationTesting || Registry) return Out;
-		if (!IsValid(LegacyDefinition) ||
-			LegacyDefinition->ItemDefinitionId != Instance.ItemDefinitionId)
-		{
-			return Out;
-		}
-		Out.MaxWeightKg = LegacyDefinition->GetMaxThrowableWeightForStrength(Strength);
-		Out.bResolved = true;
-		Out.bOneHanded = LegacyDefinition->GetEffectiveHandUsage() == EGridItemHandUsage::OneHanded;
-		Out.UnitWeightKg = LegacyDefinition->Weight;
-		Out.SpeedScale = LegacyDefinition->GetThrowSpeedScaleForStrength(Strength);
-		Out.bCanThrow = Out.SpeedScale > 0.0f;
-		return Out;
-#endif
 	}
 };
