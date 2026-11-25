@@ -1,17 +1,17 @@
 # GrimrockPrototype — Roadmap fonctionnelle
 
-La [baseline de consolidation](../Technical/Consolidation.md) fixe les clôtures techniques jusqu’à CLEANUP06. CLEANUP07 actualise la documentation. **CLEANUP08, recette générale, reste ouvert.** Ce document conserve l’ordre déjà établi et ne sélectionne pas de nouveau chantier produit.
+La [baseline de consolidation](../Technical/Consolidation.md) consigne la clôture de CLEANUP01 à CLEANUP08. Le propriétaire a validé les dix parcours de la recette intégrée Shipping, sans remarque. Les priorités fonctionnelles ci-dessous demeurent celles déjà établies.
 
 ## Fonctionnalités livrées
 
 | Domaine | État et preuve |
 | --- | --- |
-| Exploration, objets du monde, portes, serrures, réceptacles, fosses | Implémentés. Les parcours retenus ont été validés dans la recette Shipping D.16. |
-| Inventaire, équipement, combat et actions rapides | Implémentés. La recette D.16 valide les parcours combinés, dont attaques, parade, blocage, combat à distance, pierres et huile. Le [modèle objets](../Architecture/DataModel.md) précise le contenu effectivement matérialisé. |
+| Exploration, objets du monde, portes, serrures, réceptacles, fosses | Implémentés. Les parcours retenus ont été validés dans les recettes Shipping D.16 et CLEANUP08. |
+| Inventaire, équipement, combat et actions rapides | Implémentés. La recette D.16 valide les parcours combinés. CLEANUP08 confirme en Shipping le HUD en combat, le combat à distance, la magie et la flaque d’huile. Le [modèle objets](../Architecture/DataModel.md) précise le contenu effectivement matérialisé. |
 | MON13–MON20 et progression RPG | Jalons clos dans leur périmètre. Le recrutement, les classes, compétences, talents, magie et statuts disposent des contrats et validations consignés dans leurs jalons. La clôture ne vaut pas production complète de campagne. |
 | MON21.1–.3 | Contrat de campagne, définition et état des quêtes, raccordement Event → Command validés. |
 | MON21.6 et MAP-THEME01 | Carte texturée, exploration persistante, multi-dalles et étages validés en Automation et en PIE. La convention visuelle X miroir reste un point documenté, la convention runtime `East=X+` demeure. |
-| New Game, Continue et SaveGame | Parcours D.16 validés manuellement. SaveGame **v27 exact-match**, sept sauvegardes éprouvées sur copies. |
+| New Game, Continue et SaveGame | New Game, Continue et persistance vérifiés dans le produit Shipping CLEANUP08. SaveGame **v27 exact-match**, sept sauvegardes éprouvées sur copies. |
 
 ## Fonctionnalités partielles et travaux déjà définis
 

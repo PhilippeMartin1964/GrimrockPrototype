@@ -1,6 +1,6 @@
 # Documentation GrimrockPrototype
 
-Les références ci-dessous décrivent le projet au terme de CLEANUP06. Les rapports datés décrivent leur révision. Une ancienne validation ou procédure de migration ne remplace pas les contrats courants.
+Les références ci-dessous décrivent le projet après la [recette intégrée et la clôture de CLEANUP08](Technical/Consolidation.md#cleanup08--recette-intégrée-et-clôture). Les rapports datés décrivent leur révision. Une ancienne validation ou procédure de migration ne remplace pas les contrats courants.
 
 | Besoin | Référence |
 | --- | --- |

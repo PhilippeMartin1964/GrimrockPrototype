@@ -1,6 +1,6 @@
 # GrimrockPrototype — Synthèse globale du projet
 
-Référence courante après CLEANUP06. Le modèle ARM-CLEAN06 est implémenté et la migration est clôturée. La [consolidation](../Technical/Consolidation.md) distingue les preuves techniques, la recette utilisateur et les limites de validation.
+Référence courante après la clôture de CLEANUP08. Le modèle ARM-CLEAN06 est implémenté et la migration est clôturée. La [consolidation](../Technical/Consolidation.md) distingue les preuves techniques, la recette utilisateur et les limites de validation.
 
 ## 1. Vue d'ensemble
 
@@ -323,7 +323,7 @@ La MapExploration est incluse dans le runtime state. Le champ durable `CampaignQ
 
 ## 14. Validation
 
-CLEANUP06 (`2941d211ded3ffca873065d93eb05a9a2c51c7b3`) a passé Development Editor, Shipping et 2 067 tests Grimrock, avec 48 scénarios avertis sous LocalAuto et zéro échec. SilentTask et LocalAuto sont SUCCESS. Build/Cook/Stage/Package/Archive est vérifié sur CLEANUP04-G. La recette manuelle Shipping D.16 a validé 10 parcours sur 10. Les deux Readables et sept originaux v27 ont été préservés. [Consolidation et preuves](../Technical/Consolidation.md)
+CLEANUP08 a validé le produit Shipping du SHA `6a8a5df9c3a681525ebd1948038751da3ea3ec83` après Build/Cook/Stage/Package/Archive. SilentTask et LocalAuto sont SUCCESS sur ce SHA. Les 2 067 scénarios Grimrock passent, avec 48 scénarios avertis et zéro échec. Le propriétaire a validé les dix parcours Shipping. Les deux Readables et sept originaux v27 ont conservé leurs empreintes. [Consolidation et preuves](../Technical/Consolidation.md)
 
 ## 15. État fonctionnel
 

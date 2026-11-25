@@ -39,7 +39,7 @@ CLEANUP05 a mesuré deux captures nominales en standalone Development D3D12 1080
 
 CLEANUP06 a retiré 27 scripts de migration et d’authoring sur échec et ajouté la garde permanente des lecteurs/cook d’huile. Les outils actifs sont décrits dans la [référence des scripts](../SCRIPTS_REFERENCE.md). La [tâche silencieuse](../Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md) compile Editor et Shipping et exécute Grimrock dans le worktree dédié. Elle refuse les modifications locales et exige un SHA et un résultat de fin cohérents. Le bootstrap préexistant altère quelques accents dans les diagnostics, sans modifier la sélection du SHA vérifiée.
 
-## CLEANUP07 et CLEANUP08
+## CLEANUP07
 
 CLEANUP07 fixe l’autorité documentaire par domaine. Le [point d’entrée](../README.md), la [synthèse d’architecture](../Architecture/PROJECT_SYNTHESIS.md) et la [roadmap](../Design/PROJECT_COMPLETION_ROADMAP.md) décrivent le projet courant. Les preuves uniques restent datées. Le détail des anciens jalons est consultable dans Git.
 
@@ -52,4 +52,21 @@ Le corpus passe de 1 442 à 1 303 fichiers, dont 1 327 à 1 188 Markdown. Le lot
 | Validation MON18.4 | [Contrat et recette de ciblage](../Design/MON18_4_TARGETING_INTEGRATION.md#validation-ue554) |
 | Inventaires de transition, cartes détaillées et journal UI agrégé | Références actuelles par domaine et instantanés immuables, accessibles depuis leurs documents de synthèse. |
 
-**CLEANUP08 reste ouvert.** La recette générale doit vérifier le produit de référence et les parcours intégrés avant reprise fonctionnelle. La consolidation documentaire n’ajoute aucune validation manuelle ni changement de gameplay.
+## CLEANUP08 — Recette intégrée et clôture
+
+**CLEANUP01 à CLEANUP08 sont clôturés.** Le produit de référence a été construit sous UE 5.5.4 et MSVC 14.44.35207 à partir du SHA de CLEANUP07 `6a8a5df9c3a681525ebd1948038751da3ea3ec83`. Le commit de clôture est exclusivement documentaire. Les sources, scripts, configurations et assets du produit correspondent à ce SHA.
+
+| Contrôle | Résultat |
+| --- | --- |
+| Validation Windows | Development Editor et Shipping validés sur le SHA du produit. SilentTask et LocalAuto SUCCESS. 2 067 scénarios Grimrock réussis, zéro échec, huit B.1 réussis. Les 48 scénarios avec avertissements correspondent à la référence CLEANUP06. |
+| Produit Shipping | Build/Cook/Stage/Package/Archive terminés avec le code 0. 41 fichiers, 2 341 438 482 octets. Les 2 112 entrées cuisinées correspondent à CLEANUP04-G. Les 53 packages actifs, 25 assets DA_Skill, DA_RPGTalentPresentation, les deux matériaux d’huile et les deux Readables sont présents. Les 48 packages historiques restent exclus. |
+| Compatibilité | Trois ClassRedirects, 53 redirections d’objet et 50 alias Primary Asset IDs vérifiés. Preuve de compilation des 70 Blueprints réutilisée de CLEANUP04-G sur des assets identiques et des interfaces réfléchies inchangées. |
+| Intégrité du registre | 48 définitions, dont 22 armements, 82 archétypes et 466 couples objet/niveau valides. Zéro écart avec l’oracle indépendant sur les 1 640 profils, dont 260 passifs. |
+| Persistance | Sept copies v27 chargées et sept round-trips en mémoire conformes. La copie principale réécrite dans Shipping a été rechargée après redémarrage et auditée. Les empreintes SHA-256 des sept originaux et des deux Readables concordent. |
+| Recette utilisateur Shipping | **10/10, aucune remarque.** Déplacements et exploration, interactions souris, inventaire et équipement, combat rapproché, HUD en combat, combat à distance et magie, flaque d’huile, torches et objets, mécanismes du donjon et sauvegarde définitive. |
+
+Les preuves PIE antérieures concernent notamment la [carte et ses transitions](../Design/MON21_6_13_MAP_CLOSURE.md) et les [réceptacles](../Tests/RECEPTACLE_RUNTIME_TESTS.md#validation-après-simplification). La recette intégrée CLEANUP08 a été réalisée dans le produit Shipping. Les audits de copies et l’Automation sont des preuves techniques distinctes.
+
+- Exécutable de référence sous `D:/GrimrockNativeSnapshots/CLEANUP08/Packaging/TD04-Shipping-20261125-092742/Windows/GrimrockPrototype.exe`.
+- Preuves locales sous `D:/GrimrockNativeSnapshots/CLEANUP08/`. Le manifeste est `shipping-manifest.json`, la comparaison des conteneurs `container-diff.json`, la parité `profiles.log` et les deux audits acceptés `save-audit.json` et `shipping-save-audit.json`.
+- Le ciblage visuel, l’attente de rendu non attribuée et l’encodage du bootstrap restent consignés dans la [roadmap](../Design/PROJECT_COMPLETION_ROADMAP.md#anomalies-et-limites-connues), avec les travaux fonctionnels reportés.
