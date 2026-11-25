@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.93 — Retrait réfléchi des caches d'instance
-
-Parent 201e3fd7fc2b8aa249dca251cba75163614b37b3. Publication seulement après cinq statuts SUCCESS 5G92, incluant empreinte durable, preuve sémantique et normalisation mémoire. Preuve Blueprint #212 : 72 BP, zéro pin. Aucun changement de version v27 ni de code de migration runtime.
-
-Supprimer deux UPROPERTY uniquement de FGridItemInstance, DisplayName et Weight ; le nom du personnage, les champs narratifs, ID/GUID, quantité et états mutables restent réfléchis. Les deux membres C++ non réfléchis restent provisoirement pour les écrivains/fixtures et seront supprimés séparément ; ils ne sont plus accessibles comme propriété Blueprint ni sérialisés. Les tests vérifient la réflexion. Cette étape n'est PAS la fin du legacy C++.
-
-L'agent rouvre exactement les copies du baseline 5G92 (SHA256, reçu et statut parent exact, aucune lecture supplémentaire de saves live). Le nouveau schéma doit relire les archives v27, ne décoder aucun cache et avoir les mêmes propriétés durables et projections monde, mêmes comptes et références narratives ; encode/reload et preuve sémantique indépendants. Les scripts testent comparaison synthétique positive et différence refusée. La preuve native 5G93 constitue un troisième gate obligatoire. Aucun slot original ni copie source modifié, aucun rapport privé transmis. En cas de refus, corriger le schéma avant toute étape suivante ; ne pas déclarer migration terminée. PIE/Save-Continue/Shipping restent dus.

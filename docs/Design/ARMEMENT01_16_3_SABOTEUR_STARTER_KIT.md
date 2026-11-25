@@ -1,6 +1,6 @@
 # ARMEMENT01.16.3 — Finalisation du kit Voleur/Saboteur (niveau 1)
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 **État : compilation et 2/2 tests ARMEMENT01.16.3 validés localement le 01.11.2026 ; régression ARMEMENT01.16 en cours de remise en conformité, recette PIE complète à confirmer.**

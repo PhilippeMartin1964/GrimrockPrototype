@@ -1,6 +1,6 @@
 # Inventory Blueprint Construction Guide
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 Ce guide décrit la construction attendue des Blueprints d'inventaire. Il complète `ITEM_CONTEXT_ACTION_SYSTEM.md`, `INVENTORY_INTERACTION_ROUTING.md` et `UI_INV2_CHARACTER_EQUIPMENT_PANEL.md`.

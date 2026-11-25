@@ -1,6 +1,6 @@
 # ARM-CLEAN06 — Contrat d'édition des armes, objets, actions et effets
 
-**Statut : APPROUVÉ (13 novembre 2026), conception cible — NON ENCORE IMPLÉMENTÉE.** L'architecture et les clés sont normatives dans [ARM-CLEAN06](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). Les textes de ce document expliquent **où éditer**, sans autoriser de deuxième source de vérité.
+**Contrat approuvé le 13 novembre 2026 et désormais implémenté.** Les [invariants](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) et le [modèle réel](../Architecture/DataModel.md) précisent les autorités. Éditer les assets actifs par Unreal Editor.
 
 ## 1. Une fiche d'objet lisible
 
@@ -31,22 +31,22 @@ Le champ d'équipement et la taxonomie `ItemType` ne sont **pas** à saisir deux
 
 ## 2. Où changer chaque propriété ?
 
-| Je souhaite modifier… | Seul emplacement éditable cible | Notes |
+| Je souhaite modifier… | Emplacement éditable | Notes |
 |---|---|---|
 | Nom, description, poids d'une épée | `DA_Weapon_StraightSword_01` | FText localisable ; poids fixe N1–N20 tant qu'aucune décision contraire |
 | Famille, mains, portée, PA, dés, accuracy, scaling | `DA_WeaponCatalogue.Archetypes[ARM014]` | valeur N1 + règles jusqu'à N20 ; aucun N1 copié dans la fiche |
 | Protection du bouclier | `DA_WeaponCatalogue.Archetypes[ARM075]` | absorption passive et niveau ; ne pas créer de fausse attaque |
-| Parade passive / blocage réactif | `DA_WeaponCatalogue.ReactionPolicies` | exige vraie condition d'événement ; aucune icône n'active une réaction |
-| Vitesse / arc / collision du jet | `DA_WeaponCatalogue.ProjectilePolicies` | données physiques uniquement |
+| Parade passive / blocage réactif | Politique de réaction de l’archétype dans `DA_WeaponCatalogue` | exige vraie condition d'événement ; aucune icône n'active une réaction |
+| Vitesse / arc du jet | Politique de projectile de l’archétype dans `DA_WeaponCatalogue` | données physiques uniquement |
 | Arme nécessitant des flèches | `RequiredAmmoKindId` sur archétype ; `AmmoKindId` sur muni | identité logique, pas lien DA_Weapon → DA_Item_Arrows |
 | Icône du sac et mesh de l'épée | `DA_WeaponVisualCatalogue.VisualProfiles[VisualId]` | obtenu via liaison ArchetypeId → VisualId |
 | Icône de la frappe / parade active | `DA_WeaponVisualCatalogue.ActionIcons[EquippedActionKind]` | catégorie **dérivée**, ne pas dupliquer dans CombatActions |
-| Finition N1–N20 / ornement | `DA_WeaponVisualCatalogue.VisualProfiles[].CosmeticProgression` | cosmétique uniquement, non rareté implicite |
+| Finition N1–N20 / ornement | Finitions de niveau du profil dans `DA_WeaponVisualCatalogue.VisualProfiles` | cosmétique uniquement, non rareté implicite |
 | Rotation/échelle du mesh lancé, VFX idle | `DA_WeaponVisualCatalogue.VisualProfiles` | pas de paramètres physiques |
-| Nouvelle attaque lourde ou action spéciale | `DA_ActionCatalogue.Actions[ActionId]` | action authorée + liaison vers archétype ; règles typées |
-| Son de coup, impact métal/bois/chair, critique | `DA_ActionPresentationCatalogue.PresentationProfiles[PresentationId]` | sélection après résultat combat ; ne modifie pas dégâts |
+| Nouvelle attaque lourde ou action spéciale | `DA_ActionCatalogue` par `ActionId` | action authorée + liaison vers archétype ; règles typées |
+| Son de coup, impact métal/bois/chair, critique | `DA_ActionPresentationCatalogue` par `PresentationId` | sélection après résultat combat ; ne modifie pas dégâts |
 | Niagara de frappe / pare / bloque | `DA_ActionPresentationCatalogue` | distinct du VFX persistant d'une arme |
-| Recommandation de classe / kit | `DA_WeaponCatalogue.ClassAffinities` | jamais interdiction d'équiper par défaut |
+| Recommandation de classe / kit | Affinités de l’archétype et `DA_WeaponCatalogue.ClassPreferences` | jamais interdiction d'équiper par défaut |
 | Quantité, niveau fixe, usure d'armure réelle | `FGridItemInstance` / état mutable | SaveGame et transferts |
 | Placer un objet dans un niveau | `DA_GridLevel_*` : ItemId, ItemLevel, Quantity, pose | pas de pointeur UObject par placement |
 
@@ -59,7 +59,7 @@ Une arme n'embarque **aucun** `TArray<FGridCombatActionDefinition>` universel. L
 - Une même présentation peut servir à plusieurs armes/actions ; ses variations sont données par les profils, pas par un second tableau de sons sur chaque arme.
 - Les icônes de sorts/talents et les icônes d'objets consommables gardent leurs autorités spécialisées, sans passer par la palette d'actions **équipées**.
 
-## 4. Cycle éditorial d'un nouvel objet (après migration)
+## 4. Cycle éditorial d’un nouvel objet
 
 1. Créer **une** définition concrète (DA_Weapon_*, DA_Item_*), attribuer un ItemId stable et unique.
 2. Si arme : enregistrer son archétype (ARMxxx) et ses règles dans `DA_WeaponCatalogue`, puis la liaison visuelle dans `DA_WeaponVisualCatalogue`. Pas de nouvelle référence d'asset dans la définition.
@@ -67,7 +67,7 @@ Une arme n'embarque **aucun** `TArray<FGridCombatActionDefinition>` universel. L
 4. Vérifier `DA_ItemSystem` : index exact des définitions et quatre références globales. Aucun alias anonyme ni duplication de clés.
 5. Faire passer validations d'intégrité, tests gameplay, N1/N20, inventaire/SaveGame/monde/PIE. Un asset qui manque d'une référence obligatoire **échoue** à la validation, sans fallback.
 
-**Après 5G.3 :** les entrées d'écriture historiques `WeaponPipeline`, `WeaponPilotItemAuthoring`, `WeaponPilotPaletteAuthoring`, `MarksmanAmmunitionAuthoring` et `WeaponFireBombPalette` ainsi que leurs wrappers sont retirées. Ne pas les relancer depuis un ancien checkout. Créer/éditer les DataAssets canoniques dans Unreal selon le cycle ci-dessus ; les quatre catalogues du registre configuré et le panneau Details en lecture seule sont la seule voie d'édition. Les anciens manifests et tests de parité sont conservés à titre de preuve jusqu'au retrait global. Aucun pipeline automatique de production de nouvelles armes n'est prétendu disponible tant qu'il n'est pas réimplémenté/testé sur les actifs canoniques.
+Les anciens outils d’import ARMEMENT et de migration sont archivés. Utiliser les définitions et quatre catalogues actifs. Les contrôles spécialisés et le comparateur historique sont décrits dans la [référence des scripts](../SCRIPTS_REFERENCE.md#controles-specialises).
 
 ## 5. Conditions qualité / revues
 
@@ -76,6 +76,6 @@ Une arme n'embarque **aucun** `TArray<FGridCombatActionDefinition>` universel. L
 - **Exactitude :** 82 × 20 profils, 260 passifs, préservation NdM+K, positions, passifs, munitions, réactions, expérience et progression.
 - **SFX/VFX :** aucune action, défense, critique ou blessure simulée visuellement sans événement réel.
 - **Runtime :** seul `UGridItemSubsystem` résout les données ; C++ pour les contrats/mécaniques, WBP Designer pour la présentation, textes via le circuit de localisation approuvé.
-- **Zéro legacy :** aucune couche de compatibilité finale. La conversion historique est **ponctuelle, hors jeu**, testée, puis supprimée.
+- **Zéro legacy :** aucune autorité historique parallèle. Les Core Redirects et alias encore nécessaires protègent les références légitimes.
 
-Voir [plan d'implémentation](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Cette spécification remplace les prescriptions de structure d'assets des documents historiques ARMEMENT et INDUS ; elle ne modifie pas automatiquement leurs **règles de gameplay**.
+Voir [historique de la migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Cette spécification remplace les prescriptions de structure d'assets des documents historiques ARMEMENT et INDUS ; elle ne modifie pas automatiquement leurs **règles de gameplay**.

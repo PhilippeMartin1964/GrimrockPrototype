@@ -1,6 +1,6 @@
 # ITEM-LIGHT01 — Data-Driven Item Light Emitter
 
-> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques et tests historiques restent pertinents ; les schémas DataAssets ou fallbacks anciens ne sont plus des prescriptions de conception. **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques et tests historiques restent pertinents ; les schémas DataAssets ou fallbacks anciens ne sont plus des prescriptions de conception. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **ITEM-VFX01.4B — architecture actuelle (3 novembre 2026).** Le système d'éclairage d'item ne possède plus de canal Niagara. Les particules sont exclusivement configurées dans `VisualEffects`.

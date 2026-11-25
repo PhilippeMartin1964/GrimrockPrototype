@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.50 — Matérialisation centrale des réceptacles
-
-Parent 12fc5685a3bdfdc277351852645863e150231202. Publication après deux statuts SUCCESS.
-
-`AddContainedItem` est un point de matérialisation exclusivement canonique : aucun paramètre legacy ou drapeau transitoire, aucune initialisation par ancien DA_Item, aucun acteur factice ID-only. ItemId/niveau/quantité/GUID exacts, refus de doublon local ; seule une initialisation authorée peut créer un GUID. Les acteurs fournis doivent avoir le même ItemId, GUID et monde ; l'ancien acteur de la fixture 5D2 est reprojeté dans le vrai registre sans lecture de son ancienne définition. Les routes de serrure, insertion, restauration et rollback utilisent la nouvelle signature. La boucle de restauration des réceptacles et la restitution service ne permettent plus d'identités historiques. La validation globale des snapshots reste en amont de la mutation du niveau.
-
-5D2 conserve l'ancienne preuve de projection réelle N20 et ajoute les refus d'identité inconnue, GUID absent, quantité hors capacité et rejeu. Les tests X21/X22, X92, X30, Guardian Lua et ARMEMENT01.8 restent en place. Capture des snapshots, lecture de poids hors registre, ancienne UPROPERTY ItemDefinition, catégorie de type non-ARM et ancienne signature réfléchie TryInsertItem restent distincts ; aucune taxonomie inventée. Aucun asset ni SaveGame modifié. Validation Windows et recette PIE/Shipping à confirmer.

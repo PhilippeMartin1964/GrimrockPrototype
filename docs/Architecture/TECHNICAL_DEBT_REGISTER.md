@@ -1,10 +1,6 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
-Date de référence : **9 octobre 2026**  
-Baseline C++ auditée : **6f98a0ef5599f37d3d544529aa5a790d647e8251**  
-Statut : **registre rebaseliné DOC-ARCH01**
-
-Ce document décrit uniquement les dettes **encore actives, surveillées ou différées**. Les campagnes TD01–TD07 closes restent documentées dans leurs snapshots historiques et ne sont pas réouvertes par leur seule ancienneté.
+Registre permanent après CLEANUP06. Les campagnes TD01–TD07 et CLEANUP04 sont clôturées. Les anciennes preuves restent dans [Git](https://github.com/PhilippeMartin1964/GrimrockPrototype/blob/2941d211ded3ffca873065d93eb05a9a2c51c7b3/docs/Architecture/TECHNICAL_DEBT_REGISTER.md) et les mesures sont dans la [consolidation](../Technical/Consolidation.md).
 
 ## 1. Politique
 
@@ -19,7 +15,7 @@ P0 : 0
 P1 : 0
 
 P2 / surveillées ou différées
-  TD-BUILD-002  toolchain MSVC non figée
+  TD-BUILD-002  reproductibilité de la toolchain UE / v143
   TD-ARCH-001   AGridLevelRuntimeActor — stop condition atteinte
   TD-ARCH-002   UGridPartyInventoryComponent — stop condition atteinte
   TD-ARCH-003   AGrimrockPartyPawn — stop condition atteinte
@@ -40,7 +36,7 @@ P3
 
 La machine de développement utilise désormais Visual Studio Community 2026 18.10.3 avec le toolset v143 / MSVC 14.44.35207 installé sous `Visual Studio\18\Community`. UE5.5.4 continue d'identifier cette famille comme `Visual Studio 2022` et avertit que 14.44 n'est pas sa version préférée. Editor, Automation STARTUPFLOW01 et Shipping BuildCookRun ont été validés après migration, puis un nouveau build Editor a réussi après désinstallation de VS2022.
 
-Le risque restant n'est donc plus une dépendance à l'IDE VS2022, mais la reproductibilité d'une combinaison UE5.5.4 + v143 legacy installée dans VS2026, non figée dans les `Target.cs` et sans CI Windows. Ne pas imposer un downgrade ni retargeter les projets générés uniquement pour supprimer le libellé `Visual Studio 2022` ; réouvrir sur incompatibilité concrète, migration Unreal ou CI reproductible.
+Le risque restant n'est donc plus une dépendance à l'IDE VS2022, mais la reproductibilité d'une combinaison UE5.5.4 + v143 legacy installée dans VS2026, sélectionnée par l’agent Windows. La reproductibilité sur un autre poste reste à vérifier si le besoin se présente. Ne pas imposer un downgrade ni retargeter les projets générés uniquement pour supprimer le libellé `Visual Studio 2022` ; réouvrir sur incompatibilité concrète, migration Unreal ou CI reproductible.
 
 `TD-BUILD-001` Meshy est résolu : Meshy reste un outil local optionnel, pas une dépendance first-party requise.
 
@@ -90,7 +86,7 @@ Le code courant contient encore quelques usages `UE_LOG(LogTemp)`, concentrés n
 
 **P2 — différée.**
 
-Les harness locaux `Scripts/ValidateUE.ps1` et `Scripts/ValidatePackage.ps1` restent autoritaires. Une CI réelle ne doit être ajoutée que lorsqu'un runner Windows + UE5.5.4 + toolchain est disponible.
+Les harness locaux `Scripts/ValidateUE.ps1` et `Scripts/ValidatePackage.ps1` restent autoritaires. La validation automatique Windows est opérationnelle. Une CI distante reste différée tant que son besoin et son environnement n’ont pas été établis.
 
 ## 12. TD-UI-001 — nomenclature Inventory
 
@@ -137,7 +133,7 @@ Player Level Editor / publication
 
 ## 16. Contrats courants à ne pas rouvrir
 
-- SaveGame **v24 exact-match** ;
+- SaveGame **v27 exact-match** ;
 - `LastAcknowledgedLevel` supprimé ;
 - Skills : `FRPGSkillPointService`, pas de monnaie persistée ;
 - Talents : transaction MON15 + `FGridSkillsPageService`, pas de façade `FRPGTalentRuntimeService` ;
@@ -147,18 +143,9 @@ Player Level Editor / publication
 - Combat HUD = combat-only ;
 - Map MON21.6 = close.
 
-## 17. Validation
+## 17. Validation et risques observés
 
-```text
-9045ef2d
-Grimrock 1026/1026
-0 warning
-0 failed
-0 not run
-Shipping Win64 OK
-```
-
-Les travaux postérieurs ont été validés par campagnes ciblées ; DOC-ARCH01 est documentation-only et n'invente aucune nouvelle validation UE.
+CLEANUP06 a validé 2 067 tests et les deux statuts. La [consolidation](../Technical/Consolidation.md) porte les mesures, la limite de profiling et le défaut d’encodage préexistant. L’anomalie visuelle de ciblage documentée dans la [roadmap](../Design/PROJECT_COMPLETION_ROADMAP.md#anomalies-et-limites-connues) reste ouverte. Aucun point de dette résolu ne se rouvre du seul fait de l’âge de son rapport.
 
 ## 18. Références
 

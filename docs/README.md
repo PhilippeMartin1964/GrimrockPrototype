@@ -1,69 +1,18 @@
 # Documentation GrimrockPrototype
 
-Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte les décisions/jalons ; `docs/Architecture` porte les contrats techniques durables et le bilan courant.
+Les références ci-dessous décrivent le projet au terme de CLEANUP06. Les rapports datés décrivent leur révision. Une ancienne validation ou procédure de migration ne remplace pas les contrats courants.
 
-## Ordre de lecture recommandé
+| Besoin | Référence |
+| --- | --- |
+| Comprendre le projet | [Synthèse](Architecture/PROJECT_SYNTHESIS.md), [index d’architecture](Architecture/ARCHITECTURE_INDEX.md) et [carte des domaines](Architecture/Maps/GRIMROCK_PROJECT_MAP.md) |
+| Développer un objet ou une arme | [Modèle relationnel](Architecture/DataModel.md), [invariants](Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) et [édition](Design/ARM_CLEAN06_ITEM_AUTHORING_CONTRACT.md) |
+| Développer une interface | [Architecture UI](Design/UI_ARCHITECTURE_CURRENT.md), [contrat UMG](UI_UMG_PRESENTATION_CONTRACT.md), [workflow obligatoire des textes](UI_WBP_LOCALIZATION_WORKFLOW.md) |
+| Préparer le poste, compiler ou profiler | [Environnement](Design/DEVELOPMENT_ENVIRONMENT_SETUP.md), [scripts](SCRIPTS_REFERENCE.md), [agent Windows](Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md), [Unreal Insights](Design/PERF_PROFILE01_UNREAL_INSIGHTS_CAPTURE.md) |
+| Choisir un jalon | [Roadmap](Design/PROJECT_COMPLETION_ROADMAP.md), [dette technique](Architecture/TECHNICAL_DEBT_REGISTER.md), [consolidation](Technical/Consolidation.md) |
+| Recette et règles | [Smoke test donjon](Tests/TEST_DUNGEON_PASS_CHECKLIST.md), [réceptacles](Tests/RECEPTACLE_RUNTIME_TESTS.md), [interaction grille](Runtime_EdgeInteractionRules.md) et [ramassage](Runtime_ItemPickupRules.md) |
+| Art et licences | [Pipeline matériaux](00_README_Art_Materials_Textures.md), [meshes Blender](05_Static_Mesh_Blender_UE5_5_4_Pipeline.md), [licences des polices](FONT_LICENCES.md) et [ArtBook](ArtBook/) |
+| Retrouver une décision ou une preuve | [Journal des décisions](Design/99_DECISIONS_LOG.md) et [synthèses historiques](History/README.md) |
 
-### 0. Comprendre l’ensemble du projet
+`Architecture/` décrit les contrats, `Design/` les règles de gameplay et projets futurs, `Technical/` les validations techniques, `Tests/` les recettes et `History/` les synthèses datées. Les chemins existants des guides techniques sont conservés. `Rules/` reste destiné aux règles transversales et `UI/` à ses recettes spécialisées. Les ressources sources et visuelles restent dans leurs répertoires.
 
-- `docs/Architecture/PROJECT_SYNTHESIS.md` — synthèse globale ;
-- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` — carte détaillée textuelle et autoritaire ;
-- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP_MERMAID.md` — vues visuelles Mermaid ;
-- `docs/Architecture/ARCHITECTURE_INDEX.md` — index des contrats.
-
-### A. Gameplay et éditeur
-
-- `docs/Design/README.md`
-- `docs/Design/99_DECISIONS_LOG.md`
-- `docs/Design/PROJECT_COMPLETION_ROADMAP.md`
-- `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`
-- `docs/Design/GRIMROCK_LOCK_SYSTEM.md`
-
-### B. Pipeline art / meshes / materials / textures
-
-1. `docs/00_README_Art_Materials_Textures.md`
-2. `docs/01_Content_Structure.md`
-3. `docs/05_Static_Mesh_Blender_UE5_5_4_Pipeline.md`
-4. `docs/02_Texture_Pipeline_BC_N_ORM.md`
-5. `docs/M_GrimrockSurface_Master.md`
-6. `docs/03_M_GrimrockSurface_Masked_Master.md`
-7. `docs/04_Material_Instances_Migration.md`
-
-### C. Architecture C++
-
-- `docs/Architecture_Runtime_Editor_Split.md`
-- `docs/Architecture_LevelAsset_Editor_Runtime.md`
-- `docs/Architecture/ARCHITECTURE_INDEX.md`
-- `docs/Design/JALON_RUNTIME_DUNGEON_STATE.md`
-
-### D. Tests manuels
-
-- `docs/Design/PIE_TEST_FROM_EDITOR.md`
-- `docs/Runtime_Test_Button_Door.md`
-- `docs/Tests/RECEPTACLE_RUNTIME_TESTS.md`
-- `docs/Design/10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md`
-
-### E. Licences
-
-- `docs/FONT_LICENCES.md`
-
-### F. Localisation et authoring WBP — obligatoire
-
-- [Contrat C++ comportemental / Designer UMG](UI_UMG_PRESENTATION_CONTRACT.md) — **C++ = logique, formatage localisé, affectation des textes et instanciation des WBP de ligne complets** ; **Designer = TextBlocks, polices, tailles, marges et disposition**. Aucun Event Graph complexe imposé.
-
-- [Workflow permanent : ajouter / modifier du texte dans un WBP](UI_WBP_LOCALIZATION_WORKFLOW.md) — contrôle de l'autorité du texte, matérialisation `UI.csv → ST_UI.uasset`, raccordement Designer, traductions `Game`, tests et versionnement.
-- [ARMEMENT01.10.3.3 — Infobulle de combat structurée](Design/ARMEMENT01_10_3_3_COMBAT_TOOLTIP_STRUCTURE.md) — guide rectifié des deux WBP, reparenting et nettoyage des Graphs ; 33 clés existantes dans `ST_UI`.
-- **Ne jamais commencer un WBP avant d'avoir vérifié que les clés ST_UI requises existent dans l'asset ouvert sous Unreal.**
-
-### G. Scripts et outils de développement
-
-- [Référence complète des scripts PowerShell](SCRIPTS_REFERENCE.md) — paramètres, commandes, résultats, dépannage et statut des outils historiques.
-- [Index du dossier Scripts](../Scripts/README.md) — choix rapide du script adapté.
-
-## Historique documentaire
-
-Git est l’historique. Les documents courants ne sont pas dupliqués avec des suffixes de date.
-
-## Règle de priorité
-
-En cas de contradiction, `docs/Design/99_DECISIONS_LOG.md` et les documents de clôture/validation les plus récents priment.
+Chaque domaine a une référence identifiée. Les [instructions permanentes](../AGENTS.md) régissent les opérations Git, UE et UI. Pour les résultats courants, consulter le SHA et les preuves dans la consolidation.

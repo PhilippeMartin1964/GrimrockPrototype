@@ -55,6 +55,8 @@ Grimrock.Magic.MON18.4.TransactionFailureAfterTarget  Success
 Total                                                   8/8 Success
 ```
 
+La validation du 21 août 2026 est close. Les huit scénarios `AllyRelation`, `AxialTargetSuccess`, `CellAreaResolution`, `LineOfSightNoMutation`, `NonAxialNoMutation`, `OutOfRangeNoMutation`, `SelfResolution` et `TransactionFailureAfterTarget` passent. Les refus de ciblage préservent PA et mana, et la transaction MON18.3 intervient après résolution valide. [Reçu historique](https://github.com/PhilippeMartin1964/GrimrockPrototype/blob/2941d211ded3ffca873065d93eb05a9a2c51c7b3/docs/Design/MON18_4_VALIDATION.md).
+
 ## Rejets de ciblage
 
 ```text

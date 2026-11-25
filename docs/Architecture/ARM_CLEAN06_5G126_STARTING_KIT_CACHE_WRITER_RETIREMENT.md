@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.126 — Kits de départ sans copies statiques
-
-Parent `7ef87151673eec50ca112fc27d70ab95a702a3e2`. `FRPGStartingEquipmentService` ne recopie plus `DisplayName` et `Weight` dans `FGridItemInstance`, y compris dans les fixtures Automation sans `ItemSystem`. La résolution de la définition, du catalogue N1–N20, de la masse et du nom demeure obligatoire et inchangée pour valider le kit (via `FGridStartingKitStaticMetadataReadModel`), mais les métadonnées statiques ne deviennent jamais état physique. Préserver les quantités, emplacements, deux mains, lumière, GUID et propriété, ainsi que le refus atomique des kits invalides. Les épreuves historiques de caractérisation demeurent disponibles. Aucun asset, SaveGame ou gameplay canonique modifié.

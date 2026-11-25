@@ -1,6 +1,6 @@
 # ARMEMENT01.10.3.3 — Combat Tooltip structuré : C++ logique, Designer UMG présentation
 
-> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 **Nouvelle évolution ARMEMENT01.10.3.3.10 (24.10.2026) :** après la clôture du nettoyage .9 (8/8), la rubrique DÉGÂTS est désormais répartie en 12 TextBlocks indépendants. L'ancien `Text_Damage` est retiré du C++. **Pour la procédure actuelle, consulter [ARMEMENT01.10.3.3.10 — Dégâts détaillés](ARMEMENT01_10_3_3_10_DAMAGE_TOOLTIP_DETAILS.md)** et non les anciennes sections de migration ci-dessous. 14 nouvelles clés ST_UI doivent être matérialisées dans Unreal. Résultat attendu de la suite : 11/11 tests, non encore validé localement.

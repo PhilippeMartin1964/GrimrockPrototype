@@ -1,6 +1,6 @@
 # ARMEMENT01.9.5.2 — Réintégration des affinités d’armement depuis Excel
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 **22 octobre 2026 — statut : VALIDÉ ET MATÉRIALISÉ.** Le script local a confirmé l'export des 82 affinités / six préférences, la conservation des 1 640 profils, une non-régression ARMEMENT01.4 **5/5 sans avertissement**, et le second import **`Changed=false`** (commandlet sans erreur ni avertissement). La publication du `DA_WeaponCatalogue.uasset` sur `master` a été confirmée par l'utilisateur. Le bilan de tests d'affinité 3/3 n'a pas été reproduit dans l'extrait du journal reçu, même si le script de validation s'est terminé en succès. Le protocole ci-dessous est conservé pour reproduction.

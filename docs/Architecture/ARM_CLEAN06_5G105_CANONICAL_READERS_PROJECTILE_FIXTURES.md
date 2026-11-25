@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.105 — Fixtures des lecteurs canoniques et projectiles
-
-Parent `d9c1f789f04250b0aa02b4896f3e7e6be3e1a06b`. Les tests 3I/K/O/AC/N/Q/V/AV/BB utilisent les identités physiques et les masses du registre canonique ; les définitions historiques contradictoires sont conservées là où elles testent le refus de fallback. Les projectiles vérifient le GUID, la non-mutation des propriétés durables d'entrée, le nom et la masse résolus en vol, leurs profils de vitesse, mesh et VFX. Les preuves natives 5G92/93 et 5G101 couvrent la redondance des anciens champs sérialisés. Les tests non canoniques utilisant encore les membres C++ ne sont pas supprimés par ce lot. Aucun changement runtime, asset, texte joueur ou SaveGame.

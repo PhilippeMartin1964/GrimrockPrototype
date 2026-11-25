@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.43 — Transfert équipement/monde et restauration
-
-Parent 0770d411faa185d5171e0dd5afd44eef0d8877c0. Publication conditionnée aux deux statuts SUCCESS.
-
-Le transfert physique d'une unité équipée vers le monde contrôle le niveau et la capacité de la source avant de modifier son ownership. La restauration n'est pas une voie de création : elle exige un objet World d'une unité, résolvable, une main autorisée pour l'item canonique, le respect de la réservation deux mains et, en cas de fusion, un ID et niveau identiques, un GUID distinct, un état lumière/armure/lecture compatible et une quantité compatible sans overflow. Ne jamais promouvoir N0 ni tronquer une pile. Le chemin de lancer utilitaire journalise dorénavant explicitement le résultat du rollback comme le lancer de combat.
-
-3AS couvre le vrai registre : refus de N0, extraction et restauration d'un N19, identité et dette d'armure, refus de doublon GUID du même item physique, niveau différent et dépassement de capacité, et refus d'identité inconnue. TD02.2 conserve ses assertions historiques et ajoute deux refus de fusion. Les fixtures Automation sans registre restent inchangées sur leur politique de capacité. Ce lot n'implémente pas un reçu de transaction anti-rejeu d'une unité issue d'une pile après fusion, ni un mécanisme de secours si le monde ou l'équipement change pendant le spawn ; ces questions restent à auditer distinctement. Aucune écriture d'asset ou de sauvegarde. Deux statuts Windows et Shipping restent requis.

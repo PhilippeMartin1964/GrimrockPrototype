@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.76 — Retrait de la transaction catégories
-
-Parent ab74873252dac962923d658a302338a2f4a83aaf. Preuves : rapport #208, diagnostic et rollback #209, transaction 5G.71R réussie, commit binaire b8a556dc3c091de06182452a2362efe13d9d6ff7 (26 packages, deux statuts SUCCESS), runtime 5G.72 validé.
-
-Les points d'entrée d'écriture natifs de cette migration et leur hooks one-shot n'ont plus de raison de subsister. Retirer le commandlet, son plan de projection, le script et les trois hooks dédiés à l'export 5G.68, au diagnostic 5G.71D et à la transaction 5G.71R. Les snapshots privés, les rapports d'origine, l'historique Git et le commandlet général 5A restent intacts. Le test général 5A reste en lecture seule, sans export JSON automatique de cette preuve déjà acquise.
-
-Remplacer la preview 5G69 par la preuve stricte post-conversion sous le même nom Automation : chacun des 26 non-ARM N0 porte la catégorie attestée, les 22 ARM dérivent leur catégorie du Kind, 466 résolutions réelles. Le manifeste est une attente de test indépendante des données historiques et aucune donnée de production n'en dépend. Les tests conservent les refus des tags conflictuels/inconnus et contrôlent un vrai profil N0. Aucun ancien outil ne peut rematérialiser les tags après ce lot. Aucun package, niveau, sauvegarde, texte joueur, ou autre procédure de validation n'est modifié. L'audit général et les projections historiques encore nécessaires à d'autres preuves restent à traiter.

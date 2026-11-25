@@ -1,83 +1,21 @@
 # GrimrockPrototype
 
-Prototype Unreal Engine 5.5.4 d’un dungeon crawler en vue subjective, à déplacement case par case, inspiré de *Legend of Grimrock 2*.
+Prototype de dungeon crawler sur grille. Le projet associe exploration, mécanismes, combat tactique, progression RPG et un éditeur de donjons intégré à Unreal.
 
-Le projet vise à développer une architecture simple, modulaire et orientée données, reposant sur un asset de niveau unique permettant de définir, éditer et exécuter un donjon jouable sur une grille 32x32.
+## Démarrage
 
-## Objectif du projet
-
-`GrimrockPrototype` est un prototype de jeu de type dungeon crawler old-school avec :
-
-- déplacement case par case ;
-- rotation à 90 degrés ;
-- exploration en vue subjective ;
-- niveaux construits sur une grille 32x32 ;
-- génération runtime de la géométrie ;
-- placement d’objets interactifs ;
-- portes, boutons, leviers, plaques de pression et triggers ;
-- liens logiques entre objets ;
-- outils d’édition intégrés à Unreal Editor ;
-- Event -> Command, Logic et Lua ;
-- groupe RPG, inventaire, combat, monstres, magie et recrutement.
-
-À terme, le projet doit permettre la création de niveaux par les joueurs.
-
-## Version cible
-
-- Unreal Engine : **5.5.4**
-- Langage : **C++**
-- IDE : **Visual Studio 2026 Community 18.10.3**
-- Toolchain UE5.5.4 : **MSVC v143 / 14.44.35207** installé avec Visual Studio 2026
-- Formatter : **clang-format 19.1.5 standalone**
-- Plateforme de développement principale : **Windows**
-- Type de projet : **modules Unreal C++**
-
-## Structure générale
-
-```text
-Source/
-├── GrimrockLua/
-├── GrimrockPrototype/
-└── GrimrockPrototypeEditor/
-```
-
-## Installation / environnement
-
-La procédure de référence est :
-
-```text
-docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md
-```
-
-UE5.5.4 continue d'afficher la famille de toolchain et certains projets générés sous le libellé `Visual Studio 2022`. Sur l'environnement validé, ce libellé désigne le toolset v143 attendu par UE5.5.4 ; les exécutables de compilation proviennent bien de `C:\Program Files\Microsoft Visual Studio\18\Community`. Visual Studio 2022 n'est plus requis ni installé.
-
-Contrôle des plugins/dépendances d'un environnement :
+Utiliser Unreal Engine **5.5.4** et Visual Studio **2026** avec le toolset v143 **MSVC 14.44.35207**. Le module `GrimrockLua` utilise le sous-module `ThirdParty/Lua54`. Les assets binaires utilisent Git LFS. Consulter le [guide d’environnement](docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md).
 
 ```powershell
-.\Scripts\CheckProjectDependencies.ps1 -EngineRoot D:\UE_5.5
+git submodule update --init -- ThirdParty/Lua54
+git lfs pull
+.\Scripts\ValidateUE.ps1 -EngineRoot 'D:\UE_5.5' -BuildShipping -AutomationFilter Grimrock
 ```
 
-**Meshy est optionnel et désactivé par défaut.** Il peut être installé localement pour de la production d'assets, mais n'est ni requis pour compiler/jouer ni versionné dans le repository.
+La [référence des scripts](docs/SCRIPTS_REFERENCE.md) couvre aussi les tests ciblés, l’authoring et le packaging. La [validation Windows](docs/Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md) compile et teste chaque SHA de `master` dans un worktree dédié.
 
-## Validation
+## Reprendre le projet
 
-Le [guide complet des scripts PowerShell](docs/SCRIPTS_REFERENCE.md) rassemble leurs paramètres, exemples, rapports et solutions de dépannage. L’[index du dossier Scripts](Scripts/README.md) indique quel outil choisir.
-
-Editor + Automation :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "<filtre>"
-```
-
-Shipping :
-
-```powershell
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
-
-## Documentation technique
-
-- [Architecture Runtime / Editor Split](docs/Architecture_Runtime_Editor_Split.md)
-- [Index architecture](docs/Architecture/ARCHITECTURE_INDEX.md)
-- [Registre de dette technique](docs/Architecture/TECHNICAL_DEBT_REGISTER.md)
-- [Roadmap active](docs/Design/PROJECT_COMPLETION_ROADMAP.md)
+- [Documentation](docs/README.md) et [instructions de travail](AGENTS.md).
+- [Architecture courante](docs/Architecture/PROJECT_SYNTHESIS.md) et [modèle des objets](docs/Architecture/DataModel.md).
+- [Roadmap fonctionnelle](docs/Design/PROJECT_COMPLETION_ROADMAP.md) et [clôtures de consolidation](docs/Technical/Consolidation.md).

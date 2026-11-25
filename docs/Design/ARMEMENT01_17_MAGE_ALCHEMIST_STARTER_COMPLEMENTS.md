@@ -1,6 +1,6 @@
 # ARMEMENT01.17 — Compléments Mage et Alchimiste : audit et première dotation N1
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/test historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 **01.11.2026. Statut : ARMEMENT01.17.0 (audit) + ARMEMENT01.17.1 (flasque d'huile initiale Transmutateur) publiés en code. Compilation UE5.5.4 / tests / PIE à confirmer. ARMEMENT01.17 n'est pas clos.**

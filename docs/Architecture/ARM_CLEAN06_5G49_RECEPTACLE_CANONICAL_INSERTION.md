@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.49 — Insertion et tags de réceptacles canoniques
-
-Parent 57738fe3df12877ed1b4f04baa82dd0ac6f5742c. Publication après deux statuts SUCCESS.
-
-`EvaluateItemAcceptance` conserve l’ordre des refus (instance, fermeture, capacité, règle déclarée), puis exige la résolution exacte de l’identité/niveau, une quantité légale et l’absence de GUID identique dans le réceptacle. Accept-any signifie n’importe quel item canonique valide. `TryInsertItemInstanceFromCursor` ne consulte plus l’ancien cache ; la projection et le texte de notification proviennent du seul registre. `TryInsertItem` conserve sa signature Blueprint en attente d’audit mais ignore les anciens arguments et n’accepte que des IDs explicites non-ARM N0. La condition ContainsItemTag ne lit plus aucune ancienne définition et refuse les instances invalides. Aucune déduction de type métier à partir de tags d’affichage.
-
-X32 et 3BG vérifient refus d’ID inconnu, capacité, rejeu du même GUID, ID-only ARM, pointeurs contradictoires et tags historiques ; les anciens contrôles canoniques restent. Le test Guardian Lua garde son vrai script et son registre privé de trois gemmes. Restent notamment AddContainedItem/restauration/capture, catégorie métier non-ARM, audit des signatures Blueprint historiques et le contrôle des mutations réentrantes ; le GUID déjà présent dans ce réceptacle n’est pas une preuve globale anti-rejeu. Aucun asset, SaveGame ou schéma modifié ; validation Windows et PIE/Shipping à confirmer.

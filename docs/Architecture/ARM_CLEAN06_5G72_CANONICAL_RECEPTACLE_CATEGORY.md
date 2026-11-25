@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.72 — Conditions de réceptacles canoniques
-
-Précondition : commit binaire 5G.71B publié, 26 packages exacts, double validation Windows et transaction native SUCCESS. Le lecteur ContainsItemType conserve l'interface EGridItemType pour l'éditeur/Lua mais résout exclusivement l'instance canonique, vérifie GUID, niveau, quantité et capacité, puis applique le prédicat partagé GridCanonicalPuzzleCategoryTags. Pas de fallback ancien même pour une identité inconnue. Tests sur vrais assets N0 et N1/N20, catégories historiques atypiques, pointeur contradictoire, quantité/GUID invalides et enum inconnu. Aucun package, sauvegarde ni schéma modifié.

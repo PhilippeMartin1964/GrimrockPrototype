@@ -1,6 +1,6 @@
 # ARM-CLEAN05 — Diagramme entité–relation complet des DataAssets d’armes
 
-> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). **Audit ou jalon de l'ancien modèle ; ne constitue plus l'architecture cible.** **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 **Révision :** `master` au SHA `8a73ebaf106add5ace9fff775c2e49c7ef7582dc`, 13 novembre 2026. **Statut :** modèle constaté / anomalies non corrigées.

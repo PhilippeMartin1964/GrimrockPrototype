@@ -1,5 +1,0 @@
-# ARM-CLEAN06.5G.65 — Identité et tags physiques
-
-Parent d6545431433898b9d76b6dbb4afa81479a5581c2. Publication après double validation du parent.
-
-`GetItemDefinitionId` expose exclusivement l'identité matérialisée ; appartenance et niveau restent validés par les consommateurs. `FGridWorldPickupIdentityReadModel` refuse les identités inconnues dans un registre configuré, même si un ancien pointeur porte un ID connu. Il conserve la projection canonique explicite dans les mondes sans GameInstance et l'ancien calcul uniquement dans les fixtures Automation isolées. `HasItemTag` consulte le registre au niveau exact, ou la projection canonique explicite sans GameInstance ; un cache mutable ne peut plus accorder de tag en production. Les tests 3BD Presentation et LegacyIdentity vérifient cache contradictoire, niveau non-ARM invalide et pointeur historique contradictoire. Le getter ne prétend pas valider à lui seul l'identité. Les propriétés sérialisées et les fixtures de conversion restent en place ; aucun asset, Blueprint, SaveGame ni texte joueur n'est modifié. Validation locale nécessaire, puis contrôle PIE interactions et recette de retrait.

@@ -1,5 +1,0 @@
-# ARM-CLEAN06.5G.37 — Audit des appels Blueprint au registre d'inventaire historique
-
-Parent 72cc1f03e1a4910eb2ea3bb15ad93bae9c5e31ad, publication conditionnée à ses deux statuts SUCCESS.
-
-Les deux fonctions UGridPartyInventoryComponent::RegisterItemDefinition et FindItemDefinition restent réfléchies alors que les identités physiques de production proviennent de ItemSystem. Étendre le scan natif MIG09 : découverte AssetRegistry des Blueprint et sous-classes sous /Game/GrimrockPrototype, chargement exhaustif, inventaire non vide, scan des UK2Node_CallFunction, signalement de chaque package/graphe/nœud. Les quatre exclusions précédentes restent en vigueur. Un résultat négatif sur le SHA exact est une précondition au retrait des UFUNCTION historiques ; une référence réelle doit être migrée et auditée, non contournée. Le résultat n'atteste pas l'absence d'appels dynamiques ou de références hors périmètre du scan. Aucun retrait de fonction, changement de comportement, package, contenu ou SaveGame dans ce lot.

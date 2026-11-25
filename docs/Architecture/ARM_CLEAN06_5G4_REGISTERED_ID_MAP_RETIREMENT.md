@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.4 — Registre des kits et de l'inventaire sans ancienne définition canonique
-
-Parent fa5a76ee8f34aa420ba0ac88f3ff0e2e97c57fa3 : 5G.3 validé par les deux statuts Windows. 5C a matérialisé les 18 kits ; 5E.4C a retiré la réhydratation historique du registre. Il restait deux chemins d'entrée : RegisterItemDefinition et la liste OutDefinitions des kits (y compris un ancien pointeur associé au CanonicalItemId). Désormais l'enregistrement historique d'un ID inscrit est un no-op qui retire toute ancienne entrée transitoire et FindItemDefinition ne retourne jamais un asset pour cet ID.
-
-TryBuildKit exige CanonicalItemId et niveau physique explicite pour les ID inscrits. L'ancien pointeur est seulement comparé pour détecter un ID contradictoire ; ses champs ne sont pas consultés, il n'est ni indexé ni retourné. Plus de promotion N0 par DefaultWeaponItemLevel pour une identité inscrite. Préserve N0 non-ARM, vrais N1–N20, coûts/poids/main/lumière, quantités et atomicité. La branche hors registre et les fixtures sans registry restent provisoirement intactes ; pas de mutation SaveGame ni schema binaire.
-
-Tests 3AM/3AO/4X43, rehydrate 3AT avec vrai rollback d'un ID non inscrit et lookup 5E4D. Les tests no-registry historiques ne sont pas silencieusement convertis. Le passage final nécessite encore de migrer/supprimer leurs lecteurs et fixtures; ce lot ne revendique pas zéro legacy runtime.

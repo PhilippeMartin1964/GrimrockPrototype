@@ -1,7 +1,0 @@
-# ARM-CLEAN06.5G.78 — Retrait du pointeur et de l'insertion historiques
-
-Parent f5f946a466dd5936c12e00c71dc8ee8d97652ea0. Publication seulement après les deux statuts SUCCESS du préflight Blueprint 5G.77. Le gate natif 5A confirme zéro arête externe vers les anciens packages, et 5G.77 vérifie les graphes et CDO des réceptacles. Le struct FGridContainedReceptacleItem représente le runtime, pas FGridRuntimeItemState utilisé par SaveGame.
-
-Retirer le pointeur ItemDefinition en doublon, l'API ID-only TryInsertItem (aucun appelant de production identifié) et le lecteur FGridReceptacleContainedIdentityReadModel devenu sans appelant de production. Les tests 3BG passent par l'insertion d'une instance physique explicite, avec refus ID vide/inconnu/N0 ARM, parité identité/GUID et conflit d'acteur. Les tests de catégorie injectent l'ancien pointeur dans l'acteur de présentation encore existant ; aucune catégorie n'est accordée par lui. MIG09 contrôle l'absence réfléchie, et les tests X21/X92 continuent de contrôler l'absence de pointeur de l'acteur physique. Aucun nom/poids narratif ou cache SaveGame retiré ici. Aucun package ou SaveGame modifié.
-
-L'audit native graph/CDO n'est pas une preuve générale contre toutes les chaînes dynamiques ; aucun usage n'a été identifié dans le périmètre inspecté. Les fixtures de test et les pointeurs persistés de projectile et fosse restent un autre périmètre.

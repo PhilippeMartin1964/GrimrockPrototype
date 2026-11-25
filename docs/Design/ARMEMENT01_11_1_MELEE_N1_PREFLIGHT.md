@@ -1,6 +1,6 @@
 # ARMEMENT01.11.1 — Préflight des quatre armes de mêlée N1
 
-> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Non encore implémenté ; zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle approuvé](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et validations historiques conservées ; ancien schéma et fallbacks non normatifs. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 Date : 24 octobre 2026. **Statut : code de test proposé sur master ; validation UE locale et rapport non encore reçus.**

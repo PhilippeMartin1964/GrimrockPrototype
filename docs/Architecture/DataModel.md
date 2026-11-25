@@ -1,6 +1,6 @@
 # Modèle relationnel des objets — CLEANUP04-D
 
-Référence fonctionnelle et recette ARM-CLEAN06 : `420dce2ee4f55c3630e8a99fa7ae9d77299a461e`, `master`, 22 novembre 2026. Nomenclature actualisée dans CLEANUP02 et finalisée pour les trois classes d’objets dans CLEANUP04-D.16. [Diagramme SVG](DataModel.svg) · [Consolidation et preuves](../Technical/Consolidation.md).
+Référence actuelle `2941d211ded3ffca873065d93eb05a9a2c51c7b3`. L’audit natif CLEANUP06 a confirmé 48 définitions, 82 archétypes et 1 640 profils, dont 260 passifs. La recette Shipping D.16 et les contrôles de persistance sont documentés dans la [consolidation](../Technical/Consolidation.md). [Diagramme SVG](DataModel.svg).
 
 ## Lecture du modèle
 
@@ -78,7 +78,7 @@ L'instance conserve quantité, propriétaire, emplacement, réserves de protecti
 
 `UGridLevelAsset.LooseItemInstances` et `ItemSpawns` contiennent `ItemId`, niveau, quantité, identité de placement et coordonnées ; le placement libre ajoute transformation locale et lecture. Les réceptacles, serrures, loot et kits initiaux utilisent aussi les identités canoniques : ces producteurs ne sont pas de nouvelles autorités de définition. Les snapshots `FGridRuntimeItemState`, `FGridPendingWorldItemState`, `FGridRuntimeReceptacleState` sont agrégés par `FGridLevelRuntimeState`, puis `FGridDungeonRuntimeState`.
 
-`UGrimrockPartySaveGame.CurrentSaveVersion = 27` exige la version exacte et valide les états au chargement. Il contient inventaire, donjon, quêtes, ordre des portraits, position du groupe et horloge logique. Le niveau RPG et des projections de personnage sont reconstruits ; les vues résolues d'objet et les catalogues ne sont pas des données persistées dans les instances.
+`UGrimrockPartySaveGame::CurrentSaveVersion = 27` exige la version exacte et valide les états au chargement. Il contient inventaire, donjon, champ durable des quêtes, ordre des portraits, position du groupe et horloge logique. La liaison de capture et de restauration des quêtes au Pawn reste [suspendue](../Design/PROJECT_COMPLETION_ROADMAP.md#fonctionnalités-partielles-et-travaux-déjà-définis). Le niveau RPG et des projections de personnage sont reconstruits ; les vues résolues d'objet et les catalogues ne sont pas des données persistées dans les instances.
 
 **Exception de lecture à préserver :** `ReadableContentAsset` et `ReadableContentId`, plus les overrides d'instance, restent distincts du `ReadText` par défaut. Les assets `DA_BookPage_Test` et `DA_Scroll_Test` sont encore nommés dans les sauvegardes privées v27 ; leur ancienneté ne justifie pas leur suppression. La recette finale ARM-CLEAN06 a validé les sept sauvegardes v27, dont les deux versions plus récentes, ainsi que Save/Continue en PIE et Shipping. Le contrôle ultérieur CLEANUP04-B.1 a confirmé le chargement, la reconstruction et les round-trips sur sept copies isolées. Les originaux ont été préservés.
 

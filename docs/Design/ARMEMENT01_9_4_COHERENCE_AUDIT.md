@@ -1,6 +1,6 @@
 # ARMEMENT01.9.4 — Audit de cohérence Talents / Compétences / Kits
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **Statut au 22.10.2026 — AUDIT HISTORIQUE VALIDÉ (3/3), NON PRESCRIPTIF.** Les tableaux et les propositions portent sur les **12 kits runtime historiques** et précèdent l'intégration des affinités du classeur Excel. Leur couverture technique reste utile, mais leurs recommandations de kits sont **supplantées** par [ARMEMENT01.9.6](ARMEMENT01_9_6_EIGHTEEN_STARTING_KITS.md). Le test « exactement 12 kits » doit rester dans la campagne legacy tant que le runtime fonctionne avec 12 kits. Détails : [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md).

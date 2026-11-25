@@ -1,12 +1,12 @@
 # WORLDOBJ-MIG08 — Migration des assets Unreal réels
 
-> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et tests historiques conservés ; les prescriptions des anciens schémas DataAssets et fallbacks sont remplacées. **Cible non encore implémentée ; aucun legacy dans le runtime final.**
+> **ARM-CLEAN06 — NOUVELLE AUTORITÉ (13.11.2026).** [Modèle cible approuvé](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) · [Migration](ARM_CLEAN06_MIGRATION_PLAN.md). Mécaniques et tests historiques conservés ; les prescriptions des anciens schémas DataAssets et fallbacks sont remplacées. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **DOC-ARCH01 — HISTORIQUE / SNAPSHOT.** Ce document décrit le jalon indiqué à sa date et peut mentionner des APIs, versions Save, compteurs ou états de roadmap désormais superseded. Il ne constitue pas le schéma courant. Références actuelles : `PROJECT_SYNTHESIS.md`, `ARCHITECTURE_INDEX.md` et `Maps/GRIMROCK_PROJECT_MAP.md`.
 
 
-> **Document historique — constat du 21 septembre 2026 :** le lanceur `Scripts/MigrateWorldObjectAssets.ps1` est encore versionné, mais le commandlet `GridWorldObjectMIG08` est absent du code courant audité (`4b6f9743`). Les commandes ci-dessous décrivent le jalon historique et ne constituent plus une procédure applicable à un build propre de cette révision. Consulter la [référence des scripts](../SCRIPTS_REFERENCE.md#migrateworldobjectassetsps1) avant toute intervention sur les assets.
+> **Document historique — constat du 21 septembre 2026 :** le commandlet `GridWorldObjectMIG08` avait déjà disparu de la révision auditée (`4b6f9743`). CLEANUP06 a retiré son lanceur. Les commandes ci-dessous décrivent le jalon historique et ne constituent plus une procédure applicable à un build propre de cette révision. Consulter la [référence des scripts](../SCRIPTS_REFERENCE.md#controles-specialises) avant toute intervention sur les assets.
 
 Statut : **MIG08-B — migration des définitions d’objets + sauvegarde sélective**.
 

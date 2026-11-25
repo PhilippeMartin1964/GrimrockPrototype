@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.115 — L'état lumineux ne dépend pas des caches d'instance
-
-Parent `4adb647208bc62cfab06bcb89ac56be8cf16247f`. L'essai LIGHT02 emploie deux définitions non-ARM canoniques transitoires avec noms, masses (2,5/1,5 kg) et defaults lumineux inversés, sans aucune écriture de nom ou masse dans `FGridItemInstance`. Les états réellement allumé/éteint sont conservés pendant la matérialisation, le nom et la masse sont lus par le résolveur de métadonnées ; le vrai asset `Item_Torch` conserve sa vérification de construction runtime. Monde, registre et assets de production ne sont pas modifiés durablement. Les scénarios historiques restants ne sont pas supprimés.

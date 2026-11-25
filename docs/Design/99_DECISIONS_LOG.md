@@ -1,4 +1,6 @@
-# GrimrockPrototype — Decisions Log
+# GrimrockPrototype — Journal des décisions
+
+Le journal conserve les décisions datées et la terminologie de leur époque. La [roadmap](PROJECT_COMPLETION_ROADMAP.md) porte leur état actuel. ARM-CLEAN06 est implémenté et clôturé. Les [invariants objets et armes](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [l’édition](ARM_CLEAN06_ITEM_AUTHORING_CONTRACT.md) et la [consolidation](../Technical/Consolidation.md) font autorité pour les nouveaux travaux. Les schémas et preuves anciennes restent consultables à leur SHA.
 
 ## 2026-11-13 — ARM-CLEAN06 : nouveau modèle DataAssets approuvé
 

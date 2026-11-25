@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.121 — Projection du sac sans copies
-
-Parent `81b57e92def099761b0c54db0beacaf36a60a671`. `GridUIInventoryProjection02Tests.cpp` ne construit plus de noms/poids dans `FGridItemInstance`. Les métadonnées explicitement associées aux anciennes définitions de test restent une entrée du lecteur de tri ; l'ordre ascendant/descendant par nom et masse, les filtres, les emplacements vides virtuels, la capacité fixe de 6/40 cellules, la stabilité des widgets générés et les GUID sont tous contrôlés. Le test vérifie explicitement que les propriétés réfléchies Weight et DisplayName n'existent plus dans la structure physique. Aucune modification du runtime, de l'interface, des assets ou du SaveGame.

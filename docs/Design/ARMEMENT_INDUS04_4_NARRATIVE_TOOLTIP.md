@@ -1,6 +1,6 @@
 # ARMEMENT-INDUS04.4 — Publication des descriptions narratives d'armes
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **ARCHIVE HISTORIQUE — INDUS05.4 (26.10.2026).** Les commandes `WeaponNarrativeApply.ps1` et `WeaponNarrativePrototypeBatch.ps1` citées ci-dessous ont été retirées. La procédure actuelle et unique est [ARMEMENT_PIPELINE_GUIDE.md](../Architecture/ARMEMENT_PIPELINE_GUIDE.md) avec `Scripts/WeaponPipeline.ps1 -Action Narrative` (puis `-Archetype ... -Apply` ou `-All -Apply`). Cette page documente le jalon d'origine mais ne doit plus être utilisée comme recette.

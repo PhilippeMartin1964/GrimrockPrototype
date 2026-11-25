@@ -1,18 +1,6 @@
 # GrimrockPrototype — Synthèse globale du projet
 
-> **ARM-CLEAN06 (13.11.2026)** — Le [contrat architectural cible](ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md) est **approuvé et prime** sur les anciens schémas items/armement présentés ici. **Non encore implémenté** ; les comportements de jeu et résultats historiques demeurent à préserver. [Plan](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md).
-
-
-> **Référence courante — DOC-ARCH01, 9 octobre 2026.**
->
-> Baseline C++ auditée : `6f98a0ef5599f37d3d544529aa5a790d647e8251`
-> (`UI-RPG-CODE-AUDIT01`). Les commits DOC-AUDIT02 / DOC-ARCH01 sont
-> documentaires et ne modifient pas cette baseline C++.
->
-> Dernière campagne **globale + Shipping** fournie par l'utilisateur :
-> baseline runtime/content `9045ef2db75c09997db4fc65dbf99d4598f4df5c`,
-> **1026/1026**, 0 warning, 0 échec, 0 non exécuté ; Win64 Shipping
-> Build/Cook/Stage/Package/Pak/Archive validé, cook 0 error / 0 warning.
+Référence courante après CLEANUP06. Le modèle ARM-CLEAN06 est implémenté et la migration est clôturée. La [consolidation](../Technical/Consolidation.md) distingue les preuves techniques, la recette utilisateur et les limites de validation.
 
 ## 1. Vue d'ensemble
 
@@ -45,8 +33,7 @@ modèle Core/Runtime au lieu de créer une seconde autorité.
 6. Event → Command reste le bus gameplay ; Logic et Lua y reviennent.
 7. C++ porte règles, transactions, validations et read models.
 8. Blueprint/UMG porte composition, assets, style et présentation.
-9. Pendant le prototype, le Save utilise **exact-match** et ne maintient pas de
-   migration arrière.
+9. Pendant le prototype, le Save **v27 exact-match** est le contrat courant. Les redirections et alias protègent les références existantes.
 10. Git conserve l'historique ; les documents de migration ne sont pas des
     contrats courants.
 
@@ -158,12 +145,11 @@ Quest :
 - MON21.3 route `QuestStart`, `QuestCompleteObjective`,
   `QuestComplete`, `QuestFail`.
 
-**MON21.4 Quest Persistence est SUSPENDU après .2 VALIDÉ** : le SaveGame v26 porte le champ `CampaignQuestState` et l'API snapshot du subsystem est validée ; le pipeline Pawn Save/Load n'est pas encore branché. Reprise future en MON21.4.3.
+**MON21.4 Quest Persistence est SUSPENDU après .2 VALIDÉ** : le champ durable, introduit avec le SaveGame v26 et conservé en v27, est `CampaignQuestState` et l'API snapshot du subsystem est validée ; le pipeline Pawn Save/Load n'est pas encore branché. Reprise future en MON21.4.3.
 
 ## 7. Items, inventaire et équipement
 
-`UGridItemDefinitionAsset` est l'unique définition collectible.
-`FGridItemInstance` porte l'identité runtime et l'ownership.
+`DA_ItemSystem` référence les 48 définitions et les quatre catalogues, lus par `UGridItemSubsystem`. Les 82 archétypes mécaniques incluent des lignées non matérialisées. `FGridItemInstance` porte le GUID, le niveau et l’état mutable. [Modèle relationnel des objets](DataModel.md)
 `UGridPartyInventoryComponent` reste l'autorité du groupe/inventaire.
 
 ```text
@@ -292,8 +278,7 @@ WBP_GrimrockMenu
 la barre d'actions. `UGridCombatHudWidget` est réservé à la présentation
 combat.
 
-UI-COMBAT-UNIFY02 est le contrat C++ courant ; la validation UMG/PIE de sa
-hiérarchie finale reste explicitement non revendiquée.
+La recette D.16 couvre le HUD et les interactions de jeu testées. L’anomalie visuelle de ciblage reste ouverte. Les changements de hiérarchie ou de style WBP demandent une preuve visuelle propre. [Architecture UI](../Design/UI_ARCHITECTURE_CURRENT.md)
 
 ## 12. Map
 
@@ -338,41 +323,11 @@ La MapExploration est incluse dans le runtime state. Le champ durable `CampaignQ
 
 ## 14. Validation
 
-Harness :
-
-```text
-Scripts/ValidateUE.ps1
-Scripts/ValidatePackage.ps1
-```
-
-Dernière campagne globale + Shipping : baseline `9045ef2d`,
-**1026/1026**, zéro warning/échec, Shipping validé.
-
-Les changements postérieurs ont des validations ciblées, notamment RPG-SKILL01,
-RPG-LEVELUX01, RPG-ATTR01, UI-RPG-DESC01 et UI-RPG-CODE-AUDIT01. Aucun document
-ne doit les transformer artificiellement en nouvelle campagne globale.
+CLEANUP06 (`2941d211ded3ffca873065d93eb05a9a2c51c7b3`) a passé Development Editor, Shipping et 2 067 tests Grimrock, avec 48 scénarios avertis sous LocalAuto et zéro échec. SilentTask et LocalAuto sont SUCCESS. Build/Cook/Stage/Package/Archive est vérifié sur CLEANUP04-G. La recette manuelle Shipping D.16 a validé 10 parcours sur 10. Les deux Readables et sept originaux v27 ont été préservés. [Consolidation et preuves](../Technical/Consolidation.md)
 
 ## 15. État fonctionnel
 
-```text
-MON13–MON20                  CLOS / VALIDÉS
-MON21.1                      CLOS
-MON21.2 Quest Runtime        VALIDÉ
-MON21.3 Quest Event/Command  VALIDÉ
-MON21.4 Quest Persistence    SUSPENDU — .2 VALIDÉ / REPRISE EN .3
-MON21.5 Journal              À FAIRE
-MON21.6 Map                  VALIDÉ / CLOS
-MAP-THEME01                  VALIDÉ / CLOS
-MON21.7 Codex                À FAIRE
-MON21.8 Cross-System Closure À FAIRE
-MON22 Vertical Slice         À FAIRE
-
-RPG-SKILL01                  VALIDÉ / CLOS
-RPG-LEVELUX01                VALIDÉ / CLOS
-RPG-ATTR01                   VALIDÉ / CLOS
-UI-RPG-DESC01                VALIDÉ / CLOS
-UI-RPG-CODE-AUDIT01          VALIDÉ / CLOS
-```
+Les jalons MON13–MON20, MON21.1–.3, MON21.6 et MAP-THEME01 sont clos dans leurs périmètres. La persistance de quête reste suspendue après MON21.4.2. L’équipement futur, Journal, Codex et la tranche MON22 restent à traiter selon les décisions déjà consignées. [Roadmap](../Design/PROJECT_COMPLETION_ROADMAP.md)
 
 ## 16. Documentation de référence
 

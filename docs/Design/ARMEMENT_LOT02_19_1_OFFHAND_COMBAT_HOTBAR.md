@@ -1,6 +1,6 @@
 # ARMEMENT-LOT02.19.1 — Main secondaire jouable et barre d'action cohérente
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **MISE À JOUR 10.11.2026 — ARMEMENT-LOT02.21 :** les suggestions automatiques d'attaques indépendantes MainHand et OffHand, décrites dans les sections historiques ci-dessous, sont **supprimées**. Désormais, seul le raccourci 1 affiche l'attaque normale contextuelle (double > MainHand > OffHand > mains nues). Les cases 2+ restent vides tant que le joueur n'y place pas lui-même une action ; ses bindings historiques explicites restent sauvegardés. Voir [le contrat actuel de la barre](ARMEMENT_LOT02_21_SINGLE_EQUIPPED_ATTACK_HOTBAR.md).

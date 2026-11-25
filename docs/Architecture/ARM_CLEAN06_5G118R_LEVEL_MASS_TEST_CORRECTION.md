@@ -1,5 +1,0 @@
-# ARM-CLEAN06.5G.118R — Correction du test de masse des armes pilotes
-
-Parent exact `6197550d3b457f6a185f6737080da87c5b1a9cbd`. Diagnostic Windows de l'issue [#216](https://github.com/PhilippeMartin1964/GrimrockPrototype/issues/216) : compilation réussie, un test Automation en échec (`Grimrock.RPG.ARMEMENT01.6.Items.EquipAndFixedLevelCombat`), car la fixture attendait `FGridItemInstance.Weight == Profile->WeightKg`. Depuis 5G.93 le champ n'est plus réfléchi, et 5G.118 a supprimé les dernières affectations.
-
-La correction maintient la vérification réelle du poids : l'instance est matérialisée au niveau 1, `TryGetWeaponCatalogueProfile(Instance.ItemLevel)` doit aboutir, la masse doit être celle de `FindProfile(Archetype,1)` et rester cohérente avec l'authoring historique `Item->Weight`. La structure physique ne doit refléter aucun champ `Weight`. Conserver les validations d'attaque, de coût, de portée, de dégâts et de bouclier. Aucun rollback runtime, asset ou SaveGame modifié. Ne publier 5G.119 qu'après SilentTask et LocalAuto SUCCESS du commit réparateur.

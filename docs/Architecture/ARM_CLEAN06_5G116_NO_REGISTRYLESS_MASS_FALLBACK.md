@@ -1,3 +1,0 @@
-# ARM-CLEAN06.5G.116 — Retrait du fallback de masse transitoire
-
-Parent `6dcf9e332abf6d3f50e437bbc007f8a08f752159`. `FGridItemWeightReadModel` ne lit plus `FGridItemInstance.Weight` même dans un monde Automation isolé. Les tests 3I et 3N vérifient désormais que les objets sans registre donnent zéro kg, et que les objets canoniques continuent à produire le produit quantité × masse unitaire à leur niveau physique N. Le comportement en production ne change pas ; la branche de repli était réservée aux automatisations. Aucun asset ni sauvegarde modifié. Les autres fixtures historiques utilisant encore les membres C++ restent à convertir avant leur suppression finale.

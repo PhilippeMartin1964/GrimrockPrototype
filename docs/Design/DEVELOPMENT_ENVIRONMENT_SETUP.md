@@ -1,6 +1,7 @@
 # GrimrockPrototype — Environnement de développement
 
-Date de référence : **9 octobre 2026**  
+Référence de validation : **CLEANUP06**.
+
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**
 
 ## 1. Environnement autoritaire
@@ -10,15 +11,18 @@ Le dépôt est développé et validé avec :
 ```text
 Unreal Engine 5.5.4
 Windows
-Visual Studio Community 2026 18.10.3
+Visual Studio Community 2026
 C++
 MSVC v143 / 14.44.35207
-Windows SDK 10.0.28000.0
+Windows SDK complet, 10.0.26100.0 retenu par LocalAuto sur CLEANUP06
 clang-format 19.1.5 standalone
 Git
+Git LFS
 ```
 
-La racine Unreal n'est jamais codée en dur dans le dépôt. Les scripts reçoivent :
+Dans un clone neuf, initialiser `ThirdParty/Lua54` et récupérer les objets LFS avant compilation. La sélection du SDK de l’agent s’applique au worktree de validation. [Chaîne Windows](../Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md)
+
+Pour une commande locale, transmettre la racine Unreal ainsi :
 
 ```powershell
 -EngineRoot D:\UE_5.5

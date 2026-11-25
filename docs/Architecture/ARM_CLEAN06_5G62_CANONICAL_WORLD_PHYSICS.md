@@ -1,5 +1,0 @@
-# ARM-CLEAN06.5G.62 — Politique canonique de physique au sol
-
-Parent 4675dba7e16b54980c2636b3077f8024b7d5af3a. Publication uniquement après deux statuts Windows SUCCESS.
-
-Le lecteur Chaos utilise le registre pour l'opt-in et le poids unitaire, sans ancien pointeur. L'acteur privilégie le registre configuré pour la masse et l'inclinaison fraîche ; la projection canonique explicite reste utilisable sans GameInstance. Une identité ou un niveau non résolu n'autorise aucun override ni inclinaison. Le seul accès ancien restant est une fixture Automation isolée sans GameInstance/registre. Le poids du corps reste celui d'une unité, jamais de la pile, et les transformations de restauration ne sont pas modifiées. Les propriétés sérialisées anciennes ne sont pas supprimées dans ce lot ; elles restent soumises à l'audit natif. Le test 3Q compare opt-in contradictoire, absence de pointeur, niveau invalide et identité inconnue ; la fixture ITEM_PHYSICS01 existante conserve son test d'inclinaison. La simulation Chaos effective et la recette PIE restent nécessaires. Aucun asset binaire ni SaveGame modifié.

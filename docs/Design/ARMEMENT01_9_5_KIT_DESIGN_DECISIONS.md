@@ -1,6 +1,6 @@
 # ARMEMENT01.9.5 — Décisions de conception Talents / Compétences / Kits
 
-> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Non implémentée : zéro legacy dans le runtime final.**
+> **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 
 > **Statut au 22.10.2026 — DÉCISIONS PROPOSÉES REMPLACÉES.** Les statuts `Retain/Revise/RetainConditional/RetainUtility` et le fichier `ARMEMENT01_9_5_KIT_DECISIONS.csv` constituent une **revue historique des 12 kits**. Ils **ne doivent plus guider la fabrication des nouveaux assets**. La référence pour les 18 futures recettes est [ARMEMENT01.9.6](ARMEMENT01_9_6_EIGHTEEN_STARTING_KITS.md), elle-même encore `DesignProposal`, et le contrat de nettoyage est [ARMEMENT01.9.6.1](ARMEMENT01_9_6_1_CLEANUP_CONSOLIDATION.md). Ne pas supprimer le CSV : les tests historiques le consomment.

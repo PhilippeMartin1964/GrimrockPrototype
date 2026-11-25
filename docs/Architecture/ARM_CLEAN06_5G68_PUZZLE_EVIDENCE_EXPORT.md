@@ -1,5 +1,0 @@
-# ARM-CLEAN06.5G.68 — Rapport distant des catégories
-
-Parent 77385a41f2cbdaaad865681432069ea07bd72886. Publication après double validation du parent.
-
-Le test natif 5A écrit après ses assertions un JSON minimal dans le répertoire unique ReportExportPath de la session Automation (Saved/Audits/ARM_CLEAN06_5G68 seulement sans ce paramètre) : 48 ItemId, type historique, comparaison ARM, nombre de tags de l'espace réservé PuzzleCategory.*, nombre de niveaux et de liens par catégorie. Aucune sauvegarde ouverte pour cette sortie ; rapport intégral privé. Le bootstrap charge l'agent depuis master. Publication dédiée au sujet exact du lot, HEAD exact, rapport frais et borné, 48 identités distinctes dont 22 ARM, valeurs fermées d'EGridItemType. Aucun tag libre, chemin, GUID, texte joueur ni journal publié. Issue créée dans le dépôt avant LocalAuto SUCCESS ; son absence est un blocage d'exploitation des preuves, pas un faux échec des tests. Aucun asset ou SaveGame modifié. Après lecture du rapport, concevoir des tags métier dédiés sans nouveau champ ItemType (contrat normatif), matérialiser via UE Editor. Aucun retrait ni conversion autorisé dans ce lot.
