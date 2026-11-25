@@ -77,8 +77,12 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 	}
 	TestEqual(TEXT("All four catalogues authored in their final C++ classes"),
 		Root->ActionCatalogue->Actions.Num(), 19);
-	TestEqual(TEXT("One neutral and four real presentation profiles"),
-		Root->ActionPresentationCatalogue->Presentations.Num(), 5);
+	for (const FName ProfileId :
+		{ FName(TEXT("PRES_AttackNoFX")), FName(TEXT("PRES_ARM001")), FName(TEXT("PRES_ARM013")), FName(TEXT("PRES_ARM014")), FName(TEXT("PRES_ARM015")) })
+	{
+		TestNotNull(FString::Printf(TEXT("Original attack presentation %s remains authored"), *ProfileId.ToString()),
+			Root->ActionPresentationCatalogue->Find(ProfileId));
+	}
 	TestEqual(TEXT("All N1-N20 weapon archetypes persisted"),
 		Root->WeaponCatalogue->Archetypes.Num(), 82);
 

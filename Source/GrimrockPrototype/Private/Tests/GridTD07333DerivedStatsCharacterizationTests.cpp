@@ -185,7 +185,7 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 		MonsterCombat.Contains(TEXT("ApplyPhysicalArmorDamage(")) &&
 		MonsterCombat.Contains(TEXT("&OutResult.Trace.Damage.PhysicalArmorSources")));
 	TestTrue(TEXT("Incoming magical damage uses centralized equipment-aware method"),
-		MonsterCombat.Contains(TEXT("ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage)")));
+		MonsterCombat.Contains(TEXT("ApplyMagicalArmorDamage(")) && MonsterCombat.Contains(TEXT("TargetCharacterIndex, OutResult.MagicalArmorDamage")));
 	TestFalse(TEXT("Incoming attacks must not bypass equipped magical armor"),
 		MonsterCombat.Contains(TEXT("Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored current health directly"),

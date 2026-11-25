@@ -209,6 +209,9 @@ private:
 	void HandlePlayerAttackRejected(int32 AttackerCharacterIndex, EGridPlayerAttackRejectReason RejectReason);
 
 	UFUNCTION()
+	void HandleIncomingAttackResolved(AGridMonsterActor* Monster, int32 TargetCharacterIndex, FGridAttackResult Result);
+
+	UFUNCTION()
 	void HandleCombatEnded(EGridCombatPhase ResultPhase);
 
 	FGridPlayerAttackPresentationProfile ResolveProfile(const FGridPlayerAttackRequest& Request) const;

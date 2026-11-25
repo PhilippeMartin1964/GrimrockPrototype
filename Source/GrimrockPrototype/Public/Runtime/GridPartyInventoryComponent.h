@@ -8,6 +8,7 @@
 #include "GridPartyInventoryComponent.generated.h"
 
 struct FGridArmorAbsorptionSourceTrace;
+struct FGridEquipmentDefenseEvent;
 struct FGridEquipmentArmorReadView;
 
 class UTexture2D;
@@ -297,14 +298,14 @@ public:
 	int32 GetEffectiveCurrentMagicalArmor(int32 CharacterIndex) const;
 
 	/** Magic damage depletes equipped protection before the base pool. */
-	int32 ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage);
+	int32 ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage, TArray<FGridEquipmentDefenseEvent>* OutDefense = nullptr);
 
 	/** Restore spent equipment reserve first; caller enforces the cap. */
 	int32 RestoreMagicalArmor(int32 CharacterIndex, int32 Amount);
 
 	/** Consume the equipped reserve first, then the character's base reserve. */
-	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,
-		TArray<FGridArmorAbsorptionSourceTrace>* OutSources = nullptr);
+	int32 ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage, TArray<FGridArmorAbsorptionSourceTrace>* OutSources = nullptr,
+		TArray<FGridEquipmentDefenseEvent>* OutDefense = nullptr);
 
 	/** Refill depleted equipped reserve first, then stored reserve; caller enforces the RPG03.3 limit. */
 	int32 RestorePhysicalArmor(int32 CharacterIndex, int32 Amount);

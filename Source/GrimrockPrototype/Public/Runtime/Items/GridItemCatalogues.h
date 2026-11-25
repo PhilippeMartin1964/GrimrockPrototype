@@ -267,7 +267,13 @@ struct GRIMROCKPROTOTYPE_API FGridActionPresentation
 	FGridAudioVariants BlockAudio;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
+	FGridAudioVariants MagicalBlockAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
 	FGridAudioVariants CriticalAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
+	EGridAttackImpactSurface CriticalAudioSurface = EGridAttackImpactSurface::Unknown;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Audio")
 	FGridAudioVariants HeavyAudio;
@@ -286,6 +292,9 @@ struct GRIMROCKPROTOTYPE_API FGridActionPresentation
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
 	FGridVFXVariants BlockVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
+	FGridVFXVariants MagicalBlockVFX;
 
 	bool IsValid() const;
 };
@@ -315,6 +324,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations|Detailed")
 	TArray<FGridRuntimePresentation> DetailedPresentations;
+
+	/** Reactions after an actual defense, keyed by the defending armament. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentations|Defense")
+	TMap<FName, FName> EquipmentDefensePresentations;
 
 	const FGridActionPresentation* Find(FName PresentationId) const;
 	const FGridPlayerAttackPresentationProfile* FindDetailed(FName PresentationId) const;

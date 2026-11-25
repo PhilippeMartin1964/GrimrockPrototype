@@ -301,14 +301,13 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(int32 TargetCharact
 	if (OutResult.bHit)
 	{
 		PartyPawn->PartyInventoryComponent->ApplyPhysicalArmorDamage(
-			TargetCharacterIndex, OutResult.PhysicalArmorDamage,
-			&OutResult.Trace.Damage.PhysicalArmorSources);
+			TargetCharacterIndex, OutResult.PhysicalArmorDamage, &OutResult.Trace.Damage.PhysicalArmorSources, &OutResult.EquipmentDefenseEvents);
 		// A shield block is the actual absorption of the equipped shield's
 		// remaining physical pool, NOT another mitigation or dodge roll.
 		OutResult.EquipmentBlockedDamage = FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(
 			PartyPawn->PartyInventoryComponent, TargetCharacterIndex, OutResult);
 		OutResult.bEquipmentBlocked = OutResult.EquipmentBlockedDamage > 0;
-		PartyPawn->PartyInventoryComponent->ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage);
+		PartyPawn->PartyInventoryComponent->ApplyMagicalArmorDamage(TargetCharacterIndex, OutResult.MagicalArmorDamage, &OutResult.EquipmentDefenseEvents);
 		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
 	}
 

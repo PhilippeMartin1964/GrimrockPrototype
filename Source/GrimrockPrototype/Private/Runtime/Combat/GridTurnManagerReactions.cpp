@@ -376,12 +376,13 @@ void UGridTurnManagerComponent::ApplyIncomingPartyDamageInterception(int32 Targe
 
 	// Equipment reactions run within the existing pre-commit damage hook.
 	// They never create an action or independently apply/reserve armor.
-	if (FGridEquippedGuardResolver::CanParry(Inventory, TargetCharacterIndex, Attack, InOutResult))
+	FGridItemInstance ParrySource;
+	if (FGridEquippedGuardResolver::CanParry(Inventory, TargetCharacterIndex, Attack, InOutResult, &ParrySource))
 	{
 		const int32 ParryRoll = CombatRandomStream.RandRange(1, 100);
 		if (FGridEquippedGuardResolver::IsSuccessfulParryRoll(ParryRoll, MainGaucheParryChancePercent))
 		{
-			FGridEquippedGuardResolver::ApplyParry(InOutResult);
+			FGridEquippedGuardResolver::ApplyParry(InOutResult, &ParrySource);
 			UE_LOG(LogGridTurnManager, Log,
 				TEXT("[ARMEMENT-LOT02.19.3] Parry Character=%d Item=ARM013 Roll=%d Chance=%d Attack=%s"),
 				TargetCharacterIndex, ParryRoll, FMath::Clamp(MainGaucheParryChancePercent, 0, 100),

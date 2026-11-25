@@ -58,7 +58,8 @@ const FGridPlayerAttackAudioDefinition& FGridPlayerAttackPresentationProfile::Se
 	{
 		return ImpactMissAudio;
 	}
-	if (Result.bCriticalHit && CriticalAudio.HasConfiguredSound())
+	if (Result.bCriticalHit && CriticalAudio.HasConfiguredSound() &&
+		(CriticalAudioSurface == EGridAttackImpactSurface::Unknown || CriticalAudioSurface == Surface))
 	{
 		return CriticalAudio;
 	}

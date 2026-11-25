@@ -81,8 +81,8 @@ bool FGridGuard193ParryEligibilityTest::RunTest(const FString&)
 	Melee.MinRangeCells = 1;
 	Melee.MaxRangeCells = 1;
 	FGridAttackResult Result = GridGuard193::MakePhysicalHit(6);
-	if (!TestTrue(TEXT("Actual ARM013 OffHand can parry physical melee"),
-		FGridEquippedGuardResolver::CanParry(Inventory, 0, Melee, Result)))
+	FGridItemInstance ParrySource;
+	if (!TestTrue(TEXT("Actual ARM013 OffHand can parry physical melee"), FGridEquippedGuardResolver::CanParry(Inventory, 0, Melee, Result, &ParrySource)))
 	{
 		return false;
 	}
@@ -95,7 +95,17 @@ bool FGridGuard193ParryEligibilityTest::RunTest(const FString&)
 	TestFalse(TEXT("Out of range 101 cannot parry"), FGridEquippedGuardResolver::IsSuccessfulParryRoll(101, 100));
 	const int32 InitialArmor = Inventory->GetEffectiveCurrentPhysicalArmor(0);
 	const int32 InitialHealth = Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
-	FGridEquippedGuardResolver::ApplyParry(Result);
+	TestTrue(TEXT("Eligibility alone emits no cue"), Result.EquipmentDefenseEvents.IsEmpty());
+	FGridEquippedGuardResolver::ApplyParry(Result, &ParrySource);
+	if (TestEqual(TEXT("Effective parry emits one cue"), Result.EquipmentDefenseEvents.Num(), 1))
+	{
+		const FGridEquipmentDefenseEvent& Cue = Result.EquipmentDefenseEvents[0];
+		TestTrue(TEXT("Parry source is the actual OffHand instance"),
+			Cue.Cue == EGridEquipmentDefenseCue::Parry && Cue.Slot == EGridEquipmentSlot::OffHand &&
+				Cue.RuntimeObjectId == Inventory->PartyInventoryState.ActiveEquipment[0].OffHand.RuntimeObjectId && Cue.ItemLevel == ParrySource.ItemLevel);
+		const FGridActionPresentation* Profile = Fixture.Scope.Registry->FindEquipmentDefensePresentation(Cue);
+		TestTrue(TEXT("ARM013 resolves native parry audio and VFX"), Profile && !Profile->ParryAudio.Sounds.IsEmpty() && !Profile->ParryVFX.Systems.IsEmpty());
+	}
 	TestTrue(TEXT("Parry result is explicitly marked"), Result.bEquipmentParried);
 	TestFalse(TEXT("Parry is no longer a hit"), Result.bHit);
 	TestFalse(TEXT("Parry cannot be a critical"), Result.bCriticalHit);
@@ -155,7 +165,16 @@ bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 	First.HealthDamage = 0;
 	First.TargetHealthAfter = 20;
 	TestEqual(TEXT("Existing armor system consumes four shield points"),
-		Inventory->ApplyPhysicalArmorDamage(0, 4, &First.Trace.Damage.PhysicalArmorSources), 4);
+		Inventory->ApplyPhysicalArmorDamage(0, 4, &First.Trace.Damage.PhysicalArmorSources, &First.EquipmentDefenseEvents), 4);
+	if (TestEqual(TEXT("Shield debit emits one cue"), First.EquipmentDefenseEvents.Num(), 1))
+	{
+		const FGridEquipmentDefenseEvent& Cue = First.EquipmentDefenseEvents[0];
+		TestTrue(TEXT("Shield cue carries only the depleted points and their source"),
+			Cue.Cue == EGridEquipmentDefenseCue::PhysicalAbsorption && Cue.Absorbed == 4 && Cue.Slot == EGridEquipmentSlot::OffHand && Cue.ItemLevel == 1 &&
+				Cue.RuntimeObjectId == Inventory->PartyInventoryState.ActiveEquipment[0].OffHand.RuntimeObjectId);
+		const FGridActionPresentation* Profile = Fixture.Scope.Registry->FindEquipmentDefensePresentation(Cue);
+		TestTrue(TEXT("ARM075 resolves native physical block VFX"), Profile && !Profile->BlockVFX.Systems.IsEmpty());
+	}
 	First.EquipmentBlockedDamage = FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, First);
 	First.bEquipmentBlocked = First.EquipmentBlockedDamage > 0;
 	TestEqual(TEXT("Block reports only real shield absorption"), First.EquipmentBlockedDamage, 4);
@@ -172,6 +191,8 @@ bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 		FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, Second), 1);
 	TestEqual(TEXT("Shield completely empty after two hits"), Inventory->GetEffectiveCurrentPhysicalArmor(0), 0);
 	FGridAttackResult Third = GridGuard193::MakePhysicalHit(2);
+	TestEqual(TEXT("Depleted shield has no points to report"), Inventory->ApplyPhysicalArmorDamage(0, 1, nullptr, &Third.EquipmentDefenseEvents), 0);
+	TestTrue(TEXT("Depleted shield emits no cue"), Third.EquipmentDefenseEvents.IsEmpty());
 	TestEqual(TEXT("Depleted shield cannot block"), FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, Third), 0);
 	Third.DamageType = EGridDamageType::Fire;
 	TestEqual(TEXT("Magic damage does not consume physical shield pool"), FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, Third), 0);
@@ -191,6 +212,69 @@ bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 	const FText Blocked = FGridCombatLogFormatter::FormatMonsterAttack(
 		FText::FromString(TEXT("Rat")), FText::FromString(TEXT("Elias")), TEXT("Bite"), First);
 	TestFalse(TEXT("Shield absorption generates readable combat log"), Blocked.IsEmpty());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridEquipmentMagicPresentationTest, "Grimrock.RPG.ARMEMENT.FX01.MagicalDefense", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEquipmentMagicPresentationTest::RunTest(const FString&)
+{
+	const FName OrbId(TEXT("Weapon_ArcaneOrb_01"));
+	{
+		FGridCanonicalWeightTestWorld Production({});
+		UGridPartyInventoryComponent* Inventory = GridGuard193::MakeInventory(Production, OrbId);
+		if (!TestNotNull(TEXT("Production inventory"), Inventory))
+		{
+			return false;
+		}
+		Inventory->PartyInventoryState.ActiveEquipment[0].OffHand.ItemLevel = 6;
+		Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMagicalArmor = 3;
+		TArray<FGridEquipmentDefenseEvent> Events;
+		TestEqual(TEXT("Personal magical armor absorbs damage"), Inventory->ApplyMagicalArmorDamage(0, 3, &Events), 3);
+		TestTrue(TEXT("Production N6 orb has no defense cue when only personal armor is spent"), Events.IsEmpty());
+	}
+
+	// Exercise the positive path without changing a production numeric profile.
+	FGridCanonicalWeightTestWorld Fixture({},
+		[](UGridItemSystemAsset& Root)
+		{
+			Root.WeaponCatalogue = DuplicateObject<UGridWeaponCatalogueAsset>(Root.WeaponCatalogue, &Root);
+			FGridWeaponArchetype* Orb = Root.WeaponCatalogue->Archetypes.FindByPredicate(
+				[](const FGridWeaponArchetype& Row)
+				{
+					return Row.ArchetypeId == TEXT("ARM070");
+				});
+			check(Orb);
+			Orb->MagicalArmorN1 = 4;
+		});
+	UGridPartyInventoryComponent* Inventory = GridGuard193::MakeInventory(Fixture, OrbId);
+	if (!TestNotNull(TEXT("Canonical ItemSystem"), Fixture.Scope.Registry) || !TestNotNull(TEXT("World-bound inventory"), Inventory))
+	{
+		return false;
+	}
+	FGridItemInstance& Orb = Inventory->PartyInventoryState.ActiveEquipment[0].OffHand;
+	Orb.ItemLevel = 6;
+	const int32 Capacity = Inventory->GetEffectiveCurrentMagicalArmor(0);
+	if (!TestTrue(TEXT("ARM070 fixture supplies magical armor"), Capacity > 0))
+	{
+		return false;
+	}
+	TArray<FGridEquipmentDefenseEvent> Events;
+	TestEqual(TEXT("Orb loses the exact armor it absorbed"), Inventory->ApplyMagicalArmorDamage(0, Capacity, &Events), Capacity);
+	if (TestEqual(TEXT("One effective magical absorption cue"), Events.Num(), 1))
+	{
+		const FGridEquipmentDefenseEvent& Cue = Events[0];
+		TestTrue(TEXT("Cue carries ARM070 identity, level, hand and absorbed points"),
+			Cue.Cue == EGridEquipmentDefenseCue::MagicalAbsorption && Cue.ItemDefinitionId == Orb.ItemDefinitionId &&
+				Cue.RuntimeObjectId == Orb.RuntimeObjectId && Cue.ItemLevel == 6 && Cue.Slot == EGridEquipmentSlot::OffHand && Cue.Absorbed == Capacity);
+		const FGridActionPresentation* Profile = Fixture.Scope.Registry->FindEquipmentDefensePresentation(Cue);
+		TestTrue(TEXT("ARM070 resolves a distinct magic absorption effect"),
+			Profile && !Profile->MagicalBlockVFX.Systems.IsEmpty() && Profile->BlockVFX.Systems.IsEmpty());
+	}
+	Events.Reset();
+	TestEqual(TEXT("Empty orb does not absorb again"), Inventory->ApplyMagicalArmorDamage(0, 1, &Events), 0);
+	TestTrue(TEXT("No cue from an empty orb"), Events.IsEmpty());
 	return true;
 }
 

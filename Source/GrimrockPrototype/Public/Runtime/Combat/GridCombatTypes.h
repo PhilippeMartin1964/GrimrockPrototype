@@ -2995,6 +2995,51 @@ struct FGridCombatAction
 	}
 };
 
+UENUM()
+enum class EGridEquipmentDefenseCue : uint8
+{
+	Parry,
+	PhysicalAbsorption,
+	MagicalAbsorption
+};
+
+/** Identity captured at the effect that produced the defense. */
+USTRUCT()
+struct FGridEquipmentDefenseEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	EGridEquipmentDefenseCue Cue = EGridEquipmentDefenseCue::Parry;
+
+	UPROPERTY(Transient)
+	FName ItemDefinitionId = NAME_None;
+
+	UPROPERTY(Transient)
+	FGuid RuntimeObjectId;
+
+	UPROPERTY(Transient)
+	int32 ItemLevel = 0;
+
+	UPROPERTY(Transient)
+	EGridEquipmentSlot Slot = EGridEquipmentSlot::None;
+
+	UPROPERTY(Transient)
+	int32 Absorbed = 0;
+
+	static FGridEquipmentDefenseEvent Capture(EGridEquipmentDefenseCue Cue, const FGridItemInstance& Item, EGridEquipmentSlot Slot, int32 Absorbed = 0)
+	{
+		FGridEquipmentDefenseEvent Event;
+		Event.Cue = Cue;
+		Event.ItemDefinitionId = Item.ItemDefinitionId;
+		Event.RuntimeObjectId = Item.RuntimeObjectId;
+		Event.ItemLevel = Item.ItemLevel;
+		Event.Slot = Slot;
+		Event.Absorbed = Absorbed;
+		return Event;
+	}
+};
+
 USTRUCT(BlueprintType)
 struct FGridAttackResult
 {
@@ -3062,6 +3107,9 @@ struct FGridAttackResult
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Guard")
 	int32 EquipmentBlockedDamage = 0;
+
+	UPROPERTY(Transient)
+	TArray<FGridEquipmentDefenseEvent> EquipmentDefenseEvents;
 
 	/** EVENTHUD01.7 exact calculation trace. The HUD reads this snapshot and never recomputes combat. */
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Result|Trace")

@@ -10,6 +10,14 @@ Le burst Niagara court `NS_Armament_Contact` accompagne le résultat réussi. Il
 
 Effets sonores générés avec [ElevenLabs](https://elevenlabs.io/). Voir les [conditions Sound Effects](https://elevenlabs.io/creative-terms) et le [manifeste des sources](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md).
 
+## Parade, absorptions et critiques
+
+La parade ARM013 sélectionne une variante Parry Light et un burst près de la main secondaire après le jet de parade réussi. Le résultat mémorise l'identité physique de la Main-gauche. Les boucliers ARM075 et ARM081 déclenchent un flash lorsque leurs points d'armure physique sont effectivement débités. L'orbe ARM070 possède un burst distinct, raccordé au débit effectif d'une réserve d'armure magique d'équipement. Les profils de production ARM070 ont une réserve de zéro à tous les niveaux. Le test exerce l'effet avec une réserve positive dans une copie transitoire du catalogue. Chaque signal transporte le GUID, le niveau, l'emplacement et les points absorbés par l'objet au moment du coup. Un débit de la réserve personnelle ou une réserve d'objet épuisée laisse ces effets silencieux.
+
+Les épées ARM014 et ARM015 ont quatre variantes Critical Flesh. Cet accent se substitue au contact ordinaire si le résultat est un critique réussi avec une surface de chair identifiée. Les critiques sur des surfaces métalliques, en bois ou inconnues conservent leur sélection de contact. Aucun comportement d'attaque lourde n'est défini dans les actions actuellement disponibles.
+
+Les variantes Parry Light et Critical Flesh sont importées depuis le manifeste SFX01. Les réactions ARM075 et ARM081 restent visuelles tant qu'un son de bouclier adapté à leur matériau ne figure pas dans les ressources dont la provenance est établie. ARM070 attend un son de résonance cristalline dédié.
+
 ## Finitions des 22 armements
 
 `DA_WeaponVisualCatalogue` porte cinq finitions partagées et cinq références ordonnées par profil visuel. Le registre résout la bande à partir du niveau physique de l'objet. Brut préserve la matière du mesh. Soigné polit la surface, Gravé renforce le relief déjà présent, Magistral réchauffe la matière et Mythique accentue le contraste de teinte et de reflets. Les paramètres actuels agissent sur les textures existantes. Les masques de gravure dédiés et les ornements restent à authorer.
@@ -23,7 +31,7 @@ La présentation applique rugosité, normale et teinte à une instance dynamique
 **Périmètre autoritaire :** les 22 lignes `Active` de `Config/Armement/WeaponProductionManifest.csv`, couvrant 22 × 20 = **440 niveaux d'objet possibles** ; le catalogue complet contient 82 × 20 profils, mais les 60 autres archétypes ne sont pas des DataAssets de production déclarés ici.  
 **Matrice éditable :** [ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv](ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv), **22 lignes sans assets sonores/Niagara prétendument existants**. Les descriptions et IDs proposés sont des intentions de direction artistique, pas des effets déjà créés.
 
-> **État SFX01 au 11.11.2026 :** [inventaire et guide d'import des sons Sword](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md) et [72 noms WAV d'origine → UE5 (CSV)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv). Le script PowerShell **local** de renommage a été validé par l'utilisateur après correction ; il n'est pas versionné ici. **Validation utilisateur du 12.11.2026 :** le scénario d'écoute PIE du son d'épée avec réaction sonore du monstre fonctionne. Cela ne prouve ni l'import complet des 72 SoundWaves ni la validation exhaustive des armes/actions. Le routage conditionnel des matériaux, parades et critiques FX01 reste non implémenté.
+> **État SFX01 au 11.11.2026 :** [inventaire et guide d'import des sons Sword](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md) et [72 noms WAV d'origine → UE5 (CSV)](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.csv). Le script PowerShell **local** de renommage a été validé par l'utilisateur après correction ; il n'est pas versionné ici. **Validation utilisateur du 12.11.2026 :** le scénario d'écoute PIE du son d'épée avec réaction sonore du monstre fonctionne. Cela ne prouve ni l'import complet des 72 SoundWaves ni la validation exhaustive des armes/actions. Cette observation précède les raccordements décrits en tête de document.
 
 ## 1. Décision, preuves et état du projet
 
@@ -58,9 +66,9 @@ Deux notions à ne pas confondre :
 | `AttackStart` | Action d'attaque acceptée | Déjà disponible : `AttackAudio`, `AttackVFX` |
 | `ImpactHit` / `ImpactMiss` | Résultat **réel** de chaque frappe | Déjà disponibles : `ImpactHit/ImpactMissAudio/VFX` |
 | `ProjectileLaunch`, `ProjectileFlight`, `ProjectileWorldImpact` | Acteur projectile réellement créé puis événement de collision/arrêt | Complément de présentation à ajouter ou raccorder à l'acteur existant |
-| `DefenseParry` | `Result.bEquipmentParried` + ARM013 physique OffHand | **À raccorder** ; aucun son de parade sur un simple `bHit=false` |
-| `DefenseShieldAbsorb` | `Result.bEquipmentBlocked && EquipmentBlockedDamage > 0`, bouclier OffHand réel | **À raccorder** ; quantité absorbée et source d'armure sont l'autorité |
-| `DefenseFocusMagicAbsorb` | Débit réel de `AbsorbedEquipmentMagicalArmor` sur ARM070 OffHand | **À instrumenter** à partir des sources réelles, pas sur n'importe quel dégât magique |
+| `DefenseParry` | `Result.bEquipmentParried` + ARM013 physique OffHand | Raccordé pour ARM013 ; aucun son de parade sur un simple `bHit=false` |
+| `DefenseShieldAbsorb` | `Result.bEquipmentBlocked && EquipmentBlockedDamage > 0`, bouclier OffHand réel | Raccordé pour ARM075 et ARM081 depuis le débit réel |
+| `DefenseFocusMagicAbsorb` | Débit réel de `AbsorbedEquipmentMagicalArmor` sur ARM070 OffHand | Raccordé au débit réel. La réserve de production ARM070 vaut zéro de N1 à N20 |
 | `DefenseSourceExhausted` | Charge positive avant coup, zéro après, absorption strictement positive | Extension optionnelle, **sans casse/durabilité** de l'objet |
 | `Equip`, `Unequip`, `IdlePresent` | Transition de présentation d'un item physique | Facultatifs, distincts d'une action de combat |
 | `CriticalAccent` | `bCriticalHit=true` **et résultat réellement réussi** | Accent sur impact existant, pas deuxième frappe |

@@ -33,8 +33,8 @@ namespace
 	}
 }
 
-bool FGridEquippedGuardResolver::CanParry(const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex,
-	const FGridMonsterAttackDefinition& Attack, const FGridAttackResult& Result)
+bool FGridEquippedGuardResolver::CanParry(const UGridPartyInventoryComponent* Inventory, int32 CharacterIndex, const FGridMonsterAttackDefinition& Attack,
+	const FGridAttackResult& Result, FGridItemInstance* OutSource)
 {
 	if (!Result.bHit || Result.bCriticalHit || Result.DamageType != EGridDamageType::Physical ||
 		Result.DamageAfterModifiers <= 0 || Attack.IsRangedAttack())
@@ -48,7 +48,12 @@ bool FGridEquippedGuardResolver::CanParry(const UGridPartyInventoryComponent* In
 	}
 	// The canonical catalogue owns ARM013 identity and offhand eligibility.
 	// The provisional parry chance and attack restrictions are unchanged.
-	return ResolveGuardItem(Inventory, OffHand).bCanParry;
+	const bool bCanParry = ResolveGuardItem(Inventory, OffHand).bCanParry;
+	if (bCanParry && OutSource)
+	{
+		*OutSource = OffHand;
+	}
+	return bCanParry;
 }
 
 bool FGridEquippedGuardResolver::IsSuccessfulParryRoll(int32 Roll1To100, int32 ParryChancePercent)
@@ -57,7 +62,7 @@ bool FGridEquippedGuardResolver::IsSuccessfulParryRoll(int32 Roll1To100, int32 P
 		Roll1To100 <= FMath::Clamp(ParryChancePercent, 0, 100);
 }
 
-void FGridEquippedGuardResolver::ApplyParry(FGridAttackResult& Result)
+void FGridEquippedGuardResolver::ApplyParry(FGridAttackResult& Result, const FGridItemInstance* Source)
 {
 	if (!Result.bHit)
 	{
@@ -66,6 +71,10 @@ void FGridEquippedGuardResolver::ApplyParry(FGridAttackResult& Result)
 	Result.bHit = false;
 	Result.bCriticalHit = false;
 	Result.bEquipmentParried = true;
+	if (Source)
+	{
+		Result.EquipmentDefenseEvents.Add(FGridEquipmentDefenseEvent::Capture(EGridEquipmentDefenseCue::Parry, *Source, EGridEquipmentSlot::OffHand));
+	}
 	Result.RawDamage = 0;
 	Result.DamageAfterModifiers = 0;
 	Result.PhysicalArmorDamage = 0;

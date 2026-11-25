@@ -229,6 +229,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item System")
 	bool ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const;
 
+	const FGridActionPresentation* FindEquipmentDefensePresentation(const FGridEquipmentDefenseEvent& Event) const;
+
 	/** Resolve the exact level of a valid physical instance for a local read. */
 	bool ResolvePhysicalItem(const FGridItemInstance& Instance, FGridResolvedItem& OutItem) const;
 

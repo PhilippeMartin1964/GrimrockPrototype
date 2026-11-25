@@ -154,6 +154,13 @@ bool FGridArmamentImpactAudioTest::RunTest(const FString&)
 	Result.bHit = true;
 	TestTrue(
 		TEXT("A true critical replaces the regular impact"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.CriticalAudio);
+	Profile.CriticalAudioSurface = EGridAttackImpactSurface::Flesh;
+	TestTrue(TEXT("A flesh critical remains specific to a known body contact"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.CriticalAudio);
+	TestTrue(TEXT("A metal critical retains its metal impact when the accent is flesh"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Metal) == &Profile.ImpactMetalAudio);
+	TestTrue(TEXT("Unknown surface uses its regular impact in the absence of a generic critical accent"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Unknown) == &Profile.ImpactHitAudio);
 	Result.bCriticalHit = false;
 	TestTrue(TEXT("Exposed flesh uses its material cue"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.ImpactFleshAudio);
 	TestTrue(TEXT("Known metal uses its material cue"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Metal) == &Profile.ImpactMetalAudio);

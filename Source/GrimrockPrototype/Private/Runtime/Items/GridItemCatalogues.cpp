@@ -153,13 +153,10 @@ bool FGridActionPresentation::IsValid() const
 	{
 		return false;
 	}
-	return AttackAudio.IsValid() && ImpactHitAudio.IsValid() &&
-		ImpactMissAudio.IsValid() && ImpactFleshAudio.IsValid() &&
-		ImpactMetalAudio.IsValid() && ImpactWoodAudio.IsValid() &&
-		ParryAudio.IsValid() && BlockAudio.IsValid() &&
-		CriticalAudio.IsValid() && HeavyAudio.IsValid() &&
-		AttackVFX.IsValid() && ImpactHitVFX.IsValid() &&
-		ImpactMissVFX.IsValid() && ParryVFX.IsValid() && BlockVFX.IsValid();
+	return AttackAudio.IsValid() && ImpactHitAudio.IsValid() && ImpactMissAudio.IsValid() && ImpactFleshAudio.IsValid() && ImpactMetalAudio.IsValid() &&
+		ImpactWoodAudio.IsValid() && ParryAudio.IsValid() && BlockAudio.IsValid() && MagicalBlockAudio.IsValid() && CriticalAudio.IsValid() &&
+		HeavyAudio.IsValid() && AttackVFX.IsValid() && ImpactHitVFX.IsValid() && ImpactMissVFX.IsValid() && ParryVFX.IsValid() && BlockVFX.IsValid() &&
+		MagicalBlockVFX.IsValid();
 }
 
 const FGridActionPresentation* UGridActionPresentationCatalogueAsset::Find(
@@ -205,6 +202,13 @@ bool UGridActionPresentationCatalogueAsset::Validate(TArray<FString>& Errors) co
 				TEXT("Presentation catalogue: duplicate or invalid detailed profile"));
 		}
 		Seen.Add(Detailed.PresentationId);
+	}
+	for (const auto& Binding : EquipmentDefensePresentations)
+	{
+		if (!FGridWeaponArchetype::IsValidArchetypeId(Binding.Key) || !Find(Binding.Value))
+		{
+			bValid = AddError(Errors, FString::Printf(TEXT("Defense presentation binding invalid: %s"), *Binding.Key.ToString()));
+		}
 	}
 	return bValid;
 }

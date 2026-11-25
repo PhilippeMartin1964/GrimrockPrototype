@@ -144,6 +144,9 @@ struct GRIMROCKPROTOTYPE_API FGridPlayerAttackPresentationProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
 	FGridPlayerAttackAudioDefinition CriticalAudio;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
+	EGridAttackImpactSurface CriticalAudioSurface = EGridAttackImpactSurface::Unknown;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|VFX")
 	FGridPlayerAttackVFXDefinition AttackVFX;
 

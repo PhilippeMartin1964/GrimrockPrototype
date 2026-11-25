@@ -3,7 +3,7 @@
 #include "GridEquipmentSlotUtils.h"
 #include "GridEquipmentArmorReadModel.h"
 #include "GridEquipmentContributionReadModel.h"
-#include "Runtime/Combat/GridCombatTraceTypes.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Items/GridItemSubsystem.h"
 #include "CoreGlobals.h"
 #include "Engine/GameInstance.h"
@@ -394,7 +394,7 @@ int32 UGridPartyInventoryComponent::GetEffectiveCurrentMagicalArmor(int32 Charac
 	return static_cast<int32>(FMath::Clamp<int64>(Total, 0, MAX_int32));
 }
 
-int32 UGridPartyInventoryComponent::ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage)
+int32 UGridPartyInventoryComponent::ApplyMagicalArmorDamage(int32 CharacterIndex, int32 Damage, TArray<FGridEquipmentDefenseEvent>* OutDefense)
 {
 	if (Damage < 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
 	int32 Remaining = FMath::Min(Damage, GetEffectiveCurrentMagicalArmor(CharacterIndex));
@@ -412,6 +412,11 @@ int32 UGridPartyInventoryComponent::ApplyMagicalArmorDamage(int32 CharacterIndex
 		const int32 Used = FMath::Min(Remaining, Available);
 		Item->AbsorbedEquipmentMagicalArmor += Used;
 		Remaining -= Used;
+		if (OutDefense && Used > 0)
+		{
+			OutDefense->Add(
+				FGridEquipmentDefenseEvent::Capture(EGridEquipmentDefenseCue::MagicalAbsorption, *Item, static_cast<EGridEquipmentSlot>(SlotValue), Used));
+		}
 	}
 	FGridCharacterInventoryState& Character = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	const int32 BaseUsed = FMath::Min(FMath::Max(0, Character.Resources.CurrentMagicalArmor), Remaining);
@@ -446,8 +451,8 @@ int32 UGridPartyInventoryComponent::RestoreMagicalArmor(int32 CharacterIndex, in
 	return Amount;
 }
 
-int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterIndex, int32 Damage,
-	TArray<FGridArmorAbsorptionSourceTrace>* OutSources)
+int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(
+	int32 CharacterIndex, int32 Damage, TArray<FGridArmorAbsorptionSourceTrace>* OutSources, TArray<FGridEquipmentDefenseEvent>* OutDefense)
 {
 	if (OutSources) OutSources->Reset();
 	if (Damage < 0 || !IsValidCharacterIndex(CharacterIndex)) return 0;
@@ -468,6 +473,11 @@ int32 UGridPartyInventoryComponent::ApplyPhysicalArmorDamage(int32 CharacterInde
 		const int32 Used = FMath::Min(Remaining, Before);
 		Item->AbsorbedEquipmentPhysicalArmor += Used;
 		Remaining -= Used;
+		if (OutDefense && Used > 0)
+		{
+			OutDefense->Add(
+				FGridEquipmentDefenseEvent::Capture(EGridEquipmentDefenseCue::PhysicalAbsorption, *Item, static_cast<EGridEquipmentSlot>(SlotValue), Used));
+		}
 		if (OutSources)
 		{
 			FGridArmorAbsorptionSourceTrace& Source = OutSources->AddDefaulted_GetRef();

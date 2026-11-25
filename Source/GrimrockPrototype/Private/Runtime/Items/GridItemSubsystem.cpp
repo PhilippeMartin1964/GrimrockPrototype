@@ -351,6 +351,23 @@ bool UGridItemSubsystem::ProjectArmorReserve(const FGridItemInstance& Instance,
 		OutReserve);
 }
 
+const FGridActionPresentation* UGridItemSubsystem::FindEquipmentDefensePresentation(const FGridEquipmentDefenseEvent& Event) const
+{
+	if (!Event.RuntimeObjectId.IsValid() || Event.Slot == EGridEquipmentSlot::None ||
+		(Event.Cue == EGridEquipmentDefenseCue::Parry ? Event.Slot != EGridEquipmentSlot::OffHand : Event.Absorbed <= 0))
+	{
+		return nullptr;
+	}
+	FGridResolvedItem Item;
+	if (!ResolveItem(Event.ItemDefinitionId, Event.ItemLevel, Item) || !Item.bIsArmament)
+	{
+		return nullptr;
+	}
+	const UGridActionPresentationCatalogueAsset* Catalogue = RootRegistry->ActionPresentationCatalogue;
+	const FName* PresentationId = Catalogue ? Catalogue->EquipmentDefensePresentations.Find(Item.ArchetypeId) : nullptr;
+	return PresentationId ? Catalogue->Find(*PresentationId) : nullptr;
+}
+
 bool UGridItemSubsystem::ResolveBoundAction(
 	FName ItemId, int32 ItemLevel, FName ActionId, FGridResolvedBoundAction& OutAction) const
 {

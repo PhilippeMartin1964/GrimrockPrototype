@@ -89,6 +89,7 @@ void UGridPlayerAttackPresentationComponent::EndPlay(const EEndPlayReason::Type 
 		TurnManager->OnPlayerAttackRequested.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested);
 		TurnManager->OnPlayerAttackResolved.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackResolved);
 		TurnManager->OnPlayerAttackRejected.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected);
+		TurnManager->OnAttackResolved.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandleIncomingAttackResolved);
 		TurnManager->OnCombatEnded.RemoveDynamic(this, &UGridPlayerAttackPresentationComponent::HandleCombatEnded);
 	}
 	ResetScheduledPresentation(false);
@@ -148,6 +149,7 @@ bool UGridPlayerAttackPresentationComponent::InitializePresentation(UGridTurnMan
 	TurnManager->OnPlayerAttackRequested.AddUniqueDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackRequested);
 	TurnManager->OnPlayerAttackResolved.AddUniqueDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackResolved);
 	TurnManager->OnPlayerAttackRejected.AddUniqueDynamic(this, &UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected);
+	TurnManager->OnAttackResolved.AddUniqueDynamic(this, &UGridPlayerAttackPresentationComponent::HandleIncomingAttackResolved);
 	TurnManager->OnCombatEnded.AddUniqueDynamic(this, &UGridPlayerAttackPresentationComponent::HandleCombatEnded);
 	return true;
 }
@@ -414,6 +416,75 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected(int32 At
 	EmitFeedback(Feedback);
 }
 
+void UGridPlayerAttackPresentationComponent::HandleIncomingAttackResolved(AGridMonsterActor* Monster, int32 TargetCharacterIndex, FGridAttackResult Result)
+{
+	if (!IsValid(PartyPawn) || !GetWorld() || Result.EquipmentDefenseEvents.IsEmpty())
+	{
+		return;
+	}
+	const UGridItemSubsystem* Registry = FGridAttackPresentationReadModel::RegistryFor(PartyPawn->PartyInventoryComponent);
+	if (!Registry)
+	{
+		return;
+	}
+	const USceneComponent* View = PartyPawn->Camera ? static_cast<const USceneComponent*>(PartyPawn->Camera) : PartyPawn->GetRootComponent();
+	if (!View)
+	{
+		return;
+	}
+	const FRotator Facing = View->GetComponentRotation();
+	const FVector Location = View->GetComponentLocation() + Facing.Vector() * 65.0f;
+	for (const FGridEquipmentDefenseEvent& Event : Result.EquipmentDefenseEvents)
+	{
+		if (Event.Cue == EGridEquipmentDefenseCue::Parry ? !Result.bEquipmentParried : !Result.bHit)
+		{
+			continue;
+		}
+		const FGridActionPresentation* Profile = Registry->FindEquipmentDefensePresentation(Event);
+		if (!Profile)
+		{
+			continue;
+		}
+		const FGridAudioVariants* Audio = nullptr;
+		const FGridVFXVariants* VFX = nullptr;
+		switch (Event.Cue)
+		{
+			case EGridEquipmentDefenseCue::Parry:
+				Audio = &Profile->ParryAudio;
+				VFX = &Profile->ParryVFX;
+				break;
+			case EGridEquipmentDefenseCue::PhysicalAbsorption:
+				Audio = &Profile->BlockAudio;
+				VFX = &Profile->BlockVFX;
+				break;
+			case EGridEquipmentDefenseCue::MagicalAbsorption:
+				Audio = &Profile->MagicalBlockAudio;
+				VFX = &Profile->MagicalBlockVFX;
+				break;
+		}
+		const uint32 Seed = HashCombine(GetTypeHash(Event.RuntimeObjectId), GetTypeHash(Result.NaturalAttackRoll));
+		USoundBase* Sound = bAudioEnabled && Audio ? ResolveVariation(Audio->Sounds, static_cast<int32>(Seed)) : nullptr;
+		if (Sound && bNativeAudioPlaybackEnabled)
+		{
+			FRandomStream Pitch(static_cast<int32>(HashCombine(Seed, MON114PitchSeedSalt)));
+			UGameplayStatics::PlaySoundAtLocation(this, Sound, Location, Audio->VolumeMultiplier, Pitch.FRandRange(Audio->PitchMin, Audio->PitchMax));
+		}
+		UNiagaraSystem* System = bVFXEnabled && VFX ? ResolveVariation(VFX->Systems, static_cast<int32>(Seed)) : nullptr;
+		if (System && bNativeVFXSpawnEnabled)
+		{
+			if (UNiagaraComponent* Spawned = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+					this, System, Location + Facing.RotateVector(VFX->LocationOffset), Facing + VFX->RotationOffset, VFX->Scale))
+			{
+				ActiveNiagaraComponents.Add(Spawned);
+			}
+		}
+		UE_LOG(LogGridPlayerAttackPresentation, Verbose,
+			TEXT("[EquipmentDefensePresentation] Target=%d Monster=%s Item=%s Guid=%s Level=%d Slot=%d Points=%d Sound=%s Niagara=%s"), TargetCharacterIndex,
+			*GetNameSafe(Monster), *Event.ItemDefinitionId.ToString(), *Event.RuntimeObjectId.ToString(), Event.ItemLevel, static_cast<int32>(Event.Slot),
+			Event.Absorbed, *GetNameSafe(Sound), *GetNameSafe(System));
+	}
+}
+
 void UGridPlayerAttackPresentationComponent::HandleCombatEnded(EGridCombatPhase ResultPhase)
 {
 	if (!ScheduledStrikes.IsEmpty())
@@ -549,7 +620,7 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 
 	if (bAudioEnabled && Audio && Audio->IsValid())
 	{
-		Presentation.ResolvedSound = ResolveVariation(Audio->Sounds, Seed);
+		Presentation.ResolvedSound = ResolveVariation(Audio->Sounds, static_cast<int32>(Seed));
 		Presentation.VolumeMultiplier = Audio->VolumeMultiplier;
 		FRandomStream PitchStream(static_cast<int32>(HashCombine(static_cast<uint32>(Seed), MON114PitchSeedSalt)));
 		Presentation.PitchMultiplier =
@@ -627,7 +698,7 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 
 	if (VFX && VFX->IsValid())
 	{
-		Presentation.ResolvedSystem = bVFXEnabled ? ResolveVariation(VFX->Systems, Seed) : nullptr;
+		Presentation.ResolvedSystem = bVFXEnabled ? ResolveVariation(VFX->Systems, static_cast<int32>(Seed)) : nullptr;
 		Presentation.VFXAttachComponent = AttachComponent;
 		Presentation.SocketName = VFX->SocketName;
 		if (Event == EGridPlayerAttackPresentationEvent::Attack && AttachComponent)

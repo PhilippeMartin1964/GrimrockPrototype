@@ -330,13 +330,13 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact()
 	ActiveAction.RolledDamage = Result.RawDamage;
 	ActiveAction.bOutcomeCommitted = true;
 
-	if (IsValid(CurrentMonster) && CurrentMonster->AudioComponent)
+	if (!Result.bEquipmentParried && IsValid(CurrentMonster) && CurrentMonster->AudioComponent)
 	{
 		const FVector ImpactWorldLocation = IsValid(PartyPawn) ? PartyPawn->GetActorLocation() : CurrentMonster->GetActorLocation();
 		CurrentMonster->AudioComponent->PlayAttackImpact(ActiveAttackDefinition, Result, ImpactWorldLocation);
 	}
 
-	if (IsValid(CurrentMonster) && CurrentMonster->VFXComponent)
+	if (!Result.bEquipmentParried && IsValid(CurrentMonster) && CurrentMonster->VFXComponent)
 	{
 		const FVector ImpactWorldLocation = IsValid(PartyPawn) ? PartyPawn->GetActorLocation() : CurrentMonster->GetActorLocation();
 		CurrentMonster->VFXComponent->PlayAttackImpactVFX(ActiveAttackDefinition, Result, ImpactWorldLocation, TargetCharacterIndex);
