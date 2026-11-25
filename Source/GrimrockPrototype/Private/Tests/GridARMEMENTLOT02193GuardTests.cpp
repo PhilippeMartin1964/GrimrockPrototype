@@ -6,6 +6,7 @@
 #include "GridCanonicalWeightTestWorld.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
+#include "Sound/SoundBase.h"
 
 namespace GridGuard193
 {
@@ -174,6 +175,11 @@ bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 				Cue.RuntimeObjectId == Inventory->PartyInventoryState.ActiveEquipment[0].OffHand.RuntimeObjectId);
 		const FGridActionPresentation* Profile = Fixture.Scope.Registry->FindEquipmentDefensePresentation(Cue);
 		TestTrue(TEXT("ARM075 resolves native physical block VFX"), Profile && !Profile->BlockVFX.Systems.IsEmpty());
+		if (Profile && TestEqual(TEXT("Four wooden shield contacts are authored"), Profile->BlockAudio.Sounds.Num(), 4))
+		{
+			TestTrue(TEXT("Real round shield debit selects its wood cue"),
+				GetNameSafe(Profile->BlockAudio.Sounds[0].LoadSynchronous()).StartsWith(TEXT("SFX_Sword_Impact_Wood_")));
+		}
 	}
 	First.EquipmentBlockedDamage = FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, First);
 	First.bEquipmentBlocked = First.EquipmentBlockedDamage > 0;
@@ -200,6 +206,20 @@ bool FGridGuard193ShieldBlockTest::RunTest(const FString&)
 	// An unequipped shield (or even a spoofed trace) cannot claim a block.
 	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = FGridItemInstance();
 	TestEqual(TEXT("No equipped shield can label a block"), FGridEquippedGuardResolver::ResolveAbsorbedShieldDamage(Inventory, 0, First), 0);
+
+	Inventory->PartyInventoryState.ActiveEquipment[0].OffHand = GridGuard193::MakeEquipped(TEXT("Weapon_HolyAegis_01"), EGridEquipmentSlot::OffHand);
+	TArray<FGridEquipmentDefenseEvent> AegisEvents;
+	TestEqual(TEXT("The Aegis actually absorbs a point of physical damage"), Inventory->ApplyPhysicalArmorDamage(0, 1, nullptr, &AegisEvents), 1);
+	if (TestEqual(TEXT("Aegis debit emits one cue"), AegisEvents.Num(), 1))
+	{
+		const FGridActionPresentation* Profile = Fixture.Scope.Registry->FindEquipmentDefensePresentation(AegisEvents[0]);
+		if (TestNotNull(TEXT("Aegis resolves its own defense profile"), Profile) &&
+			TestEqual(TEXT("Four metal contacts are authored"), Profile->BlockAudio.Sounds.Num(), 4))
+		{
+			TestTrue(TEXT("Real Aegis debit selects its metal cue"),
+				GetNameSafe(Profile->BlockAudio.Sounds[0].LoadSynchronous()).StartsWith(TEXT("SFX_Sword_Impact_Metal_")));
+		}
+	}
 
 	const FText Parried = FGridCombatLogFormatter::FormatMonsterAttack(
 		FText::FromString(TEXT("Rat")), FText::FromString(TEXT("Elias")), TEXT("Bite"), [&]()

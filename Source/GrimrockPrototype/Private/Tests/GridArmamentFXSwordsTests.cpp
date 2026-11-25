@@ -38,7 +38,10 @@ bool FGridArmamentFXSwordsTest::RunTest(const FString&)
 		TestEqual(TEXT("Four standard swings remain available"), Presentation.AttackAudio.Sounds.Num(), 4);
 		TestEqual(TEXT("Four distinct follow-through cues for a miss"), Presentation.ImpactMissAudio.Sounds.Num(), 4);
 		TestEqual(TEXT("Four flesh impacts are projected from the catalogue"), Presentation.ImpactFleshAudio.Sounds.Num(), 4);
-		for (const FGridPlayerAttackAudioDefinition* Audio : { &Presentation.AttackAudio, &Presentation.ImpactMissAudio, &Presentation.ImpactFleshAudio })
+		TestEqual(TEXT("Four known metal contacts are authored"), Presentation.ImpactMetalAudio.Sounds.Num(), 4);
+		TestEqual(TEXT("Four known wood contacts are authored"), Presentation.ImpactWoodAudio.Sounds.Num(), 4);
+		for (const FGridPlayerAttackAudioDefinition* Audio : { &Presentation.AttackAudio, &Presentation.ImpactMissAudio, &Presentation.ImpactFleshAudio,
+				 &Presentation.ImpactMetalAudio, &Presentation.ImpactWoodAudio })
 		{
 			for (const TSoftObjectPtr<USoundBase>& Sound : Audio->Sounds)
 			{

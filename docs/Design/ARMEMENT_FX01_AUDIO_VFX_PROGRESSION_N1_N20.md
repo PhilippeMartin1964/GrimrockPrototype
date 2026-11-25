@@ -16,11 +16,13 @@ La parade ARM013 sélectionne une variante Parry Light et un burst près de la m
 
 Les épées ARM014 et ARM015 ont quatre variantes Critical Flesh. Cet accent se substitue au contact ordinaire si le résultat est un critique réussi avec une surface de chair identifiée. Les critiques sur des surfaces métalliques, en bois ou inconnues conservent leur sélection de contact. Aucun comportement d'attaque lourde n'est défini dans les actions actuellement disponibles.
 
-Les variantes Parry Light et Critical Flesh sont importées depuis le manifeste SFX01. Les réactions ARM075 et ARM081 restent visuelles tant qu'un son de bouclier adapté à leur matériau ne figure pas dans les ressources dont la provenance est établie. ARM070 attend un son de résonance cristalline dédié.
+Les variantes Parry Light, Critical Flesh, Impact Wood et Impact Metal proviennent du manifeste SFX01. L'absorption réelle du bouclier rond ARM075 déclenche le contact de bois, celle de l'égide ARM081 le contact métallique. Les deux profils utilisent la matière représentative de la face protectrice des visuels de production. Les épées ARM014 et ARM015 utilisent aussi ces variantes lorsque la surface d'un contact est identifiée. ARM070 attend un son de résonance cristalline dédié.
 
 ## Familles d'attaque et projectiles
 
 Les 19 attaques matérielles possèdent une présentation. Les armes fines partagent le son de lame existant et un contact court. Les armes contondantes, la hache et la lance utilisent des variantes d'échelle du burst d'impact. Les catalyseurs déclenchent une impulsion au départ, un éclat lors d'une réussite et une dissipation lors d'un échec. ARM062 utilise ces signaux sur son attaque de feu existante. Les trois armes passives conservent leurs réactions défensives.
+
+Un impact ARM062 réussi joue `SFX_Focus_Fire_Hit_01`, une découpe de 0,56 s du WAV local `745549__samsterbirdies__beefy-explosions.wav`. La conversion en mono 48 kHz, le filtrage des basses et les fondus limitent la place du son dans le mix. Source de SamsterBirdies publiée sous CC0. [Beefy Explosions sur Freesound](https://freesound.org/people/SamsterBirdies/sounds/745549/)
 
 Pour ARM045, ARM048, ARM054, ARM057 et ARM058, la libération des projectiles, le contact physique et l'arrêt lisent les effets de `DA_ActionPresentationCatalogue`. La traînée Niagara vient de `DA_WeaponVisualCatalogue` et s'attache à l'acteur récupérable déjà présent. Le contact exige une collision bloquante ou un contact obtenu sur le Physics Asset. L'expiration, l'arrêt visuel et le passage dans une fosse interrompent la traînée. Le GUID, le niveau et la main de l'arme source proviennent de la demande d'attaque résolue. L'arc conserve sa propre identité et la flèche conserve la sienne à N0. La récupération et les dégâts suivent les chemins existants.
 
@@ -33,12 +35,11 @@ Les destinations ci-dessous sont sous `/Game/GrimrockPrototype/Audio/Weapons`. P
 | `SFX_Bow_Release_01–04`, `SFX_Arrow_Collision_01–04` | Départ ARM045/048 et collision de la flèche | Corde 0,1–0,4 s, collision 0,05–0,3 s | `Bow/Release`, `Bow/Collision` |
 | `SFX_Javelin_Release_01–04`, `SFX_ThrownItem_Collision_01–04` | Lancer ARM057 et collision ARM054/057/058 | Souffle 0,1–0,4 s, contact 0,1–0,5 s | `Thrown/Release`, `Thrown/Collision` |
 | `SFX_Blunt_Swing_01–04`, `SFX_Blunt_Impact_01–04`, `SFX_Haft_Swing_01–04` | Attaques ordinaires ARM020/025/031/038 | Souffle ou choc 0,1–0,5 s | `Melee/Swing`, `Melee/Impact` |
-| `SFX_Focus_Fire_Release_01–04`, `SFX_Focus_Fire_Hit_01–04`, `SFX_Focus_Fire_Miss_01–04` | Départ, impact et dissipation ARM062 | Impulsion de feu sèche 0,2–0,7 s | `Focus/Fire` |
-| `SFX_Focus_Arcane_Release_01–04`, `SFX_Focus_Elemental_Release_01–04`, `SFX_Focus_Holy_Release_01–04` | Départs ARM061, ARM063 et ARM069 | Impulsions distinctes 0,2–0,7 s | `Focus/Arcane`, `Focus/Elemental`, `Focus/Holy` |
-| `SFX_Shield_Round_Absorb_01–04`, `SFX_Shield_Aegis_Absorb_01–04` | Absorption physique ARM075 et ARM081 | Choc 0,1–0,5 s, matière du bouclier validée | `Shield/Absorb` |
+| `SFX_Focus_Fire_Release_01–04`, `SFX_Focus_Fire_Hit_02–04`, `SFX_Focus_Fire_Miss_01–04` | Départ, variantes d'impact et dissipation ARM062 | Impulsion de feu sèche 0,2–0,7 s | `Focus/Fire` |
+| `SFX_Focus_Arcane_Release_01–04`, `SFX_Focus_Elemental_Release_01–04`, `SFX_Focus_Holy_Release_01–04` | Départs ARM061, ARM067 et ARM069 | Impulsions distinctes 0,2–0,7 s | `Focus/Arcane`, `Focus/Elemental`, `Focus/Holy` |
 | `SFX_Focus_Orb_Absorb_01–04` | Absorption effective ARM070 si une réserve existe | Résonance cristalline 0,2–0,7 s | `Focus/Defense` |
 
-Les WAV SFX01 de métal et de bois sont disponibles. Leur utilisation en jeu dépend d'une surface de contact attestée. Le fichier local `Staff_Magic_Charge_Release_01.wav` attend une confirmation de provenance. Les gravures dédiées peuvent être livrées en masques linéaires en niveaux de gris adaptés aux UV des meshes actuels, sous `/Game/GrimrockPrototype/Art/Textures/Final/Weapons`.
+Le fichier local `Staff_Magic_Charge_Release_01.wav` attend une confirmation de provenance. Les gravures dédiées peuvent être livrées en masques linéaires en niveaux de gris adaptés aux UV des meshes actuels, sous `/Game/GrimrockPrototype/Art/Textures/Final/Weapons`.
 
 ## Finitions des 22 armements
 
