@@ -34,6 +34,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GrimrockPlayerController.h"
 #include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
@@ -978,10 +979,7 @@ void UGridCombatHudInitiativeSlotWidget::RefreshWidgets()
 void UGridCombatHudWidget::InitializeCombatHud(AGrimrockPartyPawn* InPartyPawn, UGridTurnManagerComponent* InTurnManager)
 {
 	UnbindFromSources();
-	bCombatActionTargetingActive = false;
-	bCombatActionPartyTargetingActive = false;
-	PendingTargetingActionView = FGridCombatHudActionView();
-	TargetingPreview = FGridCombatActionTargetingPreview();
+	CancelCombatActionTargeting();
 	PartyPawn = InPartyPawn;
 	InventoryComponent = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent : nullptr;
 	TurnManagerComponent = InTurnManager;
@@ -1317,8 +1315,7 @@ bool UGridCombatHudWidget::BeginCombatActionTargeting(const FGridCombatHudAction
 	bCombatActionPartyTargetingActive = false;
 	bCombatActionTargetingActive = true;
 	PendingTargetingActionView = ActionView;
-	TargetingPreview = FGridCombatActionTargetingPreview();
-	TargetingPreview.Action = ActionView.Action;
+	ClearCombatActionTargetingPreview();
 	return true;
 }
 
@@ -1331,10 +1328,9 @@ bool UGridCombatHudWidget::BeginCombatActionPartyTargeting(const FGridCombatHudA
 		return false;
 	}
 
-	bCombatActionTargetingActive = false;
+	CancelCombatActionTargeting();
 	bCombatActionPartyTargetingActive = true;
 	PendingTargetingActionView = ActionView;
-	TargetingPreview = FGridCombatActionTargetingPreview();
 	RefreshBoundWidgets(); // Only while selecting: existing portraits accept clicks.
 	return true;
 }
@@ -1438,9 +1434,7 @@ bool UGridCombatHudWidget::ConfirmCombatActionTarget(FIntPoint TargetCell, FGrid
 	}
 	if (bAccepted)
 	{
-		bCombatActionTargetingActive = false;
-		PendingTargetingActionView = FGridCombatHudActionView();
-		TargetingPreview = FGridCombatActionTargetingPreview();
+		CancelCombatActionTargeting();
 	}
 	RefreshFromSources();
 	return bAccepted;
@@ -1454,10 +1448,15 @@ void UGridCombatHudWidget::ClearCombatActionTargetingPreview()
 	}
 	TargetingPreview = FGridCombatActionTargetingPreview();
 	TargetingPreview.Action = PendingTargetingActionView.Action;
+	if (AGrimrockPlayerController* Controller = Cast<AGrimrockPlayerController>(GetOwningPlayer()))
+	{
+		Controller->ClearCombatTargetingPresentation();
+	}
 }
 
 void UGridCombatHudWidget::CancelCombatActionTargeting()
 {
+	ClearCombatActionTargetingPreview();
 	bCombatActionTargetingActive = false;
 	bCombatActionPartyTargetingActive = false;
 	PendingTargetingActionView = FGridCombatHudActionView();
@@ -1949,10 +1948,7 @@ void UGridCombatHudWidget::ValidateCombatActionTargetingState()
 		});
 	if (!CurrentActionView || CurrentActionView->Action.CharacterIndex != View.ActiveCharacterIndex)
 	{
-		bCombatActionTargetingActive = false;
-		bCombatActionPartyTargetingActive = false;
-		PendingTargetingActionView = FGridCombatHudActionView();
-		TargetingPreview = FGridCombatActionTargetingPreview();
+		CancelCombatActionTargeting();
 		return;
 	}
 

@@ -17,11 +17,13 @@
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
+#include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "InputCoreTypes.h"
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
+#include "Runtime/Combat/GridCombatTargetingMarkers.h"
 #include "Runtime/Combat/GridCombatModifierResolver.h"
 #include "Runtime/Combat/GridDualWieldPolicy.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -31,6 +33,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -1122,6 +1125,107 @@ bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest(const FString& Param
 	TestEqual(TEXT("One targeted attack is resolved"), Accepted.TargetedActionResult.AttackResults.Num(), 1);
 	TestEqual(TEXT("The cell spell pays exactly three mana"), Character.Resources.CurrentMana, 5);
 	TestEqual(TEXT("The cell spell pays exactly two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridCombatTargetingPresentationTest, "Grimrock.Monsters.MON12.8.6.TargetingPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridCombatTargetingPresentationTest::RunTest(const FString&)
+{
+	FGridCombatHudFixture Fixture;
+	if (!TestTrue(TEXT("Combat fixture ready"), Fixture.IsReady()))
+	{
+		return false;
+	}
+
+	auto* Controller = Fixture.TestWorld.World->SpawnActor<AGrimrockPlayerController>();
+	if (!TestNotNull(TEXT("Player controller"), Controller))
+	{
+		return false;
+	}
+	auto* LocalPlayer = NewObject<ULocalPlayer>(GEngine);
+	Controller->Player = LocalPlayer;
+	LocalPlayer->PlayerController = Controller;
+	Fixture.TestWorld.World->AddController(Controller);
+	Fixture.Hud->SetOwningPlayer(Controller);
+	if (!TestEqual(TEXT("HUD belongs to the local controller"), Fixture.Hud->GetOwningPlayer(), static_cast<APlayerController*>(Controller)))
+	{
+		return false;
+	}
+	Controller->SetPawn(Fixture.Party);
+	Fixture.Party->CombatHudWidgetInstance = Fixture.Hud;
+
+	auto* MageClass = NewObject<URPGClassAsset>(Fixture.Party);
+	MageClass->ClassId = TEXT("Mage_TargetingPresentation");
+	MageClass->HealthAtLevelOne = 6;
+	MageClass->CombatActions = { MakeMON1286CellSpell() };
+	FGridCharacterInventoryState& Character = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
+	Character.ClassId = MageClass->ClassId;
+	Character.ClassDefinition = MageClass;
+	Fixture.Hud->RefreshFromSources();
+	FGridAvailableCombatAction Spell;
+	FGridCombatActionRequestResult Result;
+	if (!TestTrue(TEXT("Targeting shortcut opens"),
+			FindCatalogAction(Fixture.TurnManager, 0, TEXT("Spell_MON1286_CellStrike"), Spell) && Fixture.Hud->AssignCombatActionToHotbarSlot(5, Spell) &&
+				Fixture.Hud->RequestHotbarSlot(5, Result)))
+	{
+		return false;
+	}
+
+	FGridCombatActionTargetingPreview& Preview = Fixture.Hud->TargetingPreview;
+	Preview.bValid = true;
+	Preview.TargetCell = FIntPoint(1, 2);
+	Preview.AffectedCells = { Preview.TargetCell, FIntPoint(0, 1), FIntPoint(2, 0) };
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	AGridCombatTargetingMarkers* Markers = Controller->CombatTargetingMarkers;
+	if (!TestNotNull(TEXT("Presenter spawned"), Markers))
+	{
+		return false;
+	}
+	auto* Center = FindObject<UInstancedStaticMeshComponent>(Markers, TEXT("Center"));
+	auto* Area = FindObject<UInstancedStaticMeshComponent>(Markers, TEXT("Area"));
+	auto* Invalid = FindObject<UInstancedStaticMeshComponent>(Markers, TEXT("Invalid"));
+	if (!TestNotNull(TEXT("Center component"), Center) || !TestNotNull(TEXT("Area component"), Area) || !TestNotNull(TEXT("Invalid component"), Invalid))
+	{
+		return false;
+	}
+	TestEqual(TEXT("One central marker"), Center->GetInstanceCount(), 1);
+	TestEqual(TEXT("Only the other projected cells are shown"), Area->GetInstanceCount(), 2);
+	TestEqual(TEXT("Valid preview has no red markers"), Invalid->GetInstanceCount(), 0);
+	TestEqual(TEXT("Markers do not intercept cursor traces"), Center->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+	TestEqual(TEXT("Marker mesh"), GetPathNameSafe(Center->GetStaticMesh()), FString(TEXT("/Engine/BasicShapes/Plane.Plane")));
+	TestNotNull(TEXT("Marker material override"), Center->GetMaterial(0));
+	FTransform AreaTransform;
+	TestTrue(TEXT("Area marker transform"), Area->GetInstanceTransform(1, AreaTransform, true));
+	TestEqual(TEXT("Area shape follows the supplied coordinates"), AreaTransform.GetLocation(), Fixture.Runtime->GetCellCenterWorld(2, 0, 8.0f));
+
+	Preview.bValid = false;
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	TestEqual(TEXT("Invalid area uses the same three cells"), Invalid->GetInstanceCount(), 3);
+	TestEqual(TEXT("Previous valid area has been removed"), Center->GetInstanceCount() + Area->GetInstanceCount(), 0);
+	Preview.AffectedCells.Reset();
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	TestEqual(TEXT("A rejected cell can stand alone"), Invalid->GetInstanceCount(), 1);
+	Fixture.Hud->ClearCombatActionTargetingPreview();
+	TestEqual(TEXT("Lost hover removes markers immediately"), Invalid->GetInstanceCount(), 0);
+
+	Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(1, 2));
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	Controller->SetPawn(nullptr);
+	TestEqual(TEXT("Losing the pawn removes markers"), Center->GetInstanceCount(), 0);
+	Controller->SetPawn(Fixture.Party);
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	Fixture.Hud->CancelCombatActionTargeting();
+	TestEqual(TEXT("Cancellation removes markers immediately"), Center->GetInstanceCount(), 0);
+
+	TestTrue(TEXT("Targeting opens again"), Fixture.Hud->RequestHotbarSlot(5, Result));
+	Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(1, 2));
+	Controller->UpdateCombatTargetingPresentation(*Fixture.Party);
+	TestEqual(TEXT("The presenter is reused across previews and targeting sessions"), Controller->CombatTargetingMarkers.Get(), Markers);
+	TestEqual(TEXT("The new preview is visible"), Center->GetInstanceCount(), 1);
+	TestTrue(TEXT("Valid target is accepted"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Result));
+	TestEqual(TEXT("Confirmation removes markers immediately"), Center->GetInstanceCount(), 0);
 	return true;
 }
 

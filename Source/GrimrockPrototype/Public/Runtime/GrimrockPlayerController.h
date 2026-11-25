@@ -13,6 +13,7 @@ class AGridReceptacleActor;
 class AGridWallLockActor;
 class AGrimrockPartyPawn;
 class UGridTurnManagerComponent;
+class AGridCombatTargetingMarkers;
 
 UCLASS()
 class GRIMROCKPROTOTYPE_API AGrimrockPlayerController : public APlayerController
@@ -26,6 +27,9 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PlayerTick(float DeltaTime) override;
 	virtual void SetupInputComponent() override;
+	virtual void SetPawn(APawn* InPawn) override;
+
+	void ClearCombatTargetingPresentation();
 
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	bool bInventoryUiOpen = false;
@@ -76,6 +80,7 @@ protected:
 	friend class FGridTD021WorldItemsContractTest;
 	friend class FGridHotbarContext01CanonicalStoneDivergence;
 	friend class FGridUISplit02WorldInteractionPolicyTest;
+	friend class FGridCombatTargetingPresentationTest;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
 	float MaxInteractionDistance = 300.f;
@@ -172,7 +177,10 @@ protected:
 	bool UpdateCombatTargeting();
 	bool HandleCombatTargetingClick();
 	bool TryResolveCombatTargetCellUnderCursor(FIntPoint& OutTargetCell) const;
-	void DrawCombatTargetingPreview(const AGrimrockPartyPawn& PartyPawn) const;
+	void UpdateCombatTargetingPresentation(const AGrimrockPartyPawn& PartyPawn);
+
+	UPROPERTY(Transient)
+	TObjectPtr<AGridCombatTargetingMarkers> CombatTargetingMarkers;
 	void InitializeCustomCursor();
 	void SetGridInteractionCursor(EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT("Unspecified"));
 	bool ShouldBlockWorldInteractionForInventoryUi(const AGrimrockPartyPawn* PartyPawn, bool bHasCursorItem) const;

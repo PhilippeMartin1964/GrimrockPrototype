@@ -6,13 +6,13 @@
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Core/GridLevelAsset.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "EngineUtils.h"
 #include "InputCoreTypes.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridCombatTargetingMarkers.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridEventFeedPublisher.h"
@@ -254,6 +254,11 @@ void AGrimrockPlayerController::BeginPlay()
 
 void AGrimrockPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (IsValid(CombatTargetingMarkers))
+	{
+		CombatTargetingMarkers->Destroy();
+		CombatTargetingMarkers = nullptr;
+	}
 	if (WorldInteractionTooltipWidget)
 	{
 		WorldInteractionTooltipWidget->RemoveFromParent();
@@ -262,12 +267,22 @@ void AGrimrockPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason
 	Super::EndPlay(EndPlayReason);
 }
 
+void AGrimrockPlayerController::SetPawn(APawn* InPawn)
+{
+	if (InPawn != GetPawn())
+	{
+		ClearCombatTargetingPresentation();
+	}
+	Super::SetPawn(InPawn);
+}
+
 void AGrimrockPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
 	if (UpdatePhysicalThrowAiming())
 	{
+		ClearCombatTargetingPresentation();
 		HideWorldInteractionTooltip();
 		return;
 	}
@@ -947,29 +962,33 @@ bool AGrimrockPlayerController::TryResolveCombatTargetCellUnderCursor(FIntPoint&
 	return true;
 }
 
-void AGrimrockPlayerController::DrawCombatTargetingPreview(const AGrimrockPartyPawn& PartyPawn) const
+void AGrimrockPlayerController::UpdateCombatTargetingPresentation(const AGrimrockPartyPawn& PartyPawn)
 {
 	const UGridCombatHudWidget* Hud = PartyPawn.CombatHudWidgetInstance;
 	const AGridLevelRuntimeActor* RuntimeActor = PartyPawn.LevelRuntimeActor;
-	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive() || !IsValid(RuntimeActor) || !IsValid(RuntimeActor->LevelAsset))
+	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive() || !IsValid(RuntimeActor) || PartyPawn.IsPitFalling())
 	{
+		ClearCombatTargetingPresentation();
 		return;
 	}
 
-	const FGridCombatActionTargetingPreview& Preview = Hud->TargetingPreview;
-	const float HalfCell = FMath::Max(4.0f, RuntimeActor->LevelAsset->CellSize * 0.46f);
-	const FColor AreaColor = Preview.bValid ? FColor(48, 220, 96) : FColor(220, 48, 48);
-	for (const FIntPoint& Cell : Preview.AffectedCells)
+	if (!IsValid(CombatTargetingMarkers))
 	{
-		const bool bCenter = Cell == Preview.TargetCell;
-		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Cell.X, Cell.Y, 8.0f), FVector(HalfCell, HalfCell, bCenter ? 5.0f : 2.5f),
-			bCenter && Preview.bValid ? FColor::Yellow : AreaColor, false, 0.0f, 0, bCenter ? 5.0f : 2.0f);
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = this;
+		CombatTargetingMarkers = GetWorld()->SpawnActor<AGridCombatTargetingMarkers>(SpawnParameters);
 	}
-
-	if (Preview.AffectedCells.IsEmpty() && RuntimeActor->IsValidCell(Preview.TargetCell.X, Preview.TargetCell.Y))
+	if (IsValid(CombatTargetingMarkers))
 	{
-		DrawDebugBox(GetWorld(), RuntimeActor->GetCellCenterWorld(Preview.TargetCell.X, Preview.TargetCell.Y, 8.0f), FVector(HalfCell, HalfCell, 5.0f),
-			FColor::Red, false, 0.0f, 0, 5.0f);
+		CombatTargetingMarkers->Show(*RuntimeActor, Hud->TargetingPreview);
+	}
+}
+
+void AGrimrockPlayerController::ClearCombatTargetingPresentation()
+{
+	if (IsValid(CombatTargetingMarkers))
+	{
+		CombatTargetingMarkers->Clear();
 	}
 }
 
@@ -979,6 +998,7 @@ bool AGrimrockPlayerController::UpdateCombatTargeting()
 	UGridCombatHudWidget* Hud = PartyPawn ? PartyPawn->CombatHudWidgetInstance.Get() : nullptr;
 	if (!IsValid(Hud) || !Hud->IsCombatActionTargetingActive())
 	{
+		ClearCombatTargetingPresentation();
 		return false;
 	}
 	if (bInventoryUiOpen || PartyPawn->IsCharacterCreationModalActive() ||
@@ -994,12 +1014,12 @@ bool AGrimrockPlayerController::UpdateCombatTargeting()
 	if (TryResolveCombatTargetCellUnderCursor(TargetCell))
 	{
 		Hud->UpdateCombatActionTargetingPreview(TargetCell);
+		UpdateCombatTargetingPresentation(*PartyPawn);
 	}
 	else
 	{
 		Hud->ClearCombatActionTargetingPreview();
 	}
-	DrawCombatTargetingPreview(*PartyPawn);
 	bShowMouseCursor = true;
 	DefaultMouseCursor = EMouseCursor::Crosshairs;
 	CurrentMouseCursor = EMouseCursor::Crosshairs;

@@ -75,11 +75,49 @@ source restent payés une seule fois pour l'action entière.
 ordinaires avec les boutons, portes, réceptacles et objets. Le survol convertit
 le point d'impact en cellule via le runtime du niveau.
 
-La prévisualisation native utilise :
+La prévisualisation lit directement `FGridCombatActionTargetingPreview`.
+Chaque entrée de `AffectedCells` donne un marqueur à son emplacement réel,
+quelle que soit la forme de la zone. Si un aperçu invalide ne fournit aucune
+cellule affectée mais désigne une cellule du niveau, cette cellule seule est
+affichée en rouge.
 
 - jaune pour la cellule centrale valide ;
 - vert pour les cellules couvertes par une zone valide ;
 - rouge pour une cellule ou une zone invalide.
+
+### COMBAT-TARGETING01 — Rendu en jeu
+
+Dans UE 5.5.4, `EngineDefines.h` désactive `UE_ENABLE_DEBUG_DRAWING` en
+Shipping sans éditeur. Dans cette configuration, `DrawDebugHelpers.h`
+définit `DrawDebugBox` comme une fonction vide.
+
+Le contrôleur réutilise un acteur de présentation local avec trois composants
+de mesh instancié. Ils utilisent le plan `/Engine/BasicShapes/Plane` et le
+matériau `M_CombatTargetingCell`, tous deux référencés en dur par les
+composants natifs. Le matériau non éclairé compense l'exposition du donjon
+pour préserver la couleur du contour et la transparence du fond. Le test de
+profondeur permet aux murs et aux objets opaques de
+masquer le marqueur. Le plan couvre 92 % de la largeur de la cellule et se
+situe 8 cm au-dessus du plan de grille pour éviter le z-fighting avec le sol.
+Les marqueurs ne participent ni aux collisions ni à la navigation.
+
+La confirmation, l'annulation et la perte du survol vident les instances.
+Le contrôle de présentation les retire également à la perte du HUD, du pawn
+ou du niveau, et quand la visée d'un lancer physique prend la main. Les
+composants restent disponibles pour le prochain ciblage.
+
+Pour la recette graphique en PIE, en Standalone et dans le package Win64
+Shipping, viser une cellule valide, une zone valide puis une cellule hors
+portée. Contrôler les trois couleurs, la forme de la zone et le masquage
+derrière un obstacle opaque. Vérifier que sortir du donjon avec le pointeur,
+appuyer sur Échap, ouvrir l'inventaire ou confirmer une cible retire les
+marqueurs. Le contrôle du Cook peut être répété avec `UnrealPak -ListContainer`
+sur le fichier `GrimrockPrototype-Windows.utoc` du package.
+
+Le parcours du catalyseur de surface a confirmé le jaune et le vert en PIE,
+Standalone et Win64 Shipping sur D3D12. En Shipping, le survol déplace la zone
+et Échap ou la confirmation retirent les marqueurs. Le plan et le matériau
+figurent dans le conteneur IoStore du package.
 
 ## Widget Blueprint optionnel
 
@@ -133,6 +171,11 @@ Les tests vérifient :
 6. refus `TargetRequired` lorsque l'ancien point d'entrée est appelé sans
    cellule ;
 7. refus `InvalidTarget` sans dépense pour une zone vide.
+
+`Grimrock.Monsters.MON12.8.6.TargetingPresentation` vérifie les cellules
+projetées, les groupes de marqueurs, l'absence de collision, la réutilisation
+du présentateur et le retrait lors de la perte du survol ou du pawn, de
+l'annulation et de la confirmation.
 
 ## Suite
 
