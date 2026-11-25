@@ -2,6 +2,12 @@
 
 La mise en œuvre suit le [contrat normatif ARM-CLEAN06](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). Les propositions de catalogue supplémentaire, de copie sur les fiches d’armes et de repli historique plus bas décrivent la conception antérieure.
 
+## HOTFIX01 — Nettoyage Niagara en fin de combat (25.11.2026)
+
+La recette utilisateur a signalé une violation d'accès à l'adresse nulle dans `StopActiveVFX()`, appelée par `HandleCombatEnded()` depuis `FinishCombat()`. Les Niagara ponctuels sont créés avec destruction automatique : `DeactivateImmediate()` peut invalider la référence faible avant l'appel suivant. Le nettoyage détache désormais la liste avant les callbacks et résout de nouveau chaque référence faible après la désactivation, avant toute destruction explicite. Les références déjà expirées et les appels répétés sont tolérés.
+
+Le test `Grimrock.RPG.ARMEMENT.FX01.CombatEndNiagaraCleanup` utilise des composants Niagara natifs enregistrés, le système de contact de production et le délégué de victoire ; il couvre aussi les références expirées, doublons et nettoyages répétés. L'activation du système est exercée lorsque le rendu est disponible. La validation Windows et une recette PIE avec le dernier coup fatal restent nécessaires avant de clore le correctif : un test sans rendu ne prouve pas la simulation Niagara en jeu. Aucune donnée d'armement, sauvegarde ni mécanique de combat n'est modifiée.
+
 ## Pilote des épées ARM014 et ARM015
 
 `DA_ActionPresentationCatalogue` conserve les variantes Standard au départ, joue un second souffle discret après un échec et projette l’impact de chair lorsque le résultat atteint exclusivement les PV et que la définition de la cible identifie ce matériau. Un contact d’armure reste générique tant que sa matière est inconnue. Un critique réel peut remplacer le son de contact par un son dédié configuré, avec une seule lecture par impact. Le rat géant et le gobelin lanceur définissent leur surface corporelle dans leurs fiches de monstres.

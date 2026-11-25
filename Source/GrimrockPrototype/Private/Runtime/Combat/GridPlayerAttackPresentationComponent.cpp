@@ -906,15 +906,23 @@ void UGridPlayerAttackPresentationComponent::RestoreHeldItemMotion()
 
 void UGridPlayerAttackPresentationComponent::StopActiveVFX()
 {
-	for (TWeakObjectPtr<UNiagaraComponent>& Component : ActiveNiagaraComponents)
+	// Completion can synchronously auto-destroy Niagara and invoke callbacks.
+	// Detach the list before calling into the component lifecycle.
+	TArray<TWeakObjectPtr<UNiagaraComponent>> Components = MoveTemp(ActiveNiagaraComponents);
+	ActiveNiagaraComponents.Reset();
+
+	for (const TWeakObjectPtr<UNiagaraComponent>& Component : Components)
 	{
-		if (Component.IsValid())
+		if (UNiagaraComponent* Niagara = Component.Get())
 		{
-			Component->DeactivateImmediate();
-			Component->DestroyComponent();
+			Niagara->DeactivateImmediate();
+		}
+		// Never dereference the old pointer after immediate deactivation.
+		if (UNiagaraComponent* Niagara = Component.Get())
+		{
+			Niagara->DestroyComponent();
 		}
 	}
-	ActiveNiagaraComponents.Reset();
 }
 
 FText UGridPlayerAttackPresentationComponent::ResolveCharacterDisplayName(int32 CharacterIndex) const

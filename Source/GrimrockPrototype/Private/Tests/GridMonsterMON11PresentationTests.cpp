@@ -1,6 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "GridCanonicalWeightTestWorld.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/App.h"
+#include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
@@ -174,6 +177,76 @@ bool FGridArmamentImpactAudioTest::RunTest(const FString&)
 	TestTrue(TEXT("An empty material cue falls through to the generic hit"),
 		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.ImpactHitAudio);
 	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridArmamentFXCombatEndCleanupTest, "Grimrock.RPG.ARMEMENT.FX01.CombatEndNiagaraCleanup",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridArmamentFXCombatEndCleanupTest::RunTest(const FString&)
+{
+	FGridCanonicalWeightTestWorld Fixture({});
+	if (!TestNotNull(TEXT("Isolated world"), Fixture.World))
+	{
+		return false;
+	}
+	AActor* Owner = Fixture.World->SpawnActor<AActor>();
+	if (!TestNotNull(TEXT("Presentation owner"), Owner))
+	{
+		return false;
+	}
+	auto* TurnManager = NewObject<UGridTurnManagerComponent>(Owner);
+	auto* Presentation = NewObject<UGridPlayerAttackPresentationComponent>(Owner);
+	if (!TestTrue(TEXT("Combat-end delegate is bound"), Presentation->InitializePresentation(TurnManager)))
+	{
+		return false;
+	}
+	UNiagaraSystem* System = LoadObject<UNiagaraSystem>(
+		nullptr, TEXT("/Game/GrimrockPrototype/Effects/Weapons/NS_Armament_Contact.NS_Armament_Contact"));
+	if (!TestNotNull(TEXT("Production contact effect"), System))
+	{
+		return false;
+	}
+
+	// Register native components even in headless automation. On a rendering
+	// run, exercise the actual one-shot activation as well.
+	auto MakeEffect = [&]()
+	{
+		UNiagaraComponent* Niagara = NewObject<UNiagaraComponent>(Owner);
+		Niagara->SetAutoActivate(false);
+		Niagara->SetAsset(System);
+		Niagara->SetAutoDestroy(true);
+		Owner->AddInstanceComponent(Niagara);
+		Niagara->RegisterComponent();
+		return Niagara;
+	};
+	UNiagaraComponent* First = MakeEffect();
+	UNiagaraComponent* Second = MakeEffect();
+	UNiagaraComponent* Finished = MakeEffect();
+	if (!TestTrue(TEXT("Native Niagara components are registered"), First->IsRegistered() && Second->IsRegistered() && Finished->IsRegistered()))
+	{
+		return false;
+	}
+
+	const TWeakObjectPtr<UNiagaraComponent> FirstRef(First);
+	const TWeakObjectPtr<UNiagaraComponent> SecondRef(Second);
+	const TWeakObjectPtr<UNiagaraComponent> FinishedRef(Finished);
+	Presentation->ActiveNiagaraComponents = { FinishedRef, FirstRef, SecondRef, FirstRef };
+	Finished->DestroyComponent();
+	if (FApp::CanEverRender())
+	{
+		First->Activate(true);
+		Second->Activate(true);
+	}
+
+	// The same delegate as FinishCombat uses after a lethal player attack.
+	TurnManager->OnCombatEnded.Broadcast(EGridCombatPhase::Victory);
+	TestTrue(TEXT("Victory releases all tracked Niagara references"), Presentation->ActiveNiagaraComponents.IsEmpty());
+	TestTrue(TEXT("First effect is destroyed or unregistered"), !FirstRef.IsValid() || !FirstRef->IsRegistered());
+	TestTrue(TEXT("Second effect is destroyed or unregistered"), !SecondRef.IsValid() || !SecondRef->IsRegistered());
+	TurnManager->OnCombatEnded.Broadcast(EGridCombatPhase::Victory);
+	Presentation->ResetTransientPresentationState();
+	TestTrue(TEXT("Repeated cleanup is harmless"), Presentation->ActiveNiagaraComponents.IsEmpty());
+	return !HasAnyErrors();
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON114HeldItemMotionTest, "Grimrock.Monsters.MON11.Presentation.HeldItemMotion",

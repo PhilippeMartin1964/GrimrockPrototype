@@ -228,6 +228,7 @@ private:
 	void ConfigureThrownItemOutcome(AGridThrownItemActor* ThrownItem, AGridMonsterActor* TargetMonster, const FGridAttackResult& Result);
 	void RestoreHeldItemMotion();
 	void StopActiveVFX();
+	friend class FGridArmamentFXCombatEndCleanupTest;
 	FText ResolveCharacterDisplayName(int32 CharacterIndex) const;
 	FText ResolveMonsterDisplayName(const AGridMonsterActor* Monster) const;
 };
