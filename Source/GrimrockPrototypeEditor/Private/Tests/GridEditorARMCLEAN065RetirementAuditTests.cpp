@@ -137,47 +137,69 @@ bool FGridEditorARMCLEAN065NativeAudit::RunTest(const FString&)
     TestTrue(TEXT("The exact old dagger package remains a retired source"),
         IsRetiredItemPackage(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Weapons/DA_Weapon_Dagger_01")));
     const auto& Aliases = Audit.Report->GetArrayField(TEXT("active_compatibility_redirectors"));
-    TestEqual(TEXT("All 53 former paths remain live compatibility aliases"), Aliases.Num(), 53);
+    TestEqual(TEXT("No obsolete native compatibility redirector remains"), Aliases.Num(), 0);
+
+    // Native aliases were removed by the final Content Browser fixup. The
+    // existing config redirects still protect serialized paths and IDs.
+    // Derive the former paths from the live root, not from deleted packages.
+    const FString Base = TEXT("/Game/GrimrockPrototype/Core/DataAssets/");
+    const FString FormerBase = Base + TEXT("CanonicalStage/");
+    const TSet<FString> FormerShortItemNames = {
+        TEXT("EmptyVial"), TEXT("Gem_Blue"), TEXT("GoblinKnife"),
+        TEXT("Key_Copper"), TEXT("Key_Iron"), TEXT("Shuriken"), TEXT("Stone")
+    };
+    int32 RedirectedPaths = 0;
     int32 RedirectedIds = 0;
-    for (const auto& Value : Aliases)
+    for (const auto& Value : ActivePackages)
     {
-        const auto Row = Value->AsObject();
-        const FString Package = Row->GetStringField(TEXT("package"));
-        const FString Target = Row->GetStringField(TEXT("target"));
-        TestTrue(TEXT("Alias target belongs to the live Items tree"),
-            Target.StartsWith(TEXT("/Game/GrimrockPrototype/Core/DataAssets/Items/")));
-        const FString OldPath = Package + TEXT(".") + FPackageName::GetShortName(Package);
-        // Cook omits UObjectRedirector packages. Config-backed exact object
-        // redirects preserve runtime soft paths; native aliases serve Editor loads.
-        TestEqual(TEXT("Former object path has a runtime core asset redirect"),
-            FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Object,
-                FCoreRedirectObjectName(OldPath)).ToString(),
-            Target + TEXT(".") + FPackageName::GetShortName(Target));
-        // In Editor, a loaded UObjectRedirector deliberately prevents an
-        // in-place Core fixup. Verify its native path and the mapped runtime
-        // path separately, without unloading or modifying any package.
-        const FSoftObjectPath RuntimePath(FCoreRedirects::GetRedirectedName(
-            ECoreRedirectFlags::Type_Object, FCoreRedirectObjectName(OldPath)).ToString());
-        const auto* Asset = LoadObject<UPrimaryDataAsset>(nullptr, *OldPath);
-        if (!TestNotNull(TEXT("Former object path resolves to a primary data asset"), Asset)) continue;
-        TestTrue(TEXT("Mapped runtime soft path loads the same asset as its native alias"), RuntimePath.TryLoad() == Asset);
-        TestTrue(TEXT("Former soft path loads through its native Editor alias"), FSoftObjectPath(OldPath).TryLoad() == Asset);
+        const FString Target = Value->AsString();
+        if (!TestTrue(TEXT("Active package belongs to the live Items tree"),
+            Target.StartsWith(Base + TEXT("Items/")))) continue;
+        const FString Name = FPackageName::GetShortName(Target);
+        FString FormerName = Name;
+        FString FormerFolder = FormerBase;
+        if (Target.StartsWith(Base + TEXT("Items/Definitions/")))
+        {
+            FormerFolder += TEXT("Definitions/");
+            if (!TestTrue(TEXT("Definition has a final item or weapon name"),
+                Name.StartsWith(TEXT("DA_Item_")) || Name.StartsWith(TEXT("DA_Weapon_")))) continue;
+            const bool bFormerShortItem = Name.StartsWith(TEXT("DA_Item_")) &&
+                FormerShortItemNames.Contains(Name.RightChop(8));
+            FormerName = FString(TEXT("DA_Canonical_")) + Name.RightChop(bFormerShortItem ? 8 : 3);
+        }
+        else if (Name == TEXT("DA_WeaponCatalogue") || Name == TEXT("DA_WeaponVisualCatalogue"))
+        {
+            FormerName = FString(TEXT("DA_Canonical")) + Name.RightChop(3);
+        }
+
+        const FString OldPath = FormerFolder + FormerName + TEXT(".") + FormerName;
+        const FString TargetPath = Target + TEXT(".") + Name;
+        const FString RedirectedPath = FCoreRedirects::GetRedirectedName(ECoreRedirectFlags::Type_Object,
+            FCoreRedirectObjectName(OldPath)).ToString();
+        if (TestEqual(TEXT("Former object path has an exact runtime core asset redirect"),
+            RedirectedPath, TargetPath)) ++RedirectedPaths;
+        const auto* Asset = LoadObject<UPrimaryDataAsset>(nullptr, *TargetPath);
+        if (!TestNotNull(TEXT("Final object path loads its primary data asset"), Asset)) continue;
+        FSoftObjectPath FormerSoftPath(OldPath);
+        TestTrue(TEXT("Former soft path accepts the configured Core Redirect"), FormerSoftPath.FixupCoreRedirects());
+        TestEqual(TEXT("Former soft path resolves directly to the final object path"),
+            FormerSoftPath.ToString(), TargetPath);
+        TestTrue(TEXT("Redirected soft path loads the live primary data asset"), FormerSoftPath.TryLoad() == Asset);
         const FPrimaryAssetId CurrentId = Asset->GetPrimaryAssetId();
-        const FPrimaryAssetId OldId(CurrentId.PrimaryAssetType, FName(*FPackageName::GetShortName(Package)));
+        const FPrimaryAssetId OldId(CurrentId.PrimaryAssetType, FName(*FormerName));
         if (OldId == CurrentId)
         {
-            // UE returns an invalid ID when no redirect is required.
             TestFalse(TEXT("Unchanged PrimaryAssetId has no artificial self-redirect"),
                 UAssetManager::Get().GetRedirectedPrimaryAssetId(OldId).IsValid());
         }
         else
         {
-            TestEqual(TEXT("Derived former PrimaryAssetId redirects to current identity"),
-                UAssetManager::Get().GetRedirectedPrimaryAssetId(OldId), CurrentId);
-            ++RedirectedIds;
+            if (TestEqual(TEXT("Derived former PrimaryAssetId redirects to current identity"),
+                UAssetManager::Get().GetRedirectedPrimaryAssetId(OldId), CurrentId)) ++RedirectedIds;
         }
     }
-    TestEqual(TEXT("Exactly 50 derived PrimaryAssetIds were renamed"), RedirectedIds, 50);
+    TestEqual(TEXT("All 53 former object paths resolve without native redirectors"), RedirectedPaths, 53);
+    TestEqual(TEXT("Exactly 50 derived PrimaryAssetIds redirect to live identities"), RedirectedIds, 50);
     const auto& Categories = Audit.Report->GetArrayField(TEXT("puzzle_category_sources"));
     TestEqual(TEXT("No obsolete type source remains after cutover"), Categories.Num(), 0);
     TSet<FName> CategoryIds;
