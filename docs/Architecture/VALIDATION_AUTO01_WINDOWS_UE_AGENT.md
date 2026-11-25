@@ -1,6 +1,6 @@
 # VALIDATION-AUTO01 — Validation locale automatisée UE 5.5.4
 
-**État au 4 novembre 2026 : opérationnel.** Le commit `32d2a305` a obtenu le statut GitHub **success — Build + Automation OK (Grimrock)**. La suite complète a été exécutée dans le worktree Windows, y compris la dépendance Lua 5.4.8. Cet état ne dispense pas de valider les futurs jalons individuellement.
+**État depuis CLEANUP06.** La validation permanente exécute Development Editor, Shipping et Grimrock dans le worktree dédié. Elle publie `UE5.5.4/SilentTask` et `UE5.5.4/LocalAuto` sur le SHA exact.
 
 ## Objectif et principes
 
@@ -21,10 +21,10 @@ Les engagements sont les suivants :
 ## Fonctionnement automatique
 
 1. Le Planificateur de tâches déclenche `Scripts/UEValidationBootstrap.ps1` environ toutes les trois minutes, tant que l'ordinateur est allumé et que votre session est ouverte.
-2. Le bootstrap vérifie le dépôt d'origine, exécute `git fetch --no-tags origin master`, extrait `UEValidationAgent.ps1` depuis **le SHA exact de `master`**, puis contrôle sa syntaxe avant de l'exécuter.
+2. Le bootstrap vérifie le dépôt d'origine, exécute `git fetch --no-tags origin master`, extrait `UEValidationAgent.ps1` depuis **le SHA exact de `master`**, puis contrôle sa syntaxe avant de l'exécuter. Si `origin/master` avance entre les deux lectures, le cycle suivant charge le nouvel agent.
 3. L'agent protège le worktree, récupère le commit demandé et initialise `ThirdParty/Lua54` par `git submodule update --init`.
 4. Il vérifie la présence des sources Lua `onelua.c`, `lua.h`, `lauxlib.h` et `lualib.h`, puis récupère les assets Git LFS.
-5. Il lance `Scripts/ValidateUE.ps1` dans un processus PowerShell distinct, **sans fenêtre persistante**, pour compiler l'éditeur puis exécuter les tests `Grimrock`.
+5. Il lance `Scripts/ValidateUE.ps1` dans un processus PowerShell distinct, **sans fenêtre persistante**, pour compiler Development Editor et Shipping, puis exécuter les tests `Grimrock`. Avant `success`, il vérifie le code retour, la phase `SUCCESS`, la propreté du worktree et la révision effectivement testée.
 6. Il publie `pending`, puis `success` ou `failure` sur GitHub, avec un rapport limité en cas d'échec.
 7. Un même commit déjà validé n'est pas relancé inutilement. Les erreurs d'infrastructure transitoires sont réessayées au prochain cycle.
 
@@ -34,7 +34,7 @@ Les engagements sont les suivants :
 
 - Windows 11, Unreal Engine **5.5.4** sous `D:\UE_5.5`, outils C++ Visual Studio et Windows SDK adéquats.
 - `git`, Git LFS et GitHub CLI (`gh`) accessibles depuis la session Windows exécutant la tâche.
-- Authentification GitHub CLI avec les autorisations nécessaires aux statuts, issues et commits explicitement autorisés.
+- Authentification GitHub CLI avec les autorisations nécessaires aux statuts et aux issues.
 - Espace disque suffisant pour les assets Git LFS, les binaires, les données intermédiaires et les rapports.
 - Ordinateur allumé et session Windows ouverte ; pas de privilège SYSTEM.
 
@@ -71,14 +71,9 @@ L'agent refuse un checkout si le worktree n'appartient pas au bon dépôt ou pr�
 
 **Attention :** le bootstrap exécute les fichiers PowerShell présents sur `master`. Les droits d'écriture de cette branche doivent donc rester strictement protégés. Aucune PR non fiable ne doit être exécutée.
 
-## Matérialisation contrôlée des assets Unreal
+## Authoring et diagnostics
 
-Deux exceptions explicitement limitées peuvent produire des **commits d'assets natifs** depuis le worktree de validation, après vérification des tests :
-
-- **VALIDATION-AUTO01.7 / Compétences :** `RepairCanonicalSkillTraps.ps1` a rétabli uniquement `DA_Skill_Traps.uasset`. L'asset a été publié automatiquement au commit `32d2a305`, suivi d'une validation complète réussie.
-- **ARMEMENT01.17.1.4 / Huile au sol :** `AuthorOilSurfaceMaterial.ps1` n'agit que si le seul échec est `Grimrock.RPG.ARMEMENT01.17.1.4.ProductionMaterial`. Il génère, par un commandlet UE, uniquement `M_Surface_Oil.uasset` et `MI_Surface_Oil.uasset`, vérifie Git LFS, le SHA, la liste exacte des fichiers modifiés et la possibilité d'un push non forcé. Le résultat doit ensuite repasser l'intégralité des tests.
-
-Ces réparations ne constituent pas une permission générale d'écrire des assets. Elles n'agissent jamais sur le checkout principal et n'utilisent jamais `git add -A`. Un fichier imprévu provoque l'arrêt de la publication.
+Les échecs produisent un diagnostic. Les anciennes écritures automatiques de `DA_Skill_Traps.uasset` et des matériaux d’huile ont été retirées. Les commandlets `RPGSkillCatalogAuthoring -SkillId=Skill_Traps` et `GridOilSurfaceMaterialAuthoring` restent disponibles pour un authoring explicite dans un environnement isolé. Inspecter le diff binaire et valider les cibles concernées avant toute publication d’assets. L’historique ci-dessous décrit les interventions déjà réalisées.
 
 ## Historique des correctifs du 4 novembre 2026
 
@@ -122,14 +117,9 @@ Le commit `26e4741e19c5b6cee0e42b65282758ed75b9aed2` affiche **`Build + Automati
 Le résultat ne constitue **pas** une acceptation de l'apparence réelle dans une scène PIE avec RHI. Les tests utilisent `-NullRHI` : une capture de l'huile sous éclairage est encore nécessaire pour la validation artistique, qui doit être automatisée conformément aux règles du projet.
 
 
-## Récupération protégée d’un asset Unreal dans le worktree de validation
+## Worktree de validation modifié
 
-Un commandlet d’authoring peut terminer normalement, puis voir sa publication Git LFS refusée par un contrôle trop strict. Dans ce cas, **le worktree de validation demeure modifié** et l’agent doit refuser le checkout suivant. Le commit `a73d3253` a rencontré précisément le code `WORKTREE_DIRTY` après une précédente tentative de conversion d’huile.
-
-L’agent dispose désormais d’une récupération **strictement limitée** : si tous les fichiers modifiés sont exclusivement `M_Surface_Oil.uasset` et éventuellement `MI_Surface_Oil.uasset`, non indexés, il en crée des copies privées dans `%LOCALAPPDATA%\GrimrockPrototype\UEValidationAgent\Recovery`, calcule et compare leurs empreintes SHA-256, puis restaure uniquement ces chemins dans le **worktree de validation** via `git restore --source=HEAD --worktree`. Il vérifie ensuite que le worktree est propre avant le checkout du commit courant.
-
-**Aucun `git reset --hard`, aucun `git clean`, aucun fichier de `D:\Development\GrimrockPrototype` n’est modifié**. Une modification inattendue, un fichier indexé ou une erreur de sauvegarde interrompent le processus. Les copies de sécurité ne sont jamais publiées sur GitHub. Une validation et une conversion ciblée peuvent alors recommencer depuis un état propre.
-
+L’agent refuse tout worktree de validation modifié, y compris les anciens lots d’huile, de catalyseurs ou d’upgrade Visual Studio. Pour diagnostiquer `WORKTREE_DIRTY`, inspecter `git status --short` dans le worktree dédié. Conserver une sauvegarde vérifiée des fichiers utiles avant toute restauration ciblée. Les anciennes copies du dossier `Recovery` restent disponibles.
 
 ## VALIDATION-AUTO01.11 — Exécution Windows sans fenêtre console (5 novembre 2026)
 

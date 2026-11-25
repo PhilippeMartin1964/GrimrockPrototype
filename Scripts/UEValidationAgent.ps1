@@ -211,8 +211,7 @@ function Get-PublicSafeDiagnostics {
     $ValidationStage = Join-Path $ReportRoot 'Validation.stage'
     if (Test-Path -LiteralPath $ValidationStage -PathType Leaf) {
         $Stage = ([string](Get-Content -LiteralPath $ValidationStage -TotalCount 1 -ErrorAction SilentlyContinue)).Trim()
-        $KnownStages = @('PREFLIGHT','ROLLBACK_FIXTURE','ROLLBACK_RESTORE','ROLLBACK_NEW_PACKAGE',
-            'ROLLBACK_REFUSALS','ROLLBACK_SAVE_REPLACE','ROLLBACK_RESULT',
+        $KnownStages = @('PREFLIGHT',
             'BUILD_STARTED','BUILD_FAILED','BUILD_OK',
             'AUTOMATION_STARTED','AUTOMATION_PROCESS_EXITED',
             'AUTOMATION_REPORT_MISSING','AUTOMATION_REPORT_READING',
@@ -407,218 +406,12 @@ function Get-PublicSafeDiagnostics {
             $Safe.Add('Automation : journal absent')
         }
     }
-    # Suivi de la création des deux seuls matériaux Unreal autorisés.
-    # Ne publie qu'une phase issue d'une liste blanche fixe, jamais un journal brut.
-    $OilRunDir = Split-Path -Parent $RunLogPath
-    $OilStagePath = Join-Path $OilRunDir 'OilMaterial.stage'
-    if (Test-Path -LiteralPath $OilStagePath -PathType Leaf) {
-        $OilStage = [string](Get-Content -LiteralPath $OilStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
-        $KnownOilStages = @('PREFLIGHT', 'REPORT_ACCEPTED', 'COMMANDLET_STARTED',
-            'COMMANDLET_COMPLETED', 'COMMANDLET_FAILED', 'FILESET_STATUS',
-            'FILESET_OUTSIDE_ALLOWLIST', 'FILESET_MISSING_MASTER',
-            'FILESET_CREATION', 'ASSETS_VERIFIED', 'COMMIT_CREATED', 'SUCCESS')
-        if ($OilStage -in $KnownOilStages) {
-            $Safe.Add('Materiau huile : phase ' + $OilStage)
-        }
-        else {
-            $Safe.Add('Materiau huile : phase inconnue')
-        }
-        # Le message Git brut reste prive : seul un code borne est publie.
-        if ($OilStage -eq 'COMMIT_CREATED') {
-            $GitPushLog = Join-Path $OilRunDir 'OilMaterialAuthoring.stderr.log'
-            $FailureClass = 'PUSH_UNKNOWN'
-            if (Test-Path -LiteralPath $GitPushLog -PathType Leaf) {
-                $TailText = (@(Get-Content -LiteralPath $GitPushLog -Tail 140 -ErrorAction SilentlyContinue) -join [Environment]::NewLine)
-                if ($TailText -match '(?i)bandwidth|quota|storage limit') { $FailureClass = 'LFS_QUOTA' }
-                elseif ($TailText -match '(?i)non-fast-forward|fetch first|rejected|stale info') { $FailureClass = 'REF_DIVERGENCE' }
-                elseif ($TailText -match '(?i)403|401|permission denied|authentication failed|access denied') { $FailureClass = 'AUTHORIZATION' }
-                elseif ($TailText -match '(?i)git-lfs|git lfs|lfs|batch response') { $FailureClass = 'LFS_TRANSFER' }
-                elseif ($TailText -match '(?i)timed out|timeout|connection|could not resolve|network|EOF') { $FailureClass = 'NETWORK' }
-            }
-            $Safe.Add('Materiau huile : push ' + $FailureClass)
-        }
-        if ($OilStage -eq 'COMMANDLET_FAILED') {
-            $AllowedGraphStages = @(
-                'UV_POSITION','Z_POSITION','NOISE_POSITION','NOISE_AMPLITUDE',
-                'WARP_AMPLITUDE','WARP_RADIUS','RADIUS_BASE','UV_MASK',
-                'CENTER_MASK','RADIUS_MASK','MASK_ALPHA','OPACITY_ALPHA',
-                'BASECOLOR_OUTPUT','ROUGHNESS_OUTPUT','OPACITY_OUTPUT'
-            )
-            $OilStdOut = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
-            if (Test-Path -LiteralPath $OilStdOut -PathType Leaf) {
-                $OilLog = (@(Get-Content -LiteralPath $OilStdOut -Tail 1000 -ErrorAction SilentlyContinue) -join [Environment]::NewLine)
-                foreach ($GraphStage in $AllowedGraphStages) {
-                    if ($OilLog.Contains('[OIL_DECAL_GRAPH:' + $GraphStage + ']')) {
-                        $Safe.Add('Décalque huile : connexion ' + $GraphStage)
-                        break
-                    }
-                }
-            }
-        }
-        $OilCommandletLog = Join-Path $OilRunDir 'OilMaterialCommandlet.stdout.log'
-        if (Test-Path -LiteralPath $OilCommandletLog -PathType Leaf) {
-            $Relevant = @(
-                Get-Content -LiteralPath $OilCommandletLog -Tail 500 -ErrorAction SilentlyContinue |
-                Where-Object { $_ -match '\[ARMEMENT01\.17\.1\.4\]' -and $_ -match '(?i)error|erreur|impossible|incompatible|Échec' }
-            )
-            if ($Relevant.Count -gt 0) {
-                $Safe.Add('Materiau huile : le commandlet signale une erreur dans ses journaux locaux')
-            }
-        }
-    }
-    # ARMEMENT01.17.2A: allowlisted catalyst phase only, never private
-    # commandlet stdout/stderr, user paths or unrestricted exception messages.
-    $CatalystRunDir = Split-Path -Parent $RunLogPath
-    $CatalystStagePath = Join-Path $CatalystRunDir 'CatalystAuthoring.stage'
-    if (Test-Path -LiteralPath $CatalystStagePath -PathType Leaf) {
-        $CatalystStage = [string](Get-Content -LiteralPath $CatalystStagePath -TotalCount 1 -ErrorAction SilentlyContinue)
-        $KnownCatalystStages = @('PREFLIGHT','WORKTREE','CLEAN','HEAD','REMOTE',
-            'TARGET_ABSENT','LFS','REPORT_FILE','REPORT_PARSE','REPORT_FILTER',
-            'REPORT_ACCEPTED','COMMANDLET_STARTED','COMMANDLET_FAILED',
-            'COMMANDLET_COMPLETED','FILESET','ASSET_VERIFIED','COMMIT_CREATED','SUCCESS')
-        if ($CatalystStage -in $KnownCatalystStages) {
-            $Safe.Add('Catalyseur : phase ' + $CatalystStage)
-        }
-        else {
-            $Safe.Add('Catalyseur : phase inconnue')
-        }
-    }
     if ($Safe.Count -eq 0) {
         $Safe.Add('Pas de diagnostic public fiable ; seuls les journaux locaux sont exhaustifs.')
     }
     return @($Safe | Select-Object -First 20)
 }
 
-# EFFECTS-ORG01.1: publish only vetted project package references from
-# the read-only Asset Registry CSV. Local logs and licensed vendor paths stay private.
-function Publish-EffectsInventoryIssue {
-    param([string]$Sha, [string]$WorktreePath, [datetime]$NotBeforeUtc)
-
-    # Exactly this inventory milestone, never unrelated builds.
-    $Subject = @(& git -C $WorktreePath log -1 '--format=%s')
-    if ($LASTEXITCODE -ne 0 -or $Subject.Count -ne 1 -or
-        $Subject[0] -notmatch '^EFFECTS-ORG01[.]1:') { return }
-
-    $CsvPath = Join-Path $WorktreePath 'Saved\Audits\EFFECTS-ORG01\EffectsAssetRegistry.csv'
-    if (-not (Test-Path -LiteralPath $CsvPath -PathType Leaf)) { return }
-    $File = Get-Item -LiteralPath $CsvPath
-    if ($File.Length -gt 1048576 -or $File.LastWriteTimeUtc -lt $NotBeforeUtc) {
-        Write-Warning '[EFFECTS-ORG01.1] Rapport manquant, obsolete ou trop volumineux.'
-        return
-    }
-
-    $Rows = @(Import-Csv -LiteralPath $CsvPath -Encoding UTF8)
-    if ($Rows.Count -lt 10 -or $Rows.Count -gt 200) {
-        Write-Warning '[EFFECTS-ORG01.1] Cardinalite inattendue.'
-        return
-    }
-
-    # Only this fixed package namespace, no vendor, absolute local path or free text.
-    $Pattern = '^/Game/GrimrockPrototype/[A-Za-z0-9_/-]+$'
-    $Body = New-Object 'System.Collections.Generic.List[string]'
-    $Body.Add('# EFFECTS-ORG01.1 - Asset Registry')
-    $Body.Add('')
-    $Body.Add("- Commit : $Sha")
-    $Body.Add('- Resultat du test UE 5.5.4 en lecture seule.')
-    $Body.Add('- Chemins autorises exclusivement : /Game/GrimrockPrototype/.')
-    $Body.Add('- Les chemins Windows, packs tiers, journaux et valeurs inconnues ne sont pas publies.')
-    $Body.Add('- Zero referent dans AssetRegistry ne prouve pas qu un asset est inutilise.')
-    $Body.Add('')
-    $Body.Add('| Package | Referents internes | Dependances internes |')
-    $Body.Add('|---|---|---|')
-    $Count = 0
-
-    foreach ($Row in $Rows) {
-        $Package = [string]$Row.Package
-        if ($Package.Length -gt 240 -or $Package -cnotmatch $Pattern) { continue }
-        $Refs = New-Object 'System.Collections.Generic.List[string]'
-        $Deps = New-Object 'System.Collections.Generic.List[string]'
-        foreach ($Name in @(([string]$Row.Referencers) -split ';\s*')) {
-            if ($Name.Length -le 240 -and $Name -cmatch $Pattern -and $Refs.Count -lt 12) {
-                $Refs.Add($Name)
-            }
-        }
-        foreach ($Name in @(([string]$Row.Dependencies) -split ';\s*')) {
-            if ($Name.Length -le 240 -and $Name -cmatch $Pattern -and $Deps.Count -lt 12) {
-                $Deps.Add($Name)
-            }
-        }
-        $Body.Add("| $Package | $($Refs -join ', ') | $($Deps -join ', ') |")
-        ++$Count
-    }
-    if ($Count -lt 10) {
-        Write-Warning '[EFFECTS-ORG01.1] Aucun inventaire publiable.'
-        return
-    }
-    $Body.Add('')
-    $Body.Add("Packages publics controles : $Count")
-    $Body.Add('Le graphe complet des assets reste dans le rapport local Windows.')
-
-    $Path = Join-Path $StateRoot ("effects-org01-" + $Sha.Substring(0,12) + ".md")
-    $Body | Set-Content -LiteralPath $Path -Encoding UTF8
-    $Title = "[EFFECTS-ORG01.1] Inventaire AssetRegistry " + $Sha.Substring(0,12)
-    & gh issue create --repo $GitHubRepository --title $Title --body-file $Path | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning '[EFFECTS-ORG01.1] Publication issue impossible ; rapport reste local.'
-    }
-}
-
-
-
-# 5G.87: only tracked project-package names and fixed field classifications.
-function Publish-InstanceCacheEvidence {
-    param([string]$Sha,[string]$WorktreePath,[string]$ReportRoot,[datetime]$NotBeforeUtc)
-    $Head=@(& git -C $WorktreePath rev-parse HEAD)
-    if ($LASTEXITCODE -ne 0 -or $Head.Count -ne 1 -or $Head[0] -cne $Sha) { throw 'Wrong evidence HEAD.' }
-    $Sessions=@(Get-ChildItem -LiteralPath $ReportRoot -Directory -Filter 'TD04-*')
-    if ($Sessions.Count -ne 1) { throw 'Unexpected evidence directory count.' }
-    $Path=Join-Path $Sessions[0].FullName 'InstanceCacheBlueprintEvidence.json'
-    $File=Get-Item -LiteralPath $Path -ErrorAction Stop
-    if ($File.Length -gt 1048576 -or $File.LastWriteTimeUtc -lt $NotBeforeUtc) { throw 'Stale or oversized evidence.' }
-    $Report=Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($Report.schema -ne 1 -or $Report.blueprints_scanned -le 0 -or $Report.blueprints_scanned -gt 100000 -or @($Report.rows).Count -gt 20000) { throw 'Invalid evidence envelope.' }
-    $Counts=@{}; $Withheld=0; $Tracked=@{}
-    foreach ($Row in @($Report.rows)) {
-        $Package=[string]$Row.package
-        $Field=[string]$Row.field
-        $Kind=[string]$Row.kind
-        if ($Field -cnotin @('DisplayName','Weight') -or $Kind -cnotin @('Connected','AuthoredDefault','Surface')) { throw 'Invalid evidence row.' }
-        if ($Package.Length -gt 240 -or $Package -cnotmatch '^/Game/GrimrockPrototype/[A-Za-z0-9_/]+$') { ++$Withheld; continue }
-        if (-not $Tracked.ContainsKey($Package)) {
-            $Relative='Content/'+$Package.Substring(6)+'.uasset'
-            $null=& git -C $WorktreePath ls-files --error-unmatch -- $Relative 2>$null
-            $Tracked[$Package]=($LASTEXITCODE -eq 0)
-        }
-        if (-not $Tracked[$Package]) { ++$Withheld; continue }
-        $Key="$Package|$Field|$Kind"
-        if (-not $Counts.ContainsKey($Key)) { $Counts[$Key]=0 }
-        ++$Counts[$Key]
-    }
-    $Body=New-Object 'System.Collections.Generic.List[string]'
-    $Body.Add('# ARM-CLEAN06.5G.87 - Inventaire des pins de cache')
-    $Body.Add('')
-    $Body.Add("- Commit : $Sha")
-    $Body.Add("- Blueprints analyses : $([int]$Report.blueprints_scanned)")
-    $Body.Add("- Pins observes : $(@($Report.rows).Count)")
-    $Body.Add("- Pins hors perimetre publiable : $Withheld")
-    $Body.Add('')
-    $Body.Add('| Package versionne | Champ | Usage | Nombre |')
-    $Body.Add('|---|---|---|---:|')
-    foreach ($Key in @($Counts.Keys | Sort-Object)) {
-        $Parts=$Key.Split('|')
-        $Body.Add("| $($Parts[0]) | $($Parts[1]) | $($Parts[2]) | $($Counts[$Key]) |")
-    }
-    $Body.Add('')
-    $Body.Add('Graphes seulement : bindings indirects, valeurs CDO et assets serialises restent a verifier. Pas une autorisation de retrait.')
-    $BodyPath=Join-Path $ReportRoot 'instance-cache-evidence-public.md'
-    $Body | Set-Content -LiteralPath $BodyPath -Encoding UTF8
-    & gh issue create --repo $GitHubRepository --title ('[ARM-CLEAN06.5G.87] Pins de cache '+$Sha.Substring(0,12)) --body-file $BodyPath | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw 'Evidence publication failed.' }
-}
-
-# A native cutover has an independent post-write validation. Publish only
-# structured metadata from that exact run, not ordinary validation results
-# and never arbitrary native messages, local paths, saved games or log lines.
 function Publish-FailureIssue {
     param([string]$Sha, [int]$ValidationExitCode, [string]$RunLogPath, [string]$ReportRoot)
     $ShortSha = $Sha.Substring(0, 12)
@@ -629,7 +422,7 @@ function Publish-FailureIssue {
 ## Validation automatique UE 5.5.4
 
 - Commit : $Sha
-- Suite : $AutomationFilter
+- Suite : $PublicFilter
 - Etat : ECHEC
 - Code de sortie UE : $ValidationExitCode
 - Les journaux complets restent prives sur la machine Windows.
@@ -646,6 +439,9 @@ Aucune ligne brute des journaux, aucun chemin absolu ni message libre ne sont pu
     else { Write-Host "Issue de diagnostic : $($Issue -join ' ')" }
 }
 
+$PublicFilter = if ($AutomationFilter -cmatch '^Grimrock(?:\.[A-Za-z0-9_]+)*(?:\+Grimrock(?:\.[A-Za-z0-9_]+)*)*$' -and
+    $AutomationFilter.Length -le 100) { $AutomationFilter } else { 'filtre local' }
+
 $Mutex = [System.Threading.Mutex]::new($false, 'Local\GrimrockPrototypeUEValidationAgent')
 $HasMutex = $false
 $TranscriptStarted = $false
@@ -657,6 +453,38 @@ try {
         return
     }
 
+    $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
+    if ([string]::IsNullOrWhiteSpace($WorktreePath)) {
+        $WorktreePath = Join-Path (Split-Path -Parent $RepositoryRoot) 'GrimrockPrototype_UEValidation'
+    }
+    $WorktreePath = [IO.Path]::GetFullPath($WorktreePath)
+    $UserRoot = $RepositoryRoot.TrimEnd('\')
+    $ValidationRoot = $WorktreePath.TrimEnd('\')
+    if ($ValidationRoot -ieq $UserRoot -or
+        $ValidationRoot.StartsWith($UserRoot + '\', [StringComparison]::OrdinalIgnoreCase) -or
+        $UserRoot.StartsWith($ValidationRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Le worktree de validation doit etre hors du checkout utilisateur.'
+    }
+    $StateRoot = [IO.Path]::GetFullPath($StateRoot).TrimEnd('\')
+    foreach ($Root in @($UserRoot, $ValidationRoot)) {
+        if ($StateRoot -ieq $Root -or $StateRoot.StartsWith($Root + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Les journaux et fichiers de l agent doivent etre hors des checkouts.'
+        }
+    }
+    foreach ($Root in @($UserRoot, $ValidationRoot, $StateRoot)) {
+        for ($Directory = [IO.DirectoryInfo]::new($Root); $null -ne $Directory; $Directory = $Directory.Parent) {
+            if (Test-Path -LiteralPath $Directory.FullName) {
+                $Item = Get-Item -LiteralPath $Directory.FullName -Force
+                if (-not $Item.PSIsContainer -or ($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw 'Repertoire de validation non ordinaire : verification du chemin impossible.'
+                }
+            }
+        }
+    }
+    if ($GitHubRepository -cne 'PhilippeMartin1964/GrimrockPrototype') {
+        throw 'Depot GitHub des statuts inattendu.'
+    }
+
     # Transcript de l'agent des le preflight, meme si git/gh/UE echoue avant les tests.
     New-Item -ItemType Directory -Force -Path $StateRoot | Out-Null
     try {
@@ -665,16 +493,6 @@ try {
     }
     catch { Write-Warning "Transcript indisponible : $($_.Exception.Message)" }
 
-    $RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
-    if ([string]::IsNullOrWhiteSpace($WorktreePath)) {
-        $WorktreePath = Join-Path (Split-Path -Parent $RepositoryRoot) 'GrimrockPrototype_UEValidation'
-    }
-    $WorktreePath = [IO.Path]::GetFullPath($WorktreePath)
-    $UserRoot = $RepositoryRoot.TrimEnd('\')
-    $ValidationRoot = $WorktreePath.TrimEnd('\')
-    if ($ValidationRoot -ieq $UserRoot -or $ValidationRoot.StartsWith($UserRoot + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'Le worktree de validation doit etre hors du checkout utilisateur.'
-    }
     if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot '.git'))) {
         throw "Ce repertoire n'est pas le checkout Git de GrimrockPrototype : $RepositoryRoot"
     }
@@ -703,6 +521,10 @@ try {
     Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'fetch', '--no-tags', 'origin', 'master') | Out-Null
     $Sha = (Invoke-Checked -Executable 'git' -Arguments @('-C', $RepositoryRoot, 'rev-parse', 'refs/remotes/origin/master') | Select-Object -First 1).ToString().Trim()
     if ($Sha -notmatch '^[0-9a-f]{40}$') { throw "SHA Git invalide : $Sha" }
+    $AgentFile = [IO.Path]::GetFileName($PSCommandPath)
+    if ($AgentFile -match '^UEValidationAgent-([0-9a-f]{40})[.]ps1$' -and $Matches[1] -cne $Sha) {
+        throw 'origin/master a change depuis le bootstrap. Le prochain cycle chargera le nouvel agent.'
+    }
     # VALIDATION-AUTO01.11: the already-scheduled agent migrates its OWN task.
     # Fetch the helper from this exact remote SHA; never require a local git pull.
     # Run before the cached-commit fast path so a failed migration can recover.
@@ -765,10 +587,10 @@ try {
     $ReportRoot = Join-Path $RunDir 'Automation'
 
     try {
-        Publish-CommitStatus -Sha $Sha -State 'pending' -Description "Validation Windows en cours : $AutomationFilter"
+        Publish-CommitStatus -Sha $Sha -State 'pending' -Description "Validation Windows en cours : $PublicFilter"
 
         if (Test-Path -LiteralPath $WorktreePath) {
-            if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git'))) {
+            if (-not (Test-Path -LiteralPath (Join-Path $WorktreePath '.git') -PathType Leaf)) {
                 throw "Repertoire de validation non vide / non gere : $WorktreePath. Aucune suppression automatique."
             }
             # Verifier l'appartenance au depot de depart, pas seulement le chemin.
@@ -785,116 +607,12 @@ try {
             if ([IO.Path]::GetFullPath($ActualRoot).TrimEnd('\') -ine $WorktreePath.TrimEnd('\')) {
                 throw "Worktree d'origine differente : $ActualRoot"
             }
+            $Branch = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'branch', '--show-current'))
+            if ($Branch.Count -ne 0) { throw 'Worktree doit etre detache avant validation.' }
             $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
 
-            # ARMEMENT01.17.2C: a failed native commandlet may leave a partial
-            # asset batch. Recover ONLY its five known new binaries and the one
-            # dedicated catalyst item, in the isolated validation worktree.
-            # Create SHA256-verified private backups BEFORE restoring/deleting.
-            $CatalystItem = 'Content/GrimrockPrototype/Core/DataAssets/Items/DA_Item_SurfaceCatalyst_01.uasset'
-            $CatalystNew = @(
-                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Flask.uasset',
-                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_Ember.uasset',
-                'Content/GrimrockPrototype/Art/Materials/Catalyst/M_SurfaceCatalyst_RunePulse.uasset',
-                'Content/GrimrockPrototype/Art/Meshes/Catalyst/SM_SurfaceCatalyst_01.uasset',
-                'Content/GrimrockPrototype/Art/Textures/Catalyst/T_UI_Item_SurfaceCatalyst_01.uasset'
-            )
-            if ($Dirty.Count -gt 0) {
-                $OnlyCatalystArtifacts = $true
-                foreach ($Entry in $Dirty) {
-                    if ($Entry.Length -lt 4) { $OnlyCatalystArtifacts = $false; break }
-                    $Path = $Entry.Substring(3)
-                    if (-not (($Entry.StartsWith('?? ') -and $Path -cin $CatalystNew) -or
-                              ($Entry.StartsWith(' M ') -and $Path -ceq $CatalystItem))) {
-                        $OnlyCatalystArtifacts = $false; break
-                    }
-                }
-                if ($OnlyCatalystArtifacts) {
-                    $OldHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))[0].Trim()
-                    if ($OldHead -notmatch '^[a-f0-9]{40}$') { throw 'Catalyst recovery: invalid old head.' }
-                    $BackupRoot = Join-Path $StateRoot ('Recovery\Catalyst-' + $OldHead.Substring(0,12) +
-                        '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
-                    New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
-                    foreach ($Entry in $Dirty) {
-                        $Path = $Entry.Substring(3)
-                        $Original = Join-Path $WorktreePath $Path
-                        $Backup = Join-Path $BackupRoot ([IO.Path]::GetFileName($Path))
-                        if (-not (Test-Path -LiteralPath $Original -PathType Leaf)) {
-                            throw 'Catalyst recovery: expected file missing.'
-                        }
-                        Copy-Item -LiteralPath $Original -Destination $Backup -ErrorAction Stop
-                        if ((Get-FileHash -LiteralPath $Original -Algorithm SHA256).Hash -ne
-                            (Get-FileHash -LiteralPath $Backup -Algorithm SHA256).Hash) {
-                            throw 'Catalyst recovery: backup integrity failed.'
-                        }
-                    }
-                    foreach ($Entry in $Dirty) {
-                        $Path = $Entry.Substring(3)
-                        if ($Entry.StartsWith('?? ')) {
-                            Remove-Item -LiteralPath (Join-Path $WorktreePath $Path) -Force -ErrorAction Stop
-                        }
-                        else {
-                            Invoke-Checked -Executable 'git' -Arguments @(
-                                '-C', $WorktreePath, 'restore', '--source=HEAD', '--worktree', '--', $CatalystItem) | Out-Null
-                        }
-                    }
-                    $Dirty = @(Invoke-Checked -Executable 'git' -Arguments @(
-                        '-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=normal'))
-                    if ($Dirty.Count -gt 0) { throw 'Catalyst recovery: unexpected residual modifications.' }
-                    Write-Host '[VALIDATION-AUTO01] Catalyst native partial assets preserved in Recovery and worktree restored.'
-                }
-            }
-            if ($Dirty.Count -gt 0) {
-                # Récupération spécifique : un commandlet précédent peut avoir
-                # réécrit M_Surface_Oil avant que son commit n'ait été accepté.
-                # Ne JAMAIS restaurer un fichier inattendu ou non sauvegardé.
-                $AllowedOilAssets = @(
-                    'Content/GrimrockPrototype/Art/Materials/Surfaces/M_Surface_Oil.uasset',
-                    'Content/GrimrockPrototype/Art/Materials/Surfaces/MI_Surface_Oil.uasset'
-                )
-                $DirtyOilPaths = @()
-                foreach ($Entry in $Dirty) {
-                    if (-not $Entry.StartsWith(' M ') -or $Entry.Length -le 3) {
-                        throw 'Worktree de validation modifie (index ou statut non autorise) : protection active.'
-                    }
-                    $Path = $Entry.Substring(3)
-                    if ($Path -notin $AllowedOilAssets) {
-                        throw 'Worktree de validation modifie (fichier hors liste blanche) : protection active.'
-                    }
-                    $DirtyOilPaths += $Path
-                }
-                if ($DirtyOilPaths.Count -lt 1 -or $DirtyOilPaths.Count -gt 2) {
-                    throw 'Worktree de validation modifie : nombre de fichiers inattendu.'
-                }
-                $OldHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))[0].Trim()
-                if ($OldHead -notmatch '^[0-9a-f]{40}$') {
-                    throw 'Revision du worktree invalide : sauvegarde non tentee.'
-                }
-                $BackupRoot = Join-Path $StateRoot ('Recovery\Oil-' + $OldHead.Substring(0,12) + '-' + (Get-Date -Format 'yyyyMMddHHmmssfff'))
-                New-Item -ItemType Directory -Path $BackupRoot -Force | Out-Null
-                foreach ($OilPath in $DirtyOilPaths) {
-                    $Source = Join-Path $WorktreePath $OilPath
-                    $Destination = Join-Path $BackupRoot ([IO.Path]::GetFileName($OilPath))
-                    if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) {
-                        throw 'Asset d huile absent : restauration refusee.'
-                    }
-                    Copy-Item -LiteralPath $Source -Destination $Destination -ErrorAction Stop
-                    $SourceHash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
-                    $BackupHash = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash
-                    if ($SourceHash -ne $BackupHash) {
-                        throw 'Sauvegarde huile non integre : restauration refusee.'
-                    }
-                }
-                # Restore est limite AUX DEUX assets autorises, dans le seul
-                # worktree temporaire. Les copies exactes demeurent privées.
-                Invoke-Checked -Executable 'git' -Arguments (@('-C', $WorktreePath,
-                    'restore', '--source=HEAD', '--worktree', '--') + $DirtyOilPaths) | Out-Null
-                $AfterRestore = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath,
-                    'status', '--porcelain', '--untracked-files=normal'))
-                if ($AfterRestore.Count -gt 0) {
-                    throw 'Worktree toujours modifie apres sauvegarde des assets huile ; abandon.'
-                }
-                Write-Host '[VALIDATION-AUTO01] Assets d huile preserves dans Recovery, worktree restaure pour la prochaine validation.'
+            if ($Dirty.Count -ne 0) {
+                throw 'Worktree de validation modifie : aucune restauration automatique.'
             }
             Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'checkout', '--detach', $Sha) | Out-Null
         }
@@ -951,178 +669,27 @@ try {
         $ValidateArguments += ' -BuildShipping'
         if ($UseRHI) { $ValidateArguments += ' -UseRHI' }
         $RunStderrLog = Join-Path $RunDir 'Agent.stderr.log'
-        $EffectsInventoryStartUtc = [DateTime]::UtcNow.AddSeconds(-5)
         $Process = Start-Process -FilePath $PsExe -ArgumentList $ValidateArguments -WorkingDirectory $WorktreePath `
             -RedirectStandardOutput $RunLog -RedirectStandardError $RunStderrLog -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
         $ExitCode = $Process.ExitCode
         $Result = 'failure'
 
         if ($ExitCode -ne 0) { throw "ValidateUE.ps1 a retourne le code $ExitCode. Voir $RunLog et $RunStderrLog." }
+        $StageFile = Join-Path $ReportRoot 'Validation.stage'
+        if (-not (Test-Path -LiteralPath $StageFile -PathType Leaf) -or
+            (Get-Content -LiteralPath $StageFile -Raw).Trim() -cne 'SUCCESS') {
+            throw 'ValidateUE.ps1 n a pas confirme la fin de toutes les validations.'
+        }
+        $FinalHead = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'rev-parse', 'HEAD'))
+        if ($FinalHead.Count -ne 1 -or $FinalHead[0] -cne $Sha) {
+            throw 'Le SHA du worktree a change pendant la validation.'
+        }
+        $FinalChanges = @(Invoke-Checked -Executable 'git' -Arguments @('-C', $WorktreePath, 'status', '--porcelain', '--untracked-files=all'))
+        if ($FinalChanges.Count -ne 0) {
+            throw 'Worktree de validation modifie pendant les tests : validation refusee.'
+        }
         $Phase = 'publication'
-        Publish-CommitStatus -Sha $Sha -State 'success' -Description "Editor + Shipping + Automation OK ($AutomationFilter)"
-
-        try {
-            Publish-EffectsInventoryIssue -Sha $Sha -WorktreePath $WorktreePath -NotBeforeUtc $EffectsInventoryStartUtc
-        }
-        catch {
-            Write-Warning '[EFFECTS-ORG01.1] La publication du rapport est non bloquante.'
-        }
-
-        # One-shot graph metadata evidence. Not a schema retirement gate.
-        $EvidenceSubject=@(& git -C $WorktreePath log -1 '--format=%s')
-        if ($LASTEXITCODE -eq 0 -and $EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]87:') {
-            try {
-                Publish-InstanceCacheEvidence -Sha $Sha -WorktreePath $WorktreePath -ReportRoot $ReportRoot -NotBeforeUtc $EffectsInventoryStartUtc
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context 'UE5.5.4/ARM-CLEAN06.5G87' -Description 'Tracked Blueprint cache pin evidence published'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context 'UE5.5.4/ARM-CLEAN06.5G87' -Description 'Blueprint cache evidence unavailable'
-            }
-        }
-
-        if ($LASTEXITCODE -eq 0 -and $EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]88:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G88'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Read-only instance cache evidence'
-                $CacheRun=Join-Path $RunDir 'InstanceCacheEvidence'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence
-                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'cache-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                if ($Receipt.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Receipt.head -cne $Sha -or -not $Receipt.source_unchanged -or -not $Receipt.copies_unchanged -or $Receipt.parity -isnot [bool]) { throw 'Invalid private evidence receipt.' }
-                $ParityState=if ($Receipt.parity) { 'success' } else { 'failure' }
-                Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Cache redundancy and normalized memory roundtrip gate'
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private evidence completed; original saves unchanged'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private evidence refused; no original slot modified'
-            }
-        }
-
-        if ($LASTEXITCODE -eq 0 -and $EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]89:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G89'
-            try {
-                $Diagnostic=& (Join-Path $WorktreePath 'Scripts\GetARM_CLEAN06_5G89_CacheRefusal.ps1') -StateRoot $StateRoot -WorktreePath $WorktreePath -ExpectedHead $Sha
-                foreach ($Category in @('NameConflict','WeightConflict','InvalidIdentity','NormalizedRoundtrip')) {
-                    if ($Diagnostic.$Category -isnot [bool]) { throw 'Invalid diagnostic category.' }
-                    $CategoryState=if ($Diagnostic.$Category) {'failure'} else {'success'}
-                    Publish-CommitStatus -Sha $Sha -State $CategoryState -Context ($Context+'.'+$Category) -Description 'Fixed refusal category only; failure means detected'
-                }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private baseline refusal classified'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private baseline diagnosis unavailable'
-            }
-        }
-
-        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]90:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G90'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Private historical weight provenance'
-                $CacheRun=Join-Path $RunDir 'WeightCacheEvidence'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -WeightCacheEvidence
-                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'cache-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                if ($Receipt.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Receipt.head -cne $Sha -or -not $Receipt.source_unchanged -or -not $Receipt.copies_unchanged -or -not $Receipt.weight_evidence -or $Receipt.parity -isnot [bool] -or $Receipt.unexplained_weight -isnot [bool]) { throw 'Invalid private weight receipt.' }
-                $ParityState=if ($Receipt.parity) {'success'} else {'failure'}
-                $WeightState=if ($Receipt.unexplained_weight) {'failure'} else {'success'}
-                Publish-CommitStatus -Sha $Sha -State $WeightState -Context ($Context+'.WeightProvenance') -Description 'All divergent weights explained by source or rounding'
-                Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Normalized memory parity; no live writes'
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private evidence completed; original saves unchanged'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private evidence refused; no original slot modified'
-            }
-        }
-
-        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.](91|92):') {
-            $SchemaBaseline=$Matches[1] -eq '92'
-            $Context='UE5.5.4/ARM-CLEAN06.5G'+$Matches[1]
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Private functional cache invariance'
-                $CacheRun=Join-Path $RunDir 'SemanticCacheEvidence'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence -InstanceSchemaProjection:$SchemaBaseline
-                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'cache-proof.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                if ($Receipt.schema -cne 'ARM-CLEAN06.5G88/instance-cache-aggregate/v1' -or $Receipt.head -cne $Sha -or -not $Receipt.source_unchanged -or -not $Receipt.copies_unchanged -or -not $Receipt.semantic_evidence -or $Receipt.parity -isnot [bool] -or $Receipt.semantic_projection_parity -isnot [bool]) { throw 'Invalid private semantic receipt.' }
-                $ParityState=if ($Receipt.parity) {'success'} else {'failure'}
-                if ($SchemaBaseline -and -not $Receipt.instance_schema_projection) { throw 'Missing schema baseline receipt.' }
-                $ProjectionState=if ($Receipt.semantic_projection_parity) {'success'} else {'failure'}
-                Publish-CommitStatus -Sha $Sha -State $ProjectionState -Context ($Context+'.SemanticWeightParity') -Description 'Actual canonical consumer projections unchanged'
-                Publish-CommitStatus -Sha $Sha -State $ParityState -Context ($Context+'.CacheParity') -Description 'Normalized memory parity; no live writes'
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Private evidence completed; original saves unchanged'
-            } catch {
-                # Only fixed diagnostic labels: never publish exception text, paths or archive data.
-                $Reason='UNCLASSIFIED'
-                switch -Exact ($_.Exception.Message) {
-                    'UE or game open; evidence refused.' { $Reason='UE_OPEN' }
-                    'Native preflight failed.' { $Reason='NATIVE_FAILED' }
-                    'Native report JSON decode failed.' { $Reason='REPORT_JSON' }
-                    'Native evidence refused.' { $Reason='REPORT_NATIVE' }
-                    'World pointer retirement preflight refused.' { $Reason='REPORT_WORLD' }
-                    'Missing instance schema projection.' { $Reason='PROJECTION_MODE' }
-                    'Missing durable save fingerprint.' { $Reason='PROJECTION_MISSING' }
-                    'Invalid durable property digest.' { $Reason='PROJECTION_FORMAT' }
-                    'Invalid private semantic receipt.' { $Reason='RECEIPT_INVALID' }
-                    'Missing schema baseline receipt.' { $Reason='RECEIPT_SCHEMA' }
-                    'Source or private copy changed; no retirement authorization.' { $Reason='COPY_CHANGED' }
-                    'Validation checkout dirty.' { $Reason='CHECKOUT_DIRTY' }
-                    'Remote master changed.' { $Reason='HEAD_CHANGED' }
-                }
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context ($Context+'.'+$Reason) -Description 'Fixed private evidence failure category'
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Private evidence refused; no original slot modified'
-            }
-        }
-
-        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]93:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G93'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Exact baseline post-schema replay'
-                $Baseline=@(& git -C $WorktreePath rev-parse HEAD^)
-                if ($LASTEXITCODE -ne 0 -or $Baseline.Count -ne 1) { throw 'Baseline parent unavailable.' }
-                $CacheRun=Join-Path $RunDir 'InstancePostRetirement'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence -InstanceSchemaProjection -AfterInstanceRetirement -BaselineHead $Baseline[0] -AgentStateRoot $StateRoot
-                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                if ($Receipt.schema -cne 'ARM-CLEAN06.5G93/instance-post-retirement-receipt/v1' -or $Receipt.head -cne $Sha -or
-                    $Receipt.baseline_head -cne $Baseline[0] -or -not $Receipt.passed -or -not $Receipt.all_source_bytes_unchanged -or -not $Receipt.all_copies_unchanged) { throw 'Invalid post-schema receipt.' }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Exact private v27 copies; all durable projections identical'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Post-schema evidence refused; no original slot modified'
-            }
-        }
-
-        if ($EvidenceSubject.Count -eq 1 -and $EvidenceSubject[0] -match '^ARM-CLEAN06[.]5G[.]101:') {
-            $Context='UE5.5.4/ARM-CLEAN06.5G101'
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $Context -Description 'Retired schema replay against exact historical baseline'
-                $Baseline=@('201e3fd7fc2b8aa249dca251cba75163614b37b3')
-                $CacheRun=Join-Path $RunDir 'InstancePostRetirement'
-                & (Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot $CacheRun -ExpectedHead $Sha -InstanceCacheEvidence -SemanticCacheEvidence -InstanceSchemaProjection -AfterInstanceRetirement -ReplayRetiredInstanceSchema -BaselineHead $Baseline[0] -AgentStateRoot $StateRoot
-                $Receipt=Get-Content -LiteralPath (Join-Path $CacheRun 'receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-                if ($Receipt.schema -cne 'ARM-CLEAN06.5G93/instance-post-retirement-receipt/v1' -or $Receipt.head -cne $Sha -or
-                    $Receipt.baseline_head -cne $Baseline[0] -or -not $Receipt.passed -or -not $Receipt.all_source_bytes_unchanged -or -not $Receipt.all_copies_unchanged) { throw 'Invalid post-schema receipt.' }
-                Publish-CommitStatus -Sha $Sha -State 'success' -Context $Context -Description 'Exact private v27 copies; all durable projections identical'
-            } catch {
-                Publish-CommitStatus -Sha $Sha -State 'failure' -Context $Context -Description 'Post-schema evidence refused; no original slot modified'
-            }
-        }
-
-        # One-shot read-only save proof. Never publish private rows, paths,
-        # hashes, save names or native log content.
-        $Subject=@(& git -C $WorktreePath log -1 '--format=%s')
-        if ($LASTEXITCODE -eq 0 -and $Subject.Count -eq 1 -and $Subject[0] -match '^ARM-CLEAN06[.]5G[.](85|86):') {
-            $AfterRetirement=$Matches[1] -eq '86'
-            $ProofContext=if ($AfterRetirement) { 'UE5.5.4/ARM-CLEAN06.5G86' } else { 'UE5.5.4/ARM-CLEAN06.5G85' }
-            try {
-                Publish-CommitStatus -Sha $Sha -State 'pending' -Context $ProofContext -Description 'Read-only world save preflight'
-                $Helper=Join-Path $WorktreePath 'Scripts\TestARM_CLEAN06_5G85_WorldSavePreflight.ps1'
-                if ($AfterRetirement) {
-                    $Baseline=@(& git -C $WorktreePath rev-parse HEAD^)
-                    if ($LASTEXITCODE -ne 0 -or $Baseline.Count -ne 1) { throw 'Baseline parent unavailable.' }
-                    & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha -AfterRetirement -BaselineHead $Baseline[0] -AgentStateRoot $StateRoot
-                    Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Exact v27 private copies; same physical projections after removal'
-                } else {
-                    & $Helper -RepositoryRoot $RepositoryRoot -WorktreePath $WorktreePath -EngineRoot $EngineRoot -RunRoot (Join-Path $RunDir 'WorldSavePreflight') -ExpectedHead $Sha
-                    Publish-CommitStatus -Sha $Sha -State 'success' -Context $ProofContext -Description 'Private copies verified; canonical world; zero old pointers'
-                }
-            } catch {
-                Write-Warning '[ARM-CLEAN06.5G85] World save preflight refused; private logs only.'
-                try { Publish-CommitStatus -Sha $Sha -State 'failure' -Context $ProofContext -Description 'Preflight refused; no original save modified by helper' }
-                catch { Write-Warning '[ARM-CLEAN06.5G85] Cannot publish proof status.' }
-            }
-        }
+        Publish-CommitStatus -Sha $Sha -State 'success' -Description "Editor + Shipping + Automation OK ($PublicFilter)"
 
         $Result = 'success'
         Write-Host "[VALIDATION-AUTO01] SUCCES $Sha. Journaux : $RunDir"
@@ -1143,56 +710,13 @@ try {
             else { 'TESTS' }
         }
         try {
-            Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+            Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($PublicFilter)."
             $FailureStatusPublished = $true
         }
         catch { Write-Warning "Impossible de publier le statut d'echec : $($_.Exception.Message)" }
         # Les incidents de recuperation Git/LFS restent reessayables au cycle suivant.
         # Une erreur de compilation/test est definitive pour ce SHA, sans issues multiples.
         if ($Result -eq 'failure') {
-            # One-shot, explicitly allowlisted Skill_Traps repair. This helper
-            # publishes only the single canonical .uasset if the sole failed
-            # test is Skills.ProductionCatalog and master has not moved.
-            $RepairHelper = Join-Path $WorktreePath 'Scripts\RepairCanonicalSkillTraps.ps1'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $RepairHelper -PathType Leaf)) {
-                try {
-                    $RepairOut = Join-Path $RunDir 'SkillTrapsRepair.stdout.log'
-                    $RepairErr = Join-Path $RunDir 'SkillTrapsRepair.stderr.log'
-                    $RepairArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $RepairHelper +
-                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
-                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
-                    $RepairProcess = Start-Process -FilePath $PsExe -ArgumentList $RepairArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $RepairOut -RedirectStandardError $RepairErr -PassThru -Wait -ErrorAction Stop
-                    if ($RepairProcess.ExitCode -eq 0) {
-                        Write-Host '[VALIDATION-AUTO01.7] Repair published: next commit will receive normal full UE validation.'
-                    }
-                    elseif ($RepairProcess.ExitCode -ne 2) {
-                        Write-Warning "Targeted asset repair not completed (code $($RepairProcess.ExitCode)); see private logs."
-                    }
-                }
-                catch { Write-Warning 'Targeted asset repair failed; private logs only.' }
-            }
-            # ARMEMENT01.17.1.4 : authoring des materiaux natifs Unreal, controle par le resultat Automation.
-            $OilHelper = Join-Path $WorktreePath 'Scripts\AuthorOilSurfaceMaterial.ps1'
-            if ($Phase -eq 'testing' -and $ExitCode -ne 0 -and (Test-Path -LiteralPath $OilHelper -PathType Leaf)) {
-                try {
-                    $OilOut = Join-Path $RunDir 'OilMaterialAuthoring.stdout.log'
-                    $OilErr = Join-Path $RunDir 'OilMaterialAuthoring.stderr.log'
-                    $OilArguments = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $OilHelper +
-                        '" -WorktreePath "' + $WorktreePath + '" -EngineRoot "' + $EngineRoot +
-                        '" -ReportRoot "' + $ReportRoot + '" -ExpectedHead "' + $Sha + '"'
-                    $OilProcess = Start-Process -FilePath $PsExe -ArgumentList $OilArguments -WorkingDirectory $WorktreePath -WindowStyle Hidden -RedirectStandardOutput $OilOut -RedirectStandardError $OilErr -PassThru -Wait -ErrorAction Stop
-                    if ($OilProcess.ExitCode -eq 0) {
-                        Write-Host '[ARMEMENT01.17.1.4] Materiaux natifs publies : validation du nouveau commit au prochain cycle.'
-                    }
-                    elseif ($OilProcess.ExitCode -ne 2) {
-                        Write-Warning "Authoring d'huile non termine (code $($OilProcess.ExitCode)). Journaux locaux uniquement."
-                    }
-                }
-                catch { Write-Warning "Authoring automatique d'huile indisponible ; journaux locaux uniquement." }
-            }
-
-            # ARM-CLEAN06.5: no failed Automation test may auto-author an
-            # obsolete catalyst DataAsset. Failures remain diagnostics only.
             try { Publish-FailureIssue -Sha $Sha -ValidationExitCode $ExitCode -RunLogPath $RunLog -ReportRoot $ReportRoot }
             catch { Write-Warning "Impossible de creer l'issue : $($_.Exception.Message)" }
         }
@@ -1203,7 +727,7 @@ try {
             for ($Retry = 0; $Retry -lt 2; $Retry++) {
                 Start-Sleep -Seconds 2
                 try {
-                    Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($AutomationFilter)."
+                    Publish-CommitStatus -Sha $Sha -State 'failure' -Description "Echec $Phase/$PublicCause ($PublicFilter)."
                     $FailureStatusPublished = $true
                     break
                 }

@@ -23,8 +23,7 @@ $Configuration = 'Development'
 function Set-GrimrockValidationStage
 {
     param(
-        [ValidateSet('PREFLIGHT', 'ROLLBACK_FIXTURE', 'ROLLBACK_RESTORE', 'ROLLBACK_NEW_PACKAGE',
-            'ROLLBACK_REFUSALS', 'ROLLBACK_SAVE_REPLACE', 'ROLLBACK_RESULT',
+        [ValidateSet('PREFLIGHT',
             'BUILD_STARTED', 'BUILD_FAILED', 'BUILD_OK',
             'AUTOMATION_STARTED', 'AUTOMATION_PROCESS_EXITED',
             'AUTOMATION_REPORT_MISSING', 'AUTOMATION_REPORT_READING',
@@ -195,35 +194,8 @@ if ($SkipBuild -and $SkipAutomation)
 }
 
 Set-GrimrockValidationStage -Stage 'PREFLIGHT'
-& (Join-Path $PSScriptRoot 'TestARM_CLEAN06_4X66_Rollback.ps1') -Stage { param($Name) Set-GrimrockValidationStage -Stage $Name }
-Set-GrimrockValidationStage -Stage 'PREFLIGHT'
-$RetirementSelfTestGit=(Get-Command git.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$RetirementSelfTestHead=@(& $RetirementSelfTestGit -C $RepoRoot rev-parse HEAD)
-if ($LASTEXITCODE -ne 0 -or $RetirementSelfTestHead.Count -ne 1) { throw 'Cannot determine HEAD for retirement audit self-test.' }
-& (Join-Path $PSScriptRoot 'AuditARM_CLEAN06_5_Retirement.ps1') -ExpectedHead $RetirementSelfTestHead[0] -SelfTest
-& (Join-Path $PSScriptRoot 'PlanARM_CLEAN06_5H12_Retirement.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'PrepareARM_CLEAN06_5H14_IconPaletteSnapshot.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'PreflightARM_CLEAN06_5H15_PaletteContinuity.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'VerifyARM_CLEAN06_5H16_Canary.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'AssertARM_CLEAN06_5H18_ShippingGuards.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'InspectARM_CLEAN06_5H23_HistoricalSources.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'InstallARM_CLEAN06_5B_ReadableSaveCopy.ps1') -SelfTest
-& (Join-Path $PSScriptRoot 'TestARM_CLEAN06_5G85_WorldSavePreflight.ps1') -SelfTest
 Assert-FileExists -Path $ProjectFile -Description 'Projet Unreal'
-
-# ARMEMENT01.17.1.4.SHIPPING01: guard the cook contract in the automatic
-# Windows preflight, without touching any save file or packaged binary.
-$OilCookConfig = Get-Content -LiteralPath (Join-Path $RepoRoot 'Config\DefaultGame.ini') -Raw -Encoding UTF8
-$OilCookRule = '+DirectoriesToAlwaysCook=(Path="/Game/GrimrockPrototype/Art/Materials/Surfaces")'
-if (-not $OilCookConfig.Contains($OilCookRule)) {
-    throw 'Oil decal materials are no longer explicitly included in Shipping cook.'
-}
-foreach ($OilAsset in @('M_Surface_Oil.uasset','MI_Surface_Oil.uasset')) {
-    $OilAssetPath = Join-Path $RepoRoot ('Content\GrimrockPrototype\Art\Materials\Surfaces\' + $OilAsset)
-    Assert-FileExists -Path $OilAssetPath -Description ('Shipping oil decal ' + $OilAsset)
-}
-Write-Host '[OK] Oil decal cook configuration and both source assets.'
-
+& (Join-Path $PSScriptRoot 'TestProjectValidationGuards.ps1')
 
 $ResolvedEngineRoot = Resolve-GrimrockEngineRoot -RequestedRoot $EngineRoot
 $BuildBatch = Join-Path $ResolvedEngineRoot 'Engine\Build\BatchFiles\Build.bat'
@@ -436,10 +408,10 @@ if (-not $SkipAutomation)
         exit 2
     }
 
-    if ($Failed -gt 0)
+    if ($Failed -gt 0 -or $NotRun -gt 0 -or [int]$Report.inProcess -ne 0)
     {
         Set-GrimrockValidationStage -Stage 'AUTOMATION_TESTS_FAILED'
-        Write-Error "$Failed test(s) Automation en echec. Resume : $AutomationSummaryPath"
+        Write-Error "Suite Automation incomplete ou en echec ($Failed echecs, $NotRun non executes). Resume : $AutomationSummaryPath"
         exit 3
     }
 

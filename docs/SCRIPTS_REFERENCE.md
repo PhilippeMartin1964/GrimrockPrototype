@@ -1,17 +1,6 @@
 # Référence des scripts PowerShell du prototype
 
-Audit initial du **21 septembre 2026**, mis à jour le **12 octobre 2026** pour UI-RPG-VISUAL01.4. Cette référence décrit les fichiers versionnés dans `Scripts/`, correspondant à `D:\Development\GrimrockPrototype\Scripts` après synchronisation du dépôt. Les éventuels scripts locaux non versionnés ne font pas partie de cet audit.
-
-## Résultat de l’audit documentaire
-
-Il existait des explications utiles, mais **pas de référence complète et centralisée des scripts de développement**. Les guides TD04.2, TD04.3, TD07.1, STYLE01 et MIG08 documentaient leurs jalons respectifs. Il manquait notamment un inventaire actuel, des tableaux exhaustifs des paramètres, un dépannage commun et une distinction explicite entre outils courants et migration historique.
-
-L’audit initial a lu les scripts de base et cette référence est ensuite maintenue avec les lanceurs versionnés ajoutés au projet. Il révèle deux limites à connaître :
-
-- `MigrateWorldObjectAssets.ps1` existe encore, mais le commandlet `GridWorldObjectMIG08` qu’il appelle n’existe plus dans le code source courant. Ce lanceur ne constitue donc pas une procédure utilisable sur un build propre de cette révision.
-- Certains codes d’échec annoncés dans les anciens guides ne sont pas garantis : plusieurs branches appellent `Write-Error` avec `$ErrorActionPreference = 'Stop'` avant leur instruction `exit`. Voir [résultats et codes de sortie](#resultats-et-codes-de-sortie).
-
-La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`, qui orchestre des validations existantes sans réenregistrer les Data Assets.
+Référence opérationnelle révisée pendant CLEANUP06. Les scripts versionnés se trouvent dans `Scripts/`. L’inventaire d’origine et le détail des retraits figurent dans la [consolidation](Technical/Consolidation.md).
 
 ## Sommaire
 
@@ -23,7 +12,7 @@ La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`
 - [ValidateUIRPGVisual.ps1](#validateuirpgvisualps1)
 - [ValidatePackage.ps1](#validatepackageps1)
 - [CheckCppFormat.ps1 et FormatCpp.ps1](#checkcppformatps1-et-formatcppps1)
-- [MigrateWorldObjectAssets.ps1](#migrateworldobjectassetsps1)
+- [Contrôles spécialisés et historique](#controles-specialises)
 - [Résultats et codes de sortie](#resultats-et-codes-de-sortie)
 - [Procédures usuelles](#procedures-usuelles)
 - [Dépannage](#depannage)
@@ -41,7 +30,6 @@ La mise à jour UI-RPG-VISUAL01.4 documente également `ValidateUIRPGVisual.ps1`
 | `ValidatePackage.ps1` | Produire le jeu Win64, en Shipping par défaut | Produits de build/cook/stage et archive complète du jeu |
 | `CheckCppFormat.ps1` | Contrôler la conformité à `.clang-format` | Lecture seule des sources |
 | `FormatCpp.ps1` | Appliquer `.clang-format` | Réécriture en place de tous les fichiers C++ admissibles, pas seulement des fichiers modifiés dans Git |
-| `MigrateWorldObjectAssets.ps1` | Ancien lanceur WORLDOBJ-MIG08 | Historique, indisponible avec le code courant ; ancien mode `-Apply` destiné à réenregistrer des assets |
 
 Ce dossier contient des outils de développement Windows. Il ne correspond pas aux scripts Lua de gameplay et n’a pas à être copié à côté de l’exécutable distribué.
 
@@ -65,13 +53,13 @@ Prérequis selon l’opération :
 - build, Automation et packaging : installation UE **5.5.4**, outils de compilation C++/Windows SDK compatibles avec cet environnement, sources et contenu du projet disponibles ;
 - contrôle des dépendances : installation UE et `.uproject` disponibles ; pas de compilation effectuée ;
 - formatage : **clang-format 19.1.5 standalone**, installé par défaut sous `C:\Program Files\LLVM\bin\clang-format.exe`, `.clang-format` du dépôt et les trois dossiers `Source/GrimrockPrototype`, `Source/GrimrockPrototypeEditor`, `Source/GrimrockLua` ; UE n’est pas nécessaire ;
-- Git : nécessaire aux commandes de suivi proposées ici ; le lanceur de migration l’appelle aussi après `-Apply`.
+- Git, Git LFS et GitHub CLI : nécessaires à la validation Windows automatique. L’agent sélectionne le SDK complet et utilise la toolchain MSVC 14.44.35207 configurée pour UE 5.5.4.
 
 Les scripts ne vérifient pas eux-mêmes le numéro exact de version d’Unreal. Ils ne sélectionnent pas une version de Visual Studio pour UBT. Voir le [guide d’environnement](Design/DEVELOPMENT_ENVIRONMENT_SETUP.md) pour la toolchain validée. Depuis TOOLCHAIN01, la détection de **clang-format** est indépendante de Visual Studio et privilégie l'installation LLVM standalone 19.1.5.
 
 Avant une compilation complète ou un packaging, fermer l’éditeur et les sessions de jeu utilisant les binaires concernés, et attendre la fin des autres compilations. Cela évite les verrouillages de DLL et les conflits avec Live Coding.
 
-Les options `[switch]` s’écrivent simplement `-SkipBuild`, sans ajouter `true`. Dans les exemples multilignes, le caractère de continuation PowerShell est l’accent grave `` ` `` et doit être le **dernier caractère de la ligne**, sans espace après. Aucun des six scripts ne contient actuellement une aide détaillée intégrée de type `Get-Help -Full` ; ce guide fournit leur mode d’emploi.
+Les options `[switch]` s’écrivent simplement `-SkipBuild`, sans ajouter `true`. Dans les exemples multilignes, le caractère de continuation PowerShell est l’accent grave `` ` `` et doit être le **dernier caractère de la ligne**, sans espace après. Le guide fournit les commandes courantes.
 
 <a id="checkprojectdependenciesps1"></a>
 ## CheckProjectDependencies.ps1
@@ -105,11 +93,12 @@ Le succès se termine par `[OK] Project dependency contract validated.` et `exit
 | `-AutomationFilter` | chaîne | Aucun | Nom ou préfixe de tests ; obligatoire sauf avec `-SkipAutomation` |
 | `-ReportRoot` | chaîne | `<Repo>\Saved\Automation\TD04` | Dossier parent des rapports ; un sous-dossier horodaté est ajouté |
 | `-SkipBuild` | switch | Désactivé | Ne recompile pas ; utilise les binaires Editor déjà disponibles |
-| `-SkipAutomation` | switch | Désactivé | Compile seulement ; aucun rapport Automation créé |
+| `-SkipAutomation` | switch | Désactivé | Compile seulement. Aucun rapport Automation créé |
+| `-BuildShipping` | switch | Désactivé | Compile également le runtime Shipping. Sans Cook/Stage/Package |
 | `-UseRHI` | switch | Désactivé | Omet `-NullRHI` pour les tests nécessitant un rendu réel |
 | `-ShowAutomationOutput` | switch | Désactivé | Affiche la sortie Unreal en direct au lieu de la rediriger dans `Automation.console.log` |
 
-`-SkipBuild` et `-SkipAutomation` sont incompatibles ensemble. `-ReportRoot`, `-UseRHI` et `-ShowAutomationOutput` n’interviennent que dans l’étape Automation. La cible `GrimrockPrototypeEditor`, la plateforme `Win64` et la configuration `Development` sont fixes.
+`-SkipBuild` et `-SkipAutomation` sont incompatibles ensemble. `-ReportRoot` reçoit le fichier `Validation.stage` dès le préflight. `-UseRHI` et `-ShowAutomationOutput` concernent Automation. La cible `GrimrockPrototypeEditor`, la plateforme `Win64` et la configuration `Development` sont fixes.
 
 Le script exige le `.uproject`, `Engine\Build\BatchFiles\Build.bat` et `Engine\Binaries\Win64\UnrealEditor-Cmd.exe`, **même si une des deux étapes est ignorée**. Le contrôle du filtre intervient après la compilation : un appel sans filtre ni `-SkipAutomation` peut compiler avant de signaler l’oubli.
 
@@ -301,30 +290,23 @@ git diff --check
 
 Son message final est `Formatage C++ termine.` ; contrairement au contrôleur, il n’a pas d’instruction finale `exit 0`. Une exécution normale dans un processus PowerShell dédié se termine avec succès. Les deux scripts ne génèrent pas de rapport fichier.
 
-<a id="migrateworldobjectassetsps1"></a>
-## MigrateWorldObjectAssets.ps1
+<a id="controles-specialises"></a>
+## Contrôles spécialisés et historique
 
-**Statut : historique, non opérationnel sur un build propre du code audité.**
+| Besoin | Script et contrat |
+| --- | --- |
+| Vérifier le préflight | `TestProjectValidationGuards.ps1 -SelfTest`. Lecture des sources et des deux matériaux d’huile. Contrôle les refus du registre historique, des bypass Automation et des entrées cook ou assets manquants. `ValidateUE.ps1` applique ces gardes, puis vérifie l’isolation des sauvegardes et le résultat Automation. |
+| Vérifier la baseline numérique indépendante | `TestARM_CLEAN06_HistoricalBaseline.ps1 -ManifestPath <manifeste> -ReceiptPath <reçu> -SelfTest` contrôle provenance, SHA-256 et couverture. Ajouter `-NativeAuditPath <rapport>` pour comparer les 1 640 profils, dont 260 passifs, à l’export actuel. |
+| Nettoyer les produits régénérables | `CleanProject.ps1` affiche l’aperçu. `-Apply` applique la liste blanche choisie. `-ValidationArtifacts`, `-BuildArtifacts`, `-DerivedDataCache` et `-IncludeTmp` élargissent le périmètre. |
+| Vérifier le RPG et les WBP | `ValidateRPG03.ps1` et `ValidateUIRPGVisual.ps1` appellent `ValidateUE.ps1` avec des filtres ciblés. |
+| Authoring RPG et UI | Les wrappers `AuthorRPG*.ps1`, `AuthorUIRPG*.ps1` et `FixRPGRangerFavoredEnemyTitles.ps1` lancent les commandlets déclarés dans leur source et peuvent écrire les assets correspondants. |
+| Localisation | `Localization/RunLocalizationSmoke.ps1`, `ApplyEnglishSmokeTranslations.ps1` et `TestLocalizationScripts.ps1`. L’application des traductions écrit les ressources prévues. Les tests de validation contrôlent aussi les scripts eux-mêmes. |
+| Validation Windows | `InstallUEValidationAgent.ps1` installe la tâche, `UninstallUEValidationAgent.ps1` la désinstalle en conservant les preuves locales. `UEValidationBootstrap.ps1`, `UEValidationAgent.ps1`, `UEValidationSilentTask.ps1` et `UEValidationSelectSDK.ps1` constituent la chaîne automatique. [Guide de l’agent](Architecture/VALIDATION_AUTO01_WINDOWS_UE_AGENT.md) |
+| Outils Editor à lancer explicitement | `RunEffectsOrgTorchStandalone.ps1` appelle `MigrateEffectsOrgTorch.ps1` dans son worktree dédié. `CheckEffectsOrgMigrationScripts.ps1` contrôle leur syntaxe et reste référencé par Automation. |
 
-Le fichier lance `UnrealEditor-Cmd.exe -run=GridWorldObjectMIG08`. L’audit de `Source/` ne trouve ni ce commandlet, ni l’ancienne implémentation MIG08. Recompiler le projet courant ne le recréera pas. Des binaires anciens éventuellement conservés sur une machine ne constituent pas une validation du code actuel.
+Pour exporter les profils actifs, lancer le commandlet `GridArmClean065RetirementAudit` avec `-ReadOnly -WeaponProfiles -Copies=<dossier AuditCopies> -Output=<nouveau rapport JSON>`. Utiliser un `-UserDir` isolé et des chemins de copies et de rapport hors projet. L’export actuel alimente le terme comparé du lecteur de baseline. L’oracle reste le manifeste historique vérifié.
 
-Ne pas utiliser ce script comme commande de maintenance régulière et ne pas lancer `-Apply` sur le contenu courant en se fondant sur l’ancien guide. Si une nouvelle migration devient nécessaire, elle devra être définie et validée pour le modèle de données actuel. L’ancien [document MIG08](Architecture/WORLDOBJ_MIG08_ASSET_MIGRATION.md) conserve les objectifs et résultats historiques ; ses commandes ne valent pas procédure actuelle.
-
-### Interface du lanceur conservé
-
-| Paramètre | Type | Défaut | Effet codé dans le `.ps1` |
-| --- | --- | --- | --- |
-| `-EngineRoot` | chaîne | `$env:UE_ROOT` | Installation UE contenant `UnrealEditor-Cmd.exe` |
-| `-RootPath` | chaîne | `/Game/GrimrockPrototype` | Racine virtuelle Unreal transmise par `-Root`, pas un chemin Windows |
-| `-ReportRoot` | chaîne | `<Repo>\Saved\Automation\MIG08` | Dossier parent des sessions |
-| `-Apply` | switch | Désactivé | Ajoute `-Apply` au commandlet ; ancien mode de sauvegarde des packages |
-| `-SkipBuild` | switch | Désactivé | Omet l’appel préalable à `ValidateUE.ps1 -SkipAutomation` |
-
-Sans `-SkipBuild`, le wrapper compile d’abord l’éditeur. Il crée ensuite `<ReportRoot>\MIG08-yyyyMMdd-HHmmss\`, prévoit `MIG08.report.txt` et `MIG08.log`, puis demande le lancement du commandlet avec `-Unattended -NoSplash -NoP4 -NoSound -NullRHI -UTF8Output`.
-
-Sans `-Apply`, le mode affiché est `DRY-RUN` ; avec `-Apply`, il devient `APPLY`. Le wrapper affiche le rapport **s’il existe**, puis échoue si le processus Unreal a retourné un code non nul. Il n’exige pas lui-même l’existence du rapport pour déclarer son succès. Après `-Apply`, il appelle `git status --short -- Content` ; il ne crée pas de commit.
-
-Ces détails décrivent le lanceur encore versionné, sans garantir les effets d’un commandlet absent. Aucun exemple d’application sur le projet courant n’est proposé pour cette raison.
+Les anciennes procédures, dont WORLDOBJ-MIG08, l’import ARMEMENT01.4, les canaries et installations de sauvegardes ARM-CLEAN06, se retrouvent dans Git au commit `29e89de112b6de8796c7ad0a8861437dc76be600`. Les commandes des rapports historiques décrivent la révision de leur jalon.
 
 <a id="resultats-et-codes-de-sortie"></a>
 ## Résultats et codes de sortie
@@ -338,9 +320,8 @@ Tous les scripts utilisent `$ErrorActionPreference = 'Stop'` et `Set-StrictMode 
 | `FormatCpp.ps1` | Fin normale après le message de réussite | Exception sur erreur de résolution, de version ou de formatage |
 | `ValidateUE.ps1` | `exit 0` explicite | Exception sur prérequis, compilation, rapport ou résultat Automation invalide |
 | `ValidatePackage.ps1` | `exit 0` explicite | Exception sur prérequis, UAT ou artefacts attendus absents |
-| `MigrateWorldObjectAssets.ps1` | Fin normale du wrapper si processus réussi | Exception sur prérequis/build/processus ; commandlet manquant dans le code courant |
 
-**Particularité des codes détaillés :** `ValidateUE.ps1` contient `exit 2` (aucun test), `exit 3` (tests échoués), `exit 4` (processus Unreal non nul). `ValidatePackage.ps1` contient `exit 2` (exécutable absent) et `exit 3` (`.pak` absent). Mais chaque instruction est précédée de `Write-Error`, qui est bloquant avec la préférence `Stop`. Ces valeurs ne constituent donc pas un contrat fiable pour un programme appelant. Se baser sur succès/échec, le message et les rapports. La présente documentation n’a pas corrigé ce comportement.
+**Particularité des codes détaillés :** `ValidateUE.ps1` contient `exit 2` (aucun test), `exit 3` (tests échoués), `exit 4` (processus Unreal non nul). `ValidatePackage.ps1` contient `exit 2` (exécutable absent) et `exit 3` (`.pak` absent). Mais chaque instruction est précédée de `Write-Error`, qui est bloquant avec la préférence `Stop`. Ces valeurs ne constituent donc pas un contrat fiable pour un programme appelant. Se baser sur succès/échec, le message et les rapports. L’agent utilise le code global, `Validation.stage` et, pour Automation, le code natif enregistré dans `Automation.exitcode`.
 
 Pour obtenir le code **du processus PowerShell complet**, lancer un script dans un processus distinct depuis PowerShell, puis relever immédiatement `$LASTEXITCODE` :
 
