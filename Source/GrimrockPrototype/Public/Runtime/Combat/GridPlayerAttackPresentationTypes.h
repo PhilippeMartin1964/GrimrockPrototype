@@ -18,6 +18,15 @@ enum class EGridPlayerAttackPresentationEvent : uint8
 };
 
 UENUM(BlueprintType)
+enum class EGridAttackImpactSurface : uint8
+{
+	Unknown,
+	Flesh,
+	Metal,
+	Wood
+};
+
+UENUM(BlueprintType)
 enum class EGridPlayerAttackMotionStyle : uint8
 {
 	None,
@@ -123,6 +132,18 @@ struct GRIMROCKPROTOTYPE_API FGridPlayerAttackPresentationProfile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
 	FGridPlayerAttackAudioDefinition ImpactMissAudio;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
+	FGridPlayerAttackAudioDefinition ImpactFleshAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
+	FGridPlayerAttackAudioDefinition ImpactMetalAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
+	FGridPlayerAttackAudioDefinition ImpactWoodAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Audio")
+	FGridPlayerAttackAudioDefinition CriticalAudio;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|VFX")
 	FGridPlayerAttackVFXDefinition AttackVFX;
 
@@ -136,6 +157,7 @@ struct GRIMROCKPROTOTYPE_API FGridPlayerAttackPresentationProfile
 	float FeedbackDurationSeconds = 1.25f;
 
 	bool IsValid() const;
+	const FGridPlayerAttackAudioDefinition& SelectImpactAudio(const FGridAttackResult& Result, EGridAttackImpactSurface Surface) const;
 };
 
 USTRUCT(BlueprintType)

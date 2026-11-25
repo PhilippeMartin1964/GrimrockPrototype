@@ -136,6 +136,39 @@ bool FGridMON114AudioVFXMappingTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FGridArmamentImpactAudioTest, "Grimrock.RPG.ARMEMENT.FX01.ImpactAudio", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridArmamentImpactAudioTest::RunTest(const FString&)
+{
+	FGridPlayerAttackPresentationProfile Profile;
+	Profile.ImpactFleshAudio.Sounds.Add(NewObject<USoundWave>());
+	Profile.ImpactMetalAudio.Sounds.Add(NewObject<USoundWave>());
+	Profile.ImpactWoodAudio.Sounds.Add(NewObject<USoundWave>());
+	Profile.CriticalAudio.Sounds.Add(NewObject<USoundWave>());
+
+	FGridAttackResult Result;
+	Result.bCriticalHit = true;
+	TestTrue(TEXT("A miss cannot use the critical or material impact"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.ImpactMissAudio);
+	Result.bHit = true;
+	TestTrue(
+		TEXT("A true critical replaces the regular impact"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.CriticalAudio);
+	Result.bCriticalHit = false;
+	TestTrue(TEXT("Exposed flesh uses its material cue"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.ImpactFleshAudio);
+	TestTrue(TEXT("Known metal uses its material cue"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Metal) == &Profile.ImpactMetalAudio);
+	TestTrue(TEXT("Known wood uses its material cue"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Wood) == &Profile.ImpactWoodAudio);
+	TestTrue(TEXT("Unknown surface uses a generic hit"), &Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Unknown) == &Profile.ImpactHitAudio);
+	Profile.ImpactFleshAudio.Sounds.Reset();
+	Profile.CriticalAudio.Sounds.Reset();
+	Result.bCriticalHit = true;
+	TestTrue(TEXT("An empty critical cue falls through to the known material"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Metal) == &Profile.ImpactMetalAudio);
+	TestTrue(TEXT("An empty material cue falls through to the generic hit"),
+		&Profile.SelectImpactAudio(Result, EGridAttackImpactSurface::Flesh) == &Profile.ImpactHitAudio);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON114HeldItemMotionTest, "Grimrock.Monsters.MON11.Presentation.HeldItemMotion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

@@ -47,8 +47,45 @@ bool FGridPlayerAttackPresentationProfile::IsValid() const
 	const bool bSequenceValid = FMath::IsFinite(ImpactDelaySeconds) && ImpactDelaySeconds >= 0.01f && ImpactDelaySeconds <= 2.0f &&
 		FMath::IsFinite(RecoveryDelaySeconds) && RecoveryDelaySeconds >= 0.0f && RecoveryDelaySeconds <= 2.0f;
 	return bMotionValid && bSequenceValid && FMath::IsFinite(FeedbackDurationSeconds) && FeedbackDurationSeconds >= 0.1f && FeedbackDurationSeconds <= 10.0f &&
-		AttackAudio.IsValid() && ImpactHitAudio.IsValid() && ImpactMissAudio.IsValid() && AttackVFX.IsValid() && ImpactHitVFX.IsValid() &&
-		ImpactMissVFX.IsValid();
+		AttackAudio.IsValid() && ImpactHitAudio.IsValid() && ImpactMissAudio.IsValid() && ImpactFleshAudio.IsValid() && ImpactMetalAudio.IsValid() &&
+		ImpactWoodAudio.IsValid() && CriticalAudio.IsValid() && AttackVFX.IsValid() && ImpactHitVFX.IsValid() && ImpactMissVFX.IsValid();
+}
+
+const FGridPlayerAttackAudioDefinition& FGridPlayerAttackPresentationProfile::SelectImpactAudio(
+	const FGridAttackResult& Result, EGridAttackImpactSurface Surface) const
+{
+	if (!Result.bHit)
+	{
+		return ImpactMissAudio;
+	}
+	if (Result.bCriticalHit && CriticalAudio.HasConfiguredSound())
+	{
+		return CriticalAudio;
+	}
+	switch (Surface)
+	{
+		case EGridAttackImpactSurface::Flesh:
+			if (ImpactFleshAudio.HasConfiguredSound())
+			{
+				return ImpactFleshAudio;
+			}
+			break;
+		case EGridAttackImpactSurface::Metal:
+			if (ImpactMetalAudio.HasConfiguredSound())
+			{
+				return ImpactMetalAudio;
+			}
+			break;
+		case EGridAttackImpactSurface::Wood:
+			if (ImpactWoodAudio.HasConfiguredSound())
+			{
+				return ImpactWoodAudio;
+			}
+			break;
+		default:
+			break;
+	}
+	return ImpactHitAudio;
 }
 
 FText FGridPlayerAttackFeedbackFormatter::FormatRejectReason(EGridPlayerAttackRejectReason RejectReason)

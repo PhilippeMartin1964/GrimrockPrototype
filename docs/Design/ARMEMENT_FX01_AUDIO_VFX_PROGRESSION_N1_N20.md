@@ -1,5 +1,15 @@
 # ARMEMENT-FX01 — Spécification sonore, Niagara et évolution esthétique N1–N20
 
+La mise en œuvre suit le [contrat normatif ARM-CLEAN06](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md). Les propositions de catalogue supplémentaire, de copie sur les fiches d’armes et de repli historique plus bas décrivent la conception antérieure.
+
+## Pilote des épées ARM014 et ARM015
+
+`DA_ActionPresentationCatalogue` conserve les variantes Standard au départ, joue un second souffle discret après un échec et projette l’impact de chair lorsque le résultat atteint exclusivement les PV et que la définition de la cible identifie ce matériau. Un contact d’armure reste générique tant que sa matière est inconnue. Un critique réel peut remplacer le son de contact par un son dédié configuré, avec une seule lecture par impact. Le rat géant et le gobelin lanceur définissent leur surface corporelle dans leurs fiches de monstres.
+
+Le burst Niagara court `NS_Armament_Contact` accompagne le résultat réussi. Il utilise le point de présentation de la cible et reste distinct de ses réactions de blessure et de mort. Les quatre variantes d’impact chair et les quatre variantes Fast proviennent des exports locaux du manifeste SFX01. Les SoundWaves sont utilisées dans le prototype avec le crédit ci-dessous. Les sources WAV restent dans le dossier local d’authoring.
+
+Effets sonores générés avec [ElevenLabs](https://elevenlabs.io/). Voir les [conditions Sound Effects](https://elevenlabs.io/creative-terms) et le [manifeste des sources](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md).
+
 > **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 

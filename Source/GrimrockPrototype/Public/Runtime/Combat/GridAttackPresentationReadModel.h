@@ -107,6 +107,10 @@ struct FGridAttackPresentationReadModel
 		CopyAudio(P.AttackAudio, Profile.AttackAudio);
 		CopyAudio(P.ImpactHitAudio, Profile.ImpactHitAudio);
 		CopyAudio(P.ImpactMissAudio, Profile.ImpactMissAudio);
+		CopyAudio(P.ImpactFleshAudio, Profile.ImpactFleshAudio);
+		CopyAudio(P.ImpactMetalAudio, Profile.ImpactMetalAudio);
+		CopyAudio(P.ImpactWoodAudio, Profile.ImpactWoodAudio);
+		CopyAudio(P.CriticalAudio, Profile.CriticalAudio);
 		CopyVFX(P.AttackVFX, Profile.AttackVFX);
 		CopyVFX(P.ImpactHitVFX, Profile.ImpactHitVFX);
 		CopyVFX(P.ImpactMissVFX, Profile.ImpactMissVFX);

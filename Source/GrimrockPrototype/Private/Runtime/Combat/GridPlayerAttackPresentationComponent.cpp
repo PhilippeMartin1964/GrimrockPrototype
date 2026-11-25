@@ -504,6 +504,12 @@ void UGridPlayerAttackPresentationComponent::EmitPresentation(EGridPlayerAttackP
 			break;
 		case EGridPlayerAttackPresentationEvent::ImpactHit:
 			Audio = &Profile.ImpactHitAudio;
+			if (Result)
+			{
+				const UGridMonsterDefinitionAsset* Definition = TargetMonster ? TargetMonster->MonsterDefinition.Get() : nullptr;
+				const bool bBodyHit = Result->HealthDamage > 0 && Result->PhysicalArmorDamage == 0 && Result->MagicalArmorDamage == 0;
+				Audio = &Profile.SelectImpactAudio(*Result, bBodyHit && Definition ? Definition->BodyImpactSurface : EGridAttackImpactSurface::Unknown);
+			}
 			VFX = &Profile.ImpactHitVFX;
 			++PresentationImpactHitCount;
 			break;

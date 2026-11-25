@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 #include "Runtime/Monsters/GridMonsterIdleVariationTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
@@ -36,6 +37,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
 	FName CategoryId = NAME_None;
+
+	/** Surface of an exposed body hit. Armor contact uses its own material when available. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster|Presentation")
+	EGridAttackImpactSurface BodyImpactSurface = EGridAttackImpactSurface::Unknown;
 
 	/**
 	 * Shared bestiary presentation authority for CategoryId.
