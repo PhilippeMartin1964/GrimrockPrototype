@@ -190,7 +190,10 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		}
 		// The visual catalogue owns world pickup presentation.
 		OutItem.LightEmitter = Visual->LightEmitter;
-		OutItem.VisualEffects = Visual->VisualEffects;
+		if (ItemLevel >= Visual->VisualEffectsMinimumItemLevel)
+		{
+			OutItem.VisualEffects = Visual->VisualEffects;
+		}
 		OutItem.bEnableWorldSparkle = Visual->bEnableWorldSparkle;
 		OutItem.WorldSparkleMaterial = Visual->WorldSparkleMaterial;
 		OutItem.WorldSparkleColor = Visual->WorldSparkleColor;

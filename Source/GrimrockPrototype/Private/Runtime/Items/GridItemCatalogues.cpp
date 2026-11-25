@@ -309,6 +309,10 @@ bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, TEXT("Visual catalogue: missing/duplicate VisualId"));
 		}
 		SeenProfiles.Add(Profile.VisualId);
+		if (Profile.VisualEffectsMinimumItemLevel < 1 || Profile.VisualEffectsMinimumItemLevel > 20 || !Profile.VisualEffects.IsValid())
+		{
+			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid persistent Niagara configuration for %s"), *Profile.VisualId.ToString()));
+		}
 		if (!Profile.LevelFinishIds.IsEmpty() &&
 			(Profile.LevelFinishIds.Num() != 5 ||
 				Profile.LevelFinishIds.ContainsByPredicate(

@@ -73,10 +73,13 @@ bool FGridEditorARMCLEAN064X37WorldPresentationProjection::RunTest(const FString
         TestTrue(TEXT("Light data belongs to unique visual source"),
             FGridLightEmitterConfig::StaticStruct()->CompareScriptStruct(
                 &N1.LightEmitter, &Visual->LightEmitter, 0));
-        TestTrue(TEXT("Niagara world presentation belongs to unique visual source"),
-            FGridItemVisualEffectsConfig::StaticStruct()->CompareScriptStruct(
-                &N1.VisualEffects, &Visual->VisualEffects, 0));
-        TestTrue(TEXT("World profile is not duplicated by item level"),
+		TestTrue(TEXT("Niagara world presentation belongs to unique visual source"),
+			FGridItemVisualEffectsConfig::StaticStruct()->CompareScriptStruct(&N20.VisualEffects, &Visual->VisualEffects, 0));
+		TestTrue(TEXT("N1 only projects the authored persistent Niagara threshold"),
+			Visual->VisualEffectsMinimumItemLevel == 1
+				? FGridItemVisualEffectsConfig::StaticStruct()->CompareScriptStruct(&N1.VisualEffects, &Visual->VisualEffects, 0)
+				: N1.VisualEffects.Effects.IsEmpty());
+		TestTrue(TEXT("World profile is not duplicated by item level"),
             N20.WorldMesh.ToSoftObjectPath() == N1.WorldMesh.ToSoftObjectPath() &&
             N20.WorldVisualTransform.Equals(N1.WorldVisualTransform) &&
             N20.bEnableWorldSparkle == N1.bEnableWorldSparkle);

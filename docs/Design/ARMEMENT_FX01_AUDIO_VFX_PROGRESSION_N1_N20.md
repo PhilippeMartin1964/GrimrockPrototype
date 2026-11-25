@@ -47,6 +47,8 @@ Le fichier local `Staff_Magic_Charge_Release_01.wav` attend une confirmation de 
 
 La présentation applique rugosité, normale et teinte à une instance dynamique propre à chaque acteur. Les changements de mesh au sol, en main et en vol reprennent la même finition. L'objet rechargé reconstruit son apparence depuis `ItemLevel`. Le test `Grimrock.RPG.ARMEMENT.FX01.LevelFinishes` contrôle les 440 combinaisons des 22 armements et l'indépendance de deux épées droites de niveaux différents.
 
+Les cinq catalyseurs ARM061, ARM062, ARM067, ARM069 et ARM070 reçoivent un éclat persistant entre N17 et N20. `DA_WeaponVisualCatalogue` définit le seuil et le transform local de chaque mesh. Le composant de présentation de l'objet utilise `NS_Armament_MythicGlint` uniquement pendant que l'objet est visible. Cet éclat cosmétique reste indépendant des coups, du PointLight et des réserves d'armure. À N16, le même mesh conserve sa finition Magistral et ne porte pas l'éclat.
+
 > **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 

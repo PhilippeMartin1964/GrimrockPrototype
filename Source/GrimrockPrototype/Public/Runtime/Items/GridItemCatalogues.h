@@ -478,6 +478,10 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|World")
 	FGridItemVisualEffectsConfig VisualEffects;
 
+	/** Optional cosmetic threshold evaluated from the actual physical item level. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|World", meta = (ClampMin = "1", ClampMax = "20"))
+	int32 VisualEffectsMinimumItemLevel = 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle")
 	bool bEnableWorldSparkle = false;
 
