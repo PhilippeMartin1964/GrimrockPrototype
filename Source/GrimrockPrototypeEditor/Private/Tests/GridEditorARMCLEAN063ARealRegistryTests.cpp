@@ -121,7 +121,6 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 
 	int32 AttackCount = 0;
 	int32 PassiveCount = 0;
-	int32 NeutralCount = 0;
 	for (const FGridWeaponPipelineRow& Row : Manifest)
 	{
 		const FName ItemId(*Row.ItemDefinitionId);
@@ -232,25 +231,19 @@ bool FGridClean063ARealRegistry::RunTest(const FString&)
 				Equipped, Bound.ActionId, EGridEquipmentSlot::MainHand,
 				Equipped.RuntimeObjectId, Equipped.OwnerGuid,
 				Equipped.OwnerCharacterIndex, VerifiedInstance));
-		if (Bound.PresentationId == FName(TEXT("PRES_AttackNoFX")))
-		{
-			++NeutralCount;
-			TestTrue(TEXT("Neutral profile invents no attack audio or VFX"),
-				Bound.Presentation.AttackAudio.Sounds.IsEmpty() &&
-				Bound.Presentation.AttackVFX.Systems.IsEmpty());
-		}
+		TestTrue(TEXT("The attack presents a release or a real gameplay impact"),
+			!Bound.Presentation.AttackAudio.Sounds.IsEmpty() || !Bound.Presentation.AttackVFX.Systems.IsEmpty() ||
+				!Bound.Presentation.ImpactHitVFX.Systems.IsEmpty() || Bound.Presentation.Projectile.HasMedia());
 	}
 	TestEqual(TEXT("19 real attacks"), AttackCount, 19);
 	TestEqual(TEXT("3 real passives"), PassiveCount, 3);
-	TestEqual(TEXT("15 authored links to the shared historical neutral presentation"),
-		NeutralCount, 15);
 
 	FGridResolvedItem Arrows;
 	TestTrue(TEXT("Existing production arrows resolved from same canonical registry"),
 		Items->ResolveItem(TEXT("Item_Arrows_01"), 0, Arrows));
 	TestEqual(TEXT("Authoritative arrow type"), Arrows.AmmoKindId,
 		FName(TEXT("Item_Arrows_01")));
-	return AttackCount == 19 && PassiveCount == 3 && NeutralCount == 15;
+	return AttackCount == 19 && PassiveCount == 3;
 }
 
 #endif

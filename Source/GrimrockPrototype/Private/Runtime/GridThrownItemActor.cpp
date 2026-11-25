@@ -106,6 +106,7 @@ void AGridThrownItemActor::Tick(float DeltaSeconds)
 				bConversionAttempted = true;
 				if (RuntimeActor->TryRouteWorldItemThroughOpenPit(ThrownItemInstance, CellX, CellY, LocalOffset))
 				{
+					StopCombatFlightPresentation(CurrentLocation);
 					Destroy();
 					return;
 				}
@@ -630,6 +631,11 @@ bool AGridThrownItemActor::TryEmbedInMonster()
 	GetWorldTimerManager().ClearTimer(ExpirationTimerHandle);
 	AppliedThrowVisualAngularVelocityDegreesPerSecond = FVector::ZeroVector;
 	SetActorTickEnabled(true);
+	if (bPhysicsContact)
+	{
+		PresentFlightCollision(Surface, SurfaceNormal);
+	}
+	StopCombatFlightPresentation(TipLocation);
 	const FVector LogicalCenter = IsValid(Monster->CollisionComponent)
 		? Monster->CollisionComponent->Bounds.Origin : Monster->GetActorLocation();
 	UE_LOG(LogGridThrownItem, Log,
@@ -725,6 +731,11 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 		return;
 	}
 	bConversionAttempted = true;
+	if (Hit.bBlockingHit)
+	{
+		PresentFlightCollision(Hit.ImpactPoint, Hit.ImpactNormal);
+	}
+	StopCombatFlightPresentation(Hit.ImpactPoint);
 	const bool bNearIntendedTarget = bStopsAtCombatPresentationTarget &&
 		FVector::DistSquared(Hit.ImpactPoint, CombatPresentationTargetLocation) <= FMath::Square(150.0f);
 	bStopsAtCombatPresentationTarget = false;

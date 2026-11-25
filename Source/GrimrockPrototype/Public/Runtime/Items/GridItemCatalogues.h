@@ -203,6 +203,31 @@ struct GRIMROCKPROTOTYPE_API FGridVFXVariants
 	bool IsValid() const;
 };
 
+/** One-shot cues for the already committed, recoverable projectile. */
+USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridProjectileActionPresentation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Presentation")
+	FGridAudioVariants ReleaseAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Presentation")
+	FGridVFXVariants ReleaseVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Presentation")
+	FGridAudioVariants CollisionAudio;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Presentation")
+	FGridVFXVariants CollisionVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Presentation")
+	FGridVFXVariants StopVFX;
+
+	bool IsValid() const;
+	bool HasMedia() const;
+};
+
 /**
  * Canonical authored animation and FX. Every channel has exactly one owner:
  * the ActionPresentationCatalogue, never the concrete DA_Weapon_*.
@@ -296,6 +321,9 @@ struct GRIMROCKPROTOTYPE_API FGridActionPresentation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|VFX")
 	FGridVFXVariants MagicalBlockVFX;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Presentation|Projectile")
+	FGridProjectileActionPresentation Projectile;
+
 	bool IsValid() const;
 };
 
@@ -388,6 +416,10 @@ struct GRIMROCKPROTOTYPE_API FGridProjectileVisual
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
 	float SpinDegreesPerSecond = 1080.0f;
+
+	/** Attached for the existing projectile's flight, including bow ammunition. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Projectile|Visual")
+	FGridVFXVariants FlightVFX;
 };
 
 USTRUCT(BlueprintType)

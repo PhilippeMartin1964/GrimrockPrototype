@@ -142,6 +142,17 @@ bool FGridVFXVariants::IsValid() const
 	return true;
 }
 
+bool FGridProjectileActionPresentation::IsValid() const
+{
+	return ReleaseAudio.IsValid() && ReleaseVFX.IsValid() && CollisionAudio.IsValid() && CollisionVFX.IsValid() && StopVFX.IsValid();
+}
+
+bool FGridProjectileActionPresentation::HasMedia() const
+{
+	return !ReleaseAudio.Sounds.IsEmpty() || !ReleaseVFX.Systems.IsEmpty() || !CollisionAudio.Sounds.IsEmpty() || !CollisionVFX.Systems.IsEmpty() ||
+		!StopVFX.Systems.IsEmpty();
+}
+
 bool FGridActionPresentation::IsValid() const
 {
 	if (PresentationId.IsNone() || !FMath::IsFinite(MotionDurationSeconds) ||
@@ -156,7 +167,7 @@ bool FGridActionPresentation::IsValid() const
 	return AttackAudio.IsValid() && ImpactHitAudio.IsValid() && ImpactMissAudio.IsValid() && ImpactFleshAudio.IsValid() && ImpactMetalAudio.IsValid() &&
 		ImpactWoodAudio.IsValid() && ParryAudio.IsValid() && BlockAudio.IsValid() && MagicalBlockAudio.IsValid() && CriticalAudio.IsValid() &&
 		HeavyAudio.IsValid() && AttackVFX.IsValid() && ImpactHitVFX.IsValid() && ImpactMissVFX.IsValid() && ParryVFX.IsValid() && BlockVFX.IsValid() &&
-		MagicalBlockVFX.IsValid();
+		MagicalBlockVFX.IsValid() && Projectile.IsValid();
 }
 
 const FGridActionPresentation* UGridActionPresentationCatalogueAsset::Find(
@@ -309,6 +320,10 @@ bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid level finishes for %s"), *Profile.VisualId.ToString()));
 		}
 		const FGridProjectileVisual& Flight = Profile.ProjectileAppearance;
+		if (!Flight.FlightVFX.IsValid())
+		{
+			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid flight effects for %s"), *Profile.VisualId.ToString()));
+		}
 		if (Flight.bEnabled &&
 			(Profile.ProjectileMesh.IsNull() ||
 			 Flight.RelativeRotation.ContainsNaN() ||

@@ -7,10 +7,12 @@
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
+class UNiagaraComponent;
 class USkeletalMeshComponent;
 enum class EGridProjectileForwardAxis : uint8;
 class UProjectileMovementComponent;
 class USphereComponent;
+struct FGridPlayerAttackRequest;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGridThrownItem, Log, All);
 
@@ -54,6 +56,9 @@ public:
 
 	/** Stable flight and recoverable landing for a consumed ranged ammo unit. */
 	void ConfigureAsRangedAmmunition();
+
+	/** Render the actual launched unit using the captured attack source. */
+	void StartCombatFlightPresentation(const FGridPlayerAttackRequest& Request, const UGridItemSubsystem& Registry, bool bPlayAudio, bool bSpawnVFX);
 
 	/** Only authoritative ranged hits may visually embed the actual ammo. */
 	void ConfigureRangedHitEmbedding(AGridMonsterActor* HitMonster);
@@ -112,6 +117,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION()
 	void HandleProjectileImpact(
@@ -123,7 +129,11 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FGridClean065G60ImpactRetry;
+	friend class FGridArmamentProjectilePresentationTest;
 #endif
+	void PresentFlightCollision(FVector Location, FVector Normal);
+	void StopCombatFlightPresentation(FVector Location);
+	void PlayProjectileCue(const TCHAR* Stage, FVector Location, FRotator Rotation, const FGridAudioVariants* Audio, const FGridVFXVariants& VFX) const;
 	void HandleProjectileExpired();
 	void ConvertToWorldPickupAtImpact(const FHitResult& Hit);
 	bool TryEmbedInMonster();
@@ -149,4 +159,15 @@ private:
 	void AlignMeshForwardToFlight();
 	FIntPoint PreferredImpactCell = FIntPoint(INDEX_NONE, INDEX_NONE);
 	FTimerHandle ExpirationTimerHandle;
+
+	FGridProjectileActionPresentation ProjectileCues;
+	FGuid AttackSourceGuid;
+	FName AttackSourceItemId;
+	int32 AttackSourceItemLevel = 0;
+	EGridEquipmentSlot AttackSourceHand = EGridEquipmentSlot::None;
+	bool bFlightAudio = false;
+	bool bFlightVFX = false;
+	bool bPresentedFlightCollision = false;
+	bool bPresentedFlightStop = false;
+	TWeakObjectPtr<UNiagaraComponent> FlightEffect;
 };

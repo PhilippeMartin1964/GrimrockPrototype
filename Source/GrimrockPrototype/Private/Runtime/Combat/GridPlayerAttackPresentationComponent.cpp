@@ -418,16 +418,17 @@ void UGridPlayerAttackPresentationComponent::HandlePlayerAttackRejected(int32 At
 
 void UGridPlayerAttackPresentationComponent::HandleIncomingAttackResolved(AGridMonsterActor* Monster, int32 TargetCharacterIndex, FGridAttackResult Result)
 {
-	if (!IsValid(PartyPawn) || !GetWorld() || Result.EquipmentDefenseEvents.IsEmpty())
+	const AGrimrockPartyPawn* DefendingParty = TurnManager ? TurnManager->PartyPawn.Get() : nullptr;
+	if (!IsValid(DefendingParty) || !GetWorld() || Result.EquipmentDefenseEvents.IsEmpty())
 	{
 		return;
 	}
-	const UGridItemSubsystem* Registry = FGridAttackPresentationReadModel::RegistryFor(PartyPawn->PartyInventoryComponent);
+	const UGridItemSubsystem* Registry = FGridAttackPresentationReadModel::RegistryFor(DefendingParty->PartyInventoryComponent);
 	if (!Registry)
 	{
 		return;
 	}
-	const USceneComponent* View = PartyPawn->Camera ? static_cast<const USceneComponent*>(PartyPawn->Camera) : PartyPawn->GetRootComponent();
+	const USceneComponent* View = DefendingParty->Camera ? static_cast<const USceneComponent*>(DefendingParty->Camera) : DefendingParty->GetRootComponent();
 	if (!View)
 	{
 		return;
@@ -808,7 +809,13 @@ AGridThrownItemActor* UGridPlayerAttackPresentationComponent::StartThrownItemLau
 	{
 		++ThrownItemLaunchStartedCount;
 		bThrownItemLaunchStarted = true;
-		return Request.PreparedThrownItemActor.Get();
+		AGridThrownItemActor* ThrownItem = Request.PreparedThrownItemActor.Get();
+		const UGridItemSubsystem* Registry = FGridAttackPresentationReadModel::RegistryFor(PartyPawn ? PartyPawn->PartyInventoryComponent.Get() : nullptr);
+		if (Registry)
+		{
+			ThrownItem->StartCombatFlightPresentation(Request, *Registry, bAudioEnabled && bNativeAudioPlaybackEnabled, bVFXEnabled && bNativeVFXSpawnEnabled);
+		}
+		return ThrownItem;
 	}
 
 	// Equipped projectiles are gameplay state committed by the TurnManager.
