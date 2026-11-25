@@ -134,7 +134,6 @@ $HasPrecompiledAutomationTool = Test-Path -LiteralPath $AutomationToolDll -PathT
 $HasAutomationToolProject = Test-Path -LiteralPath $AutomationToolCsproj -PathType Leaf
 $HasAutomationToolLauncherProject = Test-Path -LiteralPath $AutomationToolLauncherCsproj -PathType Leaf
 $HasBuildUAT = Test-Path -LiteralPath $BuildUAT -PathType Leaf
-$HasSourceAutomationTool = $HasAutomationToolProject -and $HasAutomationToolLauncherProject -and $HasBuildUAT
 $IsInstalledBuild = Test-Path -LiteralPath $InstalledBuildMarker -PathType Leaf
 
 Write-Host 'GrimrockPrototype TD04.3 - Cook / Package Validation'
@@ -148,52 +147,52 @@ Write-Host "Configuration : $Configuration"
 Write-Host ''
 Write-Host '=== Packaging prerequisite check ==='
 
-if ($HasRunUAT)
-{
-    Write-Host "[OK] RunUAT.bat : $RunUAT"
-}
-else
+if (-not $HasRunUAT)
 {
     Write-Host "[MISSING] RunUAT.bat : $RunUAT"
+    Write-Host '[FAIL] Verifier la racine Unreal Engine et restaurer RunUAT.bat.'
+    Write-Host 'Le packaging n''a pas ete lance et aucun dossier d''archive de session n''a ete cree.'
+    exit 4
 }
+
+Write-Host "[OK] RunUAT.bat : $RunUAT"
 
 if ($HasPrecompiledAutomationTool)
 {
     Write-Host "[OK] AutomationTool precompiled : $AutomationToolDll"
 }
-elseif ($HasSourceAutomationTool)
-{
-    Write-Host '[OK] AutomationTool precompiled absent, but source rebuild prerequisites are present.'
-    Write-Host "     AutomationTool.csproj         : $AutomationToolCsproj"
-    Write-Host "     AutomationToolLauncher.csproj : $AutomationToolLauncherCsproj"
-    Write-Host "     BuildUAT.bat                   : $BuildUAT"
-}
 else
 {
-    Write-Host "[MISSING] AutomationTool.dll : $AutomationToolDll"
-    Write-Host ('          AutomationTool.csproj         : ' + $(if ($HasAutomationToolProject) { 'present' } else { 'missing' }))
-    Write-Host ('          AutomationToolLauncher.csproj : ' + $(if ($HasAutomationToolLauncherProject) { 'present' } else { 'missing' }))
-    Write-Host ('          BuildUAT.bat                   : ' + $(if ($HasBuildUAT) { 'present' } else { 'missing' }))
-}
-
-if (-not $HasRunUAT -or (-not $HasPrecompiledAutomationTool -and -not $HasSourceAutomationTool))
-{
+    # A missing DLL or optional batch file alone does not prove that UAT
+    # cannot start. Let the engine's own launcher handle its bootstrap.
+    Write-Host "[INFO] AutomationTool.dll absent : $AutomationToolDll"
+    Write-Host ('       AutomationTool.csproj         : ' + $(if ($HasAutomationToolProject) { 'present' } else { 'missing' }))
+    Write-Host ('       AutomationToolLauncher.csproj : ' + $(if ($HasAutomationToolLauncherProject) { 'present' } else { 'missing' }))
+    Write-Host ('       BuildUAT.bat                   : ' + $(if ($HasBuildUAT) { 'present' } else { 'missing' }))
     Write-Host ''
-    Write-Host '[FAIL] L''installation Unreal Engine ne contient pas les prerequis necessaires au packaging.'
+    Write-Host '=== AutomationTool bootstrap check (BuildCookRun -Help) ==='
+    Write-Host "Executable : $RunUAT"
+    Write-Host 'Arguments  : BuildCookRun -Help'
 
-    if ($IsInstalledBuild)
+    & $RunUAT 'BuildCookRun' '-Help'
+    $BootstrapExitCode = $LASTEXITCODE
+    if ($BootstrapExitCode -ne 0)
     {
-        Write-Host 'Cette installation semble etre une build installee/precompilee.'
-        Write-Host 'Action conseillee : lancer "Verify / Verifier" sur Unreal Engine 5.5.4 dans Epic Games Launcher.'
-    }
-    else
-    {
-        Write-Host 'Action conseillee : restaurer/recompiler les fichiers Engine manquants, puis verifier AutomationTool.'
+        Write-Host ''
+        Write-Host "[FAIL] Le demarrage natif d'AutomationTool a echoue (code $BootstrapExitCode)."
+        if ($IsInstalledBuild)
+        {
+            Write-Host 'Build installee/precompilee : pour une installation Launcher, utiliser Verify / Verifier sur UE 5.5.4.'
+        }
+        else
+        {
+            Write-Host 'Consulter la premiere erreur UAT et restaurer/recompiler les fichiers Engine necessaires.'
+        }
+        Write-Host 'Le packaging n''a pas ete lance et aucun dossier d''archive de session n''a ete cree.'
+        exit 4
     }
 
-    Write-Host ''
-    Write-Host 'Le packaging n''a pas ete lance et aucun dossier d''archive de session n''a ete cree.'
-    exit 4
+    Write-Host '[OK] AutomationTool / BuildCookRun help returned exit code 0.'
 }
 
 if ([string]::IsNullOrWhiteSpace($ArchiveRoot))

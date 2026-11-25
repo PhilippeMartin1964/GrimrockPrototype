@@ -218,6 +218,8 @@ Package Development pour diagnostic, avec destination explicite :
     -ArchiveRoot 'D:\Development\GrimrockPrototype\Saved\Packaging\Diagnostics'
 ```
 
+**Prérequis AutomationTool :** `RunUAT.bat` doit être présent. Si `AutomationTool.dll` manque, le script affiche l’état des fichiers sources et de `BuildUAT.bat` à titre informatif, puis essaie le démarrage natif `RunUAT.bat BuildCookRun -Help` (sans cook ni packaging). L’absence de `BuildUAT.bat` ne constitue pas à elle seule un échec. Si le lancement natif échoue, le script affiche le code UAT, s’arrête avec le code 4 avant de créer l’archive et, pour une installation Launcher, recommande de vérifier UE 5.5.4. Si le lancement réussit, le packaging normal se poursuit. Ce contrôle peut régénérer des fichiers d’AutomationTool via le mécanisme natif du moteur ; il ne répare pas une installation réellement incomplète.
+
 Le script appelle `RunUAT.bat BuildCookRun` pour la cible **GrimrockPrototype**, plateforme **Win64**, avec `-build -cook -stage -package -pak -archive`. Il ne propose ni `-SkipBuild`, ni filtre Automation, ni sélection de maps. Les maps et références à cuire dépendent de la configuration du projet ; il ne force pas `-allmaps`.
 
 L’archive se trouve dans `<ArchiveRoot>\TD04-<Configuration>-yyyyMMdd-HHmmss\`. Par défaut, pour Shipping : `Saved\Packaging\TD04\TD04-Shipping-yyyyMMdd-HHmmss\`.
@@ -378,6 +380,7 @@ Les rapports et packages par défaut sont sous `Saved/`, ignoré par Git. Conser
 | Terminal silencieux pendant Automation | Mode concis normal : lire les logs ou relancer avec `-ShowAutomationOutput` pour voir la sortie en direct |
 | Test dépendant du rendu en échec sous NullRHI | Utiliser `-UseRHI` si ce besoin est confirmé par le test ; vérifier que l’environnement graphique est disponible |
 | Tests réussis avec warnings ou tests non exécutés | Examiner les diagnostics et le compteur `Not run` ; le succès global ne garantit pas leur absence |
+| `AutomationTool.dll` absent et démarrage natif UAT en échec | Lire la première erreur du test `BuildCookRun -Help` ; pour une installation Epic Games Launcher, vérifier UE 5.5.4 puis relancer. Ne pas copier de DLL d’une autre version du moteur |
 | Package échoué alors que l’Editor compile | Lire la première erreur UAT/cook ; vérifier les références et la configuration de packaging du projet |
 | Exécutable ou `.pak` absent | Vérifier l’archive affichée et les logs UAT ; le script exige ces deux types d’artefacts |
 | `clang-format` introuvable ou version incompatible | Fournir explicitement `-ClangFormatPath` vers une version 19.1.5 ; VS 2026 n’est pas détecté par la recherche dédiée VS 2022 |
