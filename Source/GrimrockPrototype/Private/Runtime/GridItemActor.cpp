@@ -110,7 +110,7 @@ bool AGridItemActor::InitializeFromItemInstance(
 	// This is not a second authority: a transient copy from the sole registry.
 	ResolvedWorldPresentation = MoveTemp(Projected);
 
-	MeshComponent->SetStaticMesh(ResolvedWorldPresentation.WorldMesh.LoadSynchronous());
+	SetPresentationMesh(ResolvedWorldPresentation.WorldMesh.LoadSynchronous());
 	MeshComponent->SetRelativeTransform(ResolvedWorldPresentation.WorldVisualTransform);
 	SetItemLightsEnabled(false);
 	LightEmitterComponent->ApplyConfig(ResolvedWorldPresentation.LightEmitter);
@@ -144,9 +144,10 @@ bool AGridItemActor::ApplyResolvedWorldVisual(const FGridItemInstance& Instance)
 	// Explicitly clear rather than reusing an old DA_Weapon_* mesh if N0 is invalid.
 	UStaticMesh* NewMesh = Visual.bResolved ? Visual.WorldMesh.LoadSynchronous() : nullptr;
 	const FTransform NewTransform = Visual.bResolved ? Visual.WorldTransform : FTransform::Identity;
-	if (MeshComponent->GetStaticMesh() != NewMesh)
+	if (MeshComponent->GetStaticMesh() != NewMesh || ResolvedWorldPresentation.WeaponFinish.FinishId != Visual.WeaponFinish.FinishId)
 	{
-		MeshComponent->SetStaticMesh(NewMesh);
+		ResolvedWorldPresentation.WeaponFinish = Visual.WeaponFinish;
+		SetPresentationMesh(NewMesh);
 	}
 	if (!MeshComponent->GetRelativeTransform().Equals(NewTransform))
 	{
@@ -168,6 +169,7 @@ void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, co
 		return;
 	}
 
+	ClearWeaponFinish();
 	ResolvedWorldPresentation = FGridResolvedItem();
 	ItemDefinitionId = InItemDefinitionId;
 	WorldItemLevel = 0;
@@ -200,6 +202,71 @@ void AGridItemActor::InitializeReadableContent(
 	if (ReadableContentAsset && ReadableContentId.IsNone())
 	{
 		ReadableContentId = ReadableContentAsset->ReadableContentId;
+	}
+}
+
+void AGridItemActor::SetPresentationMesh(UStaticMesh* Mesh)
+{
+	if (!MeshComponent)
+	{
+		return;
+	}
+	ClearWeaponFinish();
+	MeshComponent->SetStaticMesh(Mesh);
+	ApplyWeaponFinish();
+}
+
+void AGridItemActor::ClearWeaponFinish()
+{
+	for (int32 Slot = 0; MeshComponent && Slot < FinishMaterials.Num(); ++Slot)
+	{
+		if (FinishMaterials[Slot] && MeshComponent->GetMaterial(Slot) == FinishMaterials[Slot])
+		{
+			MeshComponent->SetMaterial(Slot, nullptr);
+		}
+	}
+	FinishMaterials.Reset();
+}
+
+void AGridItemActor::ApplyWeaponFinish()
+{
+	const FGridWeaponFinish& Finish = ResolvedWorldPresentation.WeaponFinish;
+	if (Finish.FinishId.IsNone() || (Finish.RoughnessScale == 1.0f && Finish.NormalScale == 1.0f && Finish.Tint == FLinearColor::White))
+	{
+		return;
+	}
+
+	static const FMaterialParameterInfo RoughnessMultiplier(TEXT("RoughnessMultiplier"));
+	static const FMaterialParameterInfo RoughnessOverride(TEXT("RoughnessOverride"));
+	static const FMaterialParameterInfo NormalStrength(TEXT("NormalStrength"));
+	static const FMaterialParameterInfo BaseColorTint(TEXT("BaseColorTint"));
+	FinishMaterials.SetNum(MeshComponent->GetNumMaterials());
+	for (int32 Slot = 0; Slot < FinishMaterials.Num(); ++Slot)
+	{
+		// An explicit override owned by a Blueprint or another feature keeps its slot.
+		if (MeshComponent->OverrideMaterials.IsValidIndex(Slot) && MeshComponent->OverrideMaterials[Slot])
+		{
+			continue;
+		}
+		const UMaterialInterface* Base = MeshComponent->GetMaterial(Slot);
+		float RoughnessScale;
+		float RoughnessAbsolute;
+		float Normal;
+		FLinearColor Tint;
+		if (!Base || !Base->GetScalarParameterValue(RoughnessMultiplier, RoughnessScale) ||
+			!Base->GetScalarParameterValue(RoughnessOverride, RoughnessAbsolute) || !Base->GetScalarParameterValue(NormalStrength, Normal) ||
+			!Base->GetVectorParameterValue(BaseColorTint, Tint))
+		{
+			continue;
+		}
+		if (UMaterialInstanceDynamic* Material = MeshComponent->CreateDynamicMaterialInstance(Slot))
+		{
+			Material->SetScalarParameterValue(RoughnessMultiplier.Name, RoughnessScale * Finish.RoughnessScale);
+			Material->SetScalarParameterValue(RoughnessOverride.Name, RoughnessAbsolute * Finish.RoughnessScale);
+			Material->SetScalarParameterValue(NormalStrength.Name, Normal * Finish.NormalScale);
+			Material->SetVectorParameterValue(BaseColorTint.Name, Tint * Finish.Tint);
+			FinishMaterials[Slot] = Material;
+		}
 	}
 }
 

@@ -92,6 +92,8 @@ public:
 	/** Materialize world art using the real N1-N20 instance, preserving noncanonical objects. */
 	bool ApplyResolvedWorldVisual(const FGridItemInstance& Instance);
 
+	void SetPresentationMesh(UStaticMesh* Mesh);
+
 	/** Opt-in mass property uses the same canonical weight read model as the inventory. */
 	void RefreshWorldPickupMass();
 
@@ -155,4 +157,11 @@ public:
 	virtual void InteractWithHit_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override;
 	virtual EGridInteractionCursor GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const override;
 	virtual FText GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const override;
+
+private:
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> FinishMaterials;
+
+	void ClearWeaponFinish();
+	void ApplyWeaponFinish();
 };

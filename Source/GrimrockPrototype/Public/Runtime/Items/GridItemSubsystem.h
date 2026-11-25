@@ -65,6 +65,9 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	FGridWeaponFinish WeaponFinish;
+
 	/** Canonical non-armament equipment permissions (torch, armor, jewelry).
 	 * Empty for ammo/consumables and ARM; no legacy slot data. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Equipment")

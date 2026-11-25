@@ -184,6 +184,10 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
 		OutItem.WorldVisualTransform = Visual->WorldTransform;
+		if (const FGridWeaponFinish* Finish = RootRegistry->WeaponVisualCatalogue->ResolveFinish(*Visual, ItemLevel))
+		{
+			OutItem.WeaponFinish = *Finish;
+		}
 		// The visual catalogue owns world pickup presentation.
 		OutItem.LightEmitter = Visual->LightEmitter;
 		OutItem.VisualEffects = Visual->VisualEffects;

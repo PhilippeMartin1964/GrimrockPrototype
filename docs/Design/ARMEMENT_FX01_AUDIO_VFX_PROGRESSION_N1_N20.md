@@ -10,6 +10,12 @@ Le burst Niagara court `NS_Armament_Contact` accompagne le résultat réussi. Il
 
 Effets sonores générés avec [ElevenLabs](https://elevenlabs.io/). Voir les [conditions Sound Effects](https://elevenlabs.io/creative-terms) et le [manifeste des sources](ARMEMENT_SFX01_ELEVENLABS_IMPORT_MANIFEST.md).
 
+## Finitions des 22 armements
+
+`DA_WeaponVisualCatalogue` porte cinq finitions partagées et cinq références ordonnées par profil visuel. Le registre résout la bande à partir du niveau physique de l'objet. Brut préserve la matière du mesh. Soigné polit la surface, Gravé renforce le relief déjà présent, Magistral réchauffe la matière et Mythique accentue le contraste de teinte et de reflets. Les paramètres actuels agissent sur les textures existantes. Les masques de gravure dédiés et les ornements restent à authorer.
+
+La présentation applique rugosité, normale et teinte à une instance dynamique propre à chaque acteur. Les changements de mesh au sol, en main et en vol reprennent la même finition. L'objet rechargé reconstruit son apparence depuis `ItemLevel`. Le test `Grimrock.RPG.ARMEMENT.FX01.LevelFinishes` contrôle les 440 combinaisons des 22 armements et l'indépendance de deux épées droites de niveaux différents.
+
 > **ARM-CLEAN06 — ARCHITECTURE CIBLE APPROUVÉE (13.11.2026).** [Contrat](../Architecture/ARM_CLEAN06_ITEM_SYSTEM_NORMATIVE.md), [migration](../Architecture/ARM_CLEAN06_MIGRATION_PLAN.md). Les mécaniques/tests historiques demeurent ; les anciens schémas DataAsset sont remplacés. **Migration clôturée. Les schémas et procédures de migration de cette page sont historiques.**
 
 

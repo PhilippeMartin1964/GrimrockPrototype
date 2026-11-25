@@ -11,6 +11,7 @@ struct FGridItemMeshView
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
 	FTransform WorldTransform = FTransform::Identity;
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
+	FGridWeaponFinish WeaponFinish;
 };
 
 /** Never consults legacy copies; noncanonical callers keep their original path. */
@@ -38,6 +39,7 @@ struct FGridItemMeshResolver
 		// UGridItemSubsystem already authoritatively maps absent EquippedMesh
 		// onto WorldMesh. Never copy an old DA_Weapon's mesh here.
 		Result.EquippedMesh = Item.EquippedMesh;
+		Result.WeaponFinish = Item.WeaponFinish;
 		return Result;
 	}
 };

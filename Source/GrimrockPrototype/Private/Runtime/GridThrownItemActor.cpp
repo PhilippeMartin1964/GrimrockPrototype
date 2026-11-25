@@ -220,7 +220,7 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 		ResolvedProjectileForwardAxis = Canonical.Appearance.MeshForwardAxis;
 		if (MeshComponent)
 		{
-			MeshComponent->SetStaticMesh(Canonical.ProjectileMesh.LoadSynchronous());
+			SetPresentationMesh(Canonical.ProjectileMesh.LoadSynchronous());
 		}
 	}
 	else if (bRegisteredAmmoFlight && MeshComponent)

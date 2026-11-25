@@ -378,6 +378,24 @@ struct GRIMROCKPROTOTYPE_API FGridProjectileVisual
 };
 
 USTRUCT(BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridWeaponFinish
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Finish")
+	FName FinishId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Finish", meta = (ClampMin = "0.0"))
+	float RoughnessScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Finish", meta = (ClampMin = "0.0"))
+	float NormalScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Finish")
+	FLinearColor Tint = FLinearColor::White;
+};
+
+USTRUCT(BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 {
 	GENERATED_BODY()
@@ -433,7 +451,7 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual|Sparkle", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float WorldSparkleVariation = 0.35f;
 
-	/** Appearance only: cannot influence combat statistics or ItemLevel. */
+	/** Optional five finish IDs in order from N1-4 to N17-20. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FName> LevelFinishIds;
 
@@ -456,6 +474,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FGridWeaponVisualBinding> ArchetypeBindings;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Finish")
+	TArray<FGridWeaponFinish> Finishes;
+
+	const FGridWeaponFinish* FindFinish(FName FinishId) const;
+	const FGridWeaponFinish* ResolveFinish(const FGridWeaponVisual& Visual, int32 ItemLevel) const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	TArray<FGridWeaponVisual> VisualProfiles;

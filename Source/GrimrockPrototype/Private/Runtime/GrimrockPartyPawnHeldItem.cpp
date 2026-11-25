@@ -103,7 +103,7 @@ bool AGrimrockPartyPawn::EquipHeldItemFromInstance(const FGridItemInstance& Item
 	}
 	if (HeldItemActor->MeshComponent)
 	{
-		HeldItemActor->MeshComponent->SetStaticMesh(Canonical.EquippedMesh.LoadSynchronous());
+		HeldItemActor->SetPresentationMesh(Canonical.EquippedMesh.LoadSynchronous());
 	}
 	if (HeldItemActor->LightEmitterComponent)
 	{
@@ -241,7 +241,7 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()
 							? Visual.EquippedMesh.LoadSynchronous() : nullptr;
 						if (HeldItemActor->MeshComponent->GetStaticMesh() != ResolvedHeldMesh)
 						{
-							HeldItemActor->MeshComponent->SetStaticMesh(ResolvedHeldMesh);
+							HeldItemActor->SetPresentationMesh(ResolvedHeldMesh);
 						}
 					}
 				}

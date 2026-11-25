@@ -253,9 +253,39 @@ const FGridWeaponVisual* UGridWeaponVisualCatalogueAsset::FindForArchetype(
 		}) : nullptr;
 }
 
+const FGridWeaponFinish* UGridWeaponVisualCatalogueAsset::FindFinish(FName FinishId) const
+{
+	return Finishes.FindByPredicate(
+		[FinishId](const FGridWeaponFinish& Finish)
+		{
+			return Finish.FinishId == FinishId;
+		});
+}
+
+const FGridWeaponFinish* UGridWeaponVisualCatalogueAsset::ResolveFinish(const FGridWeaponVisual& Visual, int32 ItemLevel) const
+{
+	if (ItemLevel < 1 || ItemLevel > 20 || Visual.LevelFinishIds.Num() != 5)
+	{
+		return nullptr;
+	}
+	return FindFinish(Visual.LevelFinishIds[(ItemLevel - 1) / 4]);
+}
+
 bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 {
 	bool bValid = true;
+	TSet<FName> SeenFinishes;
+	for (const FGridWeaponFinish& Finish : Finishes)
+	{
+		if (Finish.FinishId.IsNone() || SeenFinishes.Contains(Finish.FinishId) || !FMath::IsFinite(Finish.RoughnessScale) || Finish.RoughnessScale < 0.0f ||
+			!FMath::IsFinite(Finish.NormalScale) || Finish.NormalScale < 0.0f || !FMath::IsFinite(Finish.Tint.R) || Finish.Tint.R < 0.0f ||
+			!FMath::IsFinite(Finish.Tint.G) || Finish.Tint.G < 0.0f || !FMath::IsFinite(Finish.Tint.B) || Finish.Tint.B < 0.0f ||
+			!FMath::IsFinite(Finish.Tint.A) || Finish.Tint.A < 0.0f)
+		{
+			bValid = AddError(Errors, TEXT("Visual catalogue: invalid or duplicate weapon finish"));
+		}
+		SeenFinishes.Add(Finish.FinishId);
+	}
 	TSet<FName> SeenProfiles;
 	for (const FGridWeaponVisual& Profile : VisualProfiles)
 	{
@@ -264,6 +294,16 @@ bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, TEXT("Visual catalogue: missing/duplicate VisualId"));
 		}
 		SeenProfiles.Add(Profile.VisualId);
+		if (!Profile.LevelFinishIds.IsEmpty() &&
+			(Profile.LevelFinishIds.Num() != 5 ||
+				Profile.LevelFinishIds.ContainsByPredicate(
+					[&SeenFinishes](FName Id)
+					{
+						return Id.IsNone() || !SeenFinishes.Contains(Id);
+					})))
+		{
+			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid level finishes for %s"), *Profile.VisualId.ToString()));
+		}
 		const FGridProjectileVisual& Flight = Profile.ProjectileAppearance;
 		if (Flight.bEnabled &&
 			(Profile.ProjectileMesh.IsNull() ||
