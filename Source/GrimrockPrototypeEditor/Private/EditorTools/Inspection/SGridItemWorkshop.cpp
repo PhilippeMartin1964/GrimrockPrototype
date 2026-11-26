@@ -17,6 +17,7 @@
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SOverlay.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Views/STableRow.h"
 
@@ -32,6 +33,7 @@ namespace
 
 void SGridItemWorkshop::Construct(const FArguments&)
 {
+	SAssignNew(PreviewViewport, SGridItemWorkshopViewport);
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -126,12 +128,20 @@ void SGridItemWorkshop::Construct(const FArguments&)
 				]
 				+ SVerticalBox::Slot().FillHeight(1)
 				[
-					SAssignNew(PreviewViewport, SGridItemWorkshopViewport)
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					[
+						PreviewViewport.ToSharedRef()
+					]
+					+ SOverlay::Slot()
+					[
+						SNew(SGridItemWorkshopOrbitInput).PreviewViewport(PreviewViewport).Visibility(EVisibility::Visible)
+					]
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
 				[
 					SNew(STextBlock).AutoWrapText(true)
-					.Text(LOCTEXT("Navigation", "Navigation orbitale native Unreal · Alt + souris / molette · fond noir"))
+					.Text(LOCTEXT("Navigation", "Clic gauche maintenu : orbite autour de l'objet · Molette : zoom · Recentrer : vue initiale"))
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
 				[

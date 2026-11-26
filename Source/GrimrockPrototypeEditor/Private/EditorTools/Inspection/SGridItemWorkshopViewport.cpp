@@ -5,6 +5,10 @@
 #include "EditorViewportClient.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Input/Events.h"
+#include "Input/Reply.h"
+#include "InputCoreTypes.h"
+#include "Widgets/SNullWidget.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
 
 namespace
@@ -51,7 +55,7 @@ public:
 		ExposureSettings.FixedEV100 = 0;
 		SetRealtime(true);
 		SetViewRotation(FRotator(-12.0, 35.0, 0.0));
-		ToggleOrbitCamera(true);
+		ToggleOrbitCamera(false);
 	}
 
 	virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
@@ -117,9 +121,15 @@ EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspect
 	UStaticMeshComponent* Mesh = Actor->GetPreviewMesh();
 	const UStaticMesh* PreviousMesh = Mesh->GetStaticMesh();
 	const EGridItemPreviewResult Result = Actor->ApplyPreview(View);
-	if (Result == EGridItemPreviewResult::Ready && (bRecenter || PreviousMesh != Mesh->GetStaticMesh()))
+	if (Result == EGridItemPreviewResult::Ready)
 	{
-		Frame();
+		Mesh->UpdateBounds();
+		Orbit.SetBounds(Mesh->Bounds, bRecenter || PreviousMesh != Mesh->GetStaticMesh());
+		ApplyOrbit();
+	}
+	else
+	{
+		Orbit.Clear();
 	}
 	if (WorkshopClient.IsValid())
 	{
@@ -136,19 +146,13 @@ void SGridItemWorkshopViewport::Frame(const FRotator& Rotation)
 		return;
 	}
 	Mesh->UpdateBounds();
-	const FBoxSphereBounds Bounds = Mesh->Bounds;
-	const double Radius = FMath::Max(1.0, Bounds.SphereRadius);
-	// Keep the camera outside the mesh even before the first Slate layout pass.
-	WorkshopClient->ToggleOrbitCamera(false);
-	WorkshopClient->SetViewRotation(Rotation);
-	WorkshopClient->SetViewLocation(Bounds.Origin - Rotation.Vector() * Radius * 3.5);
-	WorkshopClient->SetLookAtLocation(Bounds.Origin, false);
-	WorkshopClient->ToggleOrbitCamera(true);
-	WorkshopClient->Invalidate();
+	Orbit.SetBounds(Mesh->Bounds, true, Rotation);
+	ApplyOrbit();
 }
 
 void SGridItemWorkshopViewport::Clear()
 {
+	Orbit.Clear();
 	if (AGridItemPreviewActor* Actor = Preview.Get())
 	{
 		Actor->ClearPreview();
@@ -163,4 +167,97 @@ UStaticMeshComponent* SGridItemWorkshopViewport::GetMesh() const
 {
 	const AGridItemPreviewActor* Actor = Preview.Get();
 	return Actor ? Actor->GetPreviewMesh() : nullptr;
+}
+
+void SGridItemWorkshopViewport::ApplyOrbit()
+{
+	if (!WorkshopClient.IsValid() || !Orbit.bReady)
+	{
+		return;
+	}
+	WorkshopClient->SetViewLocation(Orbit.CameraLocation());
+	WorkshopClient->SetViewRotation(Orbit.Rotation);
+	WorkshopClient->SetLookAtLocation(Orbit.Target, false);
+	WorkshopClient->Invalidate();
+}
+
+void SGridItemWorkshopViewport::OrbitDrag(const FVector2D& Delta)
+{
+	Orbit.Drag(Delta);
+	ApplyOrbit();
+}
+
+void SGridItemWorkshopViewport::OrbitZoom(double WheelDelta)
+{
+	Orbit.Zoom(WheelDelta);
+	ApplyOrbit();
+}
+
+void SGridItemWorkshopOrbitInput::Construct(const FArguments& InArgs)
+{
+	PreviewViewport = InArgs._PreviewViewport;
+	ChildSlot[SNullWidget::NullWidget];
+}
+
+FReply SGridItemWorkshopOrbitInput::OnMouseButtonDown(const FGeometry&, const FPointerEvent& Event)
+{
+	const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin();
+	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && Preview.IsValid() && Preview->HasOrbitTarget())
+	{
+		return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse).CaptureMouse(SharedThis(this));
+	}
+	return FReply::Handled();
+}
+
+FReply SGridItemWorkshopOrbitInput::OnMouseButtonUp(const FGeometry&, const FPointerEvent& Event)
+{
+	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture())
+	{
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	return FReply::Handled();
+}
+
+FReply SGridItemWorkshopOrbitInput::OnMouseMove(const FGeometry&, const FPointerEvent& Event)
+{
+	if (HasMouseCapture())
+	{
+		if (!Event.IsMouseButtonDown(EKeys::LeftMouseButton))
+		{
+			return FReply::Handled().ReleaseMouseCapture();
+		}
+		if (const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin())
+		{
+			Preview->OrbitDrag(Event.GetCursorDelta());
+		}
+	}
+	return FReply::Handled();
+}
+
+FReply SGridItemWorkshopOrbitInput::OnMouseWheel(const FGeometry&, const FPointerEvent& Event)
+{
+	if (const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin())
+	{
+		Preview->OrbitZoom(Event.GetWheelDelta());
+	}
+	return FReply::Handled();
+}
+
+FReply SGridItemWorkshopOrbitInput::OnMouseButtonDoubleClick(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	return OnMouseButtonDown(Geometry, Event);
+}
+
+FReply SGridItemWorkshopOrbitInput::OnKeyDown(const FGeometry&, const FKeyEvent& Event)
+{
+	// Let the editor keep its normal Tab navigation; do not forward camera keys.
+	if (Event.GetKey() == EKeys::Tab)
+	{
+		return FReply::Unhandled();
+	}
+	if (Event.GetKey() == EKeys::Escape && HasMouseCapture())
+	{
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	return FReply::Handled();
 }
