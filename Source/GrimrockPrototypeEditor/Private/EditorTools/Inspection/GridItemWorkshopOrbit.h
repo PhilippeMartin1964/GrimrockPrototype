@@ -8,7 +8,7 @@ struct FGridItemWorkshopOrbit
 	FVector Target = FVector::ZeroVector;
 	double Radius = 1.0;
 	double Distance = 35.0;
-	FRotator Rotation = FRotator(-12.0, 35.0, 0.0);
+	FQuat Orientation = FRotator(-12.0, 35.0, 0.0).Quaternion();
 	bool bReady = false;
 
 	double MinDistance() const { return Radius + 12.0; }
@@ -20,8 +20,7 @@ struct FGridItemWorkshopOrbit
 		Radius = FMath::Max(1.0, Bounds.SphereRadius);
 		if (bRecenter || !bReady)
 		{
-			Rotation = InitialRotation;
-			Rotation.Roll = 0.0;
+			Orientation = InitialRotation.Quaternion().GetNormalized();
 			Distance = FMath::Max(Radius * 3.5, MinDistance() * 1.25);
 		}
 		Distance = FMath::Clamp(Distance, MinDistance(), MaxDistance());
@@ -32,9 +31,12 @@ struct FGridItemWorkshopOrbit
 	{
 		if (bReady)
 		{
-			Rotation.Yaw = FRotator::NormalizeAxis(Rotation.Yaw - Delta.X * 0.35);
-			Rotation.Pitch = FMath::Clamp(Rotation.Pitch + Delta.Y * 0.35, -89.0, 89.0);
-			Rotation.Roll = 0.0;
+			// Grab the object: screen-right drag reveals/moves its front toward
+			// screen right, screen-down drag toward screen down. Both axes are
+			// camera-local, even when the camera is upside down.
+			const FQuat Horizontal(FVector::UpVector, FMath::DegreesToRadians(Delta.X * 0.35));
+			const FQuat Vertical(FVector::RightVector, FMath::DegreesToRadians(Delta.Y * 0.35));
+			Orientation = (Orientation * Horizontal * Vertical).GetNormalized();
 		}
 	}
 
@@ -46,6 +48,7 @@ struct FGridItemWorkshopOrbit
 		}
 	}
 
-	FVector CameraLocation() const { return Target - Rotation.Vector() * Distance; }
+	FRotator ViewRotation() const { return Orientation.Rotator(); }
+	FVector CameraLocation() const { return Target - Orientation.GetAxisX() * Distance; }
 	void Clear() { bReady = false; }
 };

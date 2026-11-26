@@ -176,7 +176,7 @@ void SGridItemWorkshopViewport::ApplyOrbit()
 		return;
 	}
 	WorkshopClient->SetViewLocation(Orbit.CameraLocation());
-	WorkshopClient->SetViewRotation(Orbit.Rotation);
+	WorkshopClient->SetViewRotation(Orbit.ViewRotation());
 	WorkshopClient->SetLookAtLocation(Orbit.Target, false);
 	WorkshopClient->Invalidate();
 }
@@ -204,7 +204,8 @@ FReply SGridItemWorkshopOrbitInput::OnMouseButtonDown(const FGeometry&, const FP
 	const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin();
 	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && Preview.IsValid() && Preview->HasOrbitTarget())
 	{
-		return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse).CaptureMouse(SharedThis(this));
+		return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse)
+			.CaptureMouse(SharedThis(this)).UseHighPrecisionMouseMovement(SharedThis(this));
 	}
 	return FReply::Handled();
 }
