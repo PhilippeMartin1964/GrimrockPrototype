@@ -27,6 +27,7 @@ public:
 	bool Rebuild();
 	bool Select(FName Id);
 	bool SelectLevel(int32 Level);
+	bool ResolveComparison(int32 Level, FGridItemInspectionView& Out) const;
 	void ClearSelection();
 	void Filter(const FString& Search, EGridWorkshopFilter Mode, TArray<TSharedPtr<FGridWorkshopEntry>>& Out) const;
 

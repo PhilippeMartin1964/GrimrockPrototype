@@ -6,6 +6,7 @@
 #include "Widgets/Views/SListView.h"
 
 class SGridItemWorkshopViewport;
+class SBox;
 class STableViewBase;
 class ITableRow;
 struct FPropertyChangedEvent;
@@ -39,7 +40,12 @@ private:
 	TSharedRef<ITableRow> MakeItemRow(TSharedPtr<FGridWorkshopEntry> Entry, const TSharedRef<STableViewBase>& Owner);
 	TSharedRef<ITableRow> MakeAssetRow(TSharedPtr<FGridWorkshopAssetLink> Entry, const TSharedRef<STableViewBase>& Owner);
 	void QueueLevel(int32 Level);
-	FText BuildDetails() const;
+	FText BuildDetails(const FGridItemInspectionView& View, const SGridItemWorkshopViewport& Viewport, EGridItemPreviewResult Result) const;
+	TSharedRef<SWidget> MakePreviewPane(const TSharedRef<SGridItemWorkshopViewport>& Viewport, bool bComparison);
+	void ToggleComparison();
+	void LinkViews();
+	void RefreshComparison(bool bRecenter);
+	void QueueComparisonLevel(int32 Level);
 
 	FGridItemWorkshopSession Session;
 	TArray<TSharedPtr<FGridWorkshopEntry>> Filtered;
@@ -47,6 +53,13 @@ private:
 	TSharedPtr<SListView<TSharedPtr<FGridWorkshopEntry>>> ItemList;
 	TSharedPtr<SListView<TSharedPtr<FGridWorkshopAssetLink>>> AssetList;
 	TSharedPtr<SGridItemWorkshopViewport> PreviewViewport;
+	TSharedPtr<SGridItemWorkshopViewport> ComparisonViewport;
+	TSharedPtr<SBox> ComparisonHost;
+	int32 ComparisonLevel = 20;
+	int32 PendingComparisonLevel = INDEX_NONE;
+	bool bSynchronizeViews = true;
+	bool bShowComparison = false;
+	FText ComparisonDetails;
 	FText DetailsText;
 	FString Search;
 	EGridWorkshopFilter Filter = EGridWorkshopFilter::All;

@@ -206,4 +206,55 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopCompareTest,
+	"Grimrock.Editor.Items.Inspection.Compare",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorItemWorkshopCompareTest::RunTest(const FString&)
+{
+	FGridItemWorkshopSession Session;
+	if (!TestTrue(TEXT("Configured production registry"), Session.Rebuild()) ||
+		!TestTrue(TEXT("Select pilot"), Session.Select(TEXT("Weapon_StraightSword_01"))))
+	{
+		return false;
+	}
+	FGridItemInspectionView B;
+	for (int32 Level = 1; Level <= 20; ++Level)
+	{
+		TestTrue(TEXT("Independent exact B level"), Session.ResolveComparison(Level, B));
+		TestEqual(TEXT("Same item identity"), B.Item.ItemId, Session.GetSelectedId());
+		TestEqual(TEXT("Exact B level"), B.Item.ItemLevel, Level);
+		TestEqual(TEXT("A remains at N1"), Session.GetSelectedLevel(), 1);
+	}
+	TestTrue(TEXT("A can change independently"), Session.SelectLevel(7));
+	TestEqual(TEXT("B retains N20 snapshot"), B.Item.ItemLevel, 20);
+	TestFalse(TEXT("B rejects N21"), Session.ResolveComparison(21, B));
+	TestFalse(TEXT("Invalid B clears snapshot"), B.IsValid());
+	TestTrue(TEXT("Select N0"), Session.Select(TEXT("Stone")));
+	TestFalse(TEXT("No invented comparison level on N0"), Session.ResolveComparison(1, B));
+
+	FGridItemWorkshopOrbit A, CameraB;
+	const FBoxSphereBounds Bounds(FVector(7.0, 3.0, -4.0), FVector(1.0, 5.0, 55.0), 56.0);
+	A.SetBounds(Bounds, true);
+	CameraB.SetBounds(Bounds, true);
+	A.Drag(FVector2D(145.0, 670.0));
+	A.Zoom(14.0);
+	A.Pan(FVector2D(240.0, -160.0), 800.0);
+	CameraB.MatchFraming(A);
+	TestTrue(TEXT("Synchronized angle"), CameraB.Orientation.Equals(A.Orientation));
+	TestTrue(TEXT("Synchronized pan"), CameraB.PanOffset.Equals(A.PanOffset));
+	TestTrue(TEXT("Synchronized pose"), CameraB.CameraLocation().Equals(A.CameraLocation()));
+	TestTrue(TEXT("Synchronized FOV"), FMath::IsNearlyEqual(CameraB.ViewFov(), A.ViewFov()));
+	CameraB.Drag(FVector2D(34.0, 11.0));
+	TestFalse(TEXT("Independent view before explicit sync"), CameraB.Orientation.Equals(A.Orientation));
+	A.MatchFraming(CameraB);
+	TestTrue(TEXT("Bidirectional synchronization"), A.CameraLocation().Equals(CameraB.CameraLocation()));
+	const FVector OtherCenter(60.0, 20.0, 4.0);
+	CameraB.SetBounds(FBoxSphereBounds(OtherCenter, FVector(20.0), 35.0), true);
+	CameraB.MatchFraming(A);
+	TestTrue(TEXT("Different bounds retain own pivot"), CameraB.Target.Equals(OtherCenter));
+	TestTrue(TEXT("Different bounds preserve safe distance"), CameraB.GetDistance() >= CameraB.MinDistance());
+	return !HasAnyErrors();
+}
+
 #endif

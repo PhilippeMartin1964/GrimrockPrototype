@@ -68,6 +68,15 @@ struct FGridItemWorkshopOrbit
 		bReady = true;
 	}
 
+	// Copy navigation, not the target object's geometry or readiness.
+	void MatchFraming(const FGridItemWorkshopOrbit& Other)
+	{
+		Orientation = Other.Orientation;
+		RequestedDistance = Other.RequestedDistance;
+		PanOffset = Other.PanOffset;
+		UpdateDistance();
+	}
+
 	void Drag(const FVector2D& Delta)
 	{
 		if (bReady)

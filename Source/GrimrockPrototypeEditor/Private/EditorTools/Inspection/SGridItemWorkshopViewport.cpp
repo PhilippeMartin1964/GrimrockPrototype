@@ -151,7 +151,7 @@ void SGridItemWorkshopViewport::Frame(const FRotator& Rotation)
 	}
 	Mesh->UpdateBounds();
 	Orbit.SetBounds(Mesh->Bounds, true, Rotation);
-	ApplyOrbit();
+	ApplyOrbit(true);
 }
 
 UStaticMeshComponent* SGridItemWorkshopViewport::GetMesh() const
@@ -160,7 +160,21 @@ UStaticMeshComponent* SGridItemWorkshopViewport::GetMesh() const
 	return Actor ? Actor->GetPreviewMesh() : nullptr;
 }
 
-void SGridItemWorkshopViewport::ApplyOrbit()
+void SGridItemWorkshopViewport::SetLinkedViewport(const TSharedPtr<SGridItemWorkshopViewport>& Other)
+{
+	LinkedViewport = Other;
+}
+
+void SGridItemWorkshopViewport::MatchFraming(const SGridItemWorkshopViewport& Other)
+{
+	if (Orbit.bReady && Other.Orbit.bReady)
+	{
+		Orbit.MatchFraming(Other.Orbit);
+		ApplyOrbit();
+	}
+}
+
+void SGridItemWorkshopViewport::ApplyOrbit(bool bPropagate)
 {
 	if (!WorkshopClient.IsValid() || !Orbit.bReady)
 	{
@@ -171,24 +185,31 @@ void SGridItemWorkshopViewport::ApplyOrbit()
 	WorkshopClient->SetLookAtLocation(Orbit.AimLocation(), false);
 	WorkshopClient->SetInspectionFov(Orbit.ViewFov());
 	WorkshopClient->Invalidate();
+	if (bPropagate)
+	{
+		if (const TSharedPtr<SGridItemWorkshopViewport> Other = LinkedViewport.Pin())
+		{
+			Other->MatchFraming(*this);
+		}
+	}
 }
 
 void SGridItemWorkshopViewport::OrbitDrag(const FVector2D& Delta)
 {
 	Orbit.Drag(Delta);
-	ApplyOrbit();
+	ApplyOrbit(true);
 }
 
 void SGridItemWorkshopViewport::OrbitZoom(double WheelDelta)
 {
 	Orbit.Zoom(WheelDelta);
-	ApplyOrbit();
+	ApplyOrbit(true);
 }
 
 void SGridItemWorkshopViewport::OrbitPan(const FVector2D& Delta, double ProjectionAxisPixels)
 {
 	Orbit.Pan(Delta, ProjectionAxisPixels);
-	ApplyOrbit();
+	ApplyOrbit(true);
 }
 
 void SGridItemWorkshopOrbitInput::Construct(const FArguments& InArgs)

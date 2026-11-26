@@ -76,6 +76,16 @@ bool FGridItemWorkshopSession::SelectLevel(int32 Level)
 	return FGridItemInspectionReadModel::ResolveExact(Registry.Get(), SelectedId, Level, View);
 }
 
+bool FGridItemWorkshopSession::ResolveComparison(int32 Level, FGridItemInspectionView& Out) const
+{
+	if (!View.HasLevel())
+	{
+		Out = FGridItemInspectionView();
+		return false;
+	}
+	return FGridItemInspectionReadModel::ResolveExact(Registry.Get(), SelectedId, Level, Out);
+}
+
 void FGridItemWorkshopSession::ClearSelection()
 {
 	SelectedId = NAME_None;

@@ -26,6 +26,8 @@ public:
 	void OrbitDrag(const FVector2D& Delta);
 	void OrbitZoom(double WheelDelta);
 	void OrbitPan(const FVector2D& Delta, double ProjectionAxisPixels);
+	void SetLinkedViewport(const TSharedPtr<SGridItemWorkshopViewport>& Other);
+	void MatchFraming(const SGridItemWorkshopViewport& Other);
 	bool HasOrbitTarget() const { return Orbit.bReady; }
 	UStaticMeshComponent* GetMesh() const;
 
@@ -34,7 +36,8 @@ protected:
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override { return nullptr; }
 
 private:
-	void ApplyOrbit();
+	void ApplyOrbit(bool bPropagate = false);
+	TWeakPtr<SGridItemWorkshopViewport> LinkedViewport;
 	FGridItemWorkshopOrbit Orbit;
 	TSharedPtr<FAdvancedPreviewScene> Scene;
 	TSharedPtr<FGridItemWorkshopViewportClient> WorkshopClient;

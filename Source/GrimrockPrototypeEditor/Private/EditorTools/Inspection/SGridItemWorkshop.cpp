@@ -10,6 +10,9 @@
 #include "UObject/UObjectGlobals.h"
 #include "UObject/Package.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSlider.h"
 #include "Widgets/Layout/SScrollBox.h"
@@ -124,47 +127,44 @@ void SGridItemWorkshop::Construct(const FArguments&)
 						.OnClicked_Lambda([this]() { PreviewViewport->Frame(FRotator::ZeroRotator); return FReply::Handled(); })
 					]
 				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth()
+					[
+						SNew(SButton)
+						.IsEnabled_Lambda([this]() { return Session.GetView().HasLevel(); })
+						.Text_Lambda([this]() { return bShowComparison ? LOCTEXT("SingleView", "Vue simple") : LOCTEXT("CompareAB", "Comparer A/B"); })
+						.OnClicked_Lambda([this]() { ToggleComparison(); return FReply::Handled(); })
+					]
+					+ SHorizontalBox::Slot().AutoWidth().Padding(8, 0)
+					[
+						SNew(SCheckBox)
+						.Visibility_Lambda([this]() { return bShowComparison ? EVisibility::Visible : EVisibility::Collapsed; })
+						.IsChecked_Lambda([this]() { return bSynchronizeViews ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+						.OnCheckStateChanged_Lambda([this](ECheckBoxState State) { bSynchronizeViews = State == ECheckBoxState::Checked; LinkViews(); })
+						[
+							SNew(STextBlock).Text(LOCTEXT("LinkViews", "Synchroniser les vues"))
+						]
+					]
+				]
 				+ SVerticalBox::Slot().FillHeight(1)
 				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().FillWidth(1)
 					[
-						PreviewViewport.ToSharedRef()
+						MakePreviewPane(PreviewViewport.ToSharedRef(), false)
 					]
-					+ SOverlay::Slot()
+					+ SHorizontalBox::Slot().FillWidth(1)
 					[
-						SNew(SGridItemWorkshopOrbitInput).PreviewViewport(PreviewViewport).Visibility(EVisibility::Visible)
+						SAssignNew(ComparisonHost, SBox)
+						.Visibility_Lambda([this]() { return bShowComparison ? EVisibility::Visible : EVisibility::Collapsed; })
 					]
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
 				[
 					SNew(STextBlock).AutoWrapText(true)
 					.Text(LOCTEXT("Navigation", "Clic gauche : rotation 360° · Clic droit ou milieu : déplacement · Molette : zoom de détail · Recentrer : vue initiale"))
-				]
-				+ SVerticalBox::Slot().AutoHeight().Padding(6)
-				[
-					SNew(SHorizontalBox)
-					.Visibility_Lambda([this]() { return Session.GetView().HasLevel() ? EVisibility::Visible : EVisibility::Collapsed; })
-					+ SHorizontalBox::Slot().AutoWidth()
-					[
-						SNew(SButton).Text(LOCTEXT("Previous", "−"))
-						.OnClicked_Lambda([this]() { QueueLevel((PendingLevel == INDEX_NONE ? Session.GetSelectedLevel() : PendingLevel) - 1); return FReply::Handled(); })
-					]
-					+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(6, 0)
-					[
-						SNew(SSlider).StepSize(1.0f / 19.0f)
-						.Value_Lambda([this]() { return (FMath::Clamp(PendingLevel == INDEX_NONE ? Session.GetSelectedLevel() : PendingLevel, 1, 20) - 1) / 19.0f; })
-						.OnValueChanged_Lambda([this](float Value) { QueueLevel(1 + FMath::RoundToInt(Value * 19.0f)); })
-					]
-					+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6, 0)
-					[
-						SNew(STextBlock).Text_Lambda([this]() { return FText::Format(LOCTEXT("Level", "N{0}"), FText::AsNumber(PendingLevel == INDEX_NONE ? Session.GetSelectedLevel() : PendingLevel)); })
-					]
-					+ SHorizontalBox::Slot().AutoWidth()
-					[
-						SNew(SButton).Text(LOCTEXT("Next", "+"))
-						.OnClicked_Lambda([this]() { QueueLevel((PendingLevel == INDEX_NONE ? Session.GetSelectedLevel() : PendingLevel) + 1); return FReply::Handled(); })
-					]
 				]
 			]
 			+ SSplitter::Slot().Value(0.25f)
@@ -175,7 +175,17 @@ void SGridItemWorkshop::Construct(const FArguments&)
 					SNew(SScrollBox)
 					+ SScrollBox::Slot()
 					[
-						SNew(STextBlock).AutoWrapText(true).Text_Lambda([this]() { return DetailsText; })
+						SNew(SVerticalBox)
+						+ SVerticalBox::Slot().AutoHeight()
+						[
+							SNew(STextBlock).AutoWrapText(true).Text_Lambda([this]() { return DetailsText; })
+						]
+						+ SVerticalBox::Slot().AutoHeight().Padding(0, 8)
+						[
+							SNew(STextBlock).AutoWrapText(true)
+							.Visibility_Lambda([this]() { return bShowComparison ? EVisibility::Visible : EVisibility::Collapsed; })
+							.Text_Lambda([this]() { return ComparisonDetails; })
+						]
 					]
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
@@ -220,12 +230,149 @@ void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta
 			RefreshSelection(false);
 		}
 	}
+	if (PendingComparisonLevel != INDEX_NONE)
+	{
+		const int32 Level = PendingComparisonLevel;
+		PendingComparisonLevel = INDEX_NONE;
+		if (bShowComparison && ComparisonLevel != Level)
+		{
+			ComparisonLevel = Level;
+			RefreshComparison(false);
+		}
+	}
+}
+
+TSharedRef<SWidget> SGridItemWorkshop::MakePreviewPane(const TSharedRef<SGridItemWorkshopViewport>& Viewport, bool bComparison)
+{
+	const auto GetLevel = [this, bComparison]()
+	{
+		const int32 Pending = bComparison ? PendingComparisonLevel : PendingLevel;
+		return Pending == INDEX_NONE ? (bComparison ? ComparisonLevel : Session.GetSelectedLevel()) : Pending;
+	};
+	const auto Queue = [this, bComparison](int32 Level)
+	{
+		if (bComparison)
+		{
+			QueueComparisonLevel(Level);
+		}
+		else
+		{
+			QueueLevel(Level);
+		}
+	};
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot().AutoHeight()
+		[
+			SNew(STextBlock)
+			.Visibility_Lambda([this]() { return bShowComparison ? EVisibility::Visible : EVisibility::Collapsed; })
+			.Text(bComparison ? LOCTEXT("ViewB", "B") : LOCTEXT("ViewA", "A"))
+		]
+		+ SVerticalBox::Slot().FillHeight(1)
+		[
+			SNew(SOverlay)
+			+ SOverlay::Slot()
+			[
+				Viewport
+			]
+			+ SOverlay::Slot()
+			[
+				SNew(SGridItemWorkshopOrbitInput).PreviewViewport(Viewport).Visibility(EVisibility::Visible)
+			]
+		]
+		+ SVerticalBox::Slot().AutoHeight().Padding(4)
+		[
+			SNew(SHorizontalBox)
+			.Visibility_Lambda([this]() { return Session.GetView().HasLevel() ? EVisibility::Visible : EVisibility::Collapsed; })
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SButton).Text(LOCTEXT("Previous", "−"))
+				.OnClicked_Lambda([GetLevel, Queue]() { Queue(GetLevel() - 1); return FReply::Handled(); })
+			]
+			+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(6, 0)
+			[
+				SNew(SSlider).StepSize(1.0f / 19.0f)
+				.Value_Lambda([GetLevel]() { return (FMath::Clamp(GetLevel(), 1, 20) - 1) / 19.0f; })
+				.OnValueChanged_Lambda([Queue](float Value) { Queue(1 + FMath::RoundToInt(Value * 19.0f)); })
+			]
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(6, 0)
+			[
+				SNew(STextBlock).Text_Lambda([GetLevel]() { return FText::Format(LOCTEXT("Level", "N{0}"), FText::AsNumber(GetLevel())); })
+			]
+			+ SHorizontalBox::Slot().AutoWidth()
+			[
+				SNew(SButton).Text(LOCTEXT("Next", "+"))
+				.OnClicked_Lambda([GetLevel, Queue]() { Queue(GetLevel() + 1); return FReply::Handled(); })
+			]
+		];
+}
+
+void SGridItemWorkshop::ToggleComparison()
+{
+	bShowComparison = !bShowComparison && Session.GetView().HasLevel();
+	if (bShowComparison)
+	{
+		SAssignNew(ComparisonViewport, SGridItemWorkshopViewport);
+		ComparisonHost->SetContent(MakePreviewPane(ComparisonViewport.ToSharedRef(), true));
+		RefreshComparison(true);
+	}
+	else
+	{
+		PendingComparisonLevel = INDEX_NONE;
+		ComparisonHost->SetContent(SNullWidget::NullWidget);
+		ComparisonViewport.Reset();
+		ComparisonDetails = FText::GetEmpty();
+	}
+	LinkViews();
+}
+
+void SGridItemWorkshop::LinkViews()
+{
+	const bool bLink = bShowComparison && bSynchronizeViews && ComparisonViewport.IsValid();
+	PreviewViewport->SetLinkedViewport(bLink ? ComparisonViewport : nullptr);
+	if (ComparisonViewport.IsValid())
+	{
+		ComparisonViewport->SetLinkedViewport(bLink ? PreviewViewport : nullptr);
+		if (bLink)
+		{
+			ComparisonViewport->MatchFraming(*PreviewViewport);
+		}
+	}
+}
+
+void SGridItemWorkshop::RefreshComparison(bool bRecenter)
+{
+	if (!bShowComparison || !ComparisonViewport.IsValid())
+	{
+		return;
+	}
+	if (!Session.GetView().HasLevel())
+	{
+		ToggleComparison();
+		return;
+	}
+	FGridItemInspectionView ComparisonView;
+	Session.ResolveComparison(ComparisonLevel, ComparisonView);
+	const EGridItemPreviewResult Result = ComparisonViewport->Display(ComparisonView, bRecenter);
+	if (bSynchronizeViews)
+	{
+		ComparisonViewport->MatchFraming(*PreviewViewport);
+	}
+	ComparisonDetails = FText::Format(LOCTEXT("DetailsB", "B — {0}"), BuildDetails(ComparisonView, *ComparisonViewport, Result));
+}
+
+void SGridItemWorkshop::QueueComparisonLevel(int32 Level)
+{
+	if (bShowComparison && Session.GetView().HasLevel())
+	{
+		PendingComparisonLevel = FMath::Clamp(Level, 1, 20);
+	}
 }
 
 void SGridItemWorkshop::RefreshRegistry(bool bInitial)
 {
 	bRefreshPending = false;
 	PendingLevel = INDEX_NONE;
+	PendingComparisonLevel = INDEX_NONE;
 	Session.Rebuild();
 	if (bInitial && Session.GetSelectedId().IsNone() && !Session.GetEntries().IsEmpty())
 	{
@@ -261,7 +408,15 @@ void SGridItemWorkshop::RefreshSelection(bool bRecenter)
 {
 	PreviewResult = PreviewViewport->Display(Session.GetView(), bRecenter);
 	UpdateAssets();
-	DetailsText = BuildDetails();
+	DetailsText = BuildDetails(Session.GetView(), *PreviewViewport, PreviewResult);
+	if (bRecenter || !Session.GetView().HasLevel())
+	{
+		RefreshComparison(bRecenter);
+	}
+	else if (bShowComparison && bSynchronizeViews)
+	{
+		ComparisonViewport->MatchFraming(*PreviewViewport);
+	}
 }
 
 void SGridItemWorkshop::OnAssetChanged(UObject* Object, FPropertyChangedEvent&)
@@ -281,6 +436,7 @@ void SGridItemWorkshop::OnSelection(TSharedPtr<FGridWorkshopEntry> Entry, ESelec
 		return;
 	}
 	PendingLevel = INDEX_NONE;
+	PendingComparisonLevel = INDEX_NONE;
 	Session.Select(Entry->Id);
 	RefreshSelection(true);
 }
@@ -303,9 +459,8 @@ void SGridItemWorkshop::QueueLevel(int32 Level)
 	}
 }
 
-FText SGridItemWorkshop::BuildDetails() const
+FText SGridItemWorkshop::BuildDetails(const FGridItemInspectionView& View, const SGridItemWorkshopViewport& Viewport, EGridItemPreviewResult Result) const
 {
-	const FGridItemInspectionView& View = Session.GetView();
 	if (!View.IsValid())
 	{
 		const FString Error = Session.GetError();
@@ -349,13 +504,13 @@ FText SGridItemWorkshop::BuildDetails() const
 			Details += Binding.ActionId.ToString() + TEXT(" / ") + Binding.PresentationId.ToString() + TEXT("\n");
 		}
 	}
-	if (PreviewResult != EGridItemPreviewResult::Ready)
+	if (Result != EGridItemPreviewResult::Ready)
 	{
 		Details += TEXT("\nMesh non affiché : ressource manquante ou hôte invalide.\n");
 	}
 	Details += FString::Printf(TEXT("\nMesh monde : %s\nTransform : %s\nEffets persistants configurés : %d\n"),
 		*Item.WorldMesh.ToSoftObjectPath().ToString(), *Item.WorldVisualTransform.ToString(), Item.VisualEffects.Effects.Num());
-	UStaticMeshComponent* Mesh = PreviewViewport.IsValid() ? PreviewViewport->GetMesh() : nullptr;
+	UStaticMeshComponent* Mesh = Viewport.GetMesh();
 	if (Mesh && Mesh->GetStaticMesh())
 	{
 		Details += FString::Printf(TEXT("\nDimensions (AABB, cm) : %s\n"), *(Mesh->Bounds.BoxExtent * 2.0).ToString());
