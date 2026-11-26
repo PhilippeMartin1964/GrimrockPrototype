@@ -56,9 +56,15 @@ public:
 		SetRealtime(true);
 		SetViewRotation(FRotator(-12.0, 35.0, 0.0));
 		ToggleOrbitCamera(false);
+		OverrideNearClipPlane(static_cast<float>(FGridItemWorkshopOrbit::NearClipCm));
 	}
 
 	virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
+
+	void SetInspectionFov(double Degrees)
+	{
+		ViewFOV = static_cast<float>(Degrees);
+	}
 
 	virtual void Tick(float DeltaSeconds) override
 	{
@@ -177,7 +183,8 @@ void SGridItemWorkshopViewport::ApplyOrbit()
 	}
 	WorkshopClient->SetViewLocation(Orbit.CameraLocation());
 	WorkshopClient->SetViewRotation(Orbit.ViewRotation());
-	WorkshopClient->SetLookAtLocation(Orbit.Target, false);
+	WorkshopClient->SetLookAtLocation(Orbit.AimLocation(), false);
+	WorkshopClient->SetInspectionFov(Orbit.ViewFov());
 	WorkshopClient->Invalidate();
 }
 
@@ -193,6 +200,12 @@ void SGridItemWorkshopViewport::OrbitZoom(double WheelDelta)
 	ApplyOrbit();
 }
 
+void SGridItemWorkshopViewport::OrbitPan(const FVector2D& Delta, double ProjectionAxisPixels)
+{
+	Orbit.Pan(Delta, ProjectionAxisPixels);
+	ApplyOrbit();
+}
+
 void SGridItemWorkshopOrbitInput::Construct(const FArguments& InArgs)
 {
 	PreviewViewport = InArgs._PreviewViewport;
@@ -202,8 +215,11 @@ void SGridItemWorkshopOrbitInput::Construct(const FArguments& InArgs)
 FReply SGridItemWorkshopOrbitInput::OnMouseButtonDown(const FGeometry&, const FPointerEvent& Event)
 {
 	const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin();
-	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && Preview.IsValid() && Preview->HasOrbitTarget())
+	const FKey Button = Event.GetEffectingButton();
+	if (!HasMouseCapture() && Preview.IsValid() && Preview->HasOrbitTarget() &&
+		(Button == EKeys::LeftMouseButton || Button == EKeys::RightMouseButton || Button == EKeys::MiddleMouseButton))
 	{
+		ActiveDragButton = Button;
 		return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::Mouse)
 			.CaptureMouse(SharedThis(this)).UseHighPrecisionMouseMovement(SharedThis(this));
 	}
@@ -212,27 +228,43 @@ FReply SGridItemWorkshopOrbitInput::OnMouseButtonDown(const FGeometry&, const FP
 
 FReply SGridItemWorkshopOrbitInput::OnMouseButtonUp(const FGeometry&, const FPointerEvent& Event)
 {
-	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && HasMouseCapture())
+	if (Event.GetEffectingButton() == ActiveDragButton && HasMouseCapture())
 	{
+		ActiveDragButton = FKey();
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 	return FReply::Handled();
 }
 
-FReply SGridItemWorkshopOrbitInput::OnMouseMove(const FGeometry&, const FPointerEvent& Event)
+FReply SGridItemWorkshopOrbitInput::OnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (HasMouseCapture())
 	{
-		if (!Event.IsMouseButtonDown(EKeys::LeftMouseButton))
+		if (!ActiveDragButton.IsValid() || !Event.IsMouseButtonDown(ActiveDragButton))
 		{
+			ActiveDragButton = FKey();
 			return FReply::Handled().ReleaseMouseCapture();
 		}
 		if (const TSharedPtr<SGridItemWorkshopViewport> Preview = PreviewViewport.Pin())
 		{
-			Preview->OrbitDrag(Event.GetCursorDelta());
+			if (ActiveDragButton == EKeys::LeftMouseButton)
+			{
+				Preview->OrbitDrag(Event.GetCursorDelta());
+			}
+			else
+			{
+				const FVector2D Size = Geometry.GetAbsoluteSize();
+				Preview->OrbitPan(Event.GetCursorDelta(), FMath::Max(Size.X, Size.Y));
+			}
 		}
 	}
 	return FReply::Handled();
+}
+
+void SGridItemWorkshopOrbitInput::OnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent)
+{
+	ActiveDragButton = FKey();
+	SCompoundWidget::OnMouseCaptureLost(CaptureLostEvent);
 }
 
 FReply SGridItemWorkshopOrbitInput::OnMouseWheel(const FGeometry&, const FPointerEvent& Event)
@@ -258,6 +290,7 @@ FReply SGridItemWorkshopOrbitInput::OnKeyDown(const FGeometry&, const FKeyEvent&
 	}
 	if (Event.GetKey() == EKeys::Escape && HasMouseCapture())
 	{
+		ActiveDragButton = FKey();
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 	return FReply::Handled();

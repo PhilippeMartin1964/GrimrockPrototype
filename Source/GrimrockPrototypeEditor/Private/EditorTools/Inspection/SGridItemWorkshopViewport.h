@@ -4,6 +4,7 @@
 #include "SEditorViewport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "GridItemWorkshopOrbit.h"
+#include "InputCoreTypes.h"
 #include "Runtime/Inspection/GridItemInspectionTypes.h"
 
 class FAdvancedPreviewScene;
@@ -25,6 +26,7 @@ public:
 	void Clear();
 	void OrbitDrag(const FVector2D& Delta);
 	void OrbitZoom(double WheelDelta);
+	void OrbitPan(const FVector2D& Delta, double ProjectionAxisPixels);
 	bool HasOrbitTarget() const { return Orbit.bReady; }
 	UStaticMeshComponent* GetMesh() const;
 
@@ -57,7 +59,9 @@ public:
 	virtual FReply OnMouseWheel(const FGeometry& Geometry, const FPointerEvent& Event) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& Geometry, const FPointerEvent& Event) override;
 	virtual FReply OnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
+	virtual void OnMouseCaptureLost(const FCaptureLostEvent& CaptureLostEvent) override;
 
 private:
 	TWeakPtr<SGridItemWorkshopViewport> PreviewViewport;
+	FKey ActiveDragButton;
 };

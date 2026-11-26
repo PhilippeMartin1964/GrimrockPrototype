@@ -89,6 +89,7 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 		Orbit.Zoom(1.0);
 	}
 	TestTrue(TEXT("Zoom clamps outside bounds"), FMath::IsNearlyEqual(Orbit.Distance, Orbit.MinDistance()));
+	TestTrue(TEXT("Optical detail zoom reaches minimum FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemWorkshopOrbit::DetailFovDegrees, 0.001));
 	for (int32 Index = 0; Index < 100; ++Index)
 	{
 		Orbit.Zoom(-1.0);
@@ -149,6 +150,59 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 	TestTrue(TEXT("Small object near clip safety"), Orbit.Distance >= Orbit.MinDistance());
 	Orbit.Clear();
 	TestFalse(TEXT("No target after clearing"), Orbit.bReady);
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopDetailNavigationTest,
+	"Grimrock.Editor.Items.Inspection.DetailNavigation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
+{
+	FGridItemWorkshopOrbit Orbit;
+	const FVector Center(12.0, -37.0, 25.0);
+	const FBoxSphereBounds Sword(Center, FVector(0.8, 5.0, 55.0), 56.0);
+	Orbit.SetBounds(Sword, true, FRotator::ZeroRotator);
+	TestTrue(TEXT("Broadside minimum follows thickness, not sword length"), FMath::IsNearlyEqual(Orbit.MinDistance(), 1.3, 0.001));
+	for (int32 Index = 0; Index < 150; ++Index)
+	{
+		Orbit.Zoom(1.0);
+	}
+	TestTrue(TEXT("Physical camera reaches half a centimetre from the broadside bounds"), FMath::IsNearlyEqual(Orbit.Distance, 1.3, 0.001));
+	TestTrue(TEXT("Close-up has a locally safe near plane"), FGridItemWorkshopOrbit::NearClipCm < FGridItemWorkshopOrbit::SurfaceClearanceCm);
+	TestTrue(TEXT("Extra detail is available without crossing the mesh"), Orbit.ViewFov() <= 2.001);
+	const FVector CameraBefore = Orbit.CameraLocation();
+	const FQuat RotationBefore = Orbit.Orientation;
+	const double DistanceBefore = Orbit.Distance;
+	Orbit.Pan(FVector2D(100.0, 80.0), 1000.0);
+	const FVector Shift = Orbit.CameraLocation() - CameraBefore;
+	TestTrue(TEXT("Right drag shifts camera left"), FVector::DotProduct(Shift, RotationBefore.GetAxisY()) < 0.0);
+	TestTrue(TEXT("Down drag shifts camera up"), FVector::DotProduct(Shift, RotationBefore.GetAxisZ()) > 0.0);
+	TestTrue(TEXT("Pan has no depth motion"), FMath::Abs(FVector::DotProduct(Shift, RotationBefore.GetAxisX())) < 0.001);
+	TestTrue(TEXT("Pan retains geometric pivot"), Orbit.Target.Equals(Center));
+	TestTrue(TEXT("Pan retains rotation"), Orbit.Orientation.Equals(RotationBefore));
+	TestTrue(TEXT("Pan retains distance"), FMath::IsNearlyEqual(Orbit.Distance, DistanceBefore));
+	TestTrue(TEXT("Camera faces panned aim without forced recenter"), (Orbit.AimLocation() - Orbit.CameraLocation()).GetSafeNormal().Equals(Orbit.Orientation.GetAxisX()));
+	const FVector2D SavedPan = Orbit.PanOffset;
+	const double SavedFov = Orbit.ViewFov();
+	Orbit.SetBounds(Sword, false);
+	TestTrue(TEXT("Level change preserves pan"), Orbit.PanOffset.Equals(SavedPan));
+	TestTrue(TEXT("Level change preserves detail magnification"), FMath::IsNearlyEqual(Orbit.ViewFov(), SavedFov));
+	Orbit.Pan(FVector2D(-100.0, -80.0), 1000.0);
+	TestTrue(TEXT("Opposite drag cancels pan"), Orbit.PanOffset.IsNearlyZero(0.001));
+	Orbit.Drag(FVector2D(0.0, 90.0 / 0.35));
+	TestTrue(TEXT("Close orbit remains outside longitudinal bounds"), Orbit.Distance >= Orbit.MinDistance());
+	TestTrue(TEXT("Longitudinal minimum uses actual depth"), FMath::IsNearlyEqual(Orbit.MinDistance(), 55.5, 0.001));
+	Orbit.Pan(FVector2D(500.0, -300.0), 1000.0);
+	Orbit.SetBounds(Sword, true);
+	TestTrue(TEXT("Recenter clears pan"), Orbit.PanOffset.IsNearlyZero());
+	TestTrue(TEXT("Recenter resets detail FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemWorkshopOrbit::DefaultFovDegrees));
+	Orbit.SetBounds(FBoxSphereBounds(Center, FVector(0.2), 0.35), true, FRotator::ZeroRotator);
+	for (int32 Index = 0; Index < 100; ++Index)
+	{
+		Orbit.Zoom(1.0);
+	}
+	TestTrue(TEXT("Tiny item has sub-centimetre physical viewing distance"), Orbit.Distance < 1.0);
 	return !HasAnyErrors();
 }
 

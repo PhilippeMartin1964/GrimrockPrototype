@@ -141,7 +141,7 @@ void SGridItemWorkshop::Construct(const FArguments&)
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
 				[
 					SNew(STextBlock).AutoWrapText(true)
-					.Text(LOCTEXT("Navigation", "Clic gauche maintenu : rotation libre 360° autour de l'objet · Molette : zoom · Recentrer : vue initiale"))
+					.Text(LOCTEXT("Navigation", "Clic gauche : rotation 360° · Clic droit ou milieu : déplacement · Molette : zoom de détail · Recentrer : vue initiale"))
 				]
 				+ SVerticalBox::Slot().AutoHeight().Padding(6)
 				[
