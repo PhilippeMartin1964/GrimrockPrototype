@@ -87,12 +87,10 @@ void SGridItemWorkshopViewport::Construct(const FArguments&)
 
 SGridItemWorkshopViewport::~SGridItemWorkshopViewport()
 {
-	Clear();
 	if (AGridItemPreviewActor* Actor = Preview.Get())
 	{
 		Actor->Destroy();
 	}
-	Preview.Reset();
 	if (WorkshopClient.IsValid())
 	{
 		WorkshopClient->Viewport = nullptr;
@@ -136,10 +134,10 @@ EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspect
 	else
 	{
 		Orbit.Clear();
-	}
-	if (WorkshopClient.IsValid())
-	{
-		WorkshopClient->Invalidate();
+		if (WorkshopClient.IsValid())
+		{
+			WorkshopClient->Invalidate();
+		}
 	}
 	return Result;
 }
@@ -154,19 +152,6 @@ void SGridItemWorkshopViewport::Frame(const FRotator& Rotation)
 	Mesh->UpdateBounds();
 	Orbit.SetBounds(Mesh->Bounds, true, Rotation);
 	ApplyOrbit();
-}
-
-void SGridItemWorkshopViewport::Clear()
-{
-	Orbit.Clear();
-	if (AGridItemPreviewActor* Actor = Preview.Get())
-	{
-		Actor->ClearPreview();
-	}
-	if (WorkshopClient.IsValid())
-	{
-		WorkshopClient->Invalidate();
-	}
 }
 
 UStaticMeshComponent* SGridItemWorkshopViewport::GetMesh() const

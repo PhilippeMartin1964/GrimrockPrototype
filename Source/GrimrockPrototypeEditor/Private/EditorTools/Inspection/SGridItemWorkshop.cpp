@@ -12,8 +12,6 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Input/SSlider.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/SBoxPanel.h"
@@ -203,10 +201,6 @@ SGridItemWorkshop::~SGridItemWorkshop()
 {
 	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(ChangedHandle);
 	FCoreUObjectDelegates::OnObjectTransacted.Remove(TransactedHandle);
-	if (PreviewViewport.IsValid())
-	{
-		PreviewViewport->Clear();
-	}
 }
 
 void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta)

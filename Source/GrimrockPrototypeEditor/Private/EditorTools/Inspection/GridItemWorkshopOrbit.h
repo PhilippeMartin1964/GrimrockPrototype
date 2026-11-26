@@ -15,7 +15,6 @@ struct FGridItemWorkshopOrbit
 	FVector Target = FVector::ZeroVector;
 	FVector BoxExtent = FVector::OneVector;
 	double Radius = 1.0;
-	double Distance = 35.0;
 	double RequestedDistance = 35.0;
 	FVector2D PanOffset = FVector2D::ZeroVector;
 	FQuat Orientation = FRotator(-12.0, 35.0, 0.0).Quaternion();
@@ -40,14 +39,15 @@ struct FGridItemWorkshopOrbit
 	void UpdateDistance()
 	{
 		RequestedDistance = FMath::Clamp(RequestedDistance, MinRequestedDistance(), MaxDistance());
-		Distance = FMath::Max(RequestedDistance, MinDistance());
 	}
+
+	double GetDistance() const { return FMath::Max(RequestedDistance, MinDistance()); }
 
 	/** At the physical front plane, continue into optical detail zoom.
 	 * No object scaling and no camera penetration. */
 	double ViewFov() const
 	{
-		const double Ratio = FMath::Min(1.0, RequestedDistance / Distance);
+		const double Ratio = FMath::Min(1.0, RequestedDistance / GetDistance());
 		return FMath::Clamp(FMath::RadiansToDegrees(2.0 * FMath::Atan(
 			FMath::Tan(FMath::DegreesToRadians(DefaultFovDegrees * 0.5)) * Ratio)),
 			DetailFovDegrees, DefaultFovDegrees);
@@ -95,20 +95,19 @@ struct FGridItemWorkshopOrbit
 	{
 		if (bReady && ProjectionAxisPixels > 0.0)
 		{
-			const double CmPerPixel = 2.0 * Distance *
+			const double CmPerPixel = 2.0 * GetDistance() *
 				FMath::Tan(FMath::DegreesToRadians(ViewFov() * 0.5)) / ProjectionAxisPixels;
 			PanOffset += DeltaPixels * CmPerPixel;
 		}
 	}
 
 	// Slate Y is down. Moving the camera left/up moves the image right/down.
-	FVector CameraPlaneOffset() const
+	FVector AimLocation() const
 	{
-		return -Orientation.GetAxisY() * PanOffset.X + Orientation.GetAxisZ() * PanOffset.Y;
+		return Target - Orientation.GetAxisY() * PanOffset.X + Orientation.GetAxisZ() * PanOffset.Y;
 	}
-	FVector AimLocation() const { return Target + CameraPlaneOffset(); }
 	FRotator ViewRotation() const { return Orientation.Rotator(); }
-	FVector CameraLocation() const { return AimLocation() - Orientation.GetAxisX() * Distance; }
+	FVector CameraLocation() const { return AimLocation() - Orientation.GetAxisX() * GetDistance(); }
 	void Clear()
 	{
 		bReady = false;

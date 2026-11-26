@@ -70,7 +70,7 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 	const FVector Center(74.0, -39.0, 61.0);
 	const FBoxSphereBounds Bounds(Center, FVector(35.0, 4.0, 10.0), 37.0);
 	Orbit.SetBounds(Bounds, true);
-	const double Distance = Orbit.Distance;
+	const double Distance = Orbit.GetDistance();
 	const FVector Before = Orbit.CameraLocation();
 	Orbit.Drag(FVector2D(160.0, -45.0));
 	TestTrue(TEXT("Camera moves around object, not around itself"), !Orbit.CameraLocation().Equals(Before));
@@ -80,21 +80,21 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 	const FQuat AfterDrag = Orbit.Orientation;
 	Orbit.SetBounds(Bounds, false);
 	TestTrue(TEXT("Level change preserves orientation"), Orbit.Orientation.Equals(AfterDrag));
-	TestTrue(TEXT("Level change preserves distance"), FMath::IsNearlyEqual(Orbit.Distance, Distance));
+	TestTrue(TEXT("Level change preserves distance"), FMath::IsNearlyEqual(Orbit.GetDistance(), Distance));
 	Orbit.Zoom(1.0);
-	TestTrue(TEXT("Wheel forward zooms in"), Orbit.Distance < Distance);
+	TestTrue(TEXT("Wheel forward zooms in"), Orbit.GetDistance() < Distance);
 	TestTrue(TEXT("Zoom retains aim"), (Center - Orbit.CameraLocation()).GetSafeNormal().Equals(Orbit.Orientation.GetAxisX()));
 	for (int32 Index = 0; Index < 100; ++Index)
 	{
 		Orbit.Zoom(1.0);
 	}
-	TestTrue(TEXT("Zoom clamps outside bounds"), FMath::IsNearlyEqual(Orbit.Distance, Orbit.MinDistance()));
+	TestTrue(TEXT("Zoom clamps outside bounds"), FMath::IsNearlyEqual(Orbit.GetDistance(), Orbit.MinDistance()));
 	TestTrue(TEXT("Optical detail zoom reaches minimum FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemWorkshopOrbit::DetailFovDegrees, 0.001));
 	for (int32 Index = 0; Index < 100; ++Index)
 	{
 		Orbit.Zoom(-1.0);
 	}
-	TestTrue(TEXT("Zoom out is bounded"), FMath::IsNearlyEqual(Orbit.Distance, Orbit.MaxDistance()));
+	TestTrue(TEXT("Zoom out is bounded"), FMath::IsNearlyEqual(Orbit.GetDistance(), Orbit.MaxDistance()));
 	// A point on the initially visible face must follow the mouse in
 	// screen space. Test directions independently, not just angle signs.
 	const FVector FrontPoint = -FVector::ForwardVector;
@@ -147,7 +147,7 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 	TestTrue(TEXT("Upside-down orbit has continuous screen basis"), FVector::DotProduct(RightBefore, Orbit.Orientation.GetAxisY()) > 0.0);
 	Orbit.SetBounds(FBoxSphereBounds(FVector(-17.0, 2.0, 0.0), FVector(1.0), 2.0), true);
 	TestTrue(TEXT("New object is recentered"), Orbit.Target.Equals(FVector(-17.0, 2.0, 0.0)));
-	TestTrue(TEXT("Small object near clip safety"), Orbit.Distance >= Orbit.MinDistance());
+	TestTrue(TEXT("Small object near clip safety"), Orbit.GetDistance() >= Orbit.MinDistance());
 	Orbit.Clear();
 	TestFalse(TEXT("No target after clearing"), Orbit.bReady);
 	return !HasAnyErrors();
@@ -168,12 +168,12 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	{
 		Orbit.Zoom(1.0);
 	}
-	TestTrue(TEXT("Physical camera reaches half a centimetre from the broadside bounds"), FMath::IsNearlyEqual(Orbit.Distance, 1.3, 0.001));
+	TestTrue(TEXT("Physical camera reaches half a centimetre from the broadside bounds"), FMath::IsNearlyEqual(Orbit.GetDistance(), 1.3, 0.001));
 	TestTrue(TEXT("Close-up has a locally safe near plane"), FGridItemWorkshopOrbit::NearClipCm < FGridItemWorkshopOrbit::SurfaceClearanceCm);
 	TestTrue(TEXT("Extra detail is available without crossing the mesh"), Orbit.ViewFov() <= 2.001);
 	const FVector CameraBefore = Orbit.CameraLocation();
 	const FQuat RotationBefore = Orbit.Orientation;
-	const double DistanceBefore = Orbit.Distance;
+	const double DistanceBefore = Orbit.GetDistance();
 	Orbit.Pan(FVector2D(100.0, 80.0), 1000.0);
 	const FVector Shift = Orbit.CameraLocation() - CameraBefore;
 	TestTrue(TEXT("Right drag shifts camera left"), FVector::DotProduct(Shift, RotationBefore.GetAxisY()) < 0.0);
@@ -181,7 +181,7 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	TestTrue(TEXT("Pan has no depth motion"), FMath::Abs(FVector::DotProduct(Shift, RotationBefore.GetAxisX())) < 0.001);
 	TestTrue(TEXT("Pan retains geometric pivot"), Orbit.Target.Equals(Center));
 	TestTrue(TEXT("Pan retains rotation"), Orbit.Orientation.Equals(RotationBefore));
-	TestTrue(TEXT("Pan retains distance"), FMath::IsNearlyEqual(Orbit.Distance, DistanceBefore));
+	TestTrue(TEXT("Pan retains distance"), FMath::IsNearlyEqual(Orbit.GetDistance(), DistanceBefore));
 	TestTrue(TEXT("Camera faces panned aim without forced recenter"), (Orbit.AimLocation() - Orbit.CameraLocation()).GetSafeNormal().Equals(Orbit.Orientation.GetAxisX()));
 	const FVector2D SavedPan = Orbit.PanOffset;
 	const double SavedFov = Orbit.ViewFov();
@@ -191,7 +191,7 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	Orbit.Pan(FVector2D(-100.0, -80.0), 1000.0);
 	TestTrue(TEXT("Opposite drag cancels pan"), Orbit.PanOffset.IsNearlyZero(0.001));
 	Orbit.Drag(FVector2D(0.0, 90.0 / 0.35));
-	TestTrue(TEXT("Close orbit remains outside longitudinal bounds"), Orbit.Distance >= Orbit.MinDistance());
+	TestTrue(TEXT("Close orbit remains outside longitudinal bounds"), Orbit.GetDistance() >= Orbit.MinDistance());
 	TestTrue(TEXT("Longitudinal minimum uses actual depth"), FMath::IsNearlyEqual(Orbit.MinDistance(), 55.5, 0.001));
 	Orbit.Pan(FVector2D(500.0, -300.0), 1000.0);
 	Orbit.SetBounds(Sword, true);
@@ -202,7 +202,7 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	{
 		Orbit.Zoom(1.0);
 	}
-	TestTrue(TEXT("Tiny item has sub-centimetre physical viewing distance"), Orbit.Distance < 1.0);
+	TestTrue(TEXT("Tiny item has sub-centimetre physical viewing distance"), Orbit.GetDistance() < 1.0);
 	return !HasAnyErrors();
 }
 

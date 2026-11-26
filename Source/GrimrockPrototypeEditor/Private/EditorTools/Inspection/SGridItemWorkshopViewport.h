@@ -23,7 +23,6 @@ public:
 
 	EGridItemPreviewResult Display(const FGridItemInspectionView& View, bool bRecenter);
 	void Frame(const FRotator& Rotation = FRotator(-12.0, 35.0, 0.0));
-	void Clear();
 	void OrbitDrag(const FVector2D& Delta);
 	void OrbitZoom(double WheelDelta);
 	void OrbitPan(const FVector2D& Delta, double ProjectionAxisPixels);

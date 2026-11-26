@@ -4,7 +4,7 @@ bool FGridItemWorkshopSession::Rebuild()
 {
 	const FName PreviousId = SelectedId;
 	const int32 PreviousLevel = SelectedLevel;
-	View = FGridItemInspectionView();
+	ClearSelection();
 	Entries.Reset();
 	Error.Reset();
 	Registry.Reset();
@@ -55,16 +55,11 @@ bool FGridItemWorkshopSession::Rebuild()
 			SelectLevel(PreviousLevel);
 		}
 	}
-	else
-	{
-		ClearSelection();
-	}
 	return true;
 }
 
 bool FGridItemWorkshopSession::Select(FName Id)
 {
-	ClearSelection();
 	SelectedId = Id;
 	const bool bResolved = FGridItemInspectionReadModel::ResolveDefault(Registry.Get(), Id, View);
 	SelectedLevel = bResolved ? View.Item.ItemLevel : INDEX_NONE;
