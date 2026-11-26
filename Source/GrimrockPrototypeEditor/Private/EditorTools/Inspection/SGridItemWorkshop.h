@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GridItemWorkshopSession.h"
+#include "GridItemWorkshopContext.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Views/SListView.h"
 
@@ -46,6 +47,9 @@ private:
 	void LinkViews();
 	void RefreshComparison(bool bRecenter);
 	void QueueComparisonLevel(int32 Level);
+	TSharedRef<SWidget> MakeContextControls();
+	void SetContext(EGridWorkshopContext NewContext);
+	void SetLighting(EGridWorkshopLighting NewLighting);
 
 	FGridItemWorkshopSession Session;
 	TArray<TSharedPtr<FGridWorkshopEntry>> Filtered;
@@ -59,6 +63,8 @@ private:
 	int32 PendingComparisonLevel = INDEX_NONE;
 	bool bSynchronizeViews = true;
 	bool bShowComparison = false;
+	EGridWorkshopContext Context = EGridWorkshopContext::Examination;
+	EGridWorkshopLighting Lighting = EGridWorkshopLighting::Studio;
 	FText ComparisonDetails;
 	FText DetailsText;
 	FString Search;

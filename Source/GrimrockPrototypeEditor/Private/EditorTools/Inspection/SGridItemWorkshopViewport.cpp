@@ -2,6 +2,9 @@
 
 #include "AdvancedPreviewScene.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
+#include "Engine/StaticMesh.h"
 #include "EditorViewportClient.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -21,9 +24,59 @@ namespace
 		{
 			SetFloorVisibility(false, true);
 			SetEnvironmentVisibility(false, true);
+			StudioIntensity = DirectionalLight->Intensity;
+			StudioSkyIntensity = SkyLight->Intensity;
+			StudioColor = DirectionalLight->GetLightColor();
 		}
 		virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
+
+		void ApplyLighting(EGridWorkshopLighting Lighting)
+		{
+			// Fixed, identical authoring illumination. Never edit the shared
+			// Asset Viewer profile or a production light.
+			const bool bStudio = Lighting == EGridWorkshopLighting::Studio;
+			const bool bTorch = Lighting == EGridWorkshopLighting::Torch;
+			DirectionalLight->SetIntensity(StudioIntensity * (bStudio ? 1.0f : bTorch ? 0.65f : 0.18f));
+			DirectionalLight->SetLightColor(bStudio ? StudioColor : bTorch ? FLinearColor(1.0f, 0.55f, 0.22f) : FLinearColor(0.65f, 0.76f, 1.0f), false);
+			SkyLight->SetIntensity(StudioSkyIntensity * (bStudio ? 1.0f : bTorch ? 0.18f : 0.12f));
+		}
+
+	private:
+		float StudioIntensity = 0.0f;
+		float StudioSkyIntensity = 0.0f;
+		FLinearColor StudioColor = FLinearColor::White;
 	};
+
+	// Use the existing native-scale dungeon meshes; no packages are authored.
+	UStaticMeshComponent* ShowStageMesh(FAdvancedPreviewScene& Scene, TWeakObjectPtr<UStaticMeshComponent>& Component, const TCHAR* AssetPath, bool bShow)
+	{
+		if (!bShow)
+		{
+			if (UStaticMeshComponent* Existing = Component.Get())
+			{
+				Scene.RemoveComponent(Existing);
+				Component.Reset();
+			}
+			return nullptr;
+		}
+		if (!Component.IsValid())
+		{
+			UStaticMesh* Asset = LoadObject<UStaticMesh>(nullptr, AssetPath);
+			if (!Asset)
+			{
+				return nullptr;
+			}
+			UStaticMeshComponent* NewMesh = NewObject<UStaticMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+			NewMesh->SetStaticMesh(Asset);
+			NewMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			NewMesh->SetGenerateOverlapEvents(false);
+			NewMesh->SetCanEverAffectNavigation(false);
+			NewMesh->SetMobility(EComponentMobility::Movable);
+			Scene.AddComponent(NewMesh, FTransform::Identity, false);
+			Component = NewMesh;
+		}
+		return Component.Get();
+	}
 }
 
 // The scene owner is constructed before, and destroyed after, the viewport
@@ -103,7 +156,7 @@ TSharedRef<FEditorViewportClient> SGridItemWorkshopViewport::MakeEditorViewportC
 	return WorkshopClient.ToSharedRef();
 }
 
-EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspectionView& View, bool bRecenter)
+EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspectionView& View, bool bRecenter, EGridWorkshopContext Context)
 {
 	if (!Preview.IsValid())
 	{
@@ -124,22 +177,68 @@ EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspect
 	}
 	UStaticMeshComponent* Mesh = Actor->GetPreviewMesh();
 	const UStaticMesh* PreviousMesh = Mesh->GetStaticMesh();
-	const EGridItemPreviewResult Result = Actor->ApplyPreview(View);
+	const EGridItemPreviewResult Result = Actor->ApplyPreview(FGridWorkshopContext::Project(View, Context));
 	if (Result == EGridItemPreviewResult::Ready)
 	{
 		Mesh->UpdateBounds();
+		UpdateStage(Context, Mesh);
 		Orbit.SetBounds(Mesh->Bounds, bRecenter || PreviousMesh != Mesh->GetStaticMesh());
 		ApplyOrbit();
 	}
 	else
 	{
 		Orbit.Clear();
+		UpdateStage(Context, nullptr);
 		if (WorkshopClient.IsValid())
 		{
 			WorkshopClient->Invalidate();
 		}
 	}
 	return Result;
+}
+
+void SGridItemWorkshopViewport::SetLighting(EGridWorkshopLighting Lighting)
+{
+	static_cast<FGridWorkshopBlackScene&>(*Scene).ApplyLighting(Lighting);
+	WorkshopClient->Invalidate();
+}
+
+void SGridItemWorkshopViewport::UpdateStage(EGridWorkshopContext Context, const UStaticMeshComponent* Mesh)
+{
+	bStageError = false;
+	const bool bFloor = Mesh && FGridWorkshopContext::HasFloor(Context);
+	const bool bWall = Mesh && Context == EGridWorkshopContext::Decor;
+	UStaticMeshComponent* Floor = ShowStageMesh(*Scene, StageFloor,
+		TEXT("/Game/GrimrockPrototype/Meshes/Floor/SM_Floor_Stone_01.SM_Floor_Stone_01"), bFloor);
+	UStaticMeshComponent* Wall = ShowStageMesh(*Scene, StageWall,
+		TEXT("/Game/GrimrockPrototype/Meshes/Wall/SM_Wall_Stone_05.SM_Wall_Stone_05"), bWall);
+	bStageError = (bFloor && !Floor) || (bWall && !Wall);
+	if (!Mesh || !bFloor)
+	{
+		return;
+	}
+	const FVector Center = Mesh->Bounds.Origin;
+	const FVector Extent = Mesh->Bounds.BoxExtent;
+	const double GroundZ = Center.Z - Extent.Z;
+	if (Floor)
+	{
+		const FBoxSphereBounds Bounds = Floor->GetStaticMesh()->GetBounds();
+		Floor->SetWorldLocation(FVector(Center.X - Bounds.Origin.X, Center.Y - Bounds.Origin.Y,
+			GroundZ - Bounds.Origin.Z - Bounds.BoxExtent.Z));
+	}
+	if (Wall)
+	{
+		// Technical backdrop behind the item; keep actual scale and turn
+		// only to align the thinner horizontal axis with world X.
+		const FBoxSphereBounds Bounds = Wall->GetStaticMesh()->GetBounds();
+		const FRotator Rotation(0.0, Bounds.BoxExtent.X <= Bounds.BoxExtent.Y ? 0.0 : 90.0, 0.0);
+		Wall->SetWorldRotation(Rotation);
+		Wall->SetWorldLocation(FVector::ZeroVector);
+		Wall->UpdateBounds();
+		const FBoxSphereBounds WorldBounds = Wall->Bounds;
+		Wall->SetWorldLocation(FVector(Center.X + Extent.X + 100.0 + WorldBounds.BoxExtent.X,
+			Center.Y, GroundZ + WorldBounds.BoxExtent.Z) - WorldBounds.Origin);
+	}
 }
 
 void SGridItemWorkshopViewport::Frame(const FRotator& Rotation)

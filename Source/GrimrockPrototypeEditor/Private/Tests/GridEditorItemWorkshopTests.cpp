@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 #include "../EditorTools/Inspection/GridItemWorkshopSession.h"
 #include "../EditorTools/Inspection/GridItemWorkshopOrbit.h"
+#include "../EditorTools/Inspection/GridItemWorkshopContext.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopCatalogueTest,
 	"Grimrock.Editor.Items.Inspection.Catalogue",
@@ -254,6 +255,48 @@ bool FGridEditorItemWorkshopCompareTest::RunTest(const FString&)
 	CameraB.MatchFraming(A);
 	TestTrue(TEXT("Different bounds retain own pivot"), CameraB.Target.Equals(OtherCenter));
 	TestTrue(TEXT("Different bounds preserve safe distance"), CameraB.GetDistance() >= CameraB.MinDistance());
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopContextTest,
+	"Grimrock.Editor.Items.Inspection.Context",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorItemWorkshopContextTest::RunTest(const FString&)
+{
+	FGridItemWorkshopSession Session;
+	if (!TestTrue(TEXT("Configured registry"), Session.Rebuild()) ||
+		!TestTrue(TEXT("Select pilot"), Session.Select(TEXT("Weapon_StraightSword_01"))))
+	{
+		return false;
+	}
+	const FGridItemInspectionView A = Session.GetView();
+	TestTrue(TEXT("Examination available"), FGridWorkshopContext::CanShow(A, EGridWorkshopContext::Examination));
+	for (const EGridWorkshopContext Context : { EGridWorkshopContext::Examination, EGridWorkshopContext::Floor, EGridWorkshopContext::Decor })
+	{
+		const FGridItemInspectionView Projected = FGridWorkshopContext::Project(A, Context);
+		TestTrue(TEXT("World role keeps canonical mesh"), Projected.Item.WorldMesh == A.Item.WorldMesh);
+		TestTrue(TEXT("World role keeps authored transform"), Projected.Item.WorldVisualTransform.Equals(A.Item.WorldVisualTransform));
+		TestEqual(TEXT("World role keeps exact level"), Projected.Item.ItemLevel, A.Item.ItemLevel);
+	}
+	FGridItemInspectionView Fixture = A;
+	Fixture.Item.LightEmitter.bUsePointLight = false;
+	TestFalse(TEXT("No invented held appearance for non-emitting weapon"), FGridWorkshopContext::CanShow(Fixture, EGridWorkshopContext::Held));
+	Fixture.Item.LightEmitter.bUsePointLight = true;
+	Fixture.Item.EquippedMesh = A.Item.WorldMesh;
+	TestTrue(TEXT("Actual emitter mesh role available"), FGridWorkshopContext::CanShow(Fixture, EGridWorkshopContext::Held));
+	TestTrue(TEXT("Held projection preserves local mesh transform"), FGridWorkshopContext::Project(Fixture, EGridWorkshopContext::Held).Item.WorldVisualTransform.Equals(A.Item.WorldVisualTransform));
+	Fixture.Item.ProjectileAppearance.bEnabled = true;
+	Fixture.Item.ProjectileMesh = A.Item.WorldMesh;
+	Fixture.Item.ProjectileAppearance.Mode = EGridProjectileVisualMode::Stable;
+	Fixture.Item.ProjectileAppearance.MeshForwardAxis = EGridProjectileForwardAxis::PositiveY;
+	Fixture.Item.ProjectileAppearance.RelativeScale = FVector(0.5, 2.0, 1.0);
+	const FGridItemInspectionView Flight = FGridWorkshopContext::Project(Fixture, EGridWorkshopContext::Flight);
+	TestTrue(TEXT("Canonical projectile mesh"), Flight.Item.WorldMesh == Fixture.Item.ProjectileMesh);
+	TestTrue(TEXT("Stable launch aligns authored tip"), Flight.Item.WorldVisualTransform.GetRotation().RotateVector(FVector::RightVector).Equals(FVector::ForwardVector));
+	TestTrue(TEXT("Canonical flight scale"), Flight.Item.WorldVisualTransform.GetScale3D().Equals(Fixture.Item.ProjectileAppearance.RelativeScale));
+	TestTrue(TEXT("Session definition remains unmodified"), Session.GetView().Item.WorldVisualTransform.Equals(A.Item.WorldVisualTransform));
+	TestTrue(TEXT("Only technical contexts have floor"), FGridWorkshopContext::HasFloor(EGridWorkshopContext::Floor) && FGridWorkshopContext::HasFloor(EGridWorkshopContext::Decor) && !FGridWorkshopContext::HasFloor(EGridWorkshopContext::Examination));
 	return !HasAnyErrors();
 }
 

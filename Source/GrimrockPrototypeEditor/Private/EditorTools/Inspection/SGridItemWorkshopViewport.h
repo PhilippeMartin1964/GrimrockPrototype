@@ -4,6 +4,7 @@
 #include "SEditorViewport.h"
 #include "Widgets/SCompoundWidget.h"
 #include "GridItemWorkshopOrbit.h"
+#include "GridItemWorkshopContext.h"
 #include "InputCoreTypes.h"
 #include "Runtime/Inspection/GridItemInspectionTypes.h"
 
@@ -21,7 +22,9 @@ public:
 	void Construct(const FArguments& InArgs);
 	virtual ~SGridItemWorkshopViewport() override;
 
-	EGridItemPreviewResult Display(const FGridItemInspectionView& View, bool bRecenter);
+	EGridItemPreviewResult Display(const FGridItemInspectionView& View, bool bRecenter, EGridWorkshopContext Context = EGridWorkshopContext::Examination);
+	void SetLighting(EGridWorkshopLighting Lighting);
+	bool HasStageError() const { return bStageError; }
 	void Frame(const FRotator& Rotation = FRotator(-12.0, 35.0, 0.0));
 	void OrbitDrag(const FVector2D& Delta);
 	void OrbitZoom(double WheelDelta);
@@ -37,6 +40,10 @@ protected:
 
 private:
 	void ApplyOrbit(bool bPropagate = false);
+	void UpdateStage(EGridWorkshopContext Context, const UStaticMeshComponent* Mesh);
+	TWeakObjectPtr<UStaticMeshComponent> StageFloor;
+	TWeakObjectPtr<UStaticMeshComponent> StageWall;
+	bool bStageError = false;
 	TWeakPtr<SGridItemWorkshopViewport> LinkedViewport;
 	FGridItemWorkshopOrbit Orbit;
 	TSharedPtr<FAdvancedPreviewScene> Scene;

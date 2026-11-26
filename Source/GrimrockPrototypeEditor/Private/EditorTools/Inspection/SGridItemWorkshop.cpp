@@ -148,6 +148,10 @@ void SGridItemWorkshop::Construct(const FArguments&)
 						]
 					]
 				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					MakeContextControls()
+				]
 				+ SVerticalBox::Slot().FillHeight(1)
 				[
 					SNew(SHorizontalBox)
@@ -306,12 +310,72 @@ TSharedRef<SWidget> SGridItemWorkshop::MakePreviewPane(const TSharedRef<SGridIte
 		];
 }
 
+TSharedRef<SWidget> SGridItemWorkshop::MakeContextControls()
+{
+	const TSharedRef<SHorizontalBox> ContextRow = SNew(SHorizontalBox);
+	const TSharedRef<SHorizontalBox> LightingRow = SNew(SHorizontalBox);
+	const TPair<EGridWorkshopContext, FText> Contexts[] = {
+		{EGridWorkshopContext::Examination, LOCTEXT("ContextExam", "Examen")},
+		{EGridWorkshopContext::Floor, LOCTEXT("ContextFloor", "Sol")},
+		{EGridWorkshopContext::Decor, LOCTEXT("ContextDecor", "Décor")},
+		{EGridWorkshopContext::Held, LOCTEXT("ContextHeld", "Main (mesh)")},
+		{EGridWorkshopContext::Flight, LOCTEXT("ContextFlight", "Vol (pose)")},
+	};
+	for (const auto& Entry : Contexts)
+	{
+		const EGridWorkshopContext Value = Entry.Key;
+		const FText Label = Entry.Value;
+		ContextRow->AddSlot().FillWidth(1)
+		[
+			SNew(SButton).Text(Label)
+			.IsEnabled_Lambda([this, Value]() { return Value != Context && (Value == EGridWorkshopContext::Examination || FGridWorkshopContext::CanShow(Session.GetView(), Value)); })
+			.OnClicked_Lambda([this, Value]() { SetContext(Value); return FReply::Handled(); })
+		];
+	}
+	const TPair<EGridWorkshopLighting, FText> Lights[] = {
+		{EGridWorkshopLighting::Studio, LOCTEXT("LightStudio", "Studio")},
+		{EGridWorkshopLighting::Torch, LOCTEXT("LightTorch", "Torche")},
+		{EGridWorkshopLighting::Dungeon, LOCTEXT("LightDungeon", "Donjon")},
+	};
+	for (const auto& Entry : Lights)
+	{
+		const EGridWorkshopLighting Value = Entry.Key;
+		LightingRow->AddSlot().FillWidth(1)
+		[
+			SNew(SButton).Text(Entry.Value)
+			.IsEnabled_Lambda([this, Value]() { return Value != Lighting; })
+			.OnClicked_Lambda([this, Value]() { SetLighting(Value); return FReply::Handled(); })
+		];
+	}
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot().AutoHeight()[ContextRow]
+		+ SVerticalBox::Slot().AutoHeight().Padding(0, 3)[LightingRow];
+}
+
+void SGridItemWorkshop::SetContext(EGridWorkshopContext NewContext)
+{
+	Context = NewContext;
+	RefreshSelection(false);
+	RefreshComparison(false);
+}
+
+void SGridItemWorkshop::SetLighting(EGridWorkshopLighting NewLighting)
+{
+	Lighting = NewLighting;
+	PreviewViewport->SetLighting(Lighting);
+	if (ComparisonViewport.IsValid())
+	{
+		ComparisonViewport->SetLighting(Lighting);
+	}
+}
+
 void SGridItemWorkshop::ToggleComparison()
 {
 	bShowComparison = !bShowComparison && Session.GetView().HasLevel();
 	if (bShowComparison)
 	{
 		SAssignNew(ComparisonViewport, SGridItemWorkshopViewport);
+		ComparisonViewport->SetLighting(Lighting);
 		ComparisonHost->SetContent(MakePreviewPane(ComparisonViewport.ToSharedRef(), true));
 		RefreshComparison(true);
 	}
@@ -352,7 +416,7 @@ void SGridItemWorkshop::RefreshComparison(bool bRecenter)
 	}
 	FGridItemInspectionView ComparisonView;
 	Session.ResolveComparison(ComparisonLevel, ComparisonView);
-	const EGridItemPreviewResult Result = ComparisonViewport->Display(ComparisonView, bRecenter);
+	const EGridItemPreviewResult Result = ComparisonViewport->Display(ComparisonView, bRecenter, Context);
 	if (bSynchronizeViews)
 	{
 		ComparisonViewport->MatchFraming(*PreviewViewport);
@@ -406,10 +470,15 @@ void SGridItemWorkshop::RefreshList()
 
 void SGridItemWorkshop::RefreshSelection(bool bRecenter)
 {
-	PreviewResult = PreviewViewport->Display(Session.GetView(), bRecenter);
+	const bool bContextUnavailable = Context != EGridWorkshopContext::Examination && !FGridWorkshopContext::CanShow(Session.GetView(), Context);
+	if (bContextUnavailable)
+	{
+		Context = EGridWorkshopContext::Examination;
+	}
+	PreviewResult = PreviewViewport->Display(Session.GetView(), bRecenter, Context);
 	UpdateAssets();
 	DetailsText = BuildDetails(Session.GetView(), *PreviewViewport, PreviewResult);
-	if (bRecenter || !Session.GetView().HasLevel())
+	if (bRecenter || bContextUnavailable || !Session.GetView().HasLevel())
 	{
 		RefreshComparison(bRecenter);
 	}
@@ -504,6 +573,22 @@ FText SGridItemWorkshop::BuildDetails(const FGridItemInspectionView& View, const
 			Details += Binding.ActionId.ToString() + TEXT(" / ") + Binding.PresentationId.ToString() + TEXT("\n");
 		}
 	}
+	if (Context == EGridWorkshopContext::Held)
+	{
+		Details += TEXT("\nMain : mesh équipé émetteur, sans pose du personnage ni lumière active simulée.\n");
+	}
+	else if (Context == EGridWorkshopContext::Flight)
+	{
+		Details += TEXT("\nVol : pose statique de lancement d'un objet physique, animation réservée au simulateur.\n");
+	}
+	else if (FGridWorkshopContext::HasFloor(Context))
+	{
+		Details += TEXT("\nSupport technique à l'échelle native, pose statique sans simulation de chute.\n");
+	}
+	if (Viewport.HasStageError())
+	{
+		Details += TEXT("\nSupport de décor indisponible.\n");
+	}
 	if (Result != EGridItemPreviewResult::Ready)
 	{
 		Details += TEXT("\nMesh non affiché : ressource manquante ou hôte invalide.\n");
@@ -513,7 +598,7 @@ FText SGridItemWorkshop::BuildDetails(const FGridItemInspectionView& View, const
 	UStaticMeshComponent* Mesh = Viewport.GetMesh();
 	if (Mesh && Mesh->GetStaticMesh())
 	{
-		Details += FString::Printf(TEXT("\nDimensions (AABB, cm) : %s\n"), *(Mesh->Bounds.BoxExtent * 2.0).ToString());
+		Details += FString::Printf(TEXT("\nMesh affiché : %s\nDimensions (AABB, cm) : %s\n"), *Mesh->GetStaticMesh()->GetName(), *(Mesh->Bounds.BoxExtent * 2.0).ToString());
 		const TArray<FName> SlotNames = Mesh->GetMaterialSlotNames();
 		for (int32 Slot = 0; Slot < Mesh->GetNumMaterials(); ++Slot)
 		{
