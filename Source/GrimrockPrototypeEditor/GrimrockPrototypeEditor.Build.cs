@@ -37,7 +37,8 @@ public class GrimrockPrototypeEditor : ModuleRules
             "UMG",
             "MaterialEditor",
             "PropertyEditor",
-            "ToolMenus"
+            "ToolMenus",
+            "AdvancedPreviewScene"
         });
     }
 }

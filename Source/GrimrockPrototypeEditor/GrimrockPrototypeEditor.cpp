@@ -1,6 +1,7 @@
 #include "Modules/ModuleManager.h"
 #include "EditorModeRegistry.h"
 #include "EditorTools/GridEditorWorkspaceTabs.h"
+#include "Private/EditorTools/Inspection/SGridItemWorkshop.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/SGridEditorLuaScriptsPanel.h"
@@ -14,6 +15,7 @@
 #include "Framework/Docking/TabManager.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Widgets/SNullWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridEditor, Log, All);
 
@@ -70,6 +72,14 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Enabled)
 			.SetAutoGenerateMenuEntry(false);
 
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ItemWorkshopTabId());
+		FGlobalTabmanager::Get()
+			->RegisterNomadTabSpawner(ItemWorkshopTabId(), FOnSpawnTab::CreateRaw(this, &FGrimrockPrototypeEditorModule::SpawnItemWorkshopTab))
+			.SetDisplayName(NSLOCTEXT("GrimrockItemWorkshop", "TabTitle", "Atelier d'objets"))
+			.SetTooltipText(NSLOCTEXT("GrimrockItemWorkshop", "TabTooltip", "Examiner les objets du registre canonique hors PIE."))
+			.SetMenuType(ETabSpawnerMenuType::Enabled)
+			.SetAutoGenerateMenuEntry(false);
+
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FGrimrockPrototypeEditorModule::RegisterMenus));
 
 		PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw(this, &FGrimrockPrototypeEditorModule::HandlePreBeginPIE);
@@ -90,6 +100,13 @@ public:
 		FWorldDelegates::OnWorldCleanup.Remove(WorldCleanupHandle);
 		GridPIEPlaytestRequest::Clear(TEXT("EditorModuleShutdown"));
 
+		if (TSharedPtr<SDockTab> WorkshopTab = FGlobalTabmanager::Get()->FindExistingLiveTab(ItemWorkshopTabId()))
+		{
+			WorkshopTab->SetContent(SNullWidget::NullWidget);
+			WorkshopTab->RequestCloseTab();
+		}
+		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ItemWorkshopTabId());
+
 		UToolMenus::UnRegisterStartupCallback(this);
 		UToolMenus::UnregisterOwner(this);
 
@@ -106,6 +123,16 @@ public:
 	}
 
 private:
+	static FName ItemWorkshopTabId()
+	{
+		return FName(TEXT("GrimrockItemWorkshop"));
+	}
+
+	TSharedRef<SDockTab> SpawnItemWorkshopTab(const FSpawnTabArgs&)
+	{
+		return SNew(SDockTab).TabRole(ETabRole::NomadTab)[SNew(SGridItemWorkshop)];
+	}
+
 	bool CanSpawnGridEditorTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
 		(void)SpawnTabArgs;
@@ -158,6 +185,9 @@ private:
 			FText::FromString(TEXT("Choose Grid Editor tools and object palette entries.")));
 		AddWindowMenuEntry(Section, FName(TEXT("GrimrockGridSelectedObject")), GridEditorWorkspaceTabs::SelectedObject(), FText::FromString(TEXT("Selected Object")),
 			FText::FromString(TEXT("Inspect the selected object and its connectors.")));
+		AddWindowMenuEntry(Section, FName(TEXT("GrimrockItemWorkshop")), ItemWorkshopTabId(),
+			NSLOCTEXT("GrimrockItemWorkshop", "TabTitle", "Atelier d'objets"),
+			NSLOCTEXT("GrimrockItemWorkshop", "TabTooltip", "Examiner les objets du registre canonique hors PIE."));
 		AddWindowMenuEntry(Section, FName(TEXT("GrimrockLuaScripts")), GridEditorWorkspaceTabs::LuaScripts(), FText::FromString(TEXT("Grimrock Lua Scripts")),
 			FText::FromString(TEXT("Edit and validate level Lua scripts and Lua event bindings.")));
 	}
