@@ -320,6 +320,9 @@ public:
 		}
 	}
 
+	/** Initial level for an editor catalogue selection, never a physical-instance fallback. */
+	bool TryGetDefaultItemLevel(FName ItemId, int32& OutLevel) const;
+
 	/** Exact ItemId membership; unknown IDs are handled only by their not-yet-migrated readers. */
 	bool ContainsItem(FName ItemId) const
 	{

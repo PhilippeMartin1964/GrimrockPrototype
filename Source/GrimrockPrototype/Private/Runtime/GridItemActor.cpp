@@ -6,6 +6,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/Items/GridItemSubsystem.h"
+#include "Runtime/Inspection/GridItemMeshPresentation.h"
 #include "GridItemMeshResolver.h"
 #include "GridWorldPhysicsMassReadModel.h"
 #include "Engine/GameInstance.h"
@@ -207,67 +208,12 @@ void AGridItemActor::InitializeReadableContent(
 
 void AGridItemActor::SetPresentationMesh(UStaticMesh* Mesh)
 {
-	if (!MeshComponent)
-	{
-		return;
-	}
-	ClearWeaponFinish();
-	MeshComponent->SetStaticMesh(Mesh);
-	ApplyWeaponFinish();
+	FGridItemMeshPresentation::SetMesh(MeshComponent, Mesh, ResolvedWorldPresentation.WeaponFinish, FinishMaterials);
 }
 
 void AGridItemActor::ClearWeaponFinish()
 {
-	for (int32 Slot = 0; MeshComponent && Slot < FinishMaterials.Num(); ++Slot)
-	{
-		if (FinishMaterials[Slot] && MeshComponent->GetMaterial(Slot) == FinishMaterials[Slot])
-		{
-			MeshComponent->SetMaterial(Slot, nullptr);
-		}
-	}
-	FinishMaterials.Reset();
-}
-
-void AGridItemActor::ApplyWeaponFinish()
-{
-	const FGridWeaponFinish& Finish = ResolvedWorldPresentation.WeaponFinish;
-	if (Finish.FinishId.IsNone() || (Finish.RoughnessScale == 1.0f && Finish.NormalScale == 1.0f && Finish.Tint == FLinearColor::White))
-	{
-		return;
-	}
-
-	static const FMaterialParameterInfo RoughnessMultiplier(TEXT("RoughnessMultiplier"));
-	static const FMaterialParameterInfo RoughnessOverride(TEXT("RoughnessOverride"));
-	static const FMaterialParameterInfo NormalStrength(TEXT("NormalStrength"));
-	static const FMaterialParameterInfo BaseColorTint(TEXT("BaseColorTint"));
-	FinishMaterials.SetNum(MeshComponent->GetNumMaterials());
-	for (int32 Slot = 0; Slot < FinishMaterials.Num(); ++Slot)
-	{
-		// An explicit override owned by a Blueprint or another feature keeps its slot.
-		if (MeshComponent->OverrideMaterials.IsValidIndex(Slot) && MeshComponent->OverrideMaterials[Slot])
-		{
-			continue;
-		}
-		const UMaterialInterface* Base = MeshComponent->GetMaterial(Slot);
-		float RoughnessScale;
-		float RoughnessAbsolute;
-		float Normal;
-		FLinearColor Tint;
-		if (!Base || !Base->GetScalarParameterValue(RoughnessMultiplier, RoughnessScale) ||
-			!Base->GetScalarParameterValue(RoughnessOverride, RoughnessAbsolute) || !Base->GetScalarParameterValue(NormalStrength, Normal) ||
-			!Base->GetVectorParameterValue(BaseColorTint, Tint))
-		{
-			continue;
-		}
-		if (UMaterialInstanceDynamic* Material = MeshComponent->CreateDynamicMaterialInstance(Slot))
-		{
-			Material->SetScalarParameterValue(RoughnessMultiplier.Name, RoughnessScale * Finish.RoughnessScale);
-			Material->SetScalarParameterValue(RoughnessOverride.Name, RoughnessAbsolute * Finish.RoughnessScale);
-			Material->SetScalarParameterValue(NormalStrength.Name, Normal * Finish.NormalScale);
-			Material->SetVectorParameterValue(BaseColorTint.Name, Tint * Finish.Tint);
-			FinishMaterials[Slot] = Material;
-		}
-	}
+	FGridItemMeshPresentation::ClearFinish(MeshComponent, FinishMaterials);
 }
 
 bool AGridItemActor::AreItemLightsEnabled() const

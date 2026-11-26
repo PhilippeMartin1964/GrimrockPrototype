@@ -67,6 +67,18 @@ bool UGridItemSubsystem::ResolvePhysicalItem(
 		OutItem.ItemId == Instance.ItemDefinitionId && OutItem.ItemLevel == Instance.ItemLevel;
 }
 
+bool UGridItemSubsystem::TryGetDefaultItemLevel(FName ItemId, int32& OutLevel) const
+{
+	OutLevel = INDEX_NONE;
+	const TObjectPtr<UGridItemDefinitionAsset>* Found = RootRegistry ? ItemIndex.Find(ItemId) : nullptr;
+	if (!Found || !IsValid(Found->Get()))
+	{
+		return false;
+	}
+	OutLevel = Found->Get()->IsA<UGridArmamentDefinitionAsset>() ? 1 : 0;
+	return true;
+}
+
 bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolvedItem& OutItem) const
 {
 	OutItem = FGridResolvedItem();

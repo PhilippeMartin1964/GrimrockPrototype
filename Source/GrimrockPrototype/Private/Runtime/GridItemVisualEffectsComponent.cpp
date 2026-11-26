@@ -15,10 +15,16 @@ void UGridItemVisualEffectsComponent::ApplyConfig(const FGridItemVisualEffectsCo
 
     for (int32 Index = RuntimeConfig.Effects.Num(); Index < EffectComponents.Num(); ++Index)
     {
-        if (UNiagaraComponent* Previous = EffectComponents[Index].Get())
+        // Detach the reference before entering Niagara's completion lifecycle.
+        const TWeakObjectPtr<UNiagaraComponent> Previous(EffectComponents[Index].Get());
+        EffectComponents[Index] = nullptr;
+        if (UNiagaraComponent* Niagara = Previous.Get())
         {
-            Previous->Deactivate();
-            Previous->DestroyComponent();
+            Niagara->Deactivate();
+        }
+        if (UNiagaraComponent* Niagara = Previous.Get())
+        {
+            Niagara->DestroyComponent();
         }
     }
     EffectComponents.SetNum(RuntimeConfig.Effects.Num());
@@ -45,13 +51,13 @@ void UGridItemVisualEffectsComponent::SetPresentationEnabled(bool bEnabled)
 
 UNiagaraComponent* UGridItemVisualEffectsComponent::GetEffectComponent(int32 Index) const
 {
-    return EffectComponents.IsValidIndex(Index) ? EffectComponents[Index].Get() : nullptr;
+    return EffectComponents.IsValidIndex(Index) && IsValid(EffectComponents[Index].Get()) ? EffectComponents[Index].Get() : nullptr;
 }
 
 void UGridItemVisualEffectsComponent::RefreshEffects()
 {
     AActor* Owner = GetOwner();
-    if (!Owner)
+    if (!IsValid(Owner))
     {
         return;
     }
@@ -59,7 +65,7 @@ void UGridItemVisualEffectsComponent::RefreshEffects()
     for (int32 Index = 0; Index < RuntimeConfig.Effects.Num(); ++Index)
     {
         const FGridItemNiagaraEffectConfig& Effect = RuntimeConfig.Effects[Index];
-        UNiagaraComponent* Niagara = EffectComponents[Index].Get();
+        UNiagaraComponent* Niagara = GetEffectComponent(Index);
         const bool bShouldShow = bPresentationEnabled &&
             (Effect.ActivationMode == EGridItemVfxActivationMode::Always || bItemLightEnabled);
 
@@ -86,8 +92,9 @@ void UGridItemVisualEffectsComponent::RefreshEffects()
 
         if (!Niagara)
         {
-            Niagara = NewObject<UNiagaraComponent>(Owner);
+            Niagara = NewObject<UNiagaraComponent>(Owner, NAME_None, RF_Transient);
             Niagara->SetAutoActivate(false);
+            Niagara->SetAutoDestroy(false);
             Niagara->SetupAttachment(this);
             Niagara->SetAsset(System);
             Niagara->SetRelativeTransform(Effect.RelativeTransform);

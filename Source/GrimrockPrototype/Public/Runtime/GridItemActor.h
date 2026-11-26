@@ -163,5 +163,4 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> FinishMaterials;
 
 	void ClearWeaponFinish();
-	void ApplyWeaponFinish();
 };
