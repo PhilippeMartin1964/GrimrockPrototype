@@ -467,6 +467,16 @@ struct GRIMROCKPROTOTYPE_API FGridWeaponVisual
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	FTransform OrnamentTransform = FTransform::Identity;
 
+	/** Opt-in level for the existing ornament; zero preserves all existing assets. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual", meta = (ClampMin = "0", ClampMax = "20"))
+	int32 OrnamentMinimumItemLevel = 0;
+
+	bool HasOrnamentAtLevel(int32 Level) const
+	{
+		return Level >= 1 && Level <= 20 && OrnamentMinimumItemLevel >= 1 &&
+			Level >= OrnamentMinimumItemLevel && !OrnamentMesh.IsNull();
+	}
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon|Visual")
 	FTransform WorldTransform = FTransform::Identity;
 

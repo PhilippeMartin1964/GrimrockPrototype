@@ -114,6 +114,8 @@ bool FGridItemWorkshopSession::ResolveColorTrial(const FLinearColor& RelativeTin
 		Out.Item.WeaponFinish.FinishId = FName(TEXT("Workshop_ARM014_ColorTrial"));
 	}
 	Out.Item.WeaponFinish.Tint = Out.Item.WeaponFinish.Tint * RelativeTint;
+	Out.Item.OrnamentMesh = View.Item.OrnamentMesh;
+	Out.Item.OrnamentTransform = View.Item.OrnamentTransform;
 	Out.Item.VisualEffects = View.Item.VisualEffects;
 	Out.Item.LightEmitter = View.Item.LightEmitter;
 	return true;

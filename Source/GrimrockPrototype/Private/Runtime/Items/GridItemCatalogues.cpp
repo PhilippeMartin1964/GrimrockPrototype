@@ -309,6 +309,14 @@ bool UGridWeaponVisualCatalogueAsset::Validate(TArray<FString>& Errors) const
 			bValid = AddError(Errors, TEXT("Visual catalogue: missing/duplicate VisualId"));
 		}
 		SeenProfiles.Add(Profile.VisualId);
+		const FVector OrnamentScale = Profile.OrnamentTransform.GetScale3D();
+		if (Profile.OrnamentMinimumItemLevel < 0 || Profile.OrnamentMinimumItemLevel > 20 ||
+			(Profile.OrnamentMinimumItemLevel > 0 && (Profile.OrnamentMesh.IsNull() || Profile.WorldMesh.IsNull() ||
+			 Profile.OrnamentTransform.ContainsNaN() || !Profile.OrnamentTransform.GetRotation().IsNormalized() ||
+			 OrnamentScale.X <= 0.0 || OrnamentScale.Y <= 0.0 || OrnamentScale.Z <= 0.0)))
+		{
+			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid opt-in ornament for %s"), *Profile.VisualId.ToString()));
+		}
 		if (Profile.VisualEffectsMinimumItemLevel < 1 || Profile.VisualEffectsMinimumItemLevel > 20 || !Profile.VisualEffects.IsValid())
 		{
 			bValid = AddError(Errors, FString::Printf(TEXT("Visual catalogue: invalid persistent Niagara configuration for %s"), *Profile.VisualId.ToString()));

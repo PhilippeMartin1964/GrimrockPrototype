@@ -23,6 +23,14 @@ AGridItemPreviewActor::AGridItemPreviewActor()
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetEnableGravity(false);
 
+	OrnamentComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PreviewOrnament"));
+	OrnamentComponent->SetupAttachment(MeshComponent);
+	OrnamentComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	OrnamentComponent->SetGenerateOverlapEvents(false);
+	OrnamentComponent->SetCanEverAffectNavigation(false);
+	OrnamentComponent->SetSimulatePhysics(false);
+	OrnamentComponent->SetEnableGravity(false);
+
 	EffectsComponent = CreateDefaultSubobject<UGridItemVisualEffectsComponent>(TEXT("PreviewEffects"));
 	EffectsComponent->SetupAttachment(MeshComponent);
 }
@@ -44,16 +52,46 @@ EGridItemPreviewResult AGridItemPreviewActor::ApplyPreview(const FGridItemInspec
 	{
 		return EGridItemPreviewResult::MissingMesh;
 	}
+	UStaticMesh* Ornament = nullptr;
+	if (!View.Item.OrnamentMesh.IsNull())
+	{
+		Ornament = View.Item.OrnamentMesh.LoadSynchronous();
+		if (!Ornament)
+		{
+			return EGridItemPreviewResult::MissingOrnament;
+		}
+	}
 	FGridItemMeshPresentation::SetMesh(MeshComponent, Mesh, View.Item.WeaponFinish, FinishMaterials);
 	// Keep the authored scale/offset relative to the independent observation root.
 	MeshComponent->SetRelativeTransform(View.Item.WorldVisualTransform);
+	if (Ornament)
+	{
+		OrnamentComponent->SetStaticMesh(Ornament);
+		OrnamentComponent->SetRelativeTransform(View.Item.OrnamentTransform);
+	}
 	EffectsComponent->SetItemLightState(View.bPhysicalInstance && View.bItemLightsEnabled);
 	EffectsComponent->ApplyConfig(View.Item.VisualEffects);
 	return EGridItemPreviewResult::Ready;
 }
 
+FBoxSphereBounds AGridItemPreviewActor::GetPresentationBounds() const
+{
+	MeshComponent->UpdateBounds();
+	if (OrnamentComponent->GetStaticMesh())
+	{
+		OrnamentComponent->UpdateBounds();
+		return MeshComponent->Bounds + OrnamentComponent->Bounds;
+	}
+	return MeshComponent->Bounds;
+}
+
 void AGridItemPreviewActor::ClearPreview()
 {
+	if (IsValid(OrnamentComponent.Get()))
+	{
+		OrnamentComponent->SetStaticMesh(nullptr);
+		OrnamentComponent->SetRelativeTransform(FTransform::Identity);
+	}
 	if (IsValid(EffectsComponent.Get()))
 	{
 		EffectsComponent->ApplyConfig(FGridItemVisualEffectsConfig());

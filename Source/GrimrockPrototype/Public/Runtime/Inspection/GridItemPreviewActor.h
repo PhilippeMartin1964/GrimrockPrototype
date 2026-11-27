@@ -24,6 +24,8 @@ public:
 	void ClearPreview();
 
 	UStaticMeshComponent* GetPreviewMesh() const { return MeshComponent; }
+	UStaticMeshComponent* GetPreviewOrnament() const { return OrnamentComponent; }
+	FBoxSphereBounds GetPresentationBounds() const;
 	UGridItemVisualEffectsComponent* GetPreviewEffects() const { return EffectsComponent; }
 
 	virtual void Destroyed() override;
@@ -34,6 +36,9 @@ protected:
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> OrnamentComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UGridItemVisualEffectsComponent> EffectsComponent;

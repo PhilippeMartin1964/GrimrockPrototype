@@ -62,6 +62,13 @@ struct GRIMROCKPROTOTYPE_API FGridResolvedItem
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	FTransform WorldVisualTransform = FTransform::Identity;
 
+	/** Optional cosmetic child in the local space of the world mesh. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	TSoftObjectPtr<UStaticMesh> OrnamentMesh;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved|Presentation")
+	FTransform OrnamentTransform = FTransform::Identity;
+
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Item|Resolved")
 	TSoftObjectPtr<UStaticMesh> EquippedMesh;
 

@@ -36,6 +36,9 @@ struct FGridWorkshopContext
 			return FGridItemInspectionView();
 		}
 		FGridItemInspectionView Result = View;
+		// World-local ornament attachment has not been authored for held/flight meshes.
+		Result.Item.OrnamentMesh.Reset();
+		Result.Item.OrnamentTransform = FTransform::Identity;
 		if (Context == EGridWorkshopContext::Held)
 		{
 			Result.Item.WorldMesh = View.Item.EquippedMesh;

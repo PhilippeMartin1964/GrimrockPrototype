@@ -282,4 +282,69 @@ bool FGridItemInspectionLifecycleTest::RunTest(const FString&)
 	return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemInspectionOrnamentTest, "Grimrock.Items.Inspection.OrnamentPreview",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridItemInspectionOrnamentTest::RunTest(const FString&)
+{
+	const FGridCanonicalRegistryFixture Fixture;
+	FInspectionTestWorld Host;
+	if (!TestTrue(TEXT("Production registry is configured"), Fixture.bReady) || !TestNotNull(TEXT("Preview host"), Host.World))
+	{
+		return false;
+	}
+	AGridItemPreviewActor* A = Host.World->SpawnActor<AGridItemPreviewActor>();
+	AGridItemPreviewActor* B = Host.World->SpawnActor<AGridItemPreviewActor>();
+	if (!TestNotNull(TEXT("Preview A"), A) || !TestNotNull(TEXT("Preview B"), B))
+	{
+		return false;
+	}
+	FGridItemInspectionView View;
+	if (!TestTrue(TEXT("Resolve ARM014"), FGridItemInspectionReadModel::ResolveExact(Fixture.Registry.Get(), TEXT("Weapon_StraightSword_01"), 1, View)))
+	{
+		return false;
+	}
+	FGridWeaponVisual Profile;
+	Profile.WorldMesh = View.Item.WorldMesh;
+	Profile.OrnamentMesh = View.Item.WorldMesh; // fixture only; no production ornament authored
+	TestFalse(TEXT("Existing default is disabled"), Profile.HasOrnamentAtLevel(20));
+	Profile.OrnamentMinimumItemLevel = 5;
+	TestFalse(TEXT("Below threshold"), Profile.HasOrnamentAtLevel(4));
+	TestTrue(TEXT("Exact threshold"), Profile.HasOrnamentAtLevel(5));
+	TestTrue(TEXT("N20"), Profile.HasOrnamentAtLevel(20));
+	TestFalse(TEXT("N21"), Profile.HasOrnamentAtLevel(21));
+	TestFalse(TEXT("N0"), Profile.HasOrnamentAtLevel(0));
+
+	if (!TestTrue(TEXT("Baseline ready"), A->ApplyPreview(View) == EGridItemPreviewResult::Ready))
+	{
+		return false;
+	}
+	TestNull(TEXT("N1 has no enabled ornament"), A->GetPreviewOrnament()->GetStaticMesh());
+	View.Item.OrnamentMesh = Profile.OrnamentMesh;
+	View.Item.OrnamentTransform = FTransform(FRotator::ZeroRotator, FVector(200.0, 0.0, 0.0), FVector(0.5));
+	if (!TestTrue(TEXT("Decorated fixture ready"), B->ApplyPreview(View) == EGridItemPreviewResult::Ready))
+	{
+		return false;
+	}
+	UStaticMeshComponent* Child = B->GetPreviewOrnament();
+	TestNotNull(TEXT("Child mesh loaded"), Child->GetStaticMesh());
+	TestTrue(TEXT("Attached to base mesh"), Child->GetAttachParent() == B->GetPreviewMesh());
+	TestTrue(TEXT("Authored local transform retained"), Child->GetRelativeTransform().Equals(View.Item.OrnamentTransform));
+	TestTrue(TEXT("No collision"), Child->GetCollisionEnabled() == ECollisionEnabled::NoCollision);
+	TestFalse(TEXT("No overlaps"), Child->GetGenerateOverlapEvents());
+	TestFalse(TEXT("No physics"), Child->IsSimulatingPhysics());
+	TestNull(TEXT("A remains undecorated"), A->GetPreviewOrnament()->GetStaticMesh());
+	const FBoxSphereBounds Combined = B->GetPresentationBounds();
+	TestTrue(TEXT("Combined bounds cover ornament"), Combined.GetBox().IsInsideOrOn(Child->Bounds.Origin));
+	TestTrue(TEXT("Combined bounds cover base"), Combined.GetBox().IsInsideOrOn(B->GetPreviewMesh()->Bounds.Origin));
+	View.Item.OrnamentMesh.Reset();
+	TestTrue(TEXT("Return to base"), B->ApplyPreview(View) == EGridItemPreviewResult::Ready);
+	TestNull(TEXT("Ornament cleared on selection change"), Child->GetStaticMesh());
+	TestTrue(TEXT("Ornament transform reset"), Child->GetRelativeTransform().Equals(FTransform::Identity));
+	B->ClearPreview();
+	B->ClearPreview();
+	TestNull(TEXT("Repeated cleanup releases child"), Child->GetStaticMesh());
+	return !HasAnyErrors();
+}
+
 #endif

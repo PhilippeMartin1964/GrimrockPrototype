@@ -196,6 +196,11 @@ bool UGridItemSubsystem::ResolveItem(FName ItemId, int32 ItemLevel, FGridResolve
 		OutItem.bIsArmament = true;
 		OutItem.WorldMesh = Visual->WorldMesh;
 		OutItem.WorldVisualTransform = Visual->WorldTransform;
+		if (Visual->HasOrnamentAtLevel(ItemLevel))
+		{
+			OutItem.OrnamentMesh = Visual->OrnamentMesh;
+			OutItem.OrnamentTransform = Visual->OrnamentTransform;
+		}
 		if (const FGridWeaponFinish* Finish = RootRegistry->WeaponVisualCatalogue->ResolveFinish(*Visual, ItemLevel))
 		{
 			OutItem.WeaponFinish = *Finish;

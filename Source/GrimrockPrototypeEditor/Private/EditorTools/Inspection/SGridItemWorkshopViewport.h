@@ -40,7 +40,7 @@ protected:
 
 private:
 	void ApplyOrbit(bool bPropagate = false);
-	void UpdateStage(EGridWorkshopContext Context, const UStaticMeshComponent* Mesh);
+	void UpdateStage(EGridWorkshopContext Context, const FBoxSphereBounds* ItemBounds);
 	TWeakObjectPtr<UStaticMeshComponent> StageFloor;
 	TWeakObjectPtr<UStaticMeshComponent> StageWall;
 	bool bStageError = false;

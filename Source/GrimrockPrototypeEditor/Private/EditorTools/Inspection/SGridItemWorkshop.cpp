@@ -698,9 +698,18 @@ FText SGridItemWorkshop::BuildDetails(const FGridItemInspectionView& View, const
 	{
 		Details += TEXT("\nSupport de décor indisponible.\n");
 	}
-	if (Result != EGridItemPreviewResult::Ready)
+	if (Result == EGridItemPreviewResult::MissingOrnament)
+	{
+		Details += TEXT("\nOrnement introuvable : présentation incomplète refusée.\n");
+	}
+	else if (Result != EGridItemPreviewResult::Ready)
 	{
 		Details += TEXT("\nMesh non affiché : ressource manquante ou hôte invalide.\n");
+	}
+	if (!Item.OrnamentMesh.IsNull())
+	{
+		Details += FString::Printf(TEXT("\nOrnement monde : %s\nTransform local : %s\n"),
+			*Item.OrnamentMesh.ToSoftObjectPath().ToString(), *Item.OrnamentTransform.ToString());
 	}
 	Details += FString::Printf(TEXT("\nMesh monde : %s\nTransform : %s\nEffets persistants configurés : %d\n"),
 		*Item.WorldMesh.ToSoftObjectPath().ToString(), *Item.WorldVisualTransform.ToString(), Item.VisualEffects.Effects.Num());
@@ -789,6 +798,7 @@ void SGridItemWorkshop::UpdateAssets()
 	if (View.IsValid())
 	{
 		Add(LOCTEXT("WorldMesh", "Mesh monde"), View.Item.WorldMesh.ToSoftObjectPath());
+		Add(LOCTEXT("OrnamentMesh", "Ornement monde"), View.Item.OrnamentMesh.ToSoftObjectPath());
 		Add(LOCTEXT("EquippedMesh", "Mesh équipé"), View.Item.EquippedMesh.ToSoftObjectPath());
 		Add(LOCTEXT("ProjectileMesh", "Mesh projectile"), View.Item.ProjectileMesh.ToSoftObjectPath());
 		Add(LOCTEXT("Icon", "Icône"), View.Item.ItemIcon.ToSoftObjectPath());

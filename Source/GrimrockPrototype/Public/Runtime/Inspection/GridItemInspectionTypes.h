@@ -45,5 +45,6 @@ enum class EGridItemPreviewResult : uint8
 	Ready,
 	MissingMesh,
 	InvalidSelection,
-	InvalidHost
+	InvalidHost,
+	MissingOrnament
 };

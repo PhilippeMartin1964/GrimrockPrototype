@@ -180,9 +180,9 @@ EGridItemPreviewResult SGridItemWorkshopViewport::Display(const FGridItemInspect
 	const EGridItemPreviewResult Result = Actor->ApplyPreview(FGridWorkshopContext::Project(View, Context));
 	if (Result == EGridItemPreviewResult::Ready)
 	{
-		Mesh->UpdateBounds();
-		UpdateStage(Context, Mesh);
-		Orbit.SetBounds(Mesh->Bounds, bRecenter || PreviousMesh != Mesh->GetStaticMesh());
+		const FBoxSphereBounds ItemBounds = Actor->GetPresentationBounds();
+		UpdateStage(Context, &ItemBounds);
+		Orbit.SetBounds(ItemBounds, bRecenter || PreviousMesh != Mesh->GetStaticMesh());
 		ApplyOrbit();
 	}
 	else
@@ -203,22 +203,22 @@ void SGridItemWorkshopViewport::SetLighting(EGridWorkshopLighting Lighting)
 	WorkshopClient->Invalidate();
 }
 
-void SGridItemWorkshopViewport::UpdateStage(EGridWorkshopContext Context, const UStaticMeshComponent* Mesh)
+void SGridItemWorkshopViewport::UpdateStage(EGridWorkshopContext Context, const FBoxSphereBounds* ItemBounds)
 {
 	bStageError = false;
-	const bool bFloor = Mesh && FGridWorkshopContext::HasFloor(Context);
-	const bool bWall = Mesh && Context == EGridWorkshopContext::Decor;
+	const bool bFloor = ItemBounds && FGridWorkshopContext::HasFloor(Context);
+	const bool bWall = ItemBounds && Context == EGridWorkshopContext::Decor;
 	UStaticMeshComponent* Floor = ShowStageMesh(*Scene, StageFloor,
 		TEXT("/Game/GrimrockPrototype/Meshes/Floor/SM_Floor_Stone_01.SM_Floor_Stone_01"), bFloor);
 	UStaticMeshComponent* Wall = ShowStageMesh(*Scene, StageWall,
 		TEXT("/Game/GrimrockPrototype/Meshes/Wall/SM_Wall_Stone_05.SM_Wall_Stone_05"), bWall);
 	bStageError = (bFloor && !Floor) || (bWall && !Wall);
-	if (!Mesh || !bFloor)
+	if (!ItemBounds || !bFloor)
 	{
 		return;
 	}
-	const FVector Center = Mesh->Bounds.Origin;
-	const FVector Extent = Mesh->Bounds.BoxExtent;
+	const FVector Center = ItemBounds->Origin;
+	const FVector Extent = ItemBounds->BoxExtent;
 	const double GroundZ = Center.Z - Extent.Z;
 	if (Floor)
 	{
@@ -248,8 +248,7 @@ void SGridItemWorkshopViewport::Frame(const FRotator& Rotation)
 	{
 		return;
 	}
-	Mesh->UpdateBounds();
-	Orbit.SetBounds(Mesh->Bounds, true, Rotation);
+	Orbit.SetBounds(Preview->GetPresentationBounds(), true, Rotation);
 	ApplyOrbit(true);
 }
 
