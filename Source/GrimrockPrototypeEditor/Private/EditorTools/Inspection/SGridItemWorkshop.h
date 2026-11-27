@@ -47,6 +47,8 @@ private:
 	void LinkViews();
 	void RefreshComparison(bool bRecenter);
 	void QueueComparisonLevel(int32 Level);
+	void StartRoughnessTrial(float RelativeScale);
+	void ResetRoughnessTrial();
 	TSharedRef<SWidget> MakeContextControls();
 	void SetContext(EGridWorkshopContext NewContext);
 	void SetLighting(EGridWorkshopLighting NewLighting);
@@ -60,6 +62,7 @@ private:
 	TSharedPtr<SGridItemWorkshopViewport> ComparisonViewport;
 	TSharedPtr<SBox> ComparisonHost;
 	int32 ComparisonLevel = 20;
+	float RoughnessTrialScale = 1.0f;
 	int32 PendingComparisonLevel = INDEX_NONE;
 	bool bSynchronizeViews = true;
 	bool bShowComparison = false;

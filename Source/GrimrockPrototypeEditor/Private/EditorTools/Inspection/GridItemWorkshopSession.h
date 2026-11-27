@@ -28,6 +28,8 @@ public:
 	bool Select(FName Id);
 	bool SelectLevel(int32 Level);
 	bool ResolveComparison(int32 Level, FGridItemInspectionView& Out) const;
+	bool IsRoughnessPilot() const;
+	bool ResolveRoughnessTrial(float RelativeScale, FGridItemInspectionView& Out) const;
 	void ClearSelection();
 	void Filter(const FString& Search, EGridWorkshopFilter Mode, TArray<TSharedPtr<FGridWorkshopEntry>>& Out) const;
 

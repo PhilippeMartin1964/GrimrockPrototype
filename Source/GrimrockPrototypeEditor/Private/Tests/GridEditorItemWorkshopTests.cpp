@@ -1,6 +1,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Runtime/Inspection/GridItemMeshPresentation.h"
+#include "UObject/Package.h"
 #include "../EditorTools/Inspection/GridItemWorkshopSession.h"
 #include "../EditorTools/Inspection/GridItemWorkshopOrbit.h"
 #include "../EditorTools/Inspection/GridItemWorkshopContext.h"
@@ -297,6 +302,102 @@ bool FGridEditorItemWorkshopContextTest::RunTest(const FString&)
 	TestTrue(TEXT("Canonical flight scale"), Flight.Item.WorldVisualTransform.GetScale3D().Equals(Fixture.Item.ProjectileAppearance.RelativeScale));
 	TestTrue(TEXT("Session definition remains unmodified"), Session.GetView().Item.WorldVisualTransform.Equals(A.Item.WorldVisualTransform));
 	TestTrue(TEXT("Only technical contexts have floor"), FGridWorkshopContext::HasFloor(EGridWorkshopContext::Floor) && FGridWorkshopContext::HasFloor(EGridWorkshopContext::Decor) && !FGridWorkshopContext::HasFloor(EGridWorkshopContext::Examination));
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopRoughnessTrialTest,
+	"Grimrock.Editor.Items.Inspection.ARM014RoughnessTrial",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
+{
+	FGridItemWorkshopSession Session;
+	if (!TestTrue(TEXT("Configured registry"), Session.Rebuild()) ||
+		!TestTrue(TEXT("Select ARM014"), Session.Select(TEXT("Weapon_StraightSword_01"))))
+	{
+		return false;
+	}
+	const FGridItemInspectionView A = Session.GetView();
+	FGridItemInspectionView CanonicalB;
+	if (!TestTrue(TEXT("Resolve canonical N2"), Session.ResolveComparison(2, CanonicalB)))
+	{
+		return false;
+	}
+	UStaticMesh* Mesh = A.Item.WorldMesh.LoadSynchronous();
+	if (!TestNotNull(TEXT("Production ARM014 mesh"), Mesh))
+	{
+		return false;
+	}
+	const bool bMeshDirty = Mesh->GetOutermost()->IsDirty();
+	UStaticMeshComponent* ComponentA = NewObject<UStaticMeshComponent>(GetTransientPackage());
+	UStaticMeshComponent* ComponentB = NewObject<UStaticMeshComponent>(GetTransientPackage());
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialsA, MaterialsB;
+	FGridItemMeshPresentation::SetMesh(ComponentA, Mesh, A.Item.WeaponFinish, MaterialsA);
+	const FMaterialParameterInfo Roughness(TEXT("RoughnessMultiplier"));
+	const FMaterialParameterInfo RoughnessOverride(TEXT("RoughnessOverride"));
+	const FMaterialParameterInfo Normal(TEXT("NormalStrength"));
+	const FMaterialParameterInfo Tint(TEXT("BaseColorTint"));
+
+	for (float RelativeScale : { 0.85f, 0.70f })
+	{
+		FGridItemInspectionView Trial;
+		if (!TestTrue(TEXT("Resolve isolated trial"), Session.ResolveRoughnessTrial(RelativeScale, Trial)))
+		{
+			return false;
+		}
+		TestEqual(TEXT("N2 identity retained"), Trial.Item.ItemLevel, 2);
+		TestEqual(TEXT("Same ItemId"), Trial.Item.ItemId, CanonicalB.Item.ItemId);
+		TestEqual(TEXT("N2 damage retained"), Trial.Item.Weapon.DamageDice.FlatBonus, CanonicalB.Item.Weapon.DamageDice.FlatBonus);
+		TestEqual(TEXT("N2 action cost retained"), Trial.Item.Weapon.ActionPointCost, CanonicalB.Item.Weapon.ActionPointCost);
+		TestEqual(TEXT("N1 remains selected"), Session.GetSelectedLevel(), 1);
+		TestTrue(TEXT("Only trial roughness scaled"), FMath::IsNearlyEqual(Trial.Item.WeaponFinish.RoughnessScale, A.Item.WeaponFinish.RoughnessScale * RelativeScale));
+		TestEqual(TEXT("Normal scale unchanged from A"), Trial.Item.WeaponFinish.NormalScale, A.Item.WeaponFinish.NormalScale);
+		TestTrue(TEXT("Tint unchanged from A"), Trial.Item.WeaponFinish.Tint.Equals(A.Item.WeaponFinish.Tint));
+		FGridItemMeshPresentation::SetMesh(ComponentB, Mesh, Trial.Item.WeaponFinish, MaterialsB);
+		int32 SupportedSlots = 0;
+		for (int32 Slot = 0; Slot < ComponentB->GetNumMaterials(); ++Slot)
+		{
+			UMaterialInterface* MatA = ComponentA->GetMaterial(Slot);
+			UMaterialInterface* MatB = ComponentB->GetMaterial(Slot);
+			float RoughA = 0.f, RoughB = 0.f, OverrideA = 0.f, OverrideB = 0.f, NormalA = 0.f, NormalB = 0.f;
+			FLinearColor TintA, TintB;
+			if (!MatA || !MatB || !MatA->GetScalarParameterValue(Roughness, RoughA) ||
+				!MatA->GetScalarParameterValue(RoughnessOverride, OverrideA) ||
+				!MatA->GetScalarParameterValue(Normal, NormalA) || !MatA->GetVectorParameterValue(Tint, TintA))
+			{
+				continue;
+			}
+			++SupportedSlots;
+			TestTrue(TEXT("Independent MID in B"), MatA != MatB && Cast<UMaterialInstanceDynamic>(MatB) != nullptr);
+			TestTrue(TEXT("Read effective roughness"), MatB->GetScalarParameterValue(Roughness, RoughB));
+			TestTrue(TEXT("Read effective roughness override"), MatB->GetScalarParameterValue(RoughnessOverride, OverrideB));
+			TestTrue(TEXT("Read effective normal strength"), MatB->GetScalarParameterValue(Normal, NormalB));
+			TestTrue(TEXT("Read effective tint"), MatB->GetVectorParameterValue(Tint, TintB));
+			TestTrue(TEXT("Relative multiplier"), FMath::IsNearlyEqual(RoughB, RoughA * RelativeScale));
+			TestTrue(TEXT("Relative override"), FMath::IsNearlyEqual(OverrideB, OverrideA * RelativeScale));
+			TestTrue(TEXT("Normal unchanged"), FMath::IsNearlyEqual(NormalB, NormalA));
+			TestTrue(TEXT("Tint unchanged"), TintB.Equals(TintA));
+		}
+		TestTrue(TEXT("At least one native compatible slot"), SupportedSlots > 0);
+	}
+	FGridItemInspectionView After;
+	TestTrue(TEXT("Canonical N2 still resolves"), Session.ResolveComparison(2, After));
+	TestEqual(TEXT("Canonical N2 finish unchanged"), After.Item.WeaponFinish.RoughnessScale, CanonicalB.Item.WeaponFinish.RoughnessScale);
+	FGridItemMeshPresentation::SetMesh(ComponentB, Mesh, CanonicalB.Item.WeaponFinish, MaterialsB);
+	for (int32 Slot = 0; Slot < ComponentB->GetNumMaterials(); ++Slot)
+	{
+		UMaterialInterface* MatA = ComponentA->GetMaterial(Slot);
+		UMaterialInterface* MatB = ComponentB->GetMaterial(Slot);
+		// N1 and N2 currently share the first band; reset must restore that material.
+		TestTrue(TEXT("Canonical material restored"), MatA == MatB);
+	}
+	TestEqual(TEXT("Mesh package dirty state unchanged"), Mesh->GetOutermost()->IsDirty(), bMeshDirty);
+	TestFalse(TEXT("Unapproved multiplier rejected"), Session.ResolveRoughnessTrial(0.5f, After));
+	TestTrue(TEXT("Select N3"), Session.SelectLevel(3));
+	TestFalse(TEXT("Non-N1 baseline rejected"), Session.ResolveRoughnessTrial(0.85f, After));
+	TestTrue(TEXT("Select stone"), Session.Select(TEXT("Stone")));
+	TestFalse(TEXT("Non-ARM rejected"), Session.ResolveRoughnessTrial(0.85f, After));
+	TestFalse(TEXT("Rejected trial has no stale projection"), After.IsValid());
 	return !HasAnyErrors();
 }
 

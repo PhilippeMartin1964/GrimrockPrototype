@@ -5,6 +5,8 @@
 #include "Editor.h"
 #include "Engine/StaticMesh.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Misc/TransactionObjectEvent.h"
 #include "UObject/UObjectGlobals.h"
@@ -152,6 +154,36 @@ void SGridItemWorkshop::Construct(const FArguments&)
 				[
 					MakeContextControls()
 				]
+				+ SVerticalBox::Slot().AutoHeight().Padding(4)
+				[
+					SNew(SVerticalBox)
+					.Visibility_Lambda([this]() { return Session.IsRoughnessPilot() ? EVisibility::Visible : EVisibility::Collapsed; })
+					+ SVerticalBox::Slot().AutoHeight()
+					[
+						SNew(STextBlock).AutoWrapText(true)
+						.Text(LOCTEXT("RoughnessTrialLabel", "ARM014 — essai temporaire N1 / N2, rugosité uniquement (tous les slots compatibles)"))
+					]
+					+ SVerticalBox::Slot().AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot().FillWidth(1)
+						[
+							SNew(SButton).Text(LOCTEXT("Roughness85", "Essai × 0,85"))
+							.OnClicked_Lambda([this]() { StartRoughnessTrial(0.85f); return FReply::Handled(); })
+						]
+						+ SHorizontalBox::Slot().FillWidth(1)
+						[
+							SNew(SButton).Text(LOCTEXT("Roughness70", "Essai × 0,70"))
+							.OnClicked_Lambda([this]() { StartRoughnessTrial(0.70f); return FReply::Handled(); })
+						]
+						+ SHorizontalBox::Slot().FillWidth(1)
+						[
+							SNew(SButton).Text(LOCTEXT("RoughnessReset", "Rendu canonique"))
+							.IsEnabled_Lambda([this]() { return RoughnessTrialScale != 1.0f; })
+							.OnClicked_Lambda([this]() { ResetRoughnessTrial(); return FReply::Handled(); })
+						]
+					]
+				]
 				+ SVerticalBox::Slot().FillHeight(1)
 				[
 					SNew(SHorizontalBox)
@@ -230,8 +262,14 @@ void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta
 		PendingLevel = INDEX_NONE;
 		if (Session.GetSelectedLevel() != Level)
 		{
+			const bool bWasTrial = RoughnessTrialScale != 1.0f;
+			RoughnessTrialScale = 1.0f;
 			Session.SelectLevel(Level);
 			RefreshSelection(false);
+			if (bWasTrial)
+			{
+				RefreshComparison(false);
+			}
 		}
 	}
 	if (PendingComparisonLevel != INDEX_NONE)
@@ -240,6 +278,7 @@ void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta
 		PendingComparisonLevel = INDEX_NONE;
 		if (bShowComparison && ComparisonLevel != Level)
 		{
+			RoughnessTrialScale = 1.0f;
 			ComparisonLevel = Level;
 			RefreshComparison(false);
 		}
@@ -355,6 +394,10 @@ TSharedRef<SWidget> SGridItemWorkshop::MakeContextControls()
 void SGridItemWorkshop::SetContext(EGridWorkshopContext NewContext)
 {
 	Context = NewContext;
+	if (Context == EGridWorkshopContext::Held || Context == EGridWorkshopContext::Flight)
+	{
+		RoughnessTrialScale = 1.0f;
+	}
 	RefreshSelection(false);
 	RefreshComparison(false);
 }
@@ -382,6 +425,7 @@ void SGridItemWorkshop::ToggleComparison()
 	else
 	{
 		PendingComparisonLevel = INDEX_NONE;
+		RoughnessTrialScale = 1.0f;
 		ComparisonHost->SetContent(SNullWidget::NullWidget);
 		ComparisonViewport.Reset();
 		ComparisonDetails = FText::GetEmpty();
@@ -415,13 +459,76 @@ void SGridItemWorkshop::RefreshComparison(bool bRecenter)
 		return;
 	}
 	FGridItemInspectionView ComparisonView;
-	Session.ResolveComparison(ComparisonLevel, ComparisonView);
+	const bool bTrialRequested = RoughnessTrialScale != 1.0f;
+	const bool bTrialApplied = bTrialRequested && ComparisonLevel == 2 &&
+		Session.ResolveRoughnessTrial(RoughnessTrialScale, ComparisonView);
+	if (!bTrialApplied)
+	{
+		RoughnessTrialScale = 1.0f;
+		Session.ResolveComparison(ComparisonLevel, ComparisonView);
+	}
 	const EGridItemPreviewResult Result = ComparisonViewport->Display(ComparisonView, bRecenter, Context);
 	if (bSynchronizeViews)
 	{
 		ComparisonViewport->MatchFraming(*PreviewViewport);
 	}
 	ComparisonDetails = FText::Format(LOCTEXT("DetailsB", "B — {0}"), BuildDetails(ComparisonView, *ComparisonViewport, Result));
+	if (bTrialRequested)
+	{
+		int32 DynamicSlots = 0;
+		if (bTrialApplied && Result == EGridItemPreviewResult::Ready)
+		{
+			if (const UStaticMeshComponent* Mesh = ComparisonViewport->GetMesh())
+			{
+				for (int32 Slot = 0; Slot < Mesh->GetNumMaterials(); ++Slot)
+				{
+					DynamicSlots += Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(Slot)) != nullptr ? 1 : 0;
+				}
+			}
+		}
+		const FText Trial = bTrialApplied && DynamicSlots > 0
+			? FText::Format(LOCTEXT("TrialApplied", "ESSAI NON ENREGISTRÉ — rugosité relative × {0}, {1} slot(s) dynamique(s). Vérifier lame ET poignée.\n"),
+				FText::AsNumber(RoughnessTrialScale), FText::AsNumber(DynamicSlots))
+			: LOCTEXT("TrialUnavailable", "ESSAI NON APPLIQUÉ — projection ou matériau incompatible.\n");
+		ComparisonDetails = FText::Format(LOCTEXT("TrialDetails", "{0}{1}"), Trial, ComparisonDetails);
+	}
+}
+
+void SGridItemWorkshop::StartRoughnessTrial(float RelativeScale)
+{
+	if (!Session.IsRoughnessPilot())
+	{
+		return;
+	}
+	PendingLevel = INDEX_NONE;
+	PendingComparisonLevel = INDEX_NONE;
+	if (!Session.SelectLevel(1))
+	{
+		ResetRoughnessTrial();
+		RefreshSelection(false);
+		return;
+	}
+	if (Context == EGridWorkshopContext::Held || Context == EGridWorkshopContext::Flight)
+	{
+		Context = EGridWorkshopContext::Examination;
+	}
+	ComparisonLevel = 2;
+	RoughnessTrialScale = RelativeScale;
+	RefreshSelection(false);
+	if (!bShowComparison)
+	{
+		ToggleComparison();
+	}
+	else
+	{
+		RefreshComparison(false);
+	}
+}
+
+void SGridItemWorkshop::ResetRoughnessTrial()
+{
+	RoughnessTrialScale = 1.0f;
+	RefreshComparison(false);
 }
 
 void SGridItemWorkshop::QueueComparisonLevel(int32 Level)
@@ -437,6 +544,7 @@ void SGridItemWorkshop::RefreshRegistry(bool bInitial)
 	bRefreshPending = false;
 	PendingLevel = INDEX_NONE;
 	PendingComparisonLevel = INDEX_NONE;
+	RoughnessTrialScale = 1.0f;
 	Session.Rebuild();
 	if (bInitial && Session.GetSelectedId().IsNone() && !Session.GetEntries().IsEmpty())
 	{
@@ -506,6 +614,7 @@ void SGridItemWorkshop::OnSelection(TSharedPtr<FGridWorkshopEntry> Entry, ESelec
 	}
 	PendingLevel = INDEX_NONE;
 	PendingComparisonLevel = INDEX_NONE;
+	RoughnessTrialScale = 1.0f;
 	Session.Select(Entry->Id);
 	RefreshSelection(true);
 }
@@ -608,6 +717,17 @@ FText SGridItemWorkshop::BuildDetails(const FGridItemInspectionView& View, const
 			if (!Material)
 			{
 				continue;
+			}
+			if (const UMaterialInterface* Base = Mesh->GetStaticMesh()->GetMaterial(Slot))
+			{
+				Details += TEXT("  Source : ") + Base->GetPathName() + TEXT("\n");
+				if (const UMaterialInstance* Instance = Cast<UMaterialInstance>(Base))
+				{
+					if (Instance->Parent)
+					{
+						Details += TEXT("  Parent : ") + Instance->Parent->GetPathName() + TEXT("\n");
+					}
+				}
 			}
 			for (const FName Parameter : { FName(TEXT("RoughnessMultiplier")), FName(TEXT("RoughnessOverride")), FName(TEXT("NormalStrength")) })
 			{
