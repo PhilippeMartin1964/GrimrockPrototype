@@ -21,3 +21,7 @@ Test `Grimrock.Editor.Items.Inspection.Context` : conservation du mesh/transform
 ## Recette native (à effectuer après les deux lots)
 
 Ouvrir l'atelier hors PIE, sélectionner ARM014, comparer N1/N20 puis N1/N2. Manipuler A et B en rotation 360°, pan, zoom de détail ; vérifier synchro et mode libre ; resynchroniser, recadrer, changer les niveaux et objets ; fermer B et tester N0. Contrôler les contextes réellement disponibles, le fond noir, les lumières et les matériaux. Aucune validation esthétique implicite des vingt niveaux.
+
+## Clôture — 27.11.2026
+
+SHA de recette : `34e4afdf25b6178bbc43a90606502456092f3212`. SilentTask et LocalAuto SUCCESS (Development Editor, Shipping et Automation Grimrock). Le propriétaire valide explicitement les sept contrôles : comparateur ARM014 N1/N20 et N1/N2 ; rotation/zoom/pan liés dans les deux sens ; vues libres ; trois éclairages ; Examen/Sol/Décor ; Main sur torche et Vol sur arme de jet ; retour vue simple et objet N0. Jalon fonctionnel accepté, sans validation artistique des finitions. Les limitations documentées ci-dessus restent connues. La prochaine étape est le [pilote ARM014](ARM014_Epee_Droite.md).
