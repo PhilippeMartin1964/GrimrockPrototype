@@ -86,18 +86,18 @@ bool FGridItemWorkshopSession::ResolveComparison(int32 Level, FGridItemInspectio
 	return FGridItemInspectionReadModel::ResolveExact(Registry.Get(), SelectedId, Level, Out);
 }
 
-bool FGridItemWorkshopSession::IsRoughnessPilot() const
+bool FGridItemWorkshopSession::IsColorPilot() const
 {
 	return View.HasLevel() && !View.bPhysicalInstance &&
 		View.Item.ArchetypeId == FName(TEXT("ARM014")) &&
 		View.Item.ItemId == FName(TEXT("Weapon_StraightSword_01"));
 }
 
-bool FGridItemWorkshopSession::ResolveRoughnessTrial(float RelativeScale, FGridItemInspectionView& Out) const
+bool FGridItemWorkshopSession::ResolveColorTrial(const FLinearColor& RelativeTint, FGridItemInspectionView& Out) const
 {
 	Out = FGridItemInspectionView();
-	if (!IsRoughnessPilot() || SelectedLevel != 1 ||
-		(RelativeScale != 0.85f && RelativeScale != 0.70f) ||
+	if (!IsColorPilot() || SelectedLevel != 1 ||
+		(!RelativeTint.Equals(FLinearColor(1.25f, 1.45f, 1.65f, 1.0f)) && !RelativeTint.Equals(FLinearColor(1.25f, 0.72f, 0.32f, 1.0f))) ||
 		!ResolveComparison(2, Out) || !View.HasMeshReference() ||
 		Out.Item.WorldMesh != View.Item.WorldMesh ||
 		!Out.Item.WorldVisualTransform.Equals(View.Item.WorldVisualTransform))
@@ -106,14 +106,14 @@ bool FGridItemWorkshopSession::ResolveRoughnessTrial(float RelativeScale, FGridI
 		return false;
 	}
 
-	// A/B isolates surface roughness against the actual N1 presentation.
+	// A/B isolates base color against the actual N1 presentation.
 	// Only this copy is modified; N2 mechanical data and registry stay canonical.
 	Out.Item.WeaponFinish = View.Item.WeaponFinish;
 	if (Out.Item.WeaponFinish.FinishId.IsNone())
 	{
-		Out.Item.WeaponFinish.FinishId = FName(TEXT("Workshop_ARM014_RoughnessTrial"));
+		Out.Item.WeaponFinish.FinishId = FName(TEXT("Workshop_ARM014_ColorTrial"));
 	}
-	Out.Item.WeaponFinish.RoughnessScale *= RelativeScale;
+	Out.Item.WeaponFinish.Tint = Out.Item.WeaponFinish.Tint * RelativeTint;
 	Out.Item.VisualEffects = View.Item.VisualEffects;
 	Out.Item.LightEmitter = View.Item.LightEmitter;
 	return true;

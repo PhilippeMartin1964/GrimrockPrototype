@@ -305,11 +305,11 @@ bool FGridEditorItemWorkshopContextTest::RunTest(const FString&)
 	return !HasAnyErrors();
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopRoughnessTrialTest,
-	"Grimrock.Editor.Items.Inspection.ARM014RoughnessTrial",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopColorTrialTest,
+	"Grimrock.Editor.Items.Inspection.ARM014ColorTrial",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
+bool FGridEditorItemWorkshopColorTrialTest::RunTest(const FString&)
 {
 	FGridItemWorkshopSession Session;
 	if (!TestTrue(TEXT("Configured registry"), Session.Rebuild()) ||
@@ -338,10 +338,10 @@ bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
 	const FMaterialParameterInfo Normal(TEXT("NormalStrength"));
 	const FMaterialParameterInfo Tint(TEXT("BaseColorTint"));
 
-	for (float RelativeScale : { 0.85f, 0.70f })
+	for (const FLinearColor RelativeTint : { FLinearColor(1.25f, 1.45f, 1.65f, 1.0f), FLinearColor(1.25f, 0.72f, 0.32f, 1.0f) })
 	{
 		FGridItemInspectionView Trial;
-		if (!TestTrue(TEXT("Resolve isolated trial"), Session.ResolveRoughnessTrial(RelativeScale, Trial)))
+		if (!TestTrue(TEXT("Resolve isolated trial"), Session.ResolveColorTrial(RelativeTint, Trial)))
 		{
 			return false;
 		}
@@ -350,9 +350,9 @@ bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
 		TestEqual(TEXT("N2 damage retained"), Trial.Item.Weapon.DamageDice.FlatBonus, CanonicalB.Item.Weapon.DamageDice.FlatBonus);
 		TestEqual(TEXT("N2 action cost retained"), Trial.Item.Weapon.ActionPointCost, CanonicalB.Item.Weapon.ActionPointCost);
 		TestEqual(TEXT("N1 remains selected"), Session.GetSelectedLevel(), 1);
-		TestTrue(TEXT("Only trial roughness scaled"), FMath::IsNearlyEqual(Trial.Item.WeaponFinish.RoughnessScale, A.Item.WeaponFinish.RoughnessScale * RelativeScale));
+		TestEqual(TEXT("Roughness unchanged"), Trial.Item.WeaponFinish.RoughnessScale, A.Item.WeaponFinish.RoughnessScale);
 		TestEqual(TEXT("Normal scale unchanged from A"), Trial.Item.WeaponFinish.NormalScale, A.Item.WeaponFinish.NormalScale);
-		TestTrue(TEXT("Tint unchanged from A"), Trial.Item.WeaponFinish.Tint.Equals(A.Item.WeaponFinish.Tint));
+		TestTrue(TEXT("Only trial tint changed"), Trial.Item.WeaponFinish.Tint.Equals(A.Item.WeaponFinish.Tint * RelativeTint));
 		FGridItemMeshPresentation::SetMesh(ComponentB, Mesh, Trial.Item.WeaponFinish, MaterialsB);
 		int32 SupportedSlots = 0;
 		for (int32 Slot = 0; Slot < ComponentB->GetNumMaterials(); ++Slot)
@@ -373,16 +373,18 @@ bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
 			TestTrue(TEXT("Read effective roughness override"), MatB->GetScalarParameterValue(RoughnessOverride, OverrideB));
 			TestTrue(TEXT("Read effective normal strength"), MatB->GetScalarParameterValue(Normal, NormalB));
 			TestTrue(TEXT("Read effective tint"), MatB->GetVectorParameterValue(Tint, TintB));
-			TestTrue(TEXT("Relative multiplier"), FMath::IsNearlyEqual(RoughB, RoughA * RelativeScale));
-			TestTrue(TEXT("Relative override"), FMath::IsNearlyEqual(OverrideB, OverrideA * RelativeScale));
+			TestTrue(TEXT("Roughness multiplier unchanged"), FMath::IsNearlyEqual(RoughB, RoughA));
+			TestTrue(TEXT("Roughness override unchanged"), FMath::IsNearlyEqual(OverrideB, OverrideA));
 			TestTrue(TEXT("Normal unchanged"), FMath::IsNearlyEqual(NormalB, NormalA));
-			TestTrue(TEXT("Tint unchanged"), TintB.Equals(TintA));
+			TestTrue(TEXT("Relative tint applied"), TintB.Equals(TintA * RelativeTint));
+			TestFalse(TEXT("Effective tint differs from baseline"), TintB.Equals(TintA));
 		}
 		TestTrue(TEXT("At least one native compatible slot"), SupportedSlots > 0);
 	}
 	FGridItemInspectionView After;
 	TestTrue(TEXT("Canonical N2 still resolves"), Session.ResolveComparison(2, After));
-	TestEqual(TEXT("Canonical N2 finish unchanged"), After.Item.WeaponFinish.RoughnessScale, CanonicalB.Item.WeaponFinish.RoughnessScale);
+	TestEqual(TEXT("Canonical N2 roughness unchanged"), After.Item.WeaponFinish.RoughnessScale, CanonicalB.Item.WeaponFinish.RoughnessScale);
+	TestTrue(TEXT("Canonical N2 tint unchanged"), After.Item.WeaponFinish.Tint.Equals(CanonicalB.Item.WeaponFinish.Tint));
 	FGridItemMeshPresentation::SetMesh(ComponentB, Mesh, CanonicalB.Item.WeaponFinish, MaterialsB);
 	for (int32 Slot = 0; Slot < ComponentB->GetNumMaterials(); ++Slot)
 	{
@@ -392,11 +394,11 @@ bool FGridEditorItemWorkshopRoughnessTrialTest::RunTest(const FString&)
 		TestTrue(TEXT("Canonical material restored"), MatA == MatB);
 	}
 	TestEqual(TEXT("Mesh package dirty state unchanged"), Mesh->GetOutermost()->IsDirty(), bMeshDirty);
-	TestFalse(TEXT("Unapproved multiplier rejected"), Session.ResolveRoughnessTrial(0.5f, After));
+	TestFalse(TEXT("Neutral trial rejected"), Session.ResolveColorTrial(FLinearColor::White, After));
 	TestTrue(TEXT("Select N3"), Session.SelectLevel(3));
-	TestFalse(TEXT("Non-N1 baseline rejected"), Session.ResolveRoughnessTrial(0.85f, After));
+	TestFalse(TEXT("Non-N1 baseline rejected"), Session.ResolveColorTrial(FLinearColor(1.25f, 1.45f, 1.65f, 1.0f), After));
 	TestTrue(TEXT("Select stone"), Session.Select(TEXT("Stone")));
-	TestFalse(TEXT("Non-ARM rejected"), Session.ResolveRoughnessTrial(0.85f, After));
+	TestFalse(TEXT("Non-ARM rejected"), Session.ResolveColorTrial(FLinearColor(1.25f, 1.45f, 1.65f, 1.0f), After));
 	TestFalse(TEXT("Rejected trial has no stale projection"), After.IsValid());
 	return !HasAnyErrors();
 }

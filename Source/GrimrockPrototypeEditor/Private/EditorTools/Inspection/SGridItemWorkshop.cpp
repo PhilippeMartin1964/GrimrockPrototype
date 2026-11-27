@@ -157,30 +157,30 @@ void SGridItemWorkshop::Construct(const FArguments&)
 				+ SVerticalBox::Slot().AutoHeight().Padding(4)
 				[
 					SNew(SVerticalBox)
-					.Visibility_Lambda([this]() { return Session.IsRoughnessPilot() ? EVisibility::Visible : EVisibility::Collapsed; })
+					.Visibility_Lambda([this]() { return Session.IsColorPilot() ? EVisibility::Visible : EVisibility::Collapsed; })
 					+ SVerticalBox::Slot().AutoHeight()
 					[
 						SNew(STextBlock).AutoWrapText(true)
-						.Text(LOCTEXT("RoughnessTrialLabel", "ARM014 — essai temporaire N1 / N2, rugosité uniquement (tous les slots compatibles)"))
+						.Text(LOCTEXT("ColorTrialLabel", "ARM014 — essai temporaire N1 / N2, couleur uniquement (tous les slots compatibles)"))
 					]
 					+ SVerticalBox::Slot().AutoHeight()
 					[
 						SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot().FillWidth(1)
 						[
-							SNew(SButton).Text(LOCTEXT("Roughness85", "Essai × 0,85"))
-							.OnClicked_Lambda([this]() { StartRoughnessTrial(0.85f); return FReply::Handled(); })
+							SNew(SButton).Text(LOCTEXT("TrialBrightSteel", "Acier clair froid"))
+							.OnClicked_Lambda([this]() { StartColorTrial(FLinearColor(1.25f, 1.45f, 1.65f, 1.0f)); return FReply::Handled(); })
 						]
 						+ SHorizontalBox::Slot().FillWidth(1)
 						[
-							SNew(SButton).Text(LOCTEXT("Roughness70", "Essai × 0,70"))
-							.OnClicked_Lambda([this]() { StartRoughnessTrial(0.70f); return FReply::Handled(); })
+							SNew(SButton).Text(LOCTEXT("TrialWarmBronze", "Bronze chaud"))
+							.OnClicked_Lambda([this]() { StartColorTrial(FLinearColor(1.25f, 0.72f, 0.32f, 1.0f)); return FReply::Handled(); })
 						]
 						+ SHorizontalBox::Slot().FillWidth(1)
 						[
-							SNew(SButton).Text(LOCTEXT("RoughnessReset", "Rendu canonique"))
-							.IsEnabled_Lambda([this]() { return RoughnessTrialScale != 1.0f; })
-							.OnClicked_Lambda([this]() { ResetRoughnessTrial(); return FReply::Handled(); })
+							SNew(SButton).Text(LOCTEXT("ColorReset", "Rendu canonique"))
+							.IsEnabled_Lambda([this]() { return ColorTrialTint != FLinearColor::White; })
+							.OnClicked_Lambda([this]() { ResetColorTrial(); return FReply::Handled(); })
 						]
 					]
 				]
@@ -262,8 +262,8 @@ void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta
 		PendingLevel = INDEX_NONE;
 		if (Session.GetSelectedLevel() != Level)
 		{
-			const bool bWasTrial = RoughnessTrialScale != 1.0f;
-			RoughnessTrialScale = 1.0f;
+			const bool bWasTrial = ColorTrialTint != FLinearColor::White;
+			ColorTrialTint = FLinearColor::White;
 			Session.SelectLevel(Level);
 			RefreshSelection(false);
 			if (bWasTrial)
@@ -278,7 +278,7 @@ void SGridItemWorkshop::Tick(const FGeometry& Geometry, double Time, float Delta
 		PendingComparisonLevel = INDEX_NONE;
 		if (bShowComparison && ComparisonLevel != Level)
 		{
-			RoughnessTrialScale = 1.0f;
+			ColorTrialTint = FLinearColor::White;
 			ComparisonLevel = Level;
 			RefreshComparison(false);
 		}
@@ -396,7 +396,7 @@ void SGridItemWorkshop::SetContext(EGridWorkshopContext NewContext)
 	Context = NewContext;
 	if (Context == EGridWorkshopContext::Held || Context == EGridWorkshopContext::Flight)
 	{
-		RoughnessTrialScale = 1.0f;
+		ColorTrialTint = FLinearColor::White;
 	}
 	RefreshSelection(false);
 	RefreshComparison(false);
@@ -425,7 +425,7 @@ void SGridItemWorkshop::ToggleComparison()
 	else
 	{
 		PendingComparisonLevel = INDEX_NONE;
-		RoughnessTrialScale = 1.0f;
+		ColorTrialTint = FLinearColor::White;
 		ComparisonHost->SetContent(SNullWidget::NullWidget);
 		ComparisonViewport.Reset();
 		ComparisonDetails = FText::GetEmpty();
@@ -459,12 +459,12 @@ void SGridItemWorkshop::RefreshComparison(bool bRecenter)
 		return;
 	}
 	FGridItemInspectionView ComparisonView;
-	const bool bTrialRequested = RoughnessTrialScale != 1.0f;
+	const bool bTrialRequested = ColorTrialTint != FLinearColor::White;
 	const bool bTrialApplied = bTrialRequested && ComparisonLevel == 2 &&
-		Session.ResolveRoughnessTrial(RoughnessTrialScale, ComparisonView);
+		Session.ResolveColorTrial(ColorTrialTint, ComparisonView);
 	if (!bTrialApplied)
 	{
-		RoughnessTrialScale = 1.0f;
+		ColorTrialTint = FLinearColor::White;
 		Session.ResolveComparison(ComparisonLevel, ComparisonView);
 	}
 	const EGridItemPreviewResult Result = ComparisonViewport->Display(ComparisonView, bRecenter, Context);
@@ -487,16 +487,16 @@ void SGridItemWorkshop::RefreshComparison(bool bRecenter)
 			}
 		}
 		const FText Trial = bTrialApplied && DynamicSlots > 0
-			? FText::Format(LOCTEXT("TrialApplied", "ESSAI NON ENREGISTRÉ — rugosité relative × {0}, {1} slot(s) dynamique(s). Vérifier lame ET poignée.\n"),
-				FText::AsNumber(RoughnessTrialScale), FText::AsNumber(DynamicSlots))
+			? FText::Format(LOCTEXT("TrialApplied", "ESSAI NON ENREGISTRÉ — teinte relative {0}, {1} slot(s) dynamique(s). Vérifier lame ET poignée.\n"),
+				FText::FromString(ColorTrialTint.ToString()), FText::AsNumber(DynamicSlots))
 			: LOCTEXT("TrialUnavailable", "ESSAI NON APPLIQUÉ — projection ou matériau incompatible.\n");
 		ComparisonDetails = FText::Format(LOCTEXT("TrialDetails", "{0}{1}"), Trial, ComparisonDetails);
 	}
 }
 
-void SGridItemWorkshop::StartRoughnessTrial(float RelativeScale)
+void SGridItemWorkshop::StartColorTrial(const FLinearColor& RelativeTint)
 {
-	if (!Session.IsRoughnessPilot())
+	if (!Session.IsColorPilot())
 	{
 		return;
 	}
@@ -504,7 +504,7 @@ void SGridItemWorkshop::StartRoughnessTrial(float RelativeScale)
 	PendingComparisonLevel = INDEX_NONE;
 	if (!Session.SelectLevel(1))
 	{
-		ResetRoughnessTrial();
+		ResetColorTrial();
 		RefreshSelection(false);
 		return;
 	}
@@ -513,7 +513,7 @@ void SGridItemWorkshop::StartRoughnessTrial(float RelativeScale)
 		Context = EGridWorkshopContext::Examination;
 	}
 	ComparisonLevel = 2;
-	RoughnessTrialScale = RelativeScale;
+	ColorTrialTint = RelativeTint;
 	RefreshSelection(false);
 	if (!bShowComparison)
 	{
@@ -525,9 +525,9 @@ void SGridItemWorkshop::StartRoughnessTrial(float RelativeScale)
 	}
 }
 
-void SGridItemWorkshop::ResetRoughnessTrial()
+void SGridItemWorkshop::ResetColorTrial()
 {
-	RoughnessTrialScale = 1.0f;
+	ColorTrialTint = FLinearColor::White;
 	RefreshComparison(false);
 }
 
@@ -544,7 +544,7 @@ void SGridItemWorkshop::RefreshRegistry(bool bInitial)
 	bRefreshPending = false;
 	PendingLevel = INDEX_NONE;
 	PendingComparisonLevel = INDEX_NONE;
-	RoughnessTrialScale = 1.0f;
+	ColorTrialTint = FLinearColor::White;
 	Session.Rebuild();
 	if (bInitial && Session.GetSelectedId().IsNone() && !Session.GetEntries().IsEmpty())
 	{
@@ -614,7 +614,7 @@ void SGridItemWorkshop::OnSelection(TSharedPtr<FGridWorkshopEntry> Entry, ESelec
 	}
 	PendingLevel = INDEX_NONE;
 	PendingComparisonLevel = INDEX_NONE;
-	RoughnessTrialScale = 1.0f;
+	ColorTrialTint = FLinearColor::White;
 	Session.Select(Entry->Id);
 	RefreshSelection(true);
 }

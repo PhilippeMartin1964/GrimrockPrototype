@@ -21,7 +21,9 @@ La démonstration doit être temporaire et isolée ; ne modifier ni les cinq fin
 Sources : `docs/Design/ARMEMENT_FX01_ACTIVE22_CUE_MATRIX.csv`, `docs/Design/ARMEMENT_FX01_AUDIO_VFX_PROGRESSION_N1_N20.md`, `Source/GrimrockPrototype/Private/Runtime/Inspection/GridItemMeshPresentation.cpp`, tests cités ci-dessus. La fiche reste ouverte ; toutes les autres rubriques DESIGN01 seront renseignées au fur et à mesure des décisions et recettes, pas au moyen de valeurs inventées.
 
 
-### Lot technique 02.3B — essai isolé dans l'atelier
+### Historique 02.3B — essai de rugosité (retiré)
+
+**Recette du propriétaire : refus artistique.** Différence insuffisamment visible. Validations Windows du SHA `3064ce94f5dc6526de0c2d45761dd55657a8c94a` SUCCESS. Les commandes et le test spécifiques de rugosité sont remplacés ; le mécanisme commun de finition est conservé.
 
 L'atelier propose uniquement pour ARM014 deux essais temporaires (× 0,85 et × 0,70), avec A=N1 canonique et B=N2 résolu, puis copie de la finition N1 et multiplication de sa rugosité dans la projection B. L'essai réutilise le présentateur commun et ses MID indépendants, sans écriture d'asset, sans modifier les règles de résolution ou le catalogue. Les autres propriétés visuelles du premier niveau restent la référence ; les données mécaniques N2 ne sont pas modifiées. Les deux paramètres de rugosité existants sont multipliés suivant le contrat commun, pas remplacés par une roughness absolue. Le retour au rendu canonique, changement de niveau ou objet, actualisation des assets et fermeture de B annulent l'essai. Contextes Examen, Sol et Décor ; les trois éclairages restent disponibles. Les autres contextes annulent l'essai.
 
@@ -29,4 +31,11 @@ Le panneau affiche les valeurs natives/effectives des slots, leur source et pare
 
 Test `Grimrock.Editor.Items.Inspection.ARM014RoughnessTrial` : vrai mesh ARM014, comparaison des valeurs MID, indépendance, données mécaniques ciblées, retour au matériau canonique et garde sur l'identité/niveau. Validation Windows du commit requis ; aucune preuve de rendu GPU à ce stade.
 
-**Recette artistique suivante :** sélectionner ARM014, cliquer Essai × 0,85 ; observer lame et poignée en A/B synchronisé, Studio/Torche/Donjon puis Sol/Décor. Essayer × 0,70 seulement si nécessaire, relever le slot et ses paramètres (et la présence d'un masque éventuel via le matériau natif). Cliquer Rendu canonique et vérifier la restauration. Ne pas authorer N3–20 avant cette recette.
+**Recette historique (refusée) :** sélectionner ARM014, cliquer Essai × 0,85 ; observer lame et poignée en A/B synchronisé, Studio/Torche/Donjon puis Sol/Décor. Essayer × 0,70 seulement si nécessaire, relever le slot et ses paramètres (et la présence d'un masque éventuel via le matériau natif). Cliquer Rendu canonique et vérifier la restauration. Ne pas authorer N3–20 avant cette recette.
+
+
+### 02.3B — deuxième essai : contraste de couleur
+
+Deux contrastes francs, temporaires et non approuvés en production : acier clair froid (multiplicateur RGB linéaire 1,25 / 1,45 / 1,65) et bronze chaud (1,25 / 0,72 / 0,32). Alpha 1. Seul BaseColorTint change via les MID existants. Essais globaux de lisibilité, pas une décision que N2 sera bronze. N1, catalogues, autres armes, assets et runtime inchangés. Test `Grimrock.Editor.Items.Inspection.ARM014ColorTrial` ; validation Windows requise.
+
+**Direction proposée, non approuvée :** évolution localisée de matière et d'ornementation ; motif visible évoluant à chaque niveau, accent aux frontières Brut/Soigné/Gravé/Magistral/Mythique. Exemple : nettoyage/contraste et détail de garde N1–4 ; filets métalliques N5–8 ; gravures non émissives N9–12 ; incrustations N13–16 ; composition élaborée N17–20. Une texture masque UV à seuils authorés pourrait éviter vingt jeux de textures si les UV et matériaux le permettent. Vérifier découpage lame/garde/poignée avant authoring ; ne pas modifier le master partagé sans preuve du besoin. Aucun choix définitif de couleur ou motif. Le bronze global n'est qu'une borne de contraste.
