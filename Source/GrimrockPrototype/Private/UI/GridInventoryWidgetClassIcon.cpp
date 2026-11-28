@@ -33,6 +33,7 @@ bool UGridInventoryWidget::HasPaperDollPresentation() const
 
 void UGridInventoryWidget::NativeDestruct()
 {
+	CloseItemExamination(false);
 	if (InventoryComponent)
 	{
 		InventoryComponent->OnPartyInventoryChanged.RemoveDynamic(this, &UGridInventoryWidget::HandlePartyInventoryChanged);

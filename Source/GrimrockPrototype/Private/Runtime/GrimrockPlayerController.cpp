@@ -816,6 +816,8 @@ void AGrimrockPlayerController::SetInventoryUiOpen(bool bOpen)
 
 bool AGrimrockPlayerController::ShouldBlockWorldInteractionForInventoryUi(const AGrimrockPartyPawn* PartyPawn, bool bHasCursorItem) const
 {
+	const UGridInventoryWidget* Inventory = PartyPawn ? PartyPawn->GetInventoryWidget() : nullptr;
+	if (Inventory && Inventory->IsItemExaminationOpen()) return true;
 	if (!bInventoryUiOpen || bHasCursorItem)
 	{
 		return false;

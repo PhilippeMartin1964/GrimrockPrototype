@@ -31,6 +31,8 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/UILocalizationText.h"
+#include "UI/GridItemExaminationWidget.h"
+#include "GameFramework/PlayerController.h"
 #include "UObject/UnrealType.h"
 
 
@@ -268,6 +270,7 @@ void UGridInventoryWidget::HandlePartyInventoryChanged(int32 CharacterIndex)
 void UGridInventoryWidget::RefreshInventory()
 {
 	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"), *GetNameSafe(OwningPartyPawn), *GetNameSafe(InventoryComponent));
+	ValidateOpenExamination();
 	RefreshSelectedCharacterDetails();
 	RefreshRegisteredPartyMemberWidgets();
 	RefreshSelectedInventoryBagPresentation();
@@ -1291,6 +1294,10 @@ void UGridInventoryWidget::HandleRegisteredSlotClicked(EGridInventoryUiSlotType 
 
 bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType SlotType, int32 SlotIndex)
 {
+	if (IsItemExaminationOpen()) return false;
+	MenuExaminationSource = FGridItemInstance();
+	MenuExaminationSlotIndex = INDEX_NONE;
+	MenuExaminationCharacterIndex = INDEX_NONE;
 	LastContextItem = FGridItemInstance();
 	LastFacingTargetContext = FGridFacingTargetContext();
 	LastContextActions.Reset();
@@ -1303,6 +1310,10 @@ bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType S
 
 	if (bBuilt)
 	{
+		MenuExaminationSource = LastContextItem;
+		MenuExaminationSlotType = SlotType;
+		MenuExaminationSlotIndex = SlotIndex;
+		MenuExaminationCharacterIndex = GetSelectedCharacterIndex();
 		bItemActionMenuCloseRequested = false;
 		const bool bHasContextMenuPresenter = OnContextActionsRequested.IsBound();
 		OnContextActionsRequested.Broadcast(SlotType, SlotIndex);
@@ -1489,6 +1500,118 @@ bool UGridInventoryWidget::IsItemActionMenuOpen() const
 	return CurrentItemActionMenu && !IsItemActionMenuDetached(CurrentItemActionMenu);
 }
 
+bool UGridInventoryWidget::IsSameExaminationSource(const FGridItemInstance& Expected, const FGridItemInstance& Current)
+{
+	return Expected.IsValid() && Current.IsValid() && Expected.RuntimeObjectId == Current.RuntimeObjectId &&
+		Expected.ItemDefinitionId == Current.ItemDefinitionId && Expected.ItemLevel == Current.ItemLevel &&
+		Expected.OwnerType == Current.OwnerType && Expected.OwnerGuid == Current.OwnerGuid &&
+		Expected.OwnerCharacterIndex == Current.OwnerCharacterIndex && Expected.EquipmentSlot == Current.EquipmentSlot;
+}
+
+bool UGridInventoryWidget::ReadExaminationSource(EGridInventoryUiSlotType SlotType, int32 SlotIndex, FGridItemInstance& Out) const
+{
+	switch (SlotType)
+	{
+		case EGridInventoryUiSlotType::Inventory: return GetInventoryItemAtSlot(SlotIndex, Out);
+		case EGridInventoryUiSlotType::Equipment: return GetEquipmentItem(ResolveUiEquipmentSlot(SlotType, SlotIndex), Out);
+		case EGridInventoryUiSlotType::MainHand: return GetMainHandItem(Out);
+		case EGridInventoryUiSlotType::OffHand: return GetOffHandItem(Out);
+		case EGridInventoryUiSlotType::Cursor: return GetCursorItem(Out);
+		default: return false;
+	}
+}
+
+bool UGridInventoryWidget::TryOpenItemExamination(const UGridItemSubsystem* Registry, EGridInventoryUiSlotType SlotType, int32 SlotIndex)
+{
+	APlayerController* PC = GetOwningPlayer();
+	FGridItemInstance Live;
+	if (!IsValid(OwningPartyPawn) || !PC || !Registry || !OwningPartyPawn->ItemExaminationWidgetClass ||
+		!ReadExaminationSource(SlotType, SlotIndex, Live) || !IsSameExaminationSource(LastContextItem, Live))
+	{
+		return false;
+	}
+
+	CloseItemExamination();
+	UGridItemExaminationWidget* Panel = CreateWidget<UGridItemExaminationWidget>(PC, OwningPartyPawn->ItemExaminationWidgetClass);
+	if (!Panel || !Panel->HasDesignerContract())
+	{
+		return false;
+	}
+	Panel->SetIsFocusable(true);
+	Panel->AddToViewport(400);
+	if (!Panel->PresentItem(Registry, Live))
+	{
+		Panel->RemoveFromParent();
+		return false;
+	}
+	ItemExamination = Panel;
+	OpenExaminationSource = Live;
+	OpenExaminationSlotType = SlotType;
+	OpenExaminationSlotIndex = SlotIndex;
+	OpenExaminationCharacterIndex = GetSelectedCharacterIndex();
+	Panel->OnCloseRequested.AddUObject(this, &UGridInventoryWidget::HandleItemExaminationClose);
+	CloseItemActionMenu(TEXT("Examine"));
+	CloseItemReadPanel(TEXT("Examine"));
+
+	FInputModeUIOnly Mode;
+	Mode.SetWidgetToFocus(Panel->TakeWidget());
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	PC->SetInputMode(Mode);
+	PC->bShowMouseCursor = true;
+	return true;
+}
+
+bool UGridInventoryWidget::IsItemExaminationOpen() const
+{
+	return IsValid(ItemExamination) && ItemExamination->IsInViewport();
+}
+
+void UGridInventoryWidget::HandleItemExaminationClose()
+{
+	CloseItemExamination();
+}
+
+void UGridInventoryWidget::CloseItemExamination(bool bRestoreInput)
+{
+	if (!ItemExamination) return;
+	UGridItemExaminationWidget* Panel = ItemExamination;
+	ItemExamination = nullptr;
+	OpenExaminationSource = FGridItemInstance();
+	OpenExaminationSlotIndex = INDEX_NONE;
+	OpenExaminationCharacterIndex = INDEX_NONE;
+	Panel->OnCloseRequested.RemoveAll(this);
+	Panel->ClearExamination();
+	Panel->RemoveFromParent();
+	if (bRestoreInput)
+	{
+		if (APlayerController* PC = GetOwningPlayer())
+		{
+			FInputModeGameAndUI Mode;
+			Mode.SetWidgetToFocus(TakeWidget());
+			Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			Mode.SetHideCursorDuringCapture(false);
+			PC->SetInputMode(Mode);
+			PC->bShowMouseCursor = true;
+		}
+	}
+}
+
+void UGridInventoryWidget::ValidateOpenExamination()
+{
+	if (!ItemExamination) return;
+	FGridItemInstance Live;
+	if (GetSelectedCharacterIndex() != OpenExaminationCharacterIndex ||
+		!ReadExaminationSource(OpenExaminationSlotType, OpenExaminationSlotIndex, Live) ||
+		!IsSameExaminationSource(OpenExaminationSource, Live) ||
+		Live.Quantity != OpenExaminationSource.Quantity ||
+		Live.AbsorbedEquipmentPhysicalArmor != OpenExaminationSource.AbsorbedEquipmentPhysicalArmor ||
+		Live.AbsorbedEquipmentMagicalArmor != OpenExaminationSource.AbsorbedEquipmentMagicalArmor ||
+		Live.bLightsEnabled != OpenExaminationSource.bLightsEnabled)
+	{
+		CloseItemExamination();
+	}
+}
+
 void UGridInventoryWidget::CloseItemReadPanel(FName Reason)
 {
 	UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemReadPanel Closed Reason=%s"), Reason.IsNone() ? TEXT("Unspecified") : *Reason.ToString());
@@ -1507,6 +1630,18 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 			const UGridItemSubsystem* Registry = ResolveInventoryCanonicalRegistry(this);
 			const auto Metadata = FGridInventoryItemMetadataReadModel::Resolve(Registry, LastContextItem);
 			if (!Metadata.bResolved) break;
+			if (MenuExaminationSource.IsValid() && !bItemActionMenuCloseRequested &&
+				(MenuExaminationSlotType != SourceSlotType || MenuExaminationSlotIndex != SourceSlotIndex ||
+				 MenuExaminationCharacterIndex != CharacterIndex ||
+				 !IsSameExaminationSource(MenuExaminationSource, LastContextItem)))
+			{
+				CloseItemActionMenu(TEXT("ExaminationSourceChanged"));
+				break;
+			}
+			if (TryOpenItemExamination(Registry, SourceSlotType, SourceSlotIndex))
+			{
+				return true; // Read-only: no inventory refresh or mutation.
+			}
 			const UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
 			FText TooltipText = Metadata.DisplayName;
 			if (SourceWidget && SourceWidget->GetCachedItem().RuntimeObjectId == LastContextItem.RuntimeObjectId)

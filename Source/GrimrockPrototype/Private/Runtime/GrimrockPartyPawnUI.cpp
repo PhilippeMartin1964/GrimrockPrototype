@@ -433,6 +433,8 @@ void AGrimrockPartyPawn::ShowInventoryWorkspace()
 
 void AGrimrockPartyPawn::CollapseInventoryWorkspaceForMenuPage()
 {
+	if (CharacterSheetWidgetInstance) CharacterSheetWidgetInstance->CloseItemExamination();
+	if (InventoryBagWidgetInstance) InventoryBagWidgetInstance->CloseItemExamination();
 	if (CharacterSheetWidgetInstance)
 	{
 		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -575,6 +577,7 @@ void AGrimrockPartyPawn::HandleCharacterSheetWindowCloseClicked()
 {
 	if (CharacterSheetWidgetInstance)
 	{
+		CharacterSheetWidgetInstance->CloseItemExamination();
 		CharacterSheetWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	RefreshMajorUiVisibilityAfterSplitClose();
@@ -584,6 +587,7 @@ void AGrimrockPartyPawn::HandleInventoryBagWindowCloseClicked()
 {
 	if (InventoryBagWidgetInstance)
 	{
+		InventoryBagWidgetInstance->CloseItemExamination();
 		InventoryBagWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	RefreshMajorUiVisibilityAfterSplitClose();
@@ -613,6 +617,16 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 {
 	if (bCharacterCreationModalActive || bIsPitFalling)
 	{
+		return;
+	}
+	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemExaminationOpen())
+	{
+		CharacterSheetWidgetInstance->CloseItemExamination();
+		return;
+	}
+	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemExaminationOpen())
+	{
+		InventoryBagWidgetInstance->CloseItemExamination();
 		return;
 	}
 
@@ -647,6 +661,8 @@ void AGrimrockPartyPawn::HandleGlobalEscape()
 
 void AGrimrockPartyPawn::CollapseMajorGameplayUi()
 {
+	if (CharacterSheetWidgetInstance) CharacterSheetWidgetInstance->CloseItemExamination();
+	if (InventoryBagWidgetInstance) InventoryBagWidgetInstance->CloseItemExamination();
 	if (SkillsWidgetInstance)
 	{
 		SkillsWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
@@ -725,6 +741,8 @@ bool AGrimrockPartyPawn::IsMajorGameplayUiBlockedByCombat() const
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget() const
 {
+	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemExaminationOpen()) return CharacterSheetWidgetInstance;
+	if (InventoryBagWidgetInstance && InventoryBagWidgetInstance->IsItemExaminationOpen()) return InventoryBagWidgetInstance;
 	// Context actions can originate from equipment on the sheet or items in
 	// the bag. Prefer the view that currently owns the modal item menu.
 	if (CharacterSheetWidgetInstance && CharacterSheetWidgetInstance->IsItemActionMenuOpen())

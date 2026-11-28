@@ -21,6 +21,7 @@ class AGridThrownItemActor;
 class UGridPartyInventoryComponent;
 class UGridPersistentHudWidget;
 class UGridInventoryWidget;
+class UGridItemExaminationWidget;
 class UGridCharacterSheetWidget;
 class UGridInventoryBagWidget;
 class UGridMapWidget;
@@ -219,6 +220,10 @@ public:
 	/** Independent right-side inventory bag window. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
 	TSubclassOf<UGridInventoryBagWidget> InventoryBagWidgetClass;
+
+	/** Shared Designer class for both inventory surfaces; optional until authored. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
+	TSubclassOf<UGridItemExaminationWidget> ItemExaminationWidgetClass;
 
 	UPROPERTY(Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
 	TObjectPtr<UGridCharacterSheetWidget> CharacterSheetWidgetInstance;

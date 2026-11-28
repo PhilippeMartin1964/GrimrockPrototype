@@ -13,6 +13,8 @@ class AGrimrockPartyPawn;
 class UBorder;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
+class UGridItemExaminationWidget;
+class UGridItemSubsystem;
 class UGridPartyMemberWidget;
 class UImage;
 class UProgressBar;
@@ -396,6 +398,10 @@ public:
 	void CloseItemActionMenu(FName Reason);
 
 	bool IsItemActionMenuOpen() const;
+	bool IsItemExaminationOpen() const;
+	void CloseItemExamination(bool bRestoreInput = true);
+	/** Strict identity of a menu source, not a gameplay permission. */
+	static bool IsSameExaminationSource(const FGridItemInstance& Expected, const FGridItemInstance& Current);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Inventory|Context Actions")
 	void OnItemActionMenuCloseRequested(FName Reason);
@@ -458,6 +464,24 @@ private:
 		const FGridItemContextAction& Action, const FGridFacingTargetContext& FacingTarget, EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex);
 	EGridEquipmentSlot ResolveSourceEquipmentSlot(const FGridItemContextAction& Action, EGridInventoryUiSlotType SourceSlotType) const;
 	bool DropContextItemToGround(const FGridItemContextAction& Action, EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex);
+
+	bool ReadExaminationSource(EGridInventoryUiSlotType SlotType, int32 SlotIndex, FGridItemInstance& Out) const;
+	bool TryOpenItemExamination(const UGridItemSubsystem* Registry, EGridInventoryUiSlotType SlotType, int32 SlotIndex);
+	void HandleItemExaminationClose();
+	void ValidateOpenExamination();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UGridItemExaminationWidget> ItemExamination;
+	UPROPERTY(Transient)
+	FGridItemInstance MenuExaminationSource;
+	EGridInventoryUiSlotType MenuExaminationSlotType = EGridInventoryUiSlotType::Inventory;
+	int32 MenuExaminationSlotIndex = INDEX_NONE;
+	int32 MenuExaminationCharacterIndex = INDEX_NONE;
+	UPROPERTY(Transient)
+	FGridItemInstance OpenExaminationSource;
+	EGridInventoryUiSlotType OpenExaminationSlotType = EGridInventoryUiSlotType::Inventory;
+	int32 OpenExaminationSlotIndex = INDEX_NONE;
+	int32 OpenExaminationCharacterIndex = INDEX_NONE;
 
 	UPROPERTY(Transient)
 	bool bItemActionMenuCloseRequested = false;

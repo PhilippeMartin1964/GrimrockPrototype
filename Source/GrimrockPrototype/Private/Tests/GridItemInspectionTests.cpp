@@ -13,6 +13,7 @@
 #include "Runtime/Inspection/GridItemPreviewActor.h"
 #include "Runtime/Inspection/GridItemRuntimePreview.h"
 #include "UI/GridItemExaminationWidget.h"
+#include "UI/GridInventoryWidget.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace
@@ -456,4 +457,25 @@ bool FGridItemExaminationDataTest::RunTest(const FString&)
 	return !HasAnyErrors();
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemExaminationRouteTest, "Grimrock.UI.Items.Inspection.RouteIdentity",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridItemExaminationRouteTest::RunTest(const FString&)
+{
+	FGridItemInstance Original = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);
+	Original.OwnerGuid = FGuid::NewGuid();
+	Original.OwnerCharacterIndex = 0;
+	FGridItemInstance Live = Original;
+	TestTrue(TEXT("Exact physical source accepted"), UGridInventoryWidget::IsSameExaminationSource(Original, Live));
+	Live.RuntimeObjectId = FGuid::NewGuid();
+	TestFalse(TEXT("Identical definition in replacement slot refused"), UGridInventoryWidget::IsSameExaminationSource(Original, Live));
+	Live = Original;
+	Live.OwnerGuid = FGuid::NewGuid();
+	TestFalse(TEXT("Changed owner refused"), UGridInventoryWidget::IsSameExaminationSource(Original, Live));
+	Live = Original;
+	Live.ItemLevel = 6;
+	TestFalse(TEXT("Changed physical level refused"), UGridInventoryWidget::IsSameExaminationSource(Original, Live));
+	TestFalse(TEXT("Empty slot refused"), UGridInventoryWidget::IsSameExaminationSource(Original, FGridItemInstance()));
+	return !HasAnyErrors();
+}
 #endif
