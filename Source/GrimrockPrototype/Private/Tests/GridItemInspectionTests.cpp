@@ -12,6 +12,7 @@
 #include "Runtime/Inspection/GridItemInspectionReadModel.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
 #include "Runtime/Inspection/GridItemRuntimePreview.h"
+#include "UI/GridItemExaminationWidget.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace
@@ -408,6 +409,50 @@ bool FGridItemRuntimePreviewTest::RunTest(const FString&)
 	TestTrue(TEXT("Second session still open"), Other.IsOpen());
 	TestTrue(TEXT("Can reopen"), Preview.Open(Host.World));
 	Preview.Close();
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemExaminationDataTest, "Grimrock.UI.Items.Inspection.PlayerData",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridItemExaminationDataTest::RunTest(const FString&)
+{
+	const FGridCanonicalRegistryFixture Fixture;
+	if (!TestTrue(TEXT("Production registry configured"), Fixture.bReady))
+	{
+		return false;
+	}
+	FGridItemExaminationData Data;
+	const FGridItemInstance Sword = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);
+	if (!TestTrue(TEXT("Physical sword resolves"), FGridItemExaminationData::Build(Fixture.Registry.Get(), Sword, Data)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("Real level retained"), Data.View.Item.ItemLevel, 5);
+	TestTrue(TEXT("Attack facts available"), Data.Facts.ContainsByPredicate([](const FGridWeaponTooltipFact& Fact)
+	{
+		return Fact.StatId == TEXT("WeaponDice");
+	}));
+	FGridItemInstance Shield = MakePhysicalItem(TEXT("Weapon_RoundShield_01"), 1);
+	Shield.AbsorbedEquipmentPhysicalArmor = 3;
+	if (TestTrue(TEXT("Physical shield resolves"), FGridItemExaminationData::Build(Fixture.Registry.Get(), Shield, Data)))
+	{
+		TestTrue(TEXT("No fictional attack"), !Data.Facts.ContainsByPredicate([](const FGridWeaponTooltipFact& Fact)
+		{
+			return Fact.StatId == TEXT("WeaponDice");
+		}));
+		TestTrue(TEXT("Remaining reserve shown"), Data.Facts.ContainsByPredicate([](const FGridWeaponTooltipFact& Fact)
+		{
+			return Fact.StatId == TEXT("WeaponPhysicalArmorRemaining") && Fact.ValueText.ToString() == TEXT("2/5");
+		}));
+	}
+	TestEqual(TEXT("Shield reserve not mutated"), Shield.AbsorbedEquipmentPhysicalArmor, 3);
+	TestTrue(TEXT("Stone resolves"), FGridItemExaminationData::Build(Fixture.Registry.Get(), MakePhysicalItem(TEXT("Stone"), 0), Data));
+	TestFalse(TEXT("Non-arm has no level badge"), Data.View.HasLevel());
+	TestTrue(TEXT("Stone has no stale combat facts"), Data.Facts.IsEmpty());
+	TestFalse(TEXT("Invalid physical instance refused"), FGridItemExaminationData::Build(Fixture.Registry.Get(), FGridItemInstance(), Data));
+	TestFalse(TEXT("Invalid read clears prior view"), Data.View.IsValid());
+	TestTrue(TEXT("Invalid read clears facts"), Data.Facts.IsEmpty());
 	return !HasAnyErrors();
 }
 
