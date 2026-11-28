@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureCube.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -376,6 +377,15 @@ bool FGridItemRuntimePreviewTest::RunTest(const FString&)
 	TestTrue(TEXT("Sessions have distinct worlds"), Preview.GetPreviewWorld() != Other.GetPreviewWorld());
 	TestTrue(TEXT("Preview actor belongs to private world"), Preview.GetPreviewActor()->GetWorld() == Preview.GetPreviewWorld());
 	TestTrue(TEXT("Runtime studio environment asset available"), Preview.GetPreviewActor()->GetStudioCubemap() != nullptr);
+	const USceneCaptureComponent2D* Capture = Preview.GetCaptureForTest();
+	if (!TestTrue(TEXT("Capture exists"), Capture != nullptr)) return false;
+	const FPostProcessSettings& Studio = Capture->PostProcessSettings;
+	TestTrue(TEXT("Preview explicitly opts out of global Lumen GI"), Studio.bOverride_DynamicGlobalIlluminationMethod &&
+		Studio.DynamicGlobalIlluminationMethod == EDynamicGlobalIlluminationMethod::None);
+	TestTrue(TEXT("Preview explicitly opts out of global Lumen reflections"), Studio.bOverride_ReflectionMethod &&
+		Studio.ReflectionMethod == EReflectionMethod::None);
+	TestTrue(TEXT("Direct ambient cubemap configured"), Studio.AmbientCubemap.Get() == Preview.GetPreviewActor()->GetStudioCubemap());
+	TestFalse(TEXT("No continuous capture"), Capture->bCaptureEveryFrame);
 
 	FGridItemInspectionView View;
 	const FGridItemInstance Sword = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);

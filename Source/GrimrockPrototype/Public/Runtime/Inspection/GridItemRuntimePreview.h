@@ -38,6 +38,9 @@ public:
 	AGridItemPreviewActor* GetPreviewActor() const;
 	UTextureRenderTarget2D* GetRenderTarget() const;
 	const FGridItemInspectionOrbit& GetOrbit() const { return Orbit; }
+#if WITH_DEV_AUTOMATION_TESTS
+	const USceneCaptureComponent2D* GetCaptureForTest() const;
+#endif
 
 private:
 	void UpdateCamera();
@@ -47,7 +50,9 @@ private:
 	TWeakObjectPtr<AGridItemPreviewActor> Actor;
 	TWeakObjectPtr<USceneCaptureComponent2D> Camera;
 	TWeakObjectPtr<UDirectionalLightComponent> FillLight;
-	bool bStudioCaptureDirty = false;
+#if !UE_BUILD_SHIPPING
+	bool bFirstCaptureMeasured = false;
+#endif
 	FGridItemInspectionOrbit Orbit;
 	bool bCaptureRequested = false;
 };
