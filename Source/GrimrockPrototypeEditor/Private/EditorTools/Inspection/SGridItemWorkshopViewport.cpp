@@ -13,6 +13,7 @@
 #include "InputCoreTypes.h"
 #include "Widgets/SNullWidget.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
+#include "UObject/UObjectIterator.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
@@ -22,17 +23,35 @@ namespace
 {
 	class FGridWorkshopBlackScene : public FAdvancedPreviewScene
 	{
-	public:
-		FGridWorkshopBlackScene()
+	private:
+		static TSet<const UStaticMeshComponent*> SnapshotMeshes()
+		{
+			TSet<const UStaticMeshComponent*> Existing;
+			for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
+			{
+				Existing.Add(*It);
+			}
+			return Existing;
+		}
+
+		explicit FGridWorkshopBlackScene(const TSet<const UStaticMeshComponent*>& Before)
 			: FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 0.0f)
 		{
-			// At construction only the engine's stock scene geometry exists.
-			// Keep explicit identities; later stage meshes must never be hidden.
-			for (UActorComponent* Component : Components)
+			// The engine's component array is private in UE 5.5.
+			// Use the public floor accessor as an anchor, and identify newly
+			// constructed stock components only, before any authored geometry.
+			UStaticMeshComponent* Floor = const_cast<UStaticMeshComponent*>(GetFloorMeshComponent());
+			if (Floor)
 			{
-				if (UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Component))
+				StockBackdropMeshes.Add(Floor);
+				for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
 				{
-					StockBackdropMeshes.Add(Mesh);
+					UStaticMeshComponent* Mesh = *It;
+					if (Mesh != Floor && !Before.Contains(Mesh) && !Mesh->IsTemplate() &&
+						(Mesh->GetWorld() == GetWorld() || Mesh->GetOuter() == Floor->GetOuter()))
+					{
+						StockBackdropMeshes.Add(Mesh);
+					}
 				}
 			}
 			EnforceBlackBackdrop();
@@ -40,6 +59,9 @@ namespace
 			StudioSkyIntensity = SkyLight->Intensity;
 			StudioColor = DirectionalLight->GetLightColor();
 		}
+	public:
+		FGridWorkshopBlackScene() : FGridWorkshopBlackScene(SnapshotMeshes()) {}
+
 		virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
 
 		void EnforceBlackBackdrop()
@@ -451,7 +473,8 @@ bool FGridWorkshopBlackBackdropTest::RunTest(const FString&)
 {
 	FGridWorkshopBlackScene Scene;
 	const auto& Stock = Scene.GetStockBackdropMeshesForTest();
-	if (!TestTrue(TEXT("Stock scene components explicitly captured"), Stock.Num() > 0))
+	if (!TestTrue(TEXT("Stock floor identified through public API"), Scene.GetFloorMeshComponent() != nullptr) ||
+		!TestTrue(TEXT("Stock scene components explicitly captured"), Stock.Num() > 0))
 	{
 		return false;
 	}

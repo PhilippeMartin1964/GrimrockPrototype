@@ -144,3 +144,8 @@ Signalement utilisateur : retour du panorama standard de l'éditeur de mesh. Le 
 ### Correctif de recette BlackBackdrop (28.11.2026)
 
 Le journal local du propriétaire confirme 2039 succès, 48 succès avec avertissements, un échec et zéro non exécuté. L'assertion d'identification de deux composants visibles par parcours global des UObject est invalide sous Automation. La scène capture maintenant ses propres composants statiques stock lors de sa construction (avant tout support de décor ou objet). Leur visibilité est forcée localement à false avant le rendu, y compris si un profil la rétablit. Le test remet explicitement à true le flag de chaque composant capturé, puis vérifie le retour à false, le maintien d'un composant de décor ajouté ultérieurement et les intensités lumineuses inchangées. Aucune dépendance au rendu GPU ni au nombre de composants visibles selon le profil ; au moins un composant stock est obligatoire. Le test ne constitue pas une preuve GPU du panorama. Aucun test supprimé ni filtré. Nouvelle validation Windows et recette visuelle requises.
+
+
+### Correctif de compilation C2248 — issue #245
+
+UE 5.5.4 rend le tableau interne Components privé. Le socle noir utilise désormais l'accesseur public GetFloorMeshComponent comme ancre et un instantané des composants avant/après la construction synchrone de la scène pour identifier les nouveaux composants stock (monde/outer correspondant), sans accéder au tableau privé ni masquer les objets préexistants. Les deux API officielles SetFloorVisibility et SetEnvironmentVisibility restent appelées avant le rendu. Le test vérifie explicitement l'ancre sol ; la couverture visuelle du panorama reste à confirmer sous RHI. Aucune modification d'asset.
