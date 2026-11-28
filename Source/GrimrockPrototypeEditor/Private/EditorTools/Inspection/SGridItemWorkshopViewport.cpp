@@ -16,7 +16,6 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "UObject/UObjectIterator.h"
 #endif
 
 namespace
@@ -27,6 +26,15 @@ namespace
 		FGridWorkshopBlackScene()
 			: FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 0.0f)
 		{
+			// At construction only the engine's stock scene geometry exists.
+			// Keep explicit identities; later stage meshes must never be hidden.
+			for (UActorComponent* Component : Components)
+			{
+				if (UStaticMeshComponent* Mesh = Cast<UStaticMeshComponent>(Component))
+				{
+					StockBackdropMeshes.Add(Mesh);
+				}
+			}
 			EnforceBlackBackdrop();
 			StudioIntensity = DirectionalLight->Intensity;
 			StudioSkyIntensity = SkyLight->Intensity;
@@ -40,7 +48,22 @@ namespace
 			// Direct visibility only: keep the cubemap lighting and the user's profile.
 			SetFloorVisibility(false, true);
 			SetEnvironmentVisibility(false, true);
+			for (const TWeakObjectPtr<UStaticMeshComponent>& Entry : StockBackdropMeshes)
+			{
+				if (UStaticMeshComponent* Mesh = Entry.Get())
+				{
+					Mesh->SetVisibility(false);
+					Mesh->SetHiddenInGame(true);
+				}
+			}
 		}
+
+#if WITH_DEV_AUTOMATION_TESTS
+		const TArray<TWeakObjectPtr<UStaticMeshComponent>>& GetStockBackdropMeshesForTest() const
+		{
+			return StockBackdropMeshes;
+		}
+#endif
 
 		void ApplyLighting(EGridWorkshopLighting Lighting)
 		{
@@ -54,6 +77,7 @@ namespace
 		}
 
 	private:
+		TArray<TWeakObjectPtr<UStaticMeshComponent>> StockBackdropMeshes;
 		float StudioIntensity = 0.0f;
 		float StudioSkyIntensity = 0.0f;
 		FLinearColor StudioColor = FLinearColor::White;
@@ -426,24 +450,43 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridWorkshopBlackBackdropTest, "Grimrock.Edito
 bool FGridWorkshopBlackBackdropTest::RunTest(const FString&)
 {
 	FGridWorkshopBlackScene Scene;
-	// Simulate the stock components being made visible again by a profile refresh.
-	Scene.SetFloorVisibility(true, true);
-	Scene.SetEnvironmentVisibility(true, true);
-	TArray<UStaticMeshComponent*> Restored;
-	for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
+	const auto& Stock = Scene.GetStockBackdropMeshesForTest();
+	if (!TestTrue(TEXT("Stock scene components explicitly captured"), Stock.Num() > 0))
 	{
-		if (It->IsRegistered() && It->GetWorld() == Scene.GetWorld() && It->IsVisible())
+		return false;
+	}
+	// Test the scene's own components, not a global UObject/world search.
+	// Directly set the raw visibility flag; the test does not require a GPU
+	// or a profile capable of showing both engine meshes under NullRHI.
+	for (const TWeakObjectPtr<UStaticMeshComponent>& Entry : Stock)
+	{
+		UStaticMeshComponent* Mesh = Entry.Get();
+		if (!TestTrue(TEXT("Stock component exists"), Mesh != nullptr))
 		{
-			Restored.Add(*It);
+			return false;
 		}
+		TestFalse(TEXT("Initially hidden"), Mesh->GetVisibleFlag());
+		Mesh->SetVisibility(true);
+		Mesh->SetHiddenInGame(false);
+		TestTrue(TEXT("Visibility flag deliberately restored"), Mesh->GetVisibleFlag());
 	}
-	TestTrue(TEXT("Stock preview geometry can be restored"), Restored.Num() >= 2);
+
+	// A later authored stage component must remain visible.
+	UStaticMeshComponent* Stage = NewObject<UStaticMeshComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+	Stage->SetVisibility(true);
+	Scene.AddComponent(Stage, FTransform::Identity, false);
+	const float SkyIntensity = Scene.SkyLight->Intensity;
+	const float DirectionalIntensity = Scene.DirectionalLight->Intensity;
 	Scene.EnforceBlackBackdrop();
-	for (const UStaticMeshComponent* Component : Restored)
+	for (const TWeakObjectPtr<UStaticMeshComponent>& Entry : Stock)
 	{
-		TestFalse(TEXT("Stock geometry hidden again"), Component->IsVisible());
+		TestFalse(TEXT("Stock geometry hidden again"), Entry->GetVisibleFlag());
 	}
+	TestTrue(TEXT("Authored stage visibility preserved"), Stage->GetVisibleFlag());
 	TestTrue(TEXT("Clear color stays black"), Scene.GetBackgroundColor().Equals(FLinearColor::Black));
+	TestEqual(TEXT("Sky illumination unchanged"), Scene.SkyLight->Intensity, SkyIntensity);
+	TestEqual(TEXT("Directional illumination unchanged"), Scene.DirectionalLight->Intensity, DirectionalIntensity);
+	Scene.RemoveComponent(Stage);
 	return !HasAnyErrors();
 }
 #endif
