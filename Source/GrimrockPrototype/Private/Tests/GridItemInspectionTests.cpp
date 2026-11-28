@@ -384,11 +384,15 @@ bool FGridItemRuntimePreviewTest::RunTest(const FString&)
 	const FPostProcessSettings& Studio = Capture->PostProcessSettings;
 	TestTrue(TEXT("Preview explicitly opts out of global Lumen GI"), Studio.bOverride_DynamicGlobalIlluminationMethod &&
 		Studio.DynamicGlobalIlluminationMethod == EDynamicGlobalIlluminationMethod::None);
-	TestTrue(TEXT("Preview explicitly opts out of global Lumen reflections"), Studio.bOverride_ReflectionMethod &&
-		Studio.ReflectionMethod == EReflectionMethod::None);
-	TestTrue(TEXT("Direct ambient cubemap configured"), Studio.AmbientCubemap.Get() == Preview.GetPreviewActor()->GetStudioCubemap());
+	TestTrue(TEXT("Preview explicitly opts out of global Lumen reflections"),
+		Studio.bOverride_ReflectionMethod && Studio.ReflectionMethod == EReflectionMethod::None);
 	TestFalse(TEXT("No continuous capture"), Capture->bCaptureEveryFrame);
-	TestTrue(TEXT("On-demand capture keeps its own exposure state"), Capture->bAlwaysPersistRenderingState);
+	TestFalse(TEXT("No temporal capture history"), Capture->bAlwaysPersistRenderingState);
+	TestTrue(TEXT("Manual exposure without physical camera"),
+		Studio.bOverride_AutoExposureMethod && Studio.AutoExposureMethod == AEM_Manual && Studio.bOverride_AutoExposureApplyPhysicalCameraExposure &&
+			!Studio.AutoExposureApplyPhysicalCameraExposure);
+	TestTrue(TEXT("Near plane matches detail zoom"),
+		Capture->bOverride_CustomNearClippingPlane && FMath::IsNearlyEqual(Capture->CustomNearClippingPlane, float(FGridItemInspectionOrbit::NearClipCm)));
 	TestTrue(TEXT("Linear tone-curve output for sRGB target"), Capture->CaptureSource == SCS_FinalToneCurveHDR);
 	TestTrue(TEXT("Neutral local exposure"), Studio.bOverride_LocalExposureHighlightContrastScale &&
 		Studio.bOverride_LocalExposureShadowContrastScale &&
@@ -502,7 +506,6 @@ bool FGridItemExaminationRouteTest::RunTest(const FString&)
 }
 /** Explicit real-RHI gate, separate from the normal headless Grimrock suite.
  * Uses the same production mesh, lights, camera and render target as the WBP.
- * No screenshots or project assets are written by the test.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemStudioLightingGPUTest, "Game.UI.Items.Inspection.StudioLightingGPU",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::NonNullRHI)
@@ -510,50 +513,93 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemStudioLightingGPUTest, "Game.UI.Items.
 bool FGridItemStudioLightingGPUTest::RunTest(const FString&)
 {
 	const FGridCanonicalRegistryFixture Fixture;
-	FInspectionTestWorld Host(EWorldType::Game);
-	FGridItemRuntimePreview Preview;
+	const auto Host = MakeShared<FInspectionTestWorld>(EWorldType::Game);
+	const auto Preview = MakeShared<FGridItemRuntimePreview>();
 	FGridItemInspectionView View;
-	if (!TestTrue(TEXT("Registry and host"), Fixture.bReady && Host.World != nullptr) ||
-		!TestTrue(TEXT("Open actual studio"), Preview.Open(Host.World)) ||
-		!TestTrue(TEXT("Resolve user's long sword"), FGridItemInspectionReadModel::ResolvePhysical(
-			Fixture.Registry.Get(), MakePhysicalItem(TEXT("Weapon_LongSword_01"), 1), View)) ||
-		!TestTrue(TEXT("Present production sword"), Preview.Present(View) == EGridItemPreviewResult::Ready))
+	if (!TestTrue(TEXT("Registry and host"), Fixture.bReady && Host->World != nullptr) || !TestTrue(TEXT("Open actual studio"), Preview->Open(Host->World)) ||
+		!TestTrue(TEXT("Resolve user's long sword"),
+			FGridItemInspectionReadModel::ResolvePhysical(Fixture.Registry.Get(), MakePhysicalItem(TEXT("Weapon_LongSword_01"), 1), View)) ||
+		!TestTrue(TEXT("Present production sword"), Preview->Present(View) == EGridItemPreviewResult::Ready))
 	{
 		return false;
 	}
 
-	const auto CheckImage = [this, &Preview](const TCHAR* Label)
+	const auto CheckImage = [this, Preview](const TCHAR* Label)
 	{
-		if (!TestTrue(TEXT("GPU capture requested"), Preview.Capture())) return false;
-		UTextureRenderTarget2D* Target = Preview.GetRenderTarget();
-		if (!TestTrue(TEXT("sRGB render target"), Target && Target->RenderTargetFormat == RTF_RGBA8_SRGB &&
-			!Target->bForceLinearGamma)) return false;
+		UTextureRenderTarget2D* Target = Preview->GetRenderTarget();
+		if (!TestTrue(TEXT("sRGB render target"), Target && Target->RenderTargetFormat == RTF_RGBA8_SRGB && !Target->bForceLinearGamma))
+		{
+			return;
+		}
 		FTextureRenderTargetResource* Resource = Target->GameThread_GetRenderTargetResource();
 		TArray<FColor> Pixels;
-		if (!TestTrue(TEXT("GPU readback"), Resource && Resource->ReadPixels(Pixels) &&
-			Pixels.Num() == Target->SizeX * Target->SizeY)) return false;
+		if (!TestTrue(TEXT("GPU readback"), Resource && Resource->ReadPixels(Pixels) && Pixels.Num() == Target->SizeX * Target->SizeY))
+		{
+			return;
+		}
 
 		int32 NonBlack = 0;
 		int32 Bright = 0;
 		int32 Peak = 0;
+		int32 MinAlpha = 255;
 		for (const FColor& Pixel : Pixels)
 		{
 			const int32 Value = FMath::Max3(int32(Pixel.R), int32(Pixel.G), int32(Pixel.B));
 			NonBlack += Value > 4 ? 1 : 0;
 			Bright += Value >= 64 ? 1 : 0;
 			Peak = FMath::Max(Peak, Value);
+			MinAlpha = FMath::Min(MinAlpha, int32(Pixel.A));
 		}
 		AddInfo(FString::Printf(TEXT("%s: nonblack=%d bright=%d peak=%d"), Label, NonBlack, Bright, Peak));
 		TestTrue(TEXT("Visible geometry, not a black image"), NonBlack >= 1000);
 		TestTrue(TEXT("Significant lit surface, not a few isolated glints"), Bright >= FMath::Max(300, NonBlack / 5));
 		TestTrue(TEXT("Usable highlights"), Peak >= 100);
-		TestTrue(TEXT("Background remains black"), Pixels[0].R <= 4 && Pixels[0].G <= 4 && Pixels[0].B <= 4);
-		return true;
+		TestEqual(TEXT("Opaque capture for UMG"), MinAlpha, 255);
+		TestTrue(TEXT("Black corners"),
+			Pixels[0] == FColor::Black && Pixels[Target->SizeX - 1] == FColor::Black && Pixels[Pixels.Num() - Target->SizeX] == FColor::Black &&
+				Pixels.Last() == FColor::Black);
 	};
 
-	CheckImage(TEXT("Initial view"));
-	Preview.Drag(FVector2D(230.0, 0.0));
-	CheckImage(TEXT("Rotated view"));
+	const double Deadline = FPlatformTime::Seconds() + 60.0;
+	FAutomationTestFramework::Get().EnqueueLatentCommand(MakeShared<FFunctionLatentCommand>(
+		[this, Host, Preview, CheckImage, Deadline, Pose = 0]() mutable
+		{
+			const EGridItemCaptureResult Result = Preview->Capture();
+			if (Result == EGridItemCaptureResult::WaitingForAssets && FPlatformTime::Seconds() < Deadline)
+			{
+				if (Pose == 0)
+				{
+					TestNull(TEXT("Pending geometry has no displayable target"), Preview->GetRenderTarget());
+				}
+				return false;
+			}
+			if (!TestTrue(TEXT("Studio ready after async asset preparation"), Result == EGridItemCaptureResult::Ready))
+			{
+				return true;
+			}
+			const TCHAR* Poses[] = { TEXT("Initial"), TEXT("Rotated"), TEXT("Zoom"), TEXT("Opposite"), TEXT("Panned") };
+			CheckImage(Poses[Pose]);
+			switch (++Pose)
+			{
+				case 1:
+					Preview->Drag(FVector2D(230.0, 0.0));
+					break;
+				case 2:
+					Preview->Frame(FRotator(-10, 75, 0));
+					Preview->Zoom(2.0);
+					break;
+				case 3:
+					Preview->Drag(FVector2D(515.0, 0.0));
+					break;
+				case 4:
+					Preview->Pan(FVector2D(100.0, 35.0), 1024.0);
+					break;
+				default:
+					Preview->Close();
+					return true;
+			}
+			return false;
+		}));
 	return !HasAnyErrors();
 }
 

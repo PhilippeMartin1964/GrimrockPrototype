@@ -5,11 +5,18 @@
 #include "Runtime/Inspection/GridItemInspectionOrbit.h"
 
 class FPreviewScene;
-class UDirectionalLightComponent;
 class AGridItemPreviewActor;
+class UDirectionalLightComponent;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 class UWorld;
+
+enum class EGridItemCaptureResult : uint8
+{
+	Unavailable,
+	WaitingForAssets,
+	Ready
+};
 
 /** Non-UMG runtime preview session. Owns a private GamePreview scene, never
  * inserts a pickup, light or capture into the player's dungeon world.
@@ -27,11 +34,11 @@ public:
 	void Close();
 	EGridItemPreviewResult Present(const FGridItemInspectionView& View);
 	void Clear();
-	bool Capture();
+	EGridItemCaptureResult Capture();
 	void Drag(const FVector2D& Delta);
 	void Zoom(double WheelDelta);
 	void Pan(const FVector2D& Delta, double ProjectionAxisPixels);
-	void Frame(const FRotator& Rotation = FRotator(-12.0, 35.0, 0.0));
+	void Frame(TOptional<FRotator> Rotation = {});
 
 	bool IsOpen() const;
 	UWorld* GetPreviewWorld() const;
@@ -50,10 +57,6 @@ private:
 	TWeakObjectPtr<AGridItemPreviewActor> Actor;
 	TWeakObjectPtr<USceneCaptureComponent2D> Camera;
 	TWeakObjectPtr<UDirectionalLightComponent> FillLight;
-	TWeakObjectPtr<UDirectionalLightComponent> FrontLight;
-#if !UE_BUILD_SHIPPING
-	bool bFirstCaptureMeasured = false;
-#endif
 	FGridItemInspectionOrbit Orbit;
 	bool bCaptureRequested = false;
 };

@@ -53,7 +53,8 @@ struct FGridItemInspectionOrbit
 			DetailFovDegrees, DefaultFovDegrees);
 	}
 
-	void SetBounds(const FBoxSphereBounds& Bounds, bool bRecenter, const FRotator& InitialRotation = FRotator(-12.0, 35.0, 0.0))
+	void SetBounds(
+		const FBoxSphereBounds& Bounds, bool bRecenter, const FRotator& InitialRotation = FRotator(-12.0, 35.0, 0.0), double FramingRadiusMultiplier = 3.5)
 	{
 		Target = Bounds.Origin;
 		BoxExtent = Bounds.BoxExtent.GetAbs();
@@ -61,7 +62,7 @@ struct FGridItemInspectionOrbit
 		if (bRecenter || !bReady)
 		{
 			Orientation = InitialRotation.Quaternion().GetNormalized();
-			RequestedDistance = FMath::Max(Radius * 3.5, MinDistance() * 1.25);
+			RequestedDistance = FMath::Max(Radius * FramingRadiusMultiplier, MinDistance() * 1.25);
 			PanOffset = FVector2D::ZeroVector;
 		}
 		UpdateDistance();

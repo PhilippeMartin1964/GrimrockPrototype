@@ -111,6 +111,7 @@ private:
 	FGridItemRuntimePreview Preview;
 	TWeakObjectPtr<UWorld> PresentationWorld;
 	FDelegateHandle WorldCleanupHandle;
+	FTimerHandle CaptureRetryHandle;
 	FKey DragButton;
 	bool bPresented = false;
 };

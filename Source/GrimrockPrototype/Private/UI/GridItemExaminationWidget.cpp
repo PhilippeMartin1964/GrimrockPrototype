@@ -11,6 +11,7 @@
 #include "Input/Events.h"
 #include "Input/Reply.h"
 #include "Runtime/Inspection/GridItemInspectionReadModel.h"
+#include "TimerManager.h"
 #include "UI/GridItemTooltipWidget.h"
 #include "UI/GridItemTooltipWeaponLineWidget.h"
 #include "UI/GridWeaponTooltipProjection.h"
@@ -299,6 +300,10 @@ void UGridItemExaminationWidget::ClearExamination()
 {
 	bPresented = false;
 	DragButton = FKey();
+	if (UWorld* World = PresentationWorld.Get())
+	{
+		World->GetTimerManager().ClearTimer(CaptureRetryHandle);
+	}
 	PresentationWorld.Reset();
 	if (Image_RenderTarget) Image_RenderTarget->SetBrushResourceObject(nullptr);
 	if (Image_FallbackIcon) Image_FallbackIcon->SetBrushResourceObject(nullptr);
@@ -334,11 +339,21 @@ void UGridItemExaminationWidget::RequestClose()
 
 void UGridItemExaminationWidget::RefreshCapture()
 {
-	UTextureRenderTarget2D* Target = Preview.Capture() ? Preview.GetRenderTarget() : nullptr;
+	const EGridItemCaptureResult Result = Preview.Capture();
+	UTextureRenderTarget2D* Target = Result == EGridItemCaptureResult::Ready ? Preview.GetRenderTarget() : nullptr;
+	if (UWorld* World = PresentationWorld.Get())
+	{
+		FTimerManager& Timers = World->GetTimerManager();
+		Timers.ClearTimer(CaptureRetryHandle);
+		if (Result == EGridItemCaptureResult::WaitingForAssets)
+		{
+			CaptureRetryHandle = Timers.SetTimerForNextTick(this, &UGridItemExaminationWidget::RefreshCapture);
+		}
+	}
 	Image_RenderTarget->SetBrushResourceObject(Target);
 	SetShown(Image_RenderTarget, Target != nullptr);
 	SetShown(Image_FallbackIcon, !Target && Image_FallbackIcon->GetBrush().GetResourceObject() != nullptr);
-	SetShown(Text_PreviewUnavailable, Target == nullptr);
+	SetShown(Text_PreviewUnavailable, Result == EGridItemCaptureResult::Unavailable);
 	Button_Front->SetIsEnabled(Target != nullptr);
 	Button_Profile->SetIsEnabled(Target != nullptr);
 	Button_Back->SetIsEnabled(Target != nullptr);

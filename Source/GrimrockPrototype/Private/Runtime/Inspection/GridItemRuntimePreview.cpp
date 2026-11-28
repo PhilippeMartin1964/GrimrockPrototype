@@ -2,18 +2,54 @@
 
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/SkyLightComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/TextureCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
+#include "Materials/MaterialInterface.h"
 #include "Misc/App.h"
 #include "PreviewScene.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
 
-#if !UE_BUILD_SHIPPING
-#include "TextureResource.h"
+namespace
+{
+	bool IsPreparingRenderAssets(UStaticMeshComponent& Component)
+	{
+		const UStaticMesh* Mesh = Component.GetStaticMesh();
+		if (!Mesh)
+		{
+			return false;
+		}
+		// UE skips creating a scene proxy while the mesh is compiling and can
+		// defer it while the component's graphics pipelines are being prepared.
+		if (Mesh->IsCompiling() || Component.IsPSOPrecaching())
+		{
+			return true;
+		}
+#if WITH_EDITOR
+		for (int32 Index = 0; Index < Component.GetNumMaterials(); ++Index)
+		{
+			const UMaterialInterface* Material = Component.GetMaterial(Index);
+			if (Material && Material->IsCompiling())
+			{
+				return true;
+			}
+		}
+		TArray<UTexture*> Textures;
+		Component.GetUsedTextures(Textures, EMaterialQualityLevel::Num);
+		for (const UTexture* Texture : Textures)
+		{
+			if (Texture && Texture->IsCompiling())
+			{
+				return true;
+			}
+		}
 #endif
-
-DEFINE_LOG_CATEGORY_STATIC(LogGridItemPreview, Log, All);
+		return false;
+	}
+}
 
 FGridItemRuntimePreview::FGridItemRuntimePreview() = default;
 
@@ -31,12 +67,16 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 		return false;
 	}
 
-	// FPreviewScene is in Engine, not AdvancedPreviewScene/UnrealEd.
-	// The isolated GamePreview scene has no gameplay map or audible output.
+	// Match the Asset Viewer light path in an independent Engine preview world.
 	Scene = MakeUnique<FPreviewScene>(FPreviewScene::ConstructionValues()
-		.SetEditor(false).SetCreatePhysicsScene(false).ShouldSimulatePhysics(false)
-		.AllowAudioPlayback(false).SetTransactional(false).SetForceMipsResident(false)
-		.SetLightRotation(FRotator(-40.0, 35.0, 0.0)).SetLightBrightness(12.0f).SetSkyBrightness(0.0f));
+			.SetEditor(false)
+			.SetCreatePhysicsScene(false)
+			.ShouldSimulatePhysics(false)
+			.AllowAudioPlayback(false)
+			.SetTransactional(false)
+			.SetForceMipsResident(false)
+			.SetLightBrightness(4.0f)
+			.SetSkyBrightness(6.0f));
 	UWorld* PreviewWorld = Scene->GetWorld();
 	if (!PreviewWorld || PreviewWorld == PlayerWorld || PreviewWorld->WorldType != EWorldType::GamePreview)
 	{
@@ -55,54 +95,45 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 		return false;
 	}
 
-	// Three view-relative studio sources, with a broad frontal specular
-	// source so even a polished blade has a visible reflection at normal incidence.
 	Scene->DirectionalLight->SetMobility(EComponentMobility::Movable);
-	Scene->DirectionalLight->SetLightSourceAngle(20.0f);
-	const auto AddStudioLight = [this](float Intensity, float AngularDiameter)
-	{
-		UDirectionalLightComponent* Light = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
-		Light->SetMobility(EComponentMobility::Movable);
-		Light->SetIntensity(Intensity);
-		Light->SetLightSourceAngle(AngularDiameter);
-		Light->SetCastShadows(false);
-		Scene->AddComponent(Light, FTransform::Identity, false);
-		return Light;
-	};
-	FillLight = AddStudioLight(6.0f, 25.0f);
-	FrontLight = AddStudioLight(12.0f, 35.0f);
+	Scene->DirectionalLight->SetLightSourceAngle(12.0f);
+	Scene->SetSkyCubemap(Actor->GetStudioCubemap());
+
+	UDirectionalLightComponent* Fill = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+	Fill->SetMobility(EComponentMobility::Movable);
+	Fill->SetIntensity(2.0f);
+	Fill->SetLightSourceAngle(30.0f);
+	Fill->SetCastShadows(false);
+	Scene->AddComponent(Fill, FTransform::Identity, false);
+	FillLight = Fill;
 
 	USceneCaptureComponent2D* CaptureComponent = NewObject<USceneCaptureComponent2D>(GetTransientPackage(), NAME_None, RF_Transient);
 	CaptureComponent->SetMobility(EComponentMobility::Movable);
 	CaptureComponent->bCaptureEveryFrame = false;
 	CaptureComponent->bCaptureOnMovement = false;
-	// Manual exposure and tonemapping need a view state even for an
-	// on-demand capture. No continuous rendering or external scene dependency.
-	CaptureComponent->bAlwaysPersistRenderingState = true;
+	CaptureComponent->bOverride_CustomNearClippingPlane = true;
+	CaptureComponent->CustomNearClippingPlane = FGridItemInspectionOrbit::NearClipCm;
 	CaptureComponent->CaptureSource = SCS_FinalToneCurveHDR;
-	CaptureComponent->PostProcessBlendWeight = 1.0f;
-	// The independent studio uses direct lighting plus an ambient
-	// cubemap; no asynchronous indirect illumination history.
+	CaptureComponent->ShowFlags.SetTemporalAA(false);
 	FPostProcessSettings& StudioSettings = CaptureComponent->PostProcessSettings;
 	StudioSettings.bOverride_DynamicGlobalIlluminationMethod = true;
 	StudioSettings.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::None;
 	StudioSettings.bOverride_ReflectionMethod = true;
 	StudioSettings.ReflectionMethod = EReflectionMethod::None;
-	StudioSettings.AmbientCubemap = Actor->GetStudioCubemap();
-	StudioSettings.bOverride_AmbientCubemapIntensity = true;
-	StudioSettings.AmbientCubemapIntensity = 1.0f;
+	StudioSettings.bOverride_BloomIntensity = true;
+	StudioSettings.BloomIntensity = 0.0f;
+	StudioSettings.bOverride_VignetteIntensity = true;
+	StudioSettings.VignetteIntensity = 0.0f;
 	StudioSettings.bOverride_LocalExposureHighlightContrastScale = true;
 	StudioSettings.LocalExposureHighlightContrastScale = 1.0f;
 	StudioSettings.bOverride_LocalExposureShadowContrastScale = true;
 	StudioSettings.LocalExposureShadowContrastScale = 1.0f;
-	StudioSettings.bOverride_AmbientCubemapTint = true;
-	StudioSettings.AmbientCubemapTint = FLinearColor::White;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
-	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Manual;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	CaptureComponent->PostProcessSettings.AutoExposureBias = 1.0f;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
-	CaptureComponent->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure = false;
+	StudioSettings.bOverride_AutoExposureMethod = true;
+	StudioSettings.AutoExposureMethod = AEM_Manual;
+	StudioSettings.bOverride_AutoExposureBias = true;
+	StudioSettings.AutoExposureBias = 1.0f;
+	StudioSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	StudioSettings.AutoExposureApplyPhysicalCameraExposure = false;
 	Scene->AddComponent(CaptureComponent, FTransform::Identity, false);
 	Camera = CaptureComponent;
 	return true;
@@ -126,7 +157,6 @@ void FGridItemRuntimePreview::Close()
 	}
 	Camera.Reset();
 	FillLight.Reset();
-	FrontLight.Reset();
 	OwnerWorld.Reset();
 	Scene.Reset();
 }
@@ -156,8 +186,7 @@ EGridItemPreviewResult FGridItemRuntimePreview::Present(const FGridItemInspectio
 	const EGridItemPreviewResult Result = Actor->ApplyPreview(View);
 	if (Result == EGridItemPreviewResult::Ready)
 	{
-		Orbit.SetBounds(Actor->GetPresentationBounds(), true);
-		UpdateCamera();
+		Frame();
 	}
 	return Result;
 }
@@ -165,9 +194,6 @@ EGridItemPreviewResult FGridItemRuntimePreview::Present(const FGridItemInspectio
 void FGridItemRuntimePreview::Clear()
 {
 	bCaptureRequested = false;
-#if !UE_BUILD_SHIPPING
-	bFirstCaptureMeasured = false;
-#endif
 	Orbit.Clear();
 	if (AGridItemPreviewActor* PreviewActor = Actor.Get())
 	{
@@ -182,25 +208,34 @@ void FGridItemRuntimePreview::UpdateCamera()
 	{
 		Camera->SetWorldLocationAndRotation(Orbit.CameraLocation(), Orbit.ViewRotation());
 		Camera->FOVAngle = static_cast<float>(Orbit.ViewFov());
-		// Follow the view, not the mesh: both broad faces remain lit while orbiting.
+		// Keep the two soft sources in the camera's hemisphere as it orbits.
 		const FQuat View = Orbit.Orientation;
 		Scene->DirectionalLight->SetWorldRotation((View * FRotator(-30.0, 35.0, 0.0).Quaternion()).Rotator());
-		if (UDirectionalLightComponent* Fill = FillLight.Get())
-		{
-			Fill->SetWorldRotation((View * FRotator(20.0, -45.0, 0.0).Quaternion()).Rotator());
-		}
-		if (UDirectionalLightComponent* Front = FrontLight.Get())
-		{
-			Front->SetWorldRotation(Orbit.ViewRotation());
-		}
+		FillLight->SetWorldRotation((View * FRotator(10.0, -30.0, 0.0).Quaternion()).Rotator());
 	}
 }
 
-bool FGridItemRuntimePreview::Capture()
+EGridItemCaptureResult FGridItemRuntimePreview::Capture()
 {
 	if (!IsOpen() || !Orbit.bReady || !FApp::CanEverRender())
 	{
-		return false;
+		return EGridItemCaptureResult::Unavailable;
+	}
+	USkyLightComponent* SkyLight = Scene->SkyLight;
+	if (SkyLight->Cubemap && !SkyLight->GetProcessedSkyTexture())
+	{
+#if WITH_EDITOR
+		if (SkyLight->Cubemap->IsCompiling())
+		{
+			return EGridItemCaptureResult::WaitingForAssets;
+		}
+#endif
+		// This preview world has no editor viewport to process its HDR environment.
+		Scene->UpdateCaptureContents();
+	}
+	if (IsPreparingRenderAssets(*Actor->GetPreviewMesh()) || IsPreparingRenderAssets(*Actor->GetPreviewOrnament()))
+	{
+		return EGridItemCaptureResult::WaitingForAssets;
 	}
 	USceneCaptureComponent2D* CaptureComponent = Camera.Get();
 	if (!CaptureComponent->TextureTarget)
@@ -214,50 +249,10 @@ bool FGridItemRuntimePreview::Capture()
 		Target->InitAutoFormat(1024, 1024);
 		Target->UpdateResourceImmediate(true);
 		CaptureComponent->TextureTarget = Target;
-		// Initialize the persistent view state before the first displayed image.
-		CaptureComponent->CaptureScene();
 	}
 	CaptureComponent->CaptureScene();
 	bCaptureRequested = true;
-#if !UE_BUILD_SHIPPING
-	// One readback per presentation, never per drag or frame. Distinguish
-	// capture darkness from Slate opacity and identify the loaded binary.
-	if (!bFirstCaptureMeasured)
-	{
-		bFirstCaptureMeasured = true;
-		FTextureRenderTargetResource* Resource = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
-		TArray<FColor> Pixels;
-		if (Resource && Resource->ReadPixels(Pixels) && !Pixels.IsEmpty())
-		{
-			int32 NonBlack = 0;
-			int32 Bright = 0;
-			int32 Peak = 0;
-			int32 MinAlpha = 255;
-			int32 MaxAlpha = 0;
-			int32 MinLitAlpha = 255;
-			for (const FColor& Pixel : Pixels)
-			{
-				const int32 Value = FMath::Max3(int32(Pixel.R), int32(Pixel.G), int32(Pixel.B));
-				Peak = FMath::Max(Peak, Value);
-				MinAlpha = FMath::Min(MinAlpha, int32(Pixel.A));
-				MaxAlpha = FMath::Max(MaxAlpha, int32(Pixel.A));
-				if (Value > 4)
-				{
-					++NonBlack;
-					MinLitAlpha = FMath::Min(MinLitAlpha, int32(Pixel.A));
-				}
-				if (Value >= 64) ++Bright;
-			}
-			UE_LOG(LogGridItemPreview, Log, TEXT("[ItemExamination] StudioCaptureV3 Pixels=%d RGBAbove4=%d RGBAbove63=%d Peak=%d Alpha=%d..%d LitMinAlpha=%d"),
-				Pixels.Num(), NonBlack, Bright, Peak, MinAlpha, MaxAlpha, NonBlack ? MinLitAlpha : -1);
-		}
-		else
-		{
-			UE_LOG(LogGridItemPreview, Warning, TEXT("[ItemExamination] StudioCaptureV3 GPU readback unavailable"));
-		}
-	}
-#endif
-	return true;
+	return EGridItemCaptureResult::Ready;
 }
 
 UTextureRenderTarget2D* FGridItemRuntimePreview::GetRenderTarget() const
@@ -284,11 +279,14 @@ void FGridItemRuntimePreview::Pan(const FVector2D& Delta, double ProjectionAxisP
 	UpdateCamera();
 }
 
-void FGridItemRuntimePreview::Frame(const FRotator& Rotation)
+void FGridItemRuntimePreview::Frame(TOptional<FRotator> Rotation)
 {
-	if (IsOpen() && Orbit.bReady)
+	if (IsOpen() && Actor->GetPreviewMesh()->GetStaticMesh())
 	{
-		Orbit.SetBounds(Actor->GetPresentationBounds(), true, Rotation);
+		const FBoxSphereBounds Bounds = Actor->GetPresentationBounds();
+		// Favour the broader side of a thin item in the opening three-quarter view.
+		const FRotator DefaultRotation(-12.0, Bounds.BoxExtent.X > Bounds.BoxExtent.Y ? 65.0 : 25.0, 0.0);
+		Orbit.SetBounds(Bounds, true, Rotation.Get(DefaultRotation), 1.85);
 		UpdateCamera();
 	}
 }
