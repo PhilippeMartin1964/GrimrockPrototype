@@ -50,6 +50,7 @@ private:
 	TWeakObjectPtr<AGridItemPreviewActor> Actor;
 	TWeakObjectPtr<USceneCaptureComponent2D> Camera;
 	TWeakObjectPtr<UDirectionalLightComponent> FillLight;
+	TWeakObjectPtr<UDirectionalLightComponent> FrontLight;
 #if !UE_BUILD_SHIPPING
 	bool bFirstCaptureMeasured = false;
 #endif

@@ -55,22 +55,34 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 		return false;
 	}
 
+	// Three view-relative studio sources, with a broad frontal specular
+	// source so even a polished blade has a visible reflection at normal incidence.
 	Scene->DirectionalLight->SetMobility(EComponentMobility::Movable);
-	// A second directional source improves legibility without a visible sky dome.
-	UDirectionalLightComponent* Fill = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
-	Fill->SetMobility(EComponentMobility::Movable);
-	Fill->SetIntensity(6.0f);
-	Scene->AddComponent(Fill, FTransform(FRotator(-25.0, -135.0, 0.0)), false);
-	FillLight = Fill;
+	Scene->DirectionalLight->SetLightSourceAngle(20.0f);
+	const auto AddStudioLight = [this](float Intensity, float AngularDiameter)
+	{
+		UDirectionalLightComponent* Light = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
+		Light->SetMobility(EComponentMobility::Movable);
+		Light->SetIntensity(Intensity);
+		Light->SetLightSourceAngle(AngularDiameter);
+		Light->SetCastShadows(false);
+		Scene->AddComponent(Light, FTransform::Identity, false);
+		return Light;
+	};
+	FillLight = AddStudioLight(6.0f, 25.0f);
+	FrontLight = AddStudioLight(12.0f, 35.0f);
 
 	USceneCaptureComponent2D* CaptureComponent = NewObject<USceneCaptureComponent2D>(GetTransientPackage(), NAME_None, RF_Transient);
 	CaptureComponent->SetMobility(EComponentMobility::Movable);
 	CaptureComponent->bCaptureEveryFrame = false;
 	CaptureComponent->bCaptureOnMovement = false;
-	CaptureComponent->CaptureSource = SCS_FinalColorLDR;
+	// Manual exposure and tonemapping need a view state even for an
+	// on-demand capture. No continuous rendering or external scene dependency.
+	CaptureComponent->bAlwaysPersistRenderingState = true;
+	CaptureComponent->CaptureSource = SCS_FinalToneCurveHDR;
 	CaptureComponent->PostProcessBlendWeight = 1.0f;
-	// A small on-demand preview must not depend on the dungeon's Lumen
-	// history or an asynchronously captured sky.
+	// The independent studio uses direct lighting plus an ambient
+	// cubemap; no asynchronous indirect illumination history.
 	FPostProcessSettings& StudioSettings = CaptureComponent->PostProcessSettings;
 	StudioSettings.bOverride_DynamicGlobalIlluminationMethod = true;
 	StudioSettings.DynamicGlobalIlluminationMethod = EDynamicGlobalIlluminationMethod::None;
@@ -79,6 +91,10 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 	StudioSettings.AmbientCubemap = Actor->GetStudioCubemap();
 	StudioSettings.bOverride_AmbientCubemapIntensity = true;
 	StudioSettings.AmbientCubemapIntensity = 1.0f;
+	StudioSettings.bOverride_LocalExposureHighlightContrastScale = true;
+	StudioSettings.LocalExposureHighlightContrastScale = 1.0f;
+	StudioSettings.bOverride_LocalExposureShadowContrastScale = true;
+	StudioSettings.LocalExposureShadowContrastScale = 1.0f;
 	StudioSettings.bOverride_AmbientCubemapTint = true;
 	StudioSettings.AmbientCubemapTint = FLinearColor::White;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
@@ -110,6 +126,7 @@ void FGridItemRuntimePreview::Close()
 	}
 	Camera.Reset();
 	FillLight.Reset();
+	FrontLight.Reset();
 	OwnerWorld.Reset();
 	Scene.Reset();
 }
@@ -172,6 +189,10 @@ void FGridItemRuntimePreview::UpdateCamera()
 		{
 			Fill->SetWorldRotation((View * FRotator(20.0, -45.0, 0.0).Quaternion()).Rotator());
 		}
+		if (UDirectionalLightComponent* Front = FrontLight.Get())
+		{
+			Front->SetWorldRotation(Orbit.ViewRotation());
+		}
 	}
 }
 
@@ -186,9 +207,15 @@ bool FGridItemRuntimePreview::Capture()
 	{
 		UTextureRenderTarget2D* Target = NewObject<UTextureRenderTarget2D>(CaptureComponent, NAME_None, RF_Transient);
 		Target->ClearColor = FLinearColor::Black;
-		Target->RenderTargetFormat = RTF_RGBA8;
+		// Tone-curve output is linear; store in an sRGB texture for Slate.
+		// Do not force a linear 8-bit surface or apply a second display gamma.
+		Target->RenderTargetFormat = RTF_RGBA8_SRGB;
+		Target->bForceLinearGamma = false;
 		Target->InitAutoFormat(1024, 1024);
+		Target->UpdateResourceImmediate(true);
 		CaptureComponent->TextureTarget = Target;
+		// Initialize the persistent view state before the first displayed image.
+		CaptureComponent->CaptureScene();
 	}
 	CaptureComponent->CaptureScene();
 	bCaptureRequested = true;
@@ -221,12 +248,12 @@ bool FGridItemRuntimePreview::Capture()
 				}
 				if (Value >= 64) ++Bright;
 			}
-			UE_LOG(LogGridItemPreview, Log, TEXT("[ItemExamination] StudioCaptureV2 Pixels=%d RGBAbove4=%d RGBAbove63=%d Peak=%d Alpha=%d..%d LitMinAlpha=%d"),
+			UE_LOG(LogGridItemPreview, Log, TEXT("[ItemExamination] StudioCaptureV3 Pixels=%d RGBAbove4=%d RGBAbove63=%d Peak=%d Alpha=%d..%d LitMinAlpha=%d"),
 				Pixels.Num(), NonBlack, Bright, Peak, MinAlpha, MaxAlpha, NonBlack ? MinLitAlpha : -1);
 		}
 		else
 		{
-			UE_LOG(LogGridItemPreview, Warning, TEXT("[ItemExamination] StudioCaptureV2 GPU readback unavailable"));
+			UE_LOG(LogGridItemPreview, Warning, TEXT("[ItemExamination] StudioCaptureV3 GPU readback unavailable"));
 		}
 	}
 #endif

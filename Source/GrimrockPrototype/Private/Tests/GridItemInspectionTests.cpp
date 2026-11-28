@@ -5,6 +5,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "TextureResource.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -386,6 +388,12 @@ bool FGridItemRuntimePreviewTest::RunTest(const FString&)
 		Studio.ReflectionMethod == EReflectionMethod::None);
 	TestTrue(TEXT("Direct ambient cubemap configured"), Studio.AmbientCubemap.Get() == Preview.GetPreviewActor()->GetStudioCubemap());
 	TestFalse(TEXT("No continuous capture"), Capture->bCaptureEveryFrame);
+	TestTrue(TEXT("On-demand capture keeps its own exposure state"), Capture->bAlwaysPersistRenderingState);
+	TestTrue(TEXT("Linear tone-curve output for sRGB target"), Capture->CaptureSource == SCS_FinalToneCurveHDR);
+	TestTrue(TEXT("Neutral local exposure"), Studio.bOverride_LocalExposureHighlightContrastScale &&
+		Studio.bOverride_LocalExposureShadowContrastScale &&
+		FMath::IsNearlyEqual(Studio.LocalExposureHighlightContrastScale, 1.0f) &&
+		FMath::IsNearlyEqual(Studio.LocalExposureShadowContrastScale, 1.0f));
 
 	FGridItemInspectionView View;
 	const FGridItemInstance Sword = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);
@@ -492,4 +500,61 @@ bool FGridItemExaminationRouteTest::RunTest(const FString&)
 	TestFalse(TEXT("Empty slot refused"), UGridInventoryWidget::IsSameExaminationSource(Original, FGridItemInstance()));
 	return !HasAnyErrors();
 }
+/** Explicit real-RHI gate, separate from the normal headless Grimrock suite.
+ * Uses the same production mesh, lights, camera and render target as the WBP.
+ * No screenshots or project assets are written by the test.
+ */
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemStudioLightingGPUTest, "Game.UI.Items.Inspection.StudioLightingGPU",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::NonNullRHI)
+
+bool FGridItemStudioLightingGPUTest::RunTest(const FString&)
+{
+	const FGridCanonicalRegistryFixture Fixture;
+	FInspectionTestWorld Host(EWorldType::Game);
+	FGridItemRuntimePreview Preview;
+	FGridItemInspectionView View;
+	if (!TestTrue(TEXT("Registry and host"), Fixture.bReady && Host.World != nullptr) ||
+		!TestTrue(TEXT("Open actual studio"), Preview.Open(Host.World)) ||
+		!TestTrue(TEXT("Resolve user's long sword"), FGridItemInspectionReadModel::ResolvePhysical(
+			Fixture.Registry.Get(), MakePhysicalItem(TEXT("Weapon_LongSword_01"), 1), View)) ||
+		!TestTrue(TEXT("Present production sword"), Preview.Present(View) == EGridItemPreviewResult::Ready))
+	{
+		return false;
+	}
+
+	const auto CheckImage = [this, &Preview](const TCHAR* Label)
+	{
+		if (!TestTrue(TEXT("GPU capture requested"), Preview.Capture())) return false;
+		UTextureRenderTarget2D* Target = Preview.GetRenderTarget();
+		if (!TestTrue(TEXT("sRGB render target"), Target && Target->RenderTargetFormat == RTF_RGBA8_SRGB &&
+			!Target->bForceLinearGamma)) return false;
+		FTextureRenderTargetResource* Resource = Target->GameThread_GetRenderTargetResource();
+		TArray<FColor> Pixels;
+		if (!TestTrue(TEXT("GPU readback"), Resource && Resource->ReadPixels(Pixels) &&
+			Pixels.Num() == Target->SizeX * Target->SizeY)) return false;
+
+		int32 NonBlack = 0;
+		int32 Bright = 0;
+		int32 Peak = 0;
+		for (const FColor& Pixel : Pixels)
+		{
+			const int32 Value = FMath::Max3(int32(Pixel.R), int32(Pixel.G), int32(Pixel.B));
+			NonBlack += Value > 4 ? 1 : 0;
+			Bright += Value >= 64 ? 1 : 0;
+			Peak = FMath::Max(Peak, Value);
+		}
+		AddInfo(FString::Printf(TEXT("%s: nonblack=%d bright=%d peak=%d"), Label, NonBlack, Bright, Peak));
+		TestTrue(TEXT("Visible geometry, not a black image"), NonBlack >= 1000);
+		TestTrue(TEXT("Significant lit surface, not a few isolated glints"), Bright >= FMath::Max(300, NonBlack / 5));
+		TestTrue(TEXT("Usable highlights"), Peak >= 100);
+		TestTrue(TEXT("Background remains black"), Pixels[0].R <= 4 && Pixels[0].G <= 4 && Pixels[0].B <= 4);
+		return true;
+	};
+
+	CheckImage(TEXT("Initial view"));
+	Preview.Drag(FVector2D(230.0, 0.0));
+	CheckImage(TEXT("Rotated view"));
+	return !HasAnyErrors();
+}
+
 #endif
