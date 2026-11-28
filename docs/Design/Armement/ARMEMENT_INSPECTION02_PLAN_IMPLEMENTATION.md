@@ -134,3 +134,8 @@ Avant lot : git status, branche master, HEAD/origin/master, préserver travail u
 ## 7. Ordre de réalisation et jalons de disponibilité
 
 02.1 → 02.2 (premier atelier utilisable) → 02.3A (comparaison) → 02.3B (prototype progression fine ARM014) → 02.4A/B (laboratoire) → 02.5A/B (examen joueur) → recette ARM014 → autres ARM une à une. L'auteur peut commencer à observer et annoter ARM014 dès 02.2, sans attendre le WBP ou la production audiovisuelle. 02.6 facultatif, seulement si approuvé. Les prochaines décisions artistiques concernent les matériaux et valeurs du pilote, pas les mécaniques déjà validées.
+
+
+### Correctif 02.3B.3A — fond noir de l'atelier
+
+Signalement utilisateur : retour du panorama standard de l'éditeur de mesh. Le fond noir reste obligatoire ; les supports Sol/Décor sont seuls autorisés dans leurs contextes explicites. La visibilité des composants stock de FAdvancedPreviewScene est réaffirmée localement avant chaque rendu, sans modification du profil partagé ni suppression de l'éclairage cubemap. Test `Grimrock.Editor.Items.Inspection.BlackBackdrop` : réactivation simulée des composants, puis masquage. La recette GPU reste nécessaire. Le blocage de compilation de l'issue #243 (C2672, assertion TestNotNull du test d'ornement) est corrigé par une comparaison de pointeur explicite, sans affaiblir l'assertion.

@@ -327,7 +327,7 @@ bool FGridItemInspectionOrnamentTest::RunTest(const FString&)
 		return false;
 	}
 	UStaticMeshComponent* Child = B->GetPreviewOrnament();
-	TestNotNull(TEXT("Child mesh loaded"), Child->GetStaticMesh());
+	TestTrue(TEXT("Child mesh loaded"), Child->GetStaticMesh() != nullptr);
 	TestTrue(TEXT("Attached to base mesh"), Child->GetAttachParent() == B->GetPreviewMesh());
 	TestTrue(TEXT("Authored local transform retained"), Child->GetRelativeTransform().Equals(View.Item.OrnamentTransform));
 	TestTrue(TEXT("No collision"), Child->GetCollisionEnabled() == ECollisionEnabled::NoCollision);

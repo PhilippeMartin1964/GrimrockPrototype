@@ -14,6 +14,11 @@
 #include "Widgets/SNullWidget.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Misc/AutomationTest.h"
+#include "UObject/UObjectIterator.h"
+#endif
+
 namespace
 {
 	class FGridWorkshopBlackScene : public FAdvancedPreviewScene
@@ -22,13 +27,20 @@ namespace
 		FGridWorkshopBlackScene()
 			: FAdvancedPreviewScene(FPreviewScene::ConstructionValues(), 0.0f)
 		{
-			SetFloorVisibility(false, true);
-			SetEnvironmentVisibility(false, true);
+			EnforceBlackBackdrop();
 			StudioIntensity = DirectionalLight->Intensity;
 			StudioSkyIntensity = SkyLight->Intensity;
 			StudioColor = DirectionalLight->GetLightColor();
 		}
 		virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }
+
+		void EnforceBlackBackdrop()
+		{
+			// Asset Viewer refreshes may restore the shared profile's panorama/floor.
+			// Direct visibility only: keep the cubemap lighting and the user's profile.
+			SetFloorVisibility(false, true);
+			SetEnvironmentVisibility(false, true);
+		}
 
 		void ApplyLighting(EGridWorkshopLighting Lighting)
 		{
@@ -117,6 +129,13 @@ public:
 	void SetInspectionFov(double Degrees)
 	{
 		ViewFOV = static_cast<float>(Degrees);
+	}
+
+	virtual void Draw(FViewport* InViewport, FCanvas* Canvas) override
+	{
+		// Reassert the local backdrop after any profile refresh, before rendering.
+		static_cast<FGridWorkshopBlackScene&>(*SceneOwner).EnforceBlackBackdrop();
+		FEditorViewportClient::Draw(InViewport, Canvas);
 	}
 
 	virtual void Tick(float DeltaSeconds) override
@@ -399,3 +418,32 @@ FReply SGridItemWorkshopOrbitInput::OnKeyDown(const FGeometry&, const FKeyEvent&
 	}
 	return FReply::Handled();
 }
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridWorkshopBlackBackdropTest, "Grimrock.Editor.Items.Inspection.BlackBackdrop",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridWorkshopBlackBackdropTest::RunTest(const FString&)
+{
+	FGridWorkshopBlackScene Scene;
+	// Simulate the stock components being made visible again by a profile refresh.
+	Scene.SetFloorVisibility(true, true);
+	Scene.SetEnvironmentVisibility(true, true);
+	TArray<UStaticMeshComponent*> Restored;
+	for (TObjectIterator<UStaticMeshComponent> It; It; ++It)
+	{
+		if (It->IsRegistered() && It->GetWorld() == Scene.GetWorld() && It->IsVisible())
+		{
+			Restored.Add(*It);
+		}
+	}
+	TestTrue(TEXT("Stock preview geometry can be restored"), Restored.Num() >= 2);
+	Scene.EnforceBlackBackdrop();
+	for (const UStaticMeshComponent* Component : Restored)
+	{
+		TestFalse(TEXT("Stock geometry hidden again"), Component->IsVisible());
+	}
+	TestTrue(TEXT("Clear color stays black"), Scene.GetBackgroundColor().Equals(FLinearColor::Black));
+	return !HasAnyErrors();
+}
+#endif
