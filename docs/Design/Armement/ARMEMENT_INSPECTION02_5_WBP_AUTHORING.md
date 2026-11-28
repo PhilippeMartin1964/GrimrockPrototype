@@ -37,7 +37,7 @@ Réutiliser `UI.Section.Description` pour le titre de description et `Navigation
 
 ## Étape native 2 — Designer
 
-Créer **un seul** WBP : `/Game/GrimrockPrototype/Blueprints/UI/Inspection/WBP_ItemExamination` (parent **GridItemExaminationWidget**). Class Defaults : Is Focusable, StatRowWidgetClass = `WBP_ItemTooltipNativeLine` existant (vérifier ses deux TextBlocks Text_Label et Text_Value). Aucun Event Graph nécessaire. Conserver les éléments suivants exactement nommés et Is Variable pour les liaisons natives :
+Créer **un seul** WBP : `/Game/GrimrockPrototype/Blueprints/UI/Inventory/WBP_ItemExamination` (parent **GridItemExaminationWidget**). Class Defaults : Is Focusable, StatRowWidgetClass = `WBP_ItemTooltipNativeLine` existant (vérifier ses deux TextBlocks Text_Label et Text_Value). Aucun Event Graph nécessaire. Conserver les éléments suivants exactement nommés et Is Variable pour les liaisons natives :
 
 ~~~text
 Overlay_Root
@@ -96,3 +96,8 @@ Proposition de disposition : cadre centré, fenêtre couvrant environ 75–85 % 
 Dans `/Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPartyPawn`, Class Defaults > Inventory | UI > Item Examination Widget Class = WBP_ItemExamination. Sauvegarder, compiler. Ne pas remplacer les deux WBP d'inventaire et ne pas retirer PresentItemExamination avant validation du nouveau chemin. Vérifier PIE : clic droit sac et main équipée, épée N5, bouclier réserve, clé/pierre/livre N0, fermeture Escape/X, rotation/zoom/pan, aucune commande de mouvement/attaque, pas de perte du curseur, fond noir et lumière PBR, retour au même inventaire, action Lire inchangée. Tester changement carte et combat, fallback sans mesh, plusieurs ouvertures/fermetures. Puis Shipping, cultures fr/en et cook. Ne pas déclarer recette achevée sans ces preuves.
 
 Le rendu et les effets animés dans GamePreview nécessitent une vérification GPU ; l'agent NullRHI ne peut pas les établir. Aucun changement de gameplay, sauvegarde ou progression N1–N20.
+
+
+## Diagnostic première ouverture
+
+La capture du 28.11 confirme les douze clés ST_UI présentes localement. Le propriétaire a choisi le dossier Inventory. En cas de texte bleu Print String, l'ancien événement PresentItemExamination est encore appelé comme repli ; ne pas modifier le Graph avant diagnostic. Filtrer Output Log sur `[ItemExamination]` : contexte, classe pawn non assignée, source physique, CreateWidget, BindWidget/StatRowWidgetClass, ligne Text_Label/Text_Value ou présentation/viewport. Le succès donne `Opened Class=...`. Le repli est conservé jusqu'à validation de la route native. La hiérarchie doit placer ScrollBox_Details directement sous HorizontalBox_Main et Text_ControlsHint sous VerticalBox_Preview (voisin de HorizontalBox_ViewControls). Ces corrections de disposition sont distinctes du diagnostic d'ouverture. Aucun asset natif modifié par ce lot.

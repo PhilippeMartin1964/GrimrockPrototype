@@ -1525,22 +1525,46 @@ bool UGridInventoryWidget::TryOpenItemExamination(const UGridItemSubsystem* Regi
 {
 	APlayerController* PC = GetOwningPlayer();
 	FGridItemInstance Live;
-	if (!IsValid(OwningPartyPawn) || !PC || !Registry || !OwningPartyPawn->ItemExaminationWidgetClass ||
-		!ReadExaminationSource(SlotType, SlotIndex, Live) || !IsSameExaminationSource(LastContextItem, Live))
+	if (!IsValid(OwningPartyPawn) || !PC || !Registry)
 	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: missing context Pawn=%s Controller=%s Registry=%s Inventory=%s"),
+			*GetNameSafe(OwningPartyPawn), *GetNameSafe(PC), *GetNameSafe(Registry), *GetNameSafe(GetClass()));
 		return false;
 	}
+	if (!OwningPartyPawn->ItemExaminationWidgetClass)
+	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: ItemExaminationWidgetClass is unset on Pawn=%s Class=%s"),
+			*GetNameSafe(OwningPartyPawn), *GetNameSafe(OwningPartyPawn->GetClass()));
+		return false;
+	}
+	if (!ReadExaminationSource(SlotType, SlotIndex, Live) || !IsSameExaminationSource(LastContextItem, Live))
+	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: source no longer matches current physical item Slot=%d Index=%d"),
+			static_cast<int32>(SlotType), SlotIndex);
+		return false;
+	}
+	UE_LOG(LogGridInventoryUI, Log, TEXT("[ItemExamination] Opening Class=%s Item=%s Level=%d"),
+		*GetNameSafe(OwningPartyPawn->ItemExaminationWidgetClass.Get()), *Live.ItemDefinitionId.ToString(), Live.ItemLevel);
 
 	CloseItemExamination();
 	UGridItemExaminationWidget* Panel = CreateWidget<UGridItemExaminationWidget>(PC, OwningPartyPawn->ItemExaminationWidgetClass);
-	if (!Panel || !Panel->HasDesignerContract())
+	if (!Panel)
 	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: CreateWidget failed"));
+		return false;
+	}
+	if (!Panel->HasDesignerContract())
+	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: incomplete Designer contract Class=%s"), *GetNameSafe(Panel->GetClass()));
 		return false;
 	}
 	Panel->SetIsFocusable(true);
 	Panel->AddToViewport(400);
-	if (!Panel->PresentItem(Registry, Live))
+	if (!Panel->IsInViewport() || !Panel->PresentItem(Registry, Live))
 	{
+		UE_LOG(LogGridInventoryUI, Warning, TEXT("[ItemExamination] Open refused: viewport or PresentItem failed Class=%s InViewport=%d"),
+			*GetNameSafe(Panel->GetClass()), Panel->IsInViewport() ? 1 : 0);
+		Panel->ClearExamination();
 		Panel->RemoveFromParent();
 		return false;
 	}
@@ -1558,6 +1582,7 @@ bool UGridInventoryWidget::TryOpenItemExamination(const UGridItemSubsystem* Regi
 	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PC->SetInputMode(Mode);
 	PC->bShowMouseCursor = true;
+	UE_LOG(LogGridInventoryUI, Log, TEXT("[ItemExamination] Opened Class=%s"), *GetNameSafe(Panel->GetClass()));
 	return true;
 }
 
@@ -1650,6 +1675,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
 				if (!FromSlot.IsEmpty()) TooltipText = FromSlot;
 			}
 			UE_LOG(LogGridInventoryUI, Verbose, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
+			UE_LOG(LogGridInventoryUI, Log, TEXT("[ItemExamination] Using legacy Blueprint fallback PresentItemExamination"));
 			PresentItemExamination(LastContextItem, TooltipText);
 			bExecuted = true;
 			break;

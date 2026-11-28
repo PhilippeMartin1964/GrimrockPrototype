@@ -16,6 +16,8 @@
 #include "UI/GridWeaponTooltipProjection.h"
 #include "UI/UILocalizationText.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridItemExamination, Log, All);
+
 namespace
 {
 	void SetShown(UWidget* Widget, bool bShown)
@@ -178,11 +180,37 @@ bool FGridItemExaminationData::Build(const UGridItemSubsystem* Registry, const F
 
 bool UGridItemExaminationWidget::HasDesignerContract() const
 {
-	return Image_RenderTarget && Image_FallbackIcon && Text_PreviewUnavailable &&
-		Text_ItemName && Text_ItemLevel && Border_LevelBadge && Text_Description &&
-		Text_Weight && Text_Quantity && VerticalBox_Stats && Section_Stats && VerticalBox_Actions && Section_Actions &&
-		Button_Close && Button_Front && Button_Profile && Button_Back && Button_Reset &&
-		StatRowWidgetClass;
+	TArray<FString> Missing;
+	const auto Require = [&Missing](bool bPresent, const TCHAR* Name)
+	{
+		if (!bPresent) Missing.Add(Name);
+	};
+	Require(Image_RenderTarget != nullptr, TEXT("Image_RenderTarget"));
+	Require(Image_FallbackIcon != nullptr, TEXT("Image_FallbackIcon"));
+	Require(Text_PreviewUnavailable != nullptr, TEXT("Text_PreviewUnavailable"));
+	Require(Text_ItemName != nullptr, TEXT("Text_ItemName"));
+	Require(Text_ItemLevel != nullptr, TEXT("Text_ItemLevel"));
+	Require(Border_LevelBadge != nullptr, TEXT("Border_LevelBadge"));
+	Require(Text_Description != nullptr, TEXT("Text_Description"));
+	Require(Text_Weight != nullptr, TEXT("Text_Weight"));
+	Require(Text_Quantity != nullptr, TEXT("Text_Quantity"));
+	Require(VerticalBox_Stats != nullptr, TEXT("VerticalBox_Stats"));
+	Require(Section_Stats != nullptr, TEXT("Section_Stats"));
+	Require(VerticalBox_Actions != nullptr, TEXT("VerticalBox_Actions"));
+	Require(Section_Actions != nullptr, TEXT("Section_Actions"));
+	Require(Button_Close != nullptr, TEXT("Button_Close"));
+	Require(Button_Front != nullptr, TEXT("Button_Front"));
+	Require(Button_Profile != nullptr, TEXT("Button_Profile"));
+	Require(Button_Back != nullptr, TEXT("Button_Back"));
+	Require(Button_Reset != nullptr, TEXT("Button_Reset"));
+	Require(StatRowWidgetClass.Get() != nullptr, TEXT("StatRowWidgetClass (Class Defaults)"));
+	if (!Missing.IsEmpty())
+	{
+		UE_LOG(LogGridItemExamination, Warning, TEXT("[ItemExamination] Missing Designer bindings Class=%s: %s"),
+			*GetNameSafe(GetClass()), *FString::Join(Missing, TEXT(", ")));
+		return false;
+	}
+	return true;
 }
 
 void UGridItemExaminationWidget::NativeConstruct()
@@ -211,8 +239,14 @@ bool UGridItemExaminationWidget::PresentItem(const UGridItemSubsystem* Registry,
 {
 	ClearExamination();
 	FGridItemExaminationData Data;
-	if (!HasDesignerContract() || !FGridItemExaminationData::Build(Registry, Instance, Data))
+	if (!HasDesignerContract())
 	{
+		return false;
+	}
+	if (!FGridItemExaminationData::Build(Registry, Instance, Data))
+	{
+		UE_LOG(LogGridItemExamination, Warning, TEXT("[ItemExamination] Physical item data resolution failed Item=%s Level=%d"),
+			*Instance.ItemDefinitionId.ToString(), Instance.ItemLevel);
 		return false;
 	}
 
@@ -228,6 +262,8 @@ bool UGridItemExaminationWidget::PresentItem(const UGridItemSubsystem* Registry,
 		UGridItemTooltipWeaponLineWidget* Row = CreateWidget<UGridItemTooltipWeaponLineWidget>(this, StatRowWidgetClass);
 		if (!Row || !Row->PresentFact(Fact))
 		{
+			UE_LOG(LogGridItemExamination, Warning, TEXT("[ItemExamination] Stat row failed Class=%s Fact=%s; check Text_Label and Text_Value"),
+				*GetNameSafe(StatRowWidgetClass.Get()), *Fact.StatId.ToString());
 			ClearExamination();
 			return false;
 		}
@@ -239,6 +275,8 @@ bool UGridItemExaminationWidget::PresentItem(const UGridItemSubsystem* Registry,
 		UGridItemTooltipWeaponLineWidget* Row = CreateWidget<UGridItemTooltipWeaponLineWidget>(this, StatRowWidgetClass);
 		if (!Row || !Row->PresentFact(Fact))
 		{
+			UE_LOG(LogGridItemExamination, Warning, TEXT("[ItemExamination] Stat row failed Class=%s Fact=%s; check Text_Label and Text_Value"),
+				*GetNameSafe(StatRowWidgetClass.Get()), *Fact.StatId.ToString());
 			ClearExamination();
 			return false;
 		}
