@@ -430,6 +430,7 @@ bool FGridItemExaminationDataTest::RunTest(const FString&)
 		return false;
 	}
 	TestEqual(TEXT("Real level retained"), Data.View.Item.ItemLevel, 5);
+	TestTrue(TEXT("Sword has a resolved authored action"), !Data.Actions.IsEmpty());
 	TestTrue(TEXT("Attack facts available"), Data.Facts.ContainsByPredicate([](const FGridWeaponTooltipFact& Fact)
 	{
 		return Fact.StatId == TEXT("WeaponDice");
@@ -454,6 +455,7 @@ bool FGridItemExaminationDataTest::RunTest(const FString&)
 	TestFalse(TEXT("Invalid physical instance refused"), FGridItemExaminationData::Build(Fixture.Registry.Get(), FGridItemInstance(), Data));
 	TestFalse(TEXT("Invalid read clears prior view"), Data.View.IsValid());
 	TestTrue(TEXT("Invalid read clears facts"), Data.Facts.IsEmpty());
+	TestTrue(TEXT("Invalid read clears actions"), Data.Actions.IsEmpty());
 	return !HasAnyErrors();
 }
 

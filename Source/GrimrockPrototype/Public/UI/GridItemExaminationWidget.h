@@ -20,6 +20,7 @@ struct GRIMROCKPROTOTYPE_API FGridItemExaminationData
 {
 	FGridItemInspectionView View;
 	TArray<FGridWeaponTooltipFact> Facts;
+	TArray<FGridWeaponTooltipFact> Actions;
 
 	static bool Build(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance,
 		FGridItemExaminationData& Out);
@@ -76,6 +77,10 @@ protected:
 	TObjectPtr<UVerticalBox> VerticalBox_Stats;
 	UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inspection|Designer")
 	TObjectPtr<UWidget> Section_Stats;
+	UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inspection|Designer")
+	TObjectPtr<UVerticalBox> VerticalBox_Actions;
+	UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inspection|Designer")
+	TObjectPtr<UWidget> Section_Actions;
 
 	UPROPERTY(meta=(BindWidgetOptional), BlueprintReadOnly, Category="Inspection|Designer")
 	TObjectPtr<UButton> Button_Close;

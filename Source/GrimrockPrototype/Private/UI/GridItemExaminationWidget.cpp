@@ -42,6 +42,32 @@ namespace
 		Fact.Label = FUILocalizationText::Get(Key);
 		Fact.ValueText = Value;
 	}
+
+	void AddBonus(TArray<FGridWeaponTooltipFact>& Facts, FName Id, const TCHAR* Key, double Value)
+	{
+		if (!FMath::IsNearlyZero(Value))
+		{
+			const FText Number = FText::AsNumber(Value);
+			const FText Signed = Value > 0.0
+				? FText::FormatNamed(FUILocalizationText::Get(TEXT("Inventory.Tooltip.Global.PositiveDelta")), TEXT("Value"), Number)
+				: Number;
+			AddFact(Facts, Id, Key, Signed);
+		}
+	}
+
+	FText ActionCost(int32 AP, int32 Mana)
+	{
+		return FText::FormatNamed(FUILocalizationText::Get(TEXT("Combat.Cost.ActionPointsMana")),
+			TEXT("ActionPoints"), AP, TEXT("Mana"), Mana);
+	}
+
+	void AddAction(TArray<FGridWeaponTooltipFact>& Actions, FName Id, const FText& Label, const FText& Value)
+	{
+		FGridWeaponTooltipFact& Fact = Actions.AddDefaulted_GetRef();
+		Fact.StatId = Id;
+		Fact.Label = Label;
+		Fact.ValueText = Value;
+	}
 }
 
 bool FGridItemExaminationData::Build(const UGridItemSubsystem* Registry, const FGridItemInstance& Instance,
@@ -80,6 +106,73 @@ bool FGridItemExaminationData::Build(const UGridItemSubsystem* Registry, const F
 					Out.View.PhysicalReserve.NominalPhysicalArmor)));
 		}
 	}
+	if (!Out.View.HasLevel() && Out.View.HasEquipment())
+	{
+		const FGridEquipmentStatBonus& Bonus = Out.View.Item.NonArmEquipmentBonuses;
+		const FGridDamageResistanceSet& Resist = Out.View.Item.NonArmEquipmentResistances;
+		AddBonus(Out.Facts, TEXT("Strength"), TEXT("Inventory.Tooltip.Global.Stat.Strength"), Bonus.StrengthBonus);
+		AddBonus(Out.Facts, TEXT("Dexterity"), TEXT("Inventory.Tooltip.Global.Stat.Dexterity"), Bonus.DexterityBonus);
+		AddBonus(Out.Facts, TEXT("Constitution"), TEXT("Inventory.Tooltip.Global.Stat.Constitution"), Bonus.ConstitutionBonus);
+		AddBonus(Out.Facts, TEXT("Intelligence"), TEXT("Inventory.Tooltip.Global.Stat.Intelligence"), Bonus.IntelligenceBonus);
+		AddBonus(Out.Facts, TEXT("Wisdom"), TEXT("Inventory.Tooltip.Global.Stat.Wisdom"), Bonus.WisdomBonus);
+		AddBonus(Out.Facts, TEXT("Charisma"), TEXT("Inventory.Tooltip.Global.Stat.Charisma"), Bonus.CharismaBonus);
+		AddBonus(Out.Facts, TEXT("MaxHealth"), TEXT("Inventory.Tooltip.Global.Stat.MaxHealth"), Bonus.MaxHealthBonus);
+		AddBonus(Out.Facts, TEXT("MaxMana"), TEXT("Inventory.Tooltip.Global.Stat.MaxMana"), Bonus.MaxManaBonus);
+		AddBonus(Out.Facts, TEXT("CarryWeight"), TEXT("Inventory.Tooltip.Global.Stat.CarryWeight"), Bonus.CarryWeightBonus);
+		AddBonus(Out.Facts, TEXT("PhysicalResistance"), TEXT("Inventory.Tooltip.Global.Stat.PhysicalResistance"), Resist.PhysicalResistance);
+		AddBonus(Out.Facts, TEXT("FireResistance"), TEXT("Inventory.Tooltip.Global.Stat.FireResistance"), Resist.FireResistance);
+		AddBonus(Out.Facts, TEXT("IceResistance"), TEXT("Inventory.Tooltip.Global.Stat.IceResistance"), Resist.IceResistance);
+		AddBonus(Out.Facts, TEXT("LightningResistance"), TEXT("Inventory.Tooltip.Global.Stat.LightningResistance"), Resist.LightningResistance);
+		AddBonus(Out.Facts, TEXT("PoisonResistance"), TEXT("Inventory.Tooltip.Global.Stat.PoisonResistance"), Resist.PoisonResistance);
+		AddBonus(Out.Facts, TEXT("HolyResistance"), TEXT("Inventory.Tooltip.Global.Stat.HolyResistance"), Resist.HolyResistance);
+		AddBonus(Out.Facts, TEXT("NecroticResistance"), TEXT("Inventory.Tooltip.Global.Stat.NecroticResistance"), Resist.NecroticResistance);
+		AddBonus(Out.Facts, TEXT("ArcaneResistance"), TEXT("Inventory.Tooltip.Global.Stat.ArcaneResistance"), Resist.ArcaneResistance);
+	}
+	// The physical reserve is authoritative; do not add a second nominal bonus.
+	if (Out.View.bHasPhysicalReserve && Out.View.PhysicalReserve.NominalMagicalArmor > 0)
+	{
+		if (FGridWeaponTooltipFact* Magic = Out.Facts.FindByPredicate([](const FGridWeaponTooltipFact& Fact)
+			{ return Fact.StatId == TEXT("WeaponMagicalArmor"); }))
+		{
+			Magic->ValueText = FText::FromString(FString::Printf(TEXT("%d/%d"),
+				Out.View.PhysicalReserve.RemainingMagicalArmor, Out.View.PhysicalReserve.NominalMagicalArmor));
+		}
+	}
+	for (const FGridItemActionBinding& Binding : Out.View.Item.AvailableActions)
+	{
+		FGridCombatActionDefinition Detailed;
+		if (Registry->ResolveDetailedNonArmAction(Out.View.Item, Binding.ActionId, Detailed))
+		{
+			AddAction(Out.Actions, Binding.ActionId,
+				Detailed.DisplayName.IsEmpty() ? Out.View.Item.DisplayName : Detailed.DisplayName,
+				ActionCost(Detailed.ActionPointCost, Detailed.ResourceCosts.ManaCost));
+			continue;
+		}
+		FGridResolvedBoundAction Bound;
+		if (!Registry->ResolveBoundAction(Out.View.Item, Binding.ActionId, Bound))
+		{
+			continue;
+		}
+		// Compact actions have no authored display name. Present only their known
+		// category/cost; never expose technical IDs or invent an AP cost for Use/Defend.
+		switch (Bound.Action.Kind)
+		{
+			case EGridActionKind::Attack:
+				AddAction(Out.Actions, Binding.ActionId,
+					FUILocalizationText::Get(TEXT("Combat.Tooltip.Section.Attack")),
+					Out.View.HasAttackStats() ? ActionCost(Out.View.Item.Weapon.ActionPointCost, Bound.Action.ManaCost) : FText::GetEmpty());
+				break;
+			case EGridActionKind::Defend:
+				AddAction(Out.Actions, Binding.ActionId,
+					FUILocalizationText::Get(TEXT("Combat.Tooltip.Label.Defense")), Out.View.Item.DisplayName);
+				break;
+			case EGridActionKind::Use:
+			case EGridActionKind::Ability:
+				AddAction(Out.Actions, Binding.ActionId,
+					FUILocalizationText::Get(TEXT("UI.Section.Usage")), Out.View.Item.DisplayName);
+				break;
+		}
+	}
 	return true;
 }
 
@@ -87,7 +180,7 @@ bool UGridItemExaminationWidget::HasDesignerContract() const
 {
 	return Image_RenderTarget && Image_FallbackIcon && Text_PreviewUnavailable &&
 		Text_ItemName && Text_ItemLevel && Border_LevelBadge && Text_Description &&
-		Text_Weight && Text_Quantity && VerticalBox_Stats && Section_Stats &&
+		Text_Weight && Text_Quantity && VerticalBox_Stats && Section_Stats && VerticalBox_Actions && Section_Actions &&
 		Button_Close && Button_Front && Button_Profile && Button_Back && Button_Reset &&
 		StatRowWidgetClass;
 }
@@ -141,6 +234,17 @@ bool UGridItemExaminationWidget::PresentItem(const UGridItemSubsystem* Registry,
 		VerticalBox_Stats->AddChildToVerticalBox(Row);
 	}
 	SetShown(Section_Stats, !Data.Facts.IsEmpty());
+	for (const FGridWeaponTooltipFact& Fact : Data.Actions)
+	{
+		UGridItemTooltipWeaponLineWidget* Row = CreateWidget<UGridItemTooltipWeaponLineWidget>(this, StatRowWidgetClass);
+		if (!Row || !Row->PresentFact(Fact))
+		{
+			ClearExamination();
+			return false;
+		}
+		VerticalBox_Actions->AddChildToVerticalBox(Row);
+	}
+	SetShown(Section_Actions, !Data.Actions.IsEmpty());
 
 	Image_FallbackIcon->SetBrushFromTexture(View.Item.ItemIcon.LoadSynchronous(), false);
 	PresentationWorld = GetWorld();
@@ -165,12 +269,14 @@ void UGridItemExaminationWidget::ClearExamination()
 	SetShown(Text_PreviewUnavailable, false);
 	SetShown(Border_LevelBadge, false);
 	SetShown(Section_Stats, false);
+	SetShown(Section_Actions, false);
 	SetValue(Text_ItemName, FText::GetEmpty());
 	SetValue(Text_ItemLevel, FText::GetEmpty());
 	SetValue(Text_Description, FText::GetEmpty());
 	SetValue(Text_Weight, FText::GetEmpty());
 	SetValue(Text_Quantity, FText::GetEmpty());
 	if (VerticalBox_Stats) VerticalBox_Stats->ClearChildren();
+	if (VerticalBox_Actions) VerticalBox_Actions->ClearChildren();
 	Preview.Close();
 }
 
