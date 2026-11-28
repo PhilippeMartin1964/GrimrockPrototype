@@ -7,7 +7,7 @@
 #include "Runtime/Inspection/GridItemMeshPresentation.h"
 #include "UObject/Package.h"
 #include "../EditorTools/Inspection/GridItemWorkshopSession.h"
-#include "../EditorTools/Inspection/GridItemWorkshopOrbit.h"
+#include "Runtime/Inspection/GridItemInspectionOrbit.h"
 #include "../EditorTools/Inspection/GridItemWorkshopContext.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopCatalogueTest,
@@ -72,7 +72,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopOrbitTest,
 
 bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 {
-	FGridItemWorkshopOrbit Orbit;
+	FGridItemInspectionOrbit Orbit;
 	const FVector Center(74.0, -39.0, 61.0);
 	const FBoxSphereBounds Bounds(Center, FVector(35.0, 4.0, 10.0), 37.0);
 	Orbit.SetBounds(Bounds, true);
@@ -95,7 +95,7 @@ bool FGridEditorItemWorkshopOrbitTest::RunTest(const FString&)
 		Orbit.Zoom(1.0);
 	}
 	TestTrue(TEXT("Zoom clamps outside bounds"), FMath::IsNearlyEqual(Orbit.GetDistance(), Orbit.MinDistance()));
-	TestTrue(TEXT("Optical detail zoom reaches minimum FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemWorkshopOrbit::DetailFovDegrees, 0.001));
+	TestTrue(TEXT("Optical detail zoom reaches minimum FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemInspectionOrbit::DetailFovDegrees, 0.001));
 	for (int32 Index = 0; Index < 100; ++Index)
 	{
 		Orbit.Zoom(-1.0);
@@ -165,7 +165,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridEditorItemWorkshopDetailNavigationTest,
 
 bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 {
-	FGridItemWorkshopOrbit Orbit;
+	FGridItemInspectionOrbit Orbit;
 	const FVector Center(12.0, -37.0, 25.0);
 	const FBoxSphereBounds Sword(Center, FVector(0.8, 5.0, 55.0), 56.0);
 	Orbit.SetBounds(Sword, true, FRotator::ZeroRotator);
@@ -175,7 +175,7 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 		Orbit.Zoom(1.0);
 	}
 	TestTrue(TEXT("Physical camera reaches half a centimetre from the broadside bounds"), FMath::IsNearlyEqual(Orbit.GetDistance(), 1.3, 0.001));
-	TestTrue(TEXT("Close-up has a locally safe near plane"), FGridItemWorkshopOrbit::NearClipCm < FGridItemWorkshopOrbit::SurfaceClearanceCm);
+	TestTrue(TEXT("Close-up has a locally safe near plane"), FGridItemInspectionOrbit::NearClipCm < FGridItemInspectionOrbit::SurfaceClearanceCm);
 	TestTrue(TEXT("Extra detail is available without crossing the mesh"), Orbit.ViewFov() <= 2.001);
 	const FVector CameraBefore = Orbit.CameraLocation();
 	const FQuat RotationBefore = Orbit.Orientation;
@@ -202,7 +202,7 @@ bool FGridEditorItemWorkshopDetailNavigationTest::RunTest(const FString&)
 	Orbit.Pan(FVector2D(500.0, -300.0), 1000.0);
 	Orbit.SetBounds(Sword, true);
 	TestTrue(TEXT("Recenter clears pan"), Orbit.PanOffset.IsNearlyZero());
-	TestTrue(TEXT("Recenter resets detail FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemWorkshopOrbit::DefaultFovDegrees));
+	TestTrue(TEXT("Recenter resets detail FOV"), FMath::IsNearlyEqual(Orbit.ViewFov(), FGridItemInspectionOrbit::DefaultFovDegrees));
 	Orbit.SetBounds(FBoxSphereBounds(Center, FVector(0.2), 0.35), true, FRotator::ZeroRotator);
 	for (int32 Index = 0; Index < 100; ++Index)
 	{
@@ -239,7 +239,7 @@ bool FGridEditorItemWorkshopCompareTest::RunTest(const FString&)
 	TestTrue(TEXT("Select N0"), Session.Select(TEXT("Stone")));
 	TestFalse(TEXT("No invented comparison level on N0"), Session.ResolveComparison(1, B));
 
-	FGridItemWorkshopOrbit A, CameraB;
+	FGridItemInspectionOrbit A, CameraB;
 	const FBoxSphereBounds Bounds(FVector(7.0, 3.0, -4.0), FVector(1.0, 5.0, 55.0), 56.0);
 	A.SetBounds(Bounds, true);
 	CameraB.SetBounds(Bounds, true);

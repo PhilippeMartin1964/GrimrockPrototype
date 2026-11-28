@@ -11,6 +11,7 @@
 #include "Runtime/GridItemVisualEffectsComponent.h"
 #include "Runtime/Inspection/GridItemInspectionReadModel.h"
 #include "Runtime/Inspection/GridItemPreviewActor.h"
+#include "Runtime/Inspection/GridItemRuntimePreview.h"
 #include "Tests/GridCanonicalRegistryFixture.h"
 
 namespace
@@ -344,6 +345,69 @@ bool FGridItemInspectionOrnamentTest::RunTest(const FString&)
 	B->ClearPreview();
 	B->ClearPreview();
 	TestNull(TEXT("Repeated cleanup releases child"), Child->GetStaticMesh());
+	return !HasAnyErrors();
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridItemRuntimePreviewTest, "Grimrock.UI.Items.Inspection.RuntimePreview",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridItemRuntimePreviewTest::RunTest(const FString&)
+{
+	const FGridCanonicalRegistryFixture Fixture;
+	FInspectionTestWorld Host(EWorldType::Game);
+	if (!TestTrue(TEXT("Production registry configured"), Fixture.bReady) ||
+		!TestTrue(TEXT("Host world available"), Host.World != nullptr))
+	{
+		return false;
+	}
+	FGridItemRuntimePreview Preview;
+	FGridItemRuntimePreview Other;
+	TestFalse(TEXT("Null player world refused"), Preview.Open(nullptr));
+	if (!TestTrue(TEXT("Private runtime preview opens"), Preview.Open(Host.World)) ||
+		!TestTrue(TEXT("Second private preview opens"), Other.Open(Host.World)))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Runtime world type is GamePreview"), Preview.GetPreviewWorld()->WorldType == EWorldType::GamePreview);
+	TestTrue(TEXT("World isolated from player"), Preview.GetPreviewWorld() != Host.World);
+	TestTrue(TEXT("Sessions have distinct worlds"), Preview.GetPreviewWorld() != Other.GetPreviewWorld());
+	TestTrue(TEXT("Preview actor belongs to private world"), Preview.GetPreviewActor()->GetWorld() == Preview.GetPreviewWorld());
+
+	FGridItemInspectionView View;
+	const FGridItemInstance Sword = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);
+	if (!TestTrue(TEXT("Resolve real N5 item"), FGridItemInspectionReadModel::ResolvePhysical(Fixture.Registry.Get(), Sword, View)) ||
+		!TestTrue(TEXT("Preview ready"), Preview.Present(View) == EGridItemPreviewResult::Ready))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Canonical mesh presented"), Preview.GetPreviewActor()->GetPreviewMesh()->GetStaticMesh() == View.Item.WorldMesh.Get());
+	TestFalse(TEXT("Preview not interactive"), Preview.GetPreviewActor()->GetActorEnableCollision());
+	TestTrue(TEXT("Orbit initialized"), Preview.GetOrbit().bReady);
+	const FQuat InitialRotation = Preview.GetOrbit().Orientation;
+	Preview.Drag(FVector2D(100.0, 20.0));
+	TestFalse(TEXT("Orbit rotates"), Preview.GetOrbit().Orientation.Equals(InitialRotation));
+	const double InitialDistance = Preview.GetOrbit().RequestedDistance;
+	Preview.Zoom(1.0);
+	TestTrue(TEXT("Zoom reduces requested distance"), Preview.GetOrbit().RequestedDistance < InitialDistance);
+	Preview.Pan(FVector2D(10.0, 20.0), 512.0);
+	TestFalse(TEXT("Pan changes offset"), Preview.GetOrbit().PanOffset.IsNearlyZero());
+	Preview.Frame();
+	TestTrue(TEXT("Recenter clears pan"), Preview.GetOrbit().PanOffset.IsNearlyZero());
+	TestFalse(TEXT("Other session unaffected"), Other.GetOrbit().bReady);
+	TestTrue(TEXT("No capture requested in NullRHI test"), Preview.GetRenderTarget() == nullptr);
+
+	View.Item.WorldMesh.Reset();
+	TestTrue(TEXT("Missing mesh diagnosed"), Preview.Present(View) == EGridItemPreviewResult::MissingMesh);
+	TestFalse(TEXT("Missing mesh clears navigation"), Preview.GetOrbit().bReady);
+	TestTrue(TEXT("Missing mesh cannot expose previous capture"), Preview.GetRenderTarget() == nullptr);
+	TestNull(TEXT("Missing mesh clears actor"), Preview.GetPreviewActor()->GetPreviewMesh()->GetStaticMesh());
+	Preview.Close();
+	Preview.Close();
+	TestFalse(TEXT("Close is idempotent"), Preview.IsOpen());
+	TestTrue(TEXT("World released"), Preview.GetPreviewWorld() == nullptr);
+	TestTrue(TEXT("Second session still open"), Other.IsOpen());
+	TestTrue(TEXT("Can reopen"), Preview.Open(Host.World));
+	Preview.Close();
 	return !HasAnyErrors();
 }
 

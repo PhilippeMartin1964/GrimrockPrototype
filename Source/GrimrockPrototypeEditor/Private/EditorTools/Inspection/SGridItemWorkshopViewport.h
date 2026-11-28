@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "SEditorViewport.h"
 #include "Widgets/SCompoundWidget.h"
-#include "GridItemWorkshopOrbit.h"
+#include "Runtime/Inspection/GridItemInspectionOrbit.h"
 #include "GridItemWorkshopContext.h"
 #include "InputCoreTypes.h"
 #include "Runtime/Inspection/GridItemInspectionTypes.h"
@@ -45,7 +45,7 @@ private:
 	TWeakObjectPtr<UStaticMeshComponent> StageWall;
 	bool bStageError = false;
 	TWeakPtr<SGridItemWorkshopViewport> LinkedViewport;
-	FGridItemWorkshopOrbit Orbit;
+	FGridItemInspectionOrbit Orbit;
 	TSharedPtr<FAdvancedPreviewScene> Scene;
 	TSharedPtr<FGridItemWorkshopViewportClient> WorkshopClient;
 	TWeakObjectPtr<AGridItemPreviewActor> Preview;

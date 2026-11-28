@@ -167,7 +167,7 @@ public:
 		SetRealtime(true);
 		SetViewRotation(FRotator(-12.0, 35.0, 0.0));
 		ToggleOrbitCamera(false);
-		OverrideNearClipPlane(static_cast<float>(FGridItemWorkshopOrbit::NearClipCm));
+		OverrideNearClipPlane(static_cast<float>(FGridItemInspectionOrbit::NearClipCm));
 	}
 
 	virtual FLinearColor GetBackgroundColor() const override { return FLinearColor::Black; }

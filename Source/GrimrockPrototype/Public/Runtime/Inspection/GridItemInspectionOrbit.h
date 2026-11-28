@@ -5,7 +5,7 @@
 /** Object-centred inspection camera. Distances are actual Unreal centimetres.
  * Pan is a camera-plane offset, not a modification of the mesh or its pivot.
  */
-struct FGridItemWorkshopOrbit
+struct FGridItemInspectionOrbit
 {
 	static constexpr double NearClipCm = 0.1;
 	static constexpr double SurfaceClearanceCm = 0.5;
@@ -69,7 +69,7 @@ struct FGridItemWorkshopOrbit
 	}
 
 	// Copy navigation, not the target object's geometry or readiness.
-	void MatchFraming(const FGridItemWorkshopOrbit& Other)
+	void MatchFraming(const FGridItemInspectionOrbit& Other)
 	{
 		Orientation = Other.Orientation;
 		RequestedDistance = Other.RequestedDistance;
