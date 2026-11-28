@@ -3,6 +3,8 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Runtime/GridItemVisualEffectsComponent.h"
@@ -12,6 +14,12 @@ AGridItemPreviewActor::AGridItemPreviewActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	SetActorEnableCollision(false);
+
+	// Native runtime asset reference, not an editor-only preview profile.
+	// Retain on the class for cooking; never change the item's materials.
+	static ConstructorHelpers::FObjectFinder<UTextureCube> Studio(
+		TEXT("/Engine/MapTemplates/Sky/DaylightAmbientCubemap.DaylightAmbientCubemap"));
+	StudioCubemap = Studio.Object;
 
 	USceneComponent* ObservationRoot = CreateDefaultSubobject<USceneComponent>(TEXT("ObservationRoot"));
 	SetRootComponent(ObservationRoot);

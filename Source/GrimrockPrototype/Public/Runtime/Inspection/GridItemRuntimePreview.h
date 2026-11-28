@@ -5,6 +5,7 @@
 #include "Runtime/Inspection/GridItemInspectionOrbit.h"
 
 class FPreviewScene;
+class UDirectionalLightComponent;
 class AGridItemPreviewActor;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
@@ -45,6 +46,8 @@ private:
 	TWeakObjectPtr<UWorld> OwnerWorld;
 	TWeakObjectPtr<AGridItemPreviewActor> Actor;
 	TWeakObjectPtr<USceneCaptureComponent2D> Camera;
+	TWeakObjectPtr<UDirectionalLightComponent> FillLight;
+	bool bStudioCaptureDirty = false;
 	FGridItemInspectionOrbit Orbit;
 	bool bCaptureRequested = false;
 };

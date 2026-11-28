@@ -2,6 +2,8 @@
 
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/SkyLightComponent.h"
+#include "Engine/TextureCube.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/World.h"
 #include "Misc/App.h"
@@ -29,7 +31,7 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 	Scene = MakeUnique<FPreviewScene>(FPreviewScene::ConstructionValues()
 		.SetEditor(false).SetCreatePhysicsScene(false).ShouldSimulatePhysics(false)
 		.AllowAudioPlayback(false).SetTransactional(false).SetForceMipsResident(false)
-		.SetLightRotation(FRotator(-40.0, 35.0, 0.0)).SetLightBrightness(3.0f).SetSkyBrightness(1.0f));
+		.SetLightRotation(FRotator(-40.0, 35.0, 0.0)).SetLightBrightness(12.0f).SetSkyBrightness(1.0f));
 	UWorld* PreviewWorld = Scene->GetWorld();
 	if (!PreviewWorld || PreviewWorld == PlayerWorld || PreviewWorld->WorldType != EWorldType::GamePreview)
 	{
@@ -48,21 +50,33 @@ bool FGridItemRuntimePreview::Open(UWorld* PlayerWorld)
 		return false;
 	}
 
+	// An empty black world cannot supply reflections for metallic materials.
+	// Use a specified cubemap for illumination only, never a sky mesh.
+	if (UTextureCube* Studio = Actor->GetStudioCubemap())
+	{
+		Scene->SkyLight->SourceType = SLS_SpecifiedCubemap;
+		Scene->SkyLight->bLowerHemisphereIsBlack = false;
+		Scene->SkyLight->SetCubemap(Studio);
+		bStudioCaptureDirty = true;
+	}
+	Scene->DirectionalLight->SetMobility(EComponentMobility::Movable);
 	// A second directional source improves legibility without a visible sky dome.
 	UDirectionalLightComponent* Fill = NewObject<UDirectionalLightComponent>(GetTransientPackage(), NAME_None, RF_Transient);
 	Fill->SetMobility(EComponentMobility::Movable);
-	Fill->SetIntensity(1.5f);
+	Fill->SetIntensity(6.0f);
 	Scene->AddComponent(Fill, FTransform(FRotator(-25.0, -135.0, 0.0)), false);
+	FillLight = Fill;
 
 	USceneCaptureComponent2D* CaptureComponent = NewObject<USceneCaptureComponent2D>(GetTransientPackage(), NAME_None, RF_Transient);
 	CaptureComponent->SetMobility(EComponentMobility::Movable);
 	CaptureComponent->bCaptureEveryFrame = false;
 	CaptureComponent->bCaptureOnMovement = false;
 	CaptureComponent->CaptureSource = SCS_FinalColorLDR;
+	CaptureComponent->PostProcessBlendWeight = 1.0f;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Manual;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	CaptureComponent->PostProcessSettings.AutoExposureBias = 0.0f;
+	CaptureComponent->PostProcessSettings.AutoExposureBias = 1.0f;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
 	CaptureComponent->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure = false;
 	Scene->AddComponent(CaptureComponent, FTransform::Identity, false);
@@ -87,6 +101,8 @@ void FGridItemRuntimePreview::Close()
 		}
 	}
 	Camera.Reset();
+	FillLight.Reset();
+	bStudioCaptureDirty = false;
 	OwnerWorld.Reset();
 	Scene.Reset();
 }
@@ -139,6 +155,13 @@ void FGridItemRuntimePreview::UpdateCamera()
 	{
 		Camera->SetWorldLocationAndRotation(Orbit.CameraLocation(), Orbit.ViewRotation());
 		Camera->FOVAngle = static_cast<float>(Orbit.ViewFov());
+		// Follow the view, not the mesh: both broad faces remain lit while orbiting.
+		const FQuat View = Orbit.Orientation;
+		Scene->DirectionalLight->SetWorldRotation((View * FRotator(-30.0, 35.0, 0.0).Quaternion()).Rotator());
+		if (UDirectionalLightComponent* Fill = FillLight.Get())
+		{
+			Fill->SetWorldRotation((View * FRotator(20.0, -45.0, 0.0).Quaternion()).Rotator());
+		}
 	}
 }
 
@@ -156,6 +179,13 @@ bool FGridItemRuntimePreview::Capture()
 		Target->RenderTargetFormat = RTF_RGBA8;
 		Target->InitAutoFormat(1024, 1024);
 		CaptureComponent->TextureTarget = Target;
+	}
+	if (bStudioCaptureDirty)
+	{
+		// GamePreview is not ticked by the dungeon world. Process the
+		// specified cubemap before requesting the first image.
+		Scene->UpdateCaptureContents();
+		bStudioCaptureDirty = false;
 	}
 	CaptureComponent->CaptureScene();
 	bCaptureRequested = true;

@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Engine/TextureCube.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -374,6 +375,7 @@ bool FGridItemRuntimePreviewTest::RunTest(const FString&)
 	TestTrue(TEXT("World isolated from player"), Preview.GetPreviewWorld() != Host.World);
 	TestTrue(TEXT("Sessions have distinct worlds"), Preview.GetPreviewWorld() != Other.GetPreviewWorld());
 	TestTrue(TEXT("Preview actor belongs to private world"), Preview.GetPreviewActor()->GetWorld() == Preview.GetPreviewWorld());
+	TestTrue(TEXT("Runtime studio environment asset available"), Preview.GetPreviewActor()->GetStudioCubemap() != nullptr);
 
 	FGridItemInspectionView View;
 	const FGridItemInstance Sword = MakePhysicalItem(TEXT("Weapon_StraightSword_01"), 5);
